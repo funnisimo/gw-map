@@ -12,6 +12,6 @@
 		"declaration": true,
     "moduleResolution": "node",
     "esModuleInterop": true,
-		"types": ["jest", "jest-extended"]
+		// "types": ["jest", "jest-extended"]
     }
 }
