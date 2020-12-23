@@ -8,7 +8,7 @@ import {
 
 import { Tile as Flags, TileMech as MechFlags, Layer } from "./flags";
 import { Activation } from "./activation";
-import { Light, lights } from "./light";
+import * as Light from "./light";
 
 export { Flags, MechFlags, Layer };
 
@@ -20,6 +20,8 @@ export interface NameConfig {
 export type TileBase = TileConfig | string;
 
 export interface FullTileConfig {
+  Extends: string | Tile;
+
   flags: number | string | any[];
   mechFlags: number | string | any[];
   layer: Layer | keyof typeof Layer;
@@ -27,7 +29,7 @@ export interface FullTileConfig {
 
   sprite: Canvas.SpriteConfig;
   activates: any;
-  light: Light | string | null;
+  light: Light.LightBase | null;
 
   flavor: string;
   desc: string;
@@ -56,7 +58,7 @@ export class Tile implements Types.TileType {
 
   public sprite: Canvas.Sprite = {} as Canvas.Sprite;
   public activates: Record<string, Activation> = {};
-  public light: any = null; // TODO - Light
+  public light: Light.Light | null = null; // TODO - Light
 
   public flavor: string | null = null;
   public desc: string | null = null;
@@ -95,7 +97,7 @@ export class Tile implements Types.TileType {
       this,
       config
     );
-    this.name = config.name || (base ? base.name : "tile");
+    this.name = config.name || (base ? base.name : config.id);
     this.id = config.id;
 
     if (this.priority < 0) {
@@ -116,11 +118,8 @@ export class Tile implements Types.TileType {
     );
 
     if (config.light) {
-      if (typeof config.light === "string") {
-        this.light = lights[config.light] || null;
-      } else {
-        this.light = config.light;
-      }
+      // Light.from will throw an Error on invalid config
+      this.light = Light.from(config.light) || null;
     }
 
     if (config.sprite) {
@@ -174,6 +173,10 @@ export class Tile implements Types.TileType {
     return (this.flags & flag) > 0;
   }
 
+  hasMechFlag(flag: number) {
+    return (this.mechFlags & flag) > 0;
+  }
+
   hasFlags(flags: number, mechFlags: number) {
     return (
       (!flags || this.flags & flags) &&
@@ -181,23 +184,22 @@ export class Tile implements Types.TileType {
     );
   }
 
-  hasMechFlag(flag: number) {
-    return (this.mechFlags & flag) > 0;
-  }
-
-  hasEvent(name: string) {
+  activatesOn(name: string) {
     return !!this.activates[name];
   }
 
-  getName(opts: NameConfig = {}) {
-    if (opts === true) {
-      opts = { article: true };
-    }
-    if (opts === false) {
-      opts = {};
-    }
-    if (typeof opts === "string") {
-      opts = { article: opts };
+  getName(): string;
+  getName(opts: NameConfig): string;
+  getName(article: string): string;
+  getName(article: boolean): string;
+  getName(arg?: any) {
+    let opts: NameConfig = {};
+    if (arg === true || arg === false) {
+      opts.article = arg;
+    } else if (typeof arg === "string") {
+      opts.article = arg;
+    } else if (arg) {
+      opts = arg;
     }
 
     if (!opts.article && !opts.color) return this.name;
@@ -211,16 +213,17 @@ export class Tile implements Types.TileType {
       result = `Ω${color}Ω${this.name}∆`;
     }
 
-    if (opts.article && this.article) {
-      let article = opts.article === true ? this.article : opts.article;
+    if (opts.article) {
+      let article =
+        typeof opts.article === "string" ? opts.article : this.article || "a";
       result = article + " " + result;
     }
     return result;
   }
 
-  //   getDescription(opts = {}) {
-  //     return this.getName(opts);
-  //   }
+  getDescription(opts: any = {}) {
+    return this.getName(opts);
+  }
 
   //   getFlavor() {
   //     return this.flavor || this.getName(true);
@@ -295,6 +298,7 @@ export function install(...args: any[]) {
  */
 export function installAll(config: Record<string, Partial<TileConfig>>): void {
   Object.entries(config).forEach(([id, opts]) => {
+    opts.id = id;
     install(id, opts);
   });
 }

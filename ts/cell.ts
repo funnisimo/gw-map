@@ -591,7 +591,7 @@ export class Cell implements Types.CellType {
 
   // EVENTS
 
-  async fireEvent(name: string, ctx: any = {}) {
+  async activate(name: string, ctx: any = {}) {
     ctx.cell = this;
     let fired = false;
     // cell.debug("fire event - %s", name);
@@ -619,9 +619,9 @@ export class Cell implements Types.CellType {
     return fired;
   }
 
-  hasTileWithEvent(name: string) {
+  activatesOn(name: string) {
     for (let tile of this.tiles()) {
-      if (tile.hasEvent(name)) return true;
+      if (tile.activatesOn(name)) return true;
     }
     return false;
   }

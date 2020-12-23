@@ -1,3 +1,4 @@
+import "jest-extended";
 import * as Tile from "./tile";
 import { colors as COLORS } from "gw-utils";
 
@@ -45,17 +46,23 @@ describe("Tile", () => {
     expect(tile.priority).toEqual(90);
     expect(tile.name).toEqual("Stone Wall");
 
-    // expect(tile.getName()).toEqual('Stone Wall');
-    // expect(tile.getName('a')).toEqual('a Stone Wall');
-    // expect(tile.getName('the')).toEqual('the Stone Wall');
-    // expect(tile.getName(true)).toEqual('a Stone Wall');
+    expect(tile.getName()).toEqual("Stone Wall");
+    expect(tile.getName("a")).toEqual("a Stone Wall");
+    expect(tile.getName("the")).toEqual("the Stone Wall");
+    expect(tile.getName(true)).toEqual("a Stone Wall");
 
-    // expect(tile.getName({ color: true })).toEqual('Ωlight_grayΩStone Wall∆');
-    // expect(tile.getName({ color: true, article: 'a' })).toEqual('a Ωlight_grayΩStone Wall∆');
-    // expect(tile.getName({ color: true, article: 'the' })).toEqual('the Ωlight_grayΩStone Wall∆');
-    // expect(tile.getName({ color: true, article: true })).toEqual('a Ωlight_grayΩStone Wall∆');
+    expect(tile.getName({ color: true })).toEqual("Ωlight_grayΩStone Wall∆");
+    expect(tile.getName({ color: true, article: "a" })).toEqual(
+      "a Ωlight_grayΩStone Wall∆"
+    );
+    expect(tile.getName({ color: true, article: "the" })).toEqual(
+      "the Ωlight_grayΩStone Wall∆"
+    );
+    expect(tile.getName({ color: true, article: true })).toEqual(
+      "a Ωlight_grayΩStone Wall∆"
+    );
 
-    // expect(tile.getDescription()).toEqual(tile.getName());
+    expect(tile.getDescription()).toEqual(tile.getName());
   });
 
   test("can create without sprite field", () => {
@@ -114,28 +121,32 @@ describe("Tile", () => {
     // expect(glassWall.getName()).toEqual('Glass Wall');
   });
 
-  // test('can add multiple from an object', () => {
-  //   GW.tile.addKinds({
-  //     WALL: {
-  //       name: 'Stone Wall',
-  //       sprite: { ch: '#', fg: 'light_gray', bg: 'dark_gray' },
-  //       flags: ['T_OBSTRUCTS_EVERYTHING'],
-  //       priority: 90
-  //     },
-  //     GLASS_WALL: {
-  //       Extends: 'WALL',
-  //       name: 'Glass Wall',
-  //       sprite: { fg: 'teal', bg: 'silver' },
-  //       flags: ['!T_OBSTRUCTS_VISION']
-  //     }
-  //   });
+  test("can add multiple from an object", () => {
+    Tile.installAll({
+      WALL: {
+        name: "Stone Wall",
+        sprite: { ch: "#", fg: "light_gray", bg: "dark_gray" },
+        flags: ["T_OBSTRUCTS_EVERYTHING"],
+        priority: 90,
+      },
+      GLASS_WALL: {
+        Extends: "WALL",
+        name: "Glass Wall",
+        sprite: { fg: "teal", bg: "silver" },
+        flags: ["!T_OBSTRUCTS_VISION"],
+      },
+    });
 
-  //   expect(GW.tiles.WALL.getName()).toEqual('Stone Wall');
-  //   expect(GW.tiles.WALL.flags).toEqual(Tile.Flags.T_OBSTRUCTS_EVERYTHING);
-  //   expect(GW.tiles.GLASS_WALL.getName()).toEqual('Glass Wall');
-  //   expect(GW.tiles.GLASS_WALL.flags & Tile.Flags.T_OBSTRUCTS_VISION).toBeFalsy();
-  //   expect(GW.tiles.GLASS_WALL.flags & Tile.Flags.T_OBSTRUCTS_PASSABILITY).toBeTruthy();
-  // });
+    expect(Tile.tiles.WALL.getName()).toEqual("Stone Wall");
+    expect(Tile.tiles.WALL.flags).toEqual(Tile.Flags.T_OBSTRUCTS_EVERYTHING);
+    expect(Tile.tiles.GLASS_WALL.getName()).toEqual("Glass Wall");
+    expect(
+      Tile.tiles.GLASS_WALL.flags & Tile.Flags.T_OBSTRUCTS_VISION
+    ).toBeFalsy();
+    expect(
+      Tile.tiles.GLASS_WALL.flags & Tile.Flags.T_OBSTRUCTS_PASSABILITY
+    ).toBeTruthy();
+  });
 
   test("can set the layer", () => {
     const carpet = new Tile.Tile({
@@ -149,35 +160,51 @@ describe("Tile", () => {
     expect(carpet.layer).toEqual(Tile.Layer.SURFACE);
   });
 
-  // test('can use objects for activations', async () => {
-  //   const carpet = GW.tile.addKind('CARPET', {
-  //     name: 'Carpet',
-  //     sprite: { ch: '+', fg: '#f66', bg: '#ff6' },
-  //     events: {
-  //       tick: { chance: 0, log: 'testing' },
-  //     },
-  //     layer: 'SURFACE'
-  //   });
+  test("can use objects for activations", async () => {
+    const carpet = Tile.install("CARPET", {
+      sprite: { ch: "+", fg: "#f66", bg: "#ff6" },
+      activates: {
+        tick: { chance: 0, log: "testing" },
+      },
+      layer: "SURFACE",
+    });
 
-  //   expect(GW.tiles.CARPET).toBe(carpet);
-  //   expect(carpet.events.tick).not.toBeNil();
+    expect(Tile.tiles.CARPET).toBe(carpet);
+    expect(carpet.activates.tick).not.toBeNil();
 
-  //   // expect(carpet.hasEvent('tick')).toBeTruthy();
-  //   // expect(await carpet.fireEvent('tick')).toBeFalsy();
-  // });
+    expect(carpet.activatesOn("tick")).toBeTruthy();
+  });
 
-  // test('can be created by extending another tile', () => {
-  //   const WALL = GW.tiles.WALL;
-  //   expect(WALL).toBeDefined();
+  test("can be created by extending another tile", () => {
+    const WALL = Tile.tiles.WALL;
+    expect(WALL).toBeDefined();
 
-  //   const custom = GW.tile.addKind('CUSTOM', 'WALL', {
-  //     sprite: { ch: '+', fg: 'white' },
-  //     name: 'Custom Wall'
-  //   });
+    const custom = Tile.install("CUSTOM", "WALL", {
+      sprite: { ch: "+", fg: "white" },
+      name: "Custom Wall",
+    });
 
-  //   expect(custom.sprite).toEqual({ ch: '+', fg: GW.colors.white });
-  //   expect(custom.name).toEqual('Custom Wall');
-  // });
+    expect(custom.sprite).toEqual({ ch: "+", fg: COLORS.white, bg: -1 });
+    expect(custom.name).toEqual("Custom Wall");
+    expect(custom.id).toEqual("CUSTOM");
+  });
+
+  test("can have a glow light", () => {
+    const tile = Tile.install("TEST", {
+      light: "white, 3",
+      name: "test",
+    });
+
+    expect(tile.light).toBeObject();
+    expect(tile.light?.color).toEqual(COLORS.white);
+    expect(tile.light?.radius.value()).toEqual(3);
+    expect(tile.light?.fadeTo).toEqual(0);
+
+    expect(() => {
+      // @ts-ignore
+      Tile.install("TEST", { light: 4 });
+    }).toThrow();
+  });
 });
 
 // describe('tiles', () => {
@@ -200,7 +227,7 @@ describe("Tile", () => {
 
 //   describe('BRIDGE', () => {
 //     test('has see through bg', () => {
-//       const tile = GW.tiles.BRIDGE;
+//       const tile = Tile.tiles.BRIDGE;
 //       expect(tile.sprite.bg).toBeUndefined();
 //     });
 //   });
@@ -211,12 +238,12 @@ describe("Tile", () => {
 //       map.setTile(10, 10, 'DOOR');
 //       const cell = map.cell(10, 10);
 
-//       expect(GW.tiles.DOOR.events.enter).toBeDefined();
-//       expect(GW.tiles.DOOR.events.open).toBeDefined();
+//       expect(Tile.tiles.DOOR.events.enter).toBeDefined();
+//       expect(Tile.tiles.DOOR.events.open).toBeDefined();
 
-//       expect(GW.tiles.DOOR_OPEN.events.tick).toBeDefined();
-//       expect(GW.tiles.DOOR_OPEN.events.enter).not.toBeDefined();
-//       expect(GW.tiles.DOOR_OPEN.events.open).not.toBeDefined();
+//       expect(Tile.tiles.DOOR_OPEN.events.tick).toBeDefined();
+//       expect(Tile.tiles.DOOR_OPEN.events.enter).not.toBeDefined();
+//       expect(Tile.tiles.DOOR_OPEN.events.open).not.toBeDefined();
 
 //       expect(cell.ground).toEqual('DOOR');
 //       await cell.fireEvent('enter', ctx);

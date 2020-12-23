@@ -312,7 +312,7 @@
                 "bg",
                 "light",
             ], this, config);
-            this.name = config.name || (base ? base.name : "tile");
+            this.name = config.name || (base ? base.name : config.id);
             this.id = config.id;
             if (this.priority < 0) {
                 this.priority = 50;
@@ -389,15 +389,16 @@
         hasEvent(name) {
             return !!this.activates[name];
         }
-        getName(opts = {}) {
-            if (opts === true) {
-                opts = { article: true };
+        getName(arg) {
+            let opts = {};
+            if (arg === true || arg === false) {
+                opts.article = arg;
             }
-            if (opts === false) {
-                opts = {};
+            else if (typeof arg === "string") {
+                opts.article = arg;
             }
-            if (typeof opts === "string") {
-                opts = { article: opts };
+            else if (arg) {
+                opts = arg;
             }
             if (!opts.article && !opts.color)
                 return this.name;
@@ -409,11 +410,14 @@
                 }
                 result = `Ω${color}Ω${this.name}∆`;
             }
-            if (opts.article && this.article) {
-                let article = opts.article === true ? this.article : opts.article;
+            if (opts.article) {
+                let article = typeof opts.article === "string" ? opts.article : this.article || "a";
                 result = article + " " + result;
             }
             return result;
+        }
+        getDescription(opts = {}) {
+            return this.getName(opts);
         }
     }
     // Types.Tile = Tile;
@@ -450,6 +454,7 @@
      */
     function installAll(config) {
         Object.entries(config).forEach(([id, opts]) => {
+            opts.id = id;
             install(id, opts);
         });
     }

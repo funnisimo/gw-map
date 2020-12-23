@@ -51,7 +51,7 @@ export class Activation {
       };
     }
 
-    this.tile = opts.tile || 0;
+    this.tile = opts.tile || null;
     this.fn = opts.fn || null;
     this.item = opts.item || null;
     this.chance = opts.chance || 0;
@@ -70,7 +70,7 @@ export class Activation {
     this.flashColor = opts.flash ? Color.from(opts.flash) : null;
     // this.effectRadius = radius || 0;
     this.messageDisplayed = false;
-    this.emit = opts.event || opts.emit || null; // name of the event to emit when activated
+    this.emit = opts.emit || null; // name of the event to emit when activated
     this.id = opts.id || null;
   }
 }

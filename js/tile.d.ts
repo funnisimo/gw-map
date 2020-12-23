@@ -9,6 +9,7 @@ export interface NameConfig {
 }
 export declare type TileBase = TileConfig | string;
 export interface FullTileConfig {
+    Extends: string | Tile;
     flags: number | string | any[];
     mechFlags: number | string | any[];
     layer: Layer | keyof typeof Layer;
@@ -71,7 +72,11 @@ export declare class Tile implements Types.TileType {
     hasFlags(flags: number, mechFlags: number): number | true;
     hasMechFlag(flag: number): boolean;
     hasEvent(name: string): boolean;
-    getName(opts?: NameConfig): string;
+    getName(): string;
+    getName(opts: NameConfig): string;
+    getName(article: string): string;
+    getName(article: boolean): string;
+    getDescription(opts?: any): string;
 }
 export declare const tiles: Record<string, Tile>;
 /**

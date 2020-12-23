@@ -360,6 +360,7 @@ interface NameConfig {
 }
 declare type TileBase = TileConfig | string;
 interface FullTileConfig {
+    Extends: string | Tile$1;
     flags: number | string | any[];
     mechFlags: number | string | any[];
     layer: Layer | keyof typeof Layer;
@@ -422,7 +423,11 @@ declare class Tile$1 implements types.TileType {
     hasFlags(flags: number, mechFlags: number): number | true;
     hasMechFlag(flag: number): boolean;
     hasEvent(name: string): boolean;
-    getName(opts?: NameConfig): string;
+    getName(): string;
+    getName(opts: NameConfig): string;
+    getName(article: string): string;
+    getName(article: boolean): string;
+    getDescription(opts?: any): string;
 }
 declare const tiles: Record<string, Tile$1>;
 /**

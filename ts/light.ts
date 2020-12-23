@@ -6,6 +6,7 @@ import {
   data as DATA,
   config as CONFIG,
   types as Types,
+  make as Make,
 } from "gw-utils";
 import * as Flags from "./flags";
 import { Map } from "./map";
@@ -133,15 +134,15 @@ export interface LightConfig {
   pass?: boolean;
 }
 
+export type LightBase = LightConfig | string | any[];
+
 export function make(
   color: Color.ColorBase,
   radius: Range.RangeBase,
   fadeTo?: number,
   pass?: boolean
 ): Light;
-export function make(light: LightConfig): Light;
-export function make(config: string): Light;
-export function make(config: any[]): Light;
+export function make(light: LightBase): Light;
 export function make(...args: any[]) {
   if (args.length == 1) {
     const config = args[0];
@@ -177,7 +178,21 @@ export function make(...args: any[]) {
   }
 }
 
+Make.light = make;
+
 export const lights: Record<string, Light> = {};
+
+export function from(light: LightBase): Light;
+export function from(...args: any[]) {
+  if (args.length != 1)
+    Utils.ERROR("Unknown Light config: " + JSON.stringify(args));
+  const arg = args[0];
+  if (typeof arg === "string") {
+    const cached = lights[arg];
+    if (cached) return cached;
+  }
+  return make(arg);
+}
 
 // TODO - USE STRINGS FOR LIGHT SOURCE IDS???
 //      - addLightKind(id, source) { LIIGHT_SOURCES[id] = source; }
