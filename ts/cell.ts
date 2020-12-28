@@ -6,9 +6,10 @@ import {
   data as DATA,
   types as Types,
   random,
+  make as Make,
 } from "gw-utils";
 import { Tile, tiles as TILES, Layer } from "./tile";
-import { Map } from "./map";
+import * as Map from "./map";
 import * as Activation from "./activation";
 import * as Light from "./light";
 import {
@@ -479,7 +480,7 @@ export class Cell implements Types.CellType {
     );
   }
 
-  _setTile(tileId: Tile | string | null = null, volume = 0, map?: Map) {
+  _setTile(tileId: Tile | string | null = null, volume = 0, map?: Map.Map) {
     map = map || DATA.map;
     let tile;
     if (tileId === null) {
@@ -725,6 +726,8 @@ export function make() {
   const cell = new Cell();
   return cell;
 }
+
+Make.cell = make;
 
 export function getAppearance(cell: Cell, dest: Canvas.Mixer) {
   const memory = cell.memory.mixer;

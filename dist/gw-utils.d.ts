@@ -164,6 +164,17 @@ declare enum CellMech {
     IS_IN_MACHINE,
     PERMANENT_MECH_FLAGS
 }
+declare enum Map {
+    MAP_CHANGED,
+    MAP_STABLE_GLOW_LIGHTS,
+    MAP_STABLE_LIGHTS,
+    MAP_ALWAYS_LIT,
+    MAP_SAW_WELCOME,
+    MAP_NO_LIQUID,
+    MAP_NO_GAS,
+    MAP_FOV_CHANGED,
+    MAP_DEFAULT
+}
 
 declare class CellMemory {
     mixer: canvas.Mixer;
@@ -265,7 +276,7 @@ declare class Cell$1 implements types.CellType {
     hasGas(limitToPlayerKnowledge?: boolean): boolean;
     markRevealed(): boolean;
     obstructsLayer(layer: Layer): boolean;
-    _setTile(tileId?: Tile$1 | string | null, volume?: number, map?: Map): boolean;
+    _setTile(tileId?: Tile$1 | string | null, volume?: number, map?: Map$1): boolean;
     clearLayer(layer: Layer): void;
     clearLayers(except: Layer, floorTile?: string | null): void;
     nullifyTileWithFlags(tileFlags: number, tileMechFlags?: number): void;
@@ -302,7 +313,7 @@ declare class Light implements types.LightType {
     constructor(color: color.ColorBase, range: string | range.Range, fadeTo: number, pass?: boolean);
     copy(other: Light): void;
     get intensity(): number;
-    paint(map: Map, x: number, y: number, maintainShadows?: boolean, isMinersLight?: boolean): false | undefined;
+    paint(map: Map$1, x: number, y: number, maintainShadows?: boolean, isMinersLight?: boolean): false | undefined;
 }
 interface LightConfig {
     color: color.ColorBase;
@@ -312,9 +323,9 @@ interface LightConfig {
 }
 declare type LightBase = LightConfig | string | any[];
 
-declare type MapEachFn = (cell: Cell$1, x: number, y: number, map: Map) => void;
-declare type MapMatchFn = (cell: Cell$1, x: number, y: number, map: Map) => boolean;
-declare type MapCostFn = (cell: Cell$1, x: number, y: number, map: Map) => number;
+declare type MapEachFn = (cell: Cell$1, x: number, y: number, map: Map$1) => void;
+declare type MapMatchFn = (cell: Cell$1, x: number, y: number, map: Map$1) => boolean;
+declare type MapCostFn = (cell: Cell$1, x: number, y: number, map: Map$1) => number;
 interface MapMatchOptions {
     hallways: boolean;
     blockingMap: grid.NumGrid;
@@ -339,7 +350,7 @@ interface DisruptsOptions {
     gridOffsetY: number;
     bounds: types.Bounds | null;
 }
-declare class Map implements types.MapType {
+declare class Map$1 implements types.MapType {
     protected _width: number;
     protected _height: number;
     cells: grid.Grid<Cell$1>;
@@ -443,11 +454,13 @@ declare class Map implements types.MapType {
     tick(): Promise<void>;
     resetEvents(): void;
 }
-declare function makeMap(w: number, h: number, opts?: any): Map;
-declare function getCellAppearance(map: Map, x: number, y: number, dest: canvas.Mixer): void;
-declare function addText(map: Map, x: number, y: number, text: string, fg: color.ColorBase, bg: color.ColorBase, layer: Layer): void;
-declare function updateGas(map: Map): void;
-declare function updateLiquid(map: Map): void;
+declare function make$1(w: number, h: number, floor: string, wall: string): Map$1;
+declare function make$1(w: number, h: number, floor: string): Map$1;
+declare function make$1(w: number, h: number, opts?: any): Map$1;
+declare function getCellAppearance(map: Map$1, x: number, y: number, dest: canvas.Mixer): void;
+declare function addText(map: Map$1, x: number, y: number, text: string, fg: color.ColorBase, bg: color.ColorBase, layer: Layer): void;
+declare function updateGas(map: Map$1): void;
+declare function updateLiquid(map: Map$1): void;
 
 type map_d_MapEachFn = MapEachFn;
 type map_d_MapMatchFn = MapMatchFn;
@@ -455,23 +468,21 @@ type map_d_MapCostFn = MapCostFn;
 type map_d_MapMatchOptions = MapMatchOptions;
 type map_d_MapLightFn = MapLightFn;
 type map_d_DisruptsOptions = DisruptsOptions;
-type map_d_Map = Map;
-declare const map_d_Map: typeof Map;
-declare const map_d_makeMap: typeof makeMap;
 declare const map_d_getCellAppearance: typeof getCellAppearance;
 declare const map_d_addText: typeof addText;
 declare const map_d_updateGas: typeof updateGas;
 declare const map_d_updateLiquid: typeof updateLiquid;
 declare namespace map_d {
   export {
+    Map as Flags,
     map_d_MapEachFn as MapEachFn,
     map_d_MapMatchFn as MapMatchFn,
     map_d_MapCostFn as MapCostFn,
     map_d_MapMatchOptions as MapMatchOptions,
     map_d_MapLightFn as MapLightFn,
     map_d_DisruptsOptions as DisruptsOptions,
-    map_d_Map as Map,
-    map_d_makeMap as makeMap,
+    Map$1 as Map,
+    make$1 as make,
     map_d_getCellAppearance as getCellAppearance,
     map_d_addText as addText,
     map_d_updateGas as updateGas,
@@ -499,16 +510,16 @@ declare class Activation$1 {
     id: string | null;
     constructor(opts?: any);
 }
-declare function make$1(opts: string | any): Activation$1 | null;
+declare function make$2(opts: string | any): Activation$1 | null;
 declare const activations: Record<string, Activation$1 | null>;
 declare function install(id: string, event: Activation$1 | any): any;
 declare function resetAllMessages(): void;
 declare function spawn(activation: Activation$1 | Function | string, ctx?: any): Promise<any>;
 declare function computeSpawnMap(feat: Activation$1, spawnMap: grid.NumGrid, ctx?: any): void;
 declare function spawnTiles(feat: Activation$1, spawnMap: grid.NumGrid, ctx: any, tile: Tile$1 | null, item: types.ItemType | null): Promise<boolean>;
-declare function nullifyCells(map: Map, spawnMap: grid.NumGrid, flags: number): boolean;
-declare function evacuateCreatures(map: Map, blockingMap: grid.NumGrid): boolean;
-declare function evacuateItems(map: Map, blockingMap: grid.NumGrid): boolean;
+declare function nullifyCells(map: Map$1, spawnMap: grid.NumGrid, flags: number): boolean;
+declare function evacuateCreatures(map: Map$1, blockingMap: grid.NumGrid): boolean;
+declare function evacuateItems(map: Map$1, blockingMap: grid.NumGrid): boolean;
 
 declare const activation_d_activations: typeof activations;
 declare const activation_d_install: typeof install;
@@ -523,7 +534,7 @@ declare namespace activation_d {
   export {
     Activation as Flags,
     Activation$1 as Activation,
-    make$1 as make,
+    make$2 as make,
     activation_d_activations as activations,
     activation_d_install as install,
     activation_d_resetAllMessages as resetAllMessages,

@@ -357,7 +357,7 @@
                 return new Light(color, radius, fadeTo, pass);
             }
             else if (config && config.color) {
-                return new Light(gwUtils.color.from(config.color), gwUtils.range.from(config.range), Number.parseInt(config.fadeTo || "0"), config.pass);
+                return new Light(gwUtils.color.from(config.color), gwUtils.range.from(config.radius), Number.parseInt(config.fadeTo || "0"), config.pass);
             }
             else {
                 throw new Error("Unknown Light config - " + config);
@@ -1725,6 +1725,7 @@
         const cell = new Cell$1();
         return cell;
     }
+    gwUtils.make.cell = make$2;
     function getAppearance(cell, dest) {
         const memory = cell.memory.mixer;
         memory.blackOut();
@@ -1767,7 +1768,6 @@
         getAppearance: getAppearance
     };
 
-    const TileLayer = Layer;
     gwUtils.utils.setDefaults(gwUtils.config, {
         "map.deepestLevel": 99,
     });
@@ -2198,7 +2198,7 @@
             if (!this.hasXY(x, y))
                 return false;
             const cell = this.cell(x, y);
-            cell.addSprite(TileLayer.FX, anim.sprite);
+            cell.addSprite(Layer.FX, anim.sprite);
             anim.x = x;
             anim.y = y;
             this.redrawCell(cell);
@@ -2211,7 +2211,7 @@
             const oldCell = this.cell(anim.x, anim.y);
             oldCell.removeSprite(anim.sprite);
             this.redrawCell(oldCell);
-            cell.addSprite(TileLayer.FX, anim.sprite);
+            cell.addSprite(Layer.FX, anim.sprite);
             this.redrawCell(cell);
             anim.x = x;
             anim.y = y;
@@ -2243,13 +2243,13 @@
             cell.actor = theActor;
             theActor.next = this._actors;
             this._actors = theActor;
-            const layer = theActor === gwUtils.data.player ? TileLayer.PLAYER : TileLayer.ACTOR;
+            const layer = theActor === gwUtils.data.player ? Layer.PLAYER : Layer.ACTOR;
             cell.addSprite(layer, theActor.sprite);
             const flag = theActor === gwUtils.data.player ? Cell.HAS_PLAYER : Cell.HAS_MONSTER;
             cell.flags |= flag;
             // if (theActor.flags & Flags.Actor.MK_DETECTED)
             // {
-            // 	cell.flags |= Flags.Cell.MONSTER_DETECTED;
+            // 	cell.flags |= CellFlags.MONSTER_DETECTED;
             // }
             if (theActor.light) {
                 this.flags &= ~Map.MAP_STABLE_LIGHTS;
@@ -2320,7 +2320,7 @@
             return true;
         }
         // dormantAt(x: number, y: number) {  // creature *
-        // 	if (!(this.cell(x, y).flags & Flags.Cell.HAS_DORMANT_MONSTER)) {
+        // 	if (!(this.cell(x, y).flags & CellFlags.HAS_DORMANT_MONSTER)) {
         // 		return null;
         // 	}
         // 	return this.dormantActors.find( (m) => m.x == x && m.y == y );
@@ -2330,16 +2330,16 @@
         // 	theActor.x = x;
         // 	theActor.y = y;
         // 	this.dormant.add(theActor);
-        // 	cell.flags |= (Flags.Cell.HAS_DORMANT_MONSTER);
-        // 	this.flags |= Flags.Map.MAP_CHANGED;
+        // 	cell.flags |= (CellFlags.HAS_DORMANT_MONSTER);
+        // 	this.flags |= Flags.MAP_CHANGED;
         // 	return true;
         // }
         //
         // removeDormant(actor) {
         // 	const cell = this.cell(actor.x, actor.y);
-        // 	cell.flags &= ~(Flags.Cell.HAS_DORMANT_MONSTER);
-        // 	cell.flags |= Flags.Cell.NEEDS_REDRAW;
-        // 	this.flags |= Flags.Map.MAP_CHANGED;
+        // 	cell.flags &= ~(CellFlags.HAS_DORMANT_MONSTER);
+        // 	cell.flags |= CellFlags.NEEDS_REDRAW;
+        // 	this.flags |= Flags.MAP_CHANGED;
         // 	this.dormant.remove(actor);
         // }
         // ITEMS
@@ -2360,7 +2360,7 @@
             cell.item = theItem;
             theItem.next = this._items;
             this._items = theItem;
-            cell.addSprite(TileLayer.ITEM, theItem.sprite);
+            cell.addSprite(Layer.ITEM, theItem.sprite);
             cell.flags |= Cell.HAS_ITEM;
             if (theItem.light) {
                 this.flags &= ~Map.MAP_STABLE_LIGHTS;
@@ -2530,9 +2530,12 @@
             this.forEach((c) => (c.mechFlags &= ~(CellMech.EVENT_FIRED_THIS_TURN | CellMech.EVENT_PROTECTED)));
         }
     }
-    function makeMap(w, h, opts = {}) {
+    function make$3(w, h, opts = {}, wall) {
         if (typeof opts === "string") {
             opts = { tile: opts };
+            if (wall) {
+                opts.wall = wall;
+            }
         }
         const map = new Map$1(w, h, opts);
         const floor = opts.tile || opts.floor || opts.floorTile;
@@ -2545,6 +2548,7 @@
         }
         return map;
     }
+    gwUtils.make.map = make$3;
     function getCellAppearance(map, x, y, dest) {
         dest.blackOut();
         if (!map.hasXY(x, y))
@@ -2588,7 +2592,7 @@
         for (let ch of text) {
             const sprite = gwUtils.canvas.makeSprite(ch, fg, bg);
             const cell = map.cell(x++, y);
-            cell.addSprite(layer || TileLayer.GROUND, sprite);
+            cell.addSprite(layer || Layer.GROUND, sprite);
         }
     }
     function updateGas(map) {
@@ -2690,7 +2694,7 @@
             newVolume[x][y] += newVol;
             // disperses
             const tile = c.liquidTile;
-            if (newVolume[x][y] && gwUtils.random.chance(tile.dissipate, 10000)) {
+            if (newVolume[x][y] > 0 && gwUtils.random.chance(tile.dissipate, 10000)) {
                 newVolume[x][y] -= 1;
             }
         });
@@ -2721,8 +2725,9 @@
 
     var map = {
         __proto__: null,
+        get Flags () { return Map; },
         Map: Map$1,
-        makeMap: makeMap,
+        make: make$3,
         getCellAppearance: getCellAppearance,
         addText: addText,
         updateGas: updateGas,

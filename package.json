@@ -9,7 +9,7 @@
   "scripts": {
     "compile": "tsc --build tsconfig.json",
     "bundle": "rollup -c",
-    "copy": "cp dist/gw-map.min.js docs/js",
+    "copy": "cp dist/gw-map.min.js docs/js && cp node_modules/gw-utils/dist/gw-utils.min.js docs/js",
     "build": "npm run compile && npm run bundle && npm run copy",
     "serve": "python -m SimpleHTTPServer",
     "test": "jest",

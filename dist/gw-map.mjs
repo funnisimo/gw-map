@@ -1,4 +1,4 @@
-import { flag, config as config$1, color, make as make$3, range, utils, grid, canvas, message, data, events, random, path, fov, colors } from 'gw-utils';
+import { flag, config as config$1, color, make as make$4, range, utils, grid, canvas, message, data, events, random, path, fov, colors } from 'gw-utils';
 
 var Layer;
 (function (Layer) {
@@ -353,7 +353,7 @@ function make(...args) {
             return new Light(color, radius, fadeTo, pass);
         }
         else if (config && config.color) {
-            return new Light(color.from(config.color), range.from(config.range), Number.parseInt(config.fadeTo || "0"), config.pass);
+            return new Light(color.from(config.color), range.from(config.radius), Number.parseInt(config.fadeTo || "0"), config.pass);
         }
         else {
             throw new Error("Unknown Light config - " + config);
@@ -364,7 +364,7 @@ function make(...args) {
         return new Light(color, radius, fadeTo, pass);
     }
 }
-make$3.light = make;
+make$4.light = make;
 const lights = {};
 function from(...args) {
     if (args.length != 1)
@@ -683,8 +683,8 @@ async function spawn(activation, ctx = {}) {
         }
     }
     let item = null;
-    if (feat.item && "item" in make$3) {
-        item = make$3.item(feat.item);
+    if (feat.item && "item" in make$4) {
+        item = make$4.item(feat.item);
         if (!item) {
             utils.ERROR("Unknown item: " + feat.item);
         }
@@ -1721,6 +1721,7 @@ function make$2() {
     const cell = new Cell$1();
     return cell;
 }
+make$4.cell = make$2;
 function getAppearance(cell, dest) {
     const memory = cell.memory.mixer;
     memory.blackOut();
@@ -1763,7 +1764,6 @@ var cell = {
     getAppearance: getAppearance
 };
 
-const TileLayer = Layer;
 utils.setDefaults(config$1, {
     "map.deepestLevel": 99,
 });
@@ -2194,7 +2194,7 @@ class Map$1 {
         if (!this.hasXY(x, y))
             return false;
         const cell = this.cell(x, y);
-        cell.addSprite(TileLayer.FX, anim.sprite);
+        cell.addSprite(Layer.FX, anim.sprite);
         anim.x = x;
         anim.y = y;
         this.redrawCell(cell);
@@ -2207,7 +2207,7 @@ class Map$1 {
         const oldCell = this.cell(anim.x, anim.y);
         oldCell.removeSprite(anim.sprite);
         this.redrawCell(oldCell);
-        cell.addSprite(TileLayer.FX, anim.sprite);
+        cell.addSprite(Layer.FX, anim.sprite);
         this.redrawCell(cell);
         anim.x = x;
         anim.y = y;
@@ -2239,13 +2239,13 @@ class Map$1 {
         cell.actor = theActor;
         theActor.next = this._actors;
         this._actors = theActor;
-        const layer = theActor === data.player ? TileLayer.PLAYER : TileLayer.ACTOR;
+        const layer = theActor === data.player ? Layer.PLAYER : Layer.ACTOR;
         cell.addSprite(layer, theActor.sprite);
         const flag = theActor === data.player ? Cell.HAS_PLAYER : Cell.HAS_MONSTER;
         cell.flags |= flag;
         // if (theActor.flags & Flags.Actor.MK_DETECTED)
         // {
-        // 	cell.flags |= Flags.Cell.MONSTER_DETECTED;
+        // 	cell.flags |= CellFlags.MONSTER_DETECTED;
         // }
         if (theActor.light) {
             this.flags &= ~Map.MAP_STABLE_LIGHTS;
@@ -2316,7 +2316,7 @@ class Map$1 {
         return true;
     }
     // dormantAt(x: number, y: number) {  // creature *
-    // 	if (!(this.cell(x, y).flags & Flags.Cell.HAS_DORMANT_MONSTER)) {
+    // 	if (!(this.cell(x, y).flags & CellFlags.HAS_DORMANT_MONSTER)) {
     // 		return null;
     // 	}
     // 	return this.dormantActors.find( (m) => m.x == x && m.y == y );
@@ -2326,16 +2326,16 @@ class Map$1 {
     // 	theActor.x = x;
     // 	theActor.y = y;
     // 	this.dormant.add(theActor);
-    // 	cell.flags |= (Flags.Cell.HAS_DORMANT_MONSTER);
-    // 	this.flags |= Flags.Map.MAP_CHANGED;
+    // 	cell.flags |= (CellFlags.HAS_DORMANT_MONSTER);
+    // 	this.flags |= Flags.MAP_CHANGED;
     // 	return true;
     // }
     //
     // removeDormant(actor) {
     // 	const cell = this.cell(actor.x, actor.y);
-    // 	cell.flags &= ~(Flags.Cell.HAS_DORMANT_MONSTER);
-    // 	cell.flags |= Flags.Cell.NEEDS_REDRAW;
-    // 	this.flags |= Flags.Map.MAP_CHANGED;
+    // 	cell.flags &= ~(CellFlags.HAS_DORMANT_MONSTER);
+    // 	cell.flags |= CellFlags.NEEDS_REDRAW;
+    // 	this.flags |= Flags.MAP_CHANGED;
     // 	this.dormant.remove(actor);
     // }
     // ITEMS
@@ -2356,7 +2356,7 @@ class Map$1 {
         cell.item = theItem;
         theItem.next = this._items;
         this._items = theItem;
-        cell.addSprite(TileLayer.ITEM, theItem.sprite);
+        cell.addSprite(Layer.ITEM, theItem.sprite);
         cell.flags |= Cell.HAS_ITEM;
         if (theItem.light) {
             this.flags &= ~Map.MAP_STABLE_LIGHTS;
@@ -2526,9 +2526,12 @@ class Map$1 {
         this.forEach((c) => (c.mechFlags &= ~(CellMech.EVENT_FIRED_THIS_TURN | CellMech.EVENT_PROTECTED)));
     }
 }
-function makeMap(w, h, opts = {}) {
+function make$3(w, h, opts = {}, wall) {
     if (typeof opts === "string") {
         opts = { tile: opts };
+        if (wall) {
+            opts.wall = wall;
+        }
     }
     const map = new Map$1(w, h, opts);
     const floor = opts.tile || opts.floor || opts.floorTile;
@@ -2541,6 +2544,7 @@ function makeMap(w, h, opts = {}) {
     }
     return map;
 }
+make$4.map = make$3;
 function getCellAppearance(map, x, y, dest) {
     dest.blackOut();
     if (!map.hasXY(x, y))
@@ -2584,7 +2588,7 @@ function addText(map, x, y, text, fg, bg, layer) {
     for (let ch of text) {
         const sprite = canvas.makeSprite(ch, fg, bg);
         const cell = map.cell(x++, y);
-        cell.addSprite(layer || TileLayer.GROUND, sprite);
+        cell.addSprite(layer || Layer.GROUND, sprite);
     }
 }
 function updateGas(map) {
@@ -2686,7 +2690,7 @@ function updateLiquid(map) {
         newVolume[x][y] += newVol;
         // disperses
         const tile = c.liquidTile;
-        if (newVolume[x][y] && random.chance(tile.dissipate, 10000)) {
+        if (newVolume[x][y] > 0 && random.chance(tile.dissipate, 10000)) {
             newVolume[x][y] -= 1;
         }
     });
@@ -2717,8 +2721,9 @@ function updateLiquid(map) {
 
 var map = {
     __proto__: null,
+    get Flags () { return Map; },
     Map: Map$1,
-    makeMap: makeMap,
+    make: make$3,
     getCellAppearance: getCellAppearance,
     addText: addText,
     updateGas: updateGas,

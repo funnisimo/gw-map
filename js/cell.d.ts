@@ -1,6 +1,6 @@
 import { canvas as Canvas, types as Types } from "gw-utils";
 import { Tile, Layer } from "./tile";
-import { Map } from "./map";
+import * as Map from "./map";
 import { Cell as Flags, CellMech as MechFlags } from "./flags";
 export { Flags, MechFlags };
 export declare class CellMemory {
@@ -103,7 +103,7 @@ export declare class Cell implements Types.CellType {
     hasGas(limitToPlayerKnowledge?: boolean): boolean;
     markRevealed(): boolean;
     obstructsLayer(layer: Layer): boolean;
-    _setTile(tileId?: Tile | string | null, volume?: number, map?: Map): boolean;
+    _setTile(tileId?: Tile | string | null, volume?: number, map?: Map.Map): boolean;
     clearLayer(layer: Layer): void;
     clearLayers(except: Layer, floorTile?: string | null): void;
     nullifyTileWithFlags(tileFlags: number, tileMechFlags?: number): void;

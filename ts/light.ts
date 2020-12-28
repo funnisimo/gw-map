@@ -9,8 +9,8 @@ import {
   make as Make,
 } from "gw-utils";
 import * as Flags from "./flags";
-import { Map } from "./map";
-import { Cell } from "./cell";
+import * as Cell from "./cell";
+import * as Map from "./map";
 
 // const LIGHT_SMOOTHING_THRESHOLD = 150;       // light components higher than this magnitude will be toned down a little
 
@@ -50,7 +50,7 @@ export class Light implements Types.LightType {
 
   // Returns true if any part of the light hit cells that are in the player's field of view.
   paint(
-    map: Map,
+    map: Map.Map,
     x: number,
     y: number,
     maintainShadows = false,
@@ -165,7 +165,7 @@ export function make(...args: any[]) {
     } else if (config && config.color) {
       return new Light(
         Color.from(config.color),
-        Range.from(config.range),
+        Range.from(config.radius),
         Number.parseInt(config.fadeTo || "0"),
         config.pass
       );
@@ -204,6 +204,7 @@ export function install(
   fadeTo?: number,
   pass?: boolean
 ): Light;
+export function install(id: string, base: LightBase): Light;
 export function install(id: string, config: LightConfig): Light;
 export function install(id: string, ...args: any[]) {
   let source;
@@ -231,8 +232,8 @@ export function installAll(config: Record<string, LightConfig> = {}) {
 // 	colorComponents[2] = randComponent + theLight.color.blue + cosmetic.range(0, theLight.color.blueRand);
 // }
 
-function updateDisplayDetail(map: Map) {
-  map.eachCell((cell: Cell, _i: number, _j: number) => {
+function updateDisplayDetail(map: Map.Map) {
+  map.eachCell((cell: Cell.Cell, _i: number, _j: number) => {
     // clear light flags
     cell.flags &= ~(Flags.Cell.CELL_LIT | Flags.Cell.CELL_DARK);
 
@@ -251,7 +252,7 @@ function updateDisplayDetail(map: Map) {
 export type LightData = [number, number, number];
 export type LightDataGrid = Grid.Grid<LightData>;
 
-export function backUpLighting(map: Map, lights: LightDataGrid) {
+export function backUpLighting(map: Map.Map, lights: LightDataGrid) {
   let k;
   map.eachCell((cell, i, j) => {
     for (k = 0; k < 3; k++) {
@@ -260,7 +261,7 @@ export function backUpLighting(map: Map, lights: LightDataGrid) {
   });
 }
 
-export function restoreLighting(map: Map, lights: LightDataGrid) {
+export function restoreLighting(map: Map.Map, lights: LightDataGrid) {
   let k;
   map.eachCell((cell, i, j) => {
     for (k = 0; k < 3; k++) {
@@ -269,7 +270,7 @@ export function restoreLighting(map: Map, lights: LightDataGrid) {
   });
 }
 
-export function recordOldLights(map: Map) {
+export function recordOldLights(map: Map.Map) {
   let k;
   map.eachCell((cell) => {
     for (k = 0; k < 3; k++) {
@@ -279,7 +280,7 @@ export function recordOldLights(map: Map) {
   });
 }
 
-export function zeroOutLights(map: Map) {
+export function zeroOutLights(map: Map.Map) {
   let k;
   const light = map.ambientLight ? map.ambientLight : [0, 0, 0];
   map.eachCell((cell, _i, _j) => {
@@ -290,7 +291,7 @@ export function zeroOutLights(map: Map) {
   });
 }
 
-export function recordGlowLights(map: Map) {
+export function recordGlowLights(map: Map.Map) {
   let k;
   map.eachCell((cell) => {
     for (k = 0; k < 3; k++) {
@@ -299,7 +300,7 @@ export function recordGlowLights(map: Map) {
   });
 }
 
-export function restoreGlowLights(map: Map) {
+export function restoreGlowLights(map: Map.Map) {
   let k;
   map.eachCell((cell) => {
     for (k = 0; k < 3; k++) {
@@ -308,7 +309,7 @@ export function restoreGlowLights(map: Map) {
   });
 }
 
-export function updateLighting(map: Map) {
+export function updateLighting(map: Map.Map) {
   // Copy Light over oldLight
   recordOldLights(map);
 
@@ -382,7 +383,7 @@ export function updateLighting(map: Map) {
 
 // TODO - Move and make more generic
 export function playerInDarkness(
-  map: Map,
+  map: Map.Map,
   PLAYER: Utils.XY,
   darkColor: Color.Color
 ) {

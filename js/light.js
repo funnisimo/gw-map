@@ -88,7 +88,7 @@ export function make(...args) {
             return new Light(color, radius, fadeTo, pass);
         }
         else if (config && config.color) {
-            return new Light(Color.from(config.color), Range.from(config.range), Number.parseInt(config.fadeTo || "0"), config.pass);
+            return new Light(Color.from(config.color), Range.from(config.radius), Number.parseInt(config.fadeTo || "0"), config.pass);
         }
         else {
             throw new Error("Unknown Light config - " + config);

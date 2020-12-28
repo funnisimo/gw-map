@@ -11,14 +11,22 @@ import {
   config as CONFIG,
   data as DATA,
   types as Types,
+  make as Make,
 } from "gw-utils";
 
 import * as Cell from "./cell";
 import * as Tile from "./tile";
-import * as Flags from "./flags";
+import {
+  Map as Flags,
+  Cell as CellFlags,
+  Tile as TileFlags,
+  CellMech as CellMechFlags,
+  TileMech as TileMechFlags,
+  Layer as TileLayer,
+} from "./flags";
 import { Light } from "./light";
 
-const TileLayer = Flags.Layer;
+export { Flags };
 
 Utils.setDefaults(CONFIG, {
   "map.deepestLevel": 99,
@@ -100,7 +108,7 @@ export class Map implements Types.MapType {
     this.config.tick = this.config.tick || 100;
     this._actors = null;
     this._items = null;
-    this.flags = Flag.from(Flags.Map, Flags.Map.MAP_DEFAULT, opts.flags);
+    this.flags = Flag.from(Flags, Flags.MAP_DEFAULT, opts.flags);
     this.ambientLight = null;
     const ambient = opts.ambient || opts.ambientLight || opts.light;
     if (ambient) {
@@ -152,11 +160,11 @@ export class Map implements Types.MapType {
 
   changed(v?: boolean) {
     if (v === true) {
-      this.flags |= Flags.Map.MAP_CHANGED;
+      this.flags |= Flags.MAP_CHANGED;
     } else if (v === false) {
-      this.flags &= ~Flags.Map.MAP_CHANGED;
+      this.flags &= ~Flags.MAP_CHANGED;
     }
-    return this.flags & Flags.Map.MAP_CHANGED;
+    return this.flags & Flags.MAP_CHANGED;
   }
 
   hasCellFlag(x: number, y: number, flag: number) {
@@ -179,7 +187,7 @@ export class Map implements Types.MapType {
   redrawCell(cell: Cell.Cell) {
     // if (cell.isAnyKindOfVisible()) {
     cell._needsRedraw();
-    this.flags |= Flags.Map.MAP_CHANGED;
+    this.flags |= Flags.MAP_CHANGED;
     // }
   }
 
@@ -191,10 +199,10 @@ export class Map implements Types.MapType {
   redrawAll() {
     this.forEach((c) => {
       // if (c.isAnyKindOfVisible()) {
-      c.flags |= Flags.Cell.NEEDS_REDRAW;
+      c.flags |= CellFlags.NEEDS_REDRAW;
       // }
     });
-    this.flags |= Flags.Map.MAP_CHANGED;
+    this.flags |= Flags.MAP_CHANGED;
   }
 
   revealAll() {
@@ -255,7 +263,7 @@ export class Map implements Types.MapType {
 
   setCellFlags(x: number, y: number, cellFlag = 0, cellMechFlag = 0) {
     this.cell(x, y).setFlags(cellFlag, cellMechFlag);
-    this.flags |= Flags.Map.MAP_CHANGED;
+    this.flags |= Flags.MAP_CHANGED;
   }
 
   clearCellFlags(x: number, y: number, cellFlags = 0, cellMechFlags = 0) {
@@ -405,11 +413,11 @@ export class Map implements Types.MapType {
       return false; // If it's not a diagonal, it's not diagonally blocked.
     }
     const locFlags1 = this.tileFlags(x1, y2, limitToPlayerKnowledge);
-    if (locFlags1 & Flags.Tile.T_OBSTRUCTS_DIAGONAL_MOVEMENT) {
+    if (locFlags1 & TileFlags.T_OBSTRUCTS_DIAGONAL_MOVEMENT) {
       return true;
     }
     const locFlags2 = this.tileFlags(x2, y1, limitToPlayerKnowledge);
-    if (locFlags2 & Flags.Tile.T_OBSTRUCTS_DIAGONAL_MOVEMENT) {
+    if (locFlags2 & TileFlags.T_OBSTRUCTS_DIAGONAL_MOVEMENT) {
       return true;
     }
     return false;
@@ -575,17 +583,13 @@ export class Map implements Types.MapType {
   addLight(x: number, y: number, light: Light) {
     const info: LightInfo = { x, y, light, next: this.lights };
     this.lights = info;
-    this.flags &= ~(
-      Flags.Map.MAP_STABLE_LIGHTS | Flags.Map.MAP_STABLE_GLOW_LIGHTS
-    );
+    this.flags &= ~(Flags.MAP_STABLE_LIGHTS | Flags.MAP_STABLE_GLOW_LIGHTS);
     return info;
   }
 
   removeLight(info: LightInfo) {
     Utils.removeFromChain(this, "lights", info);
-    this.flags &= ~(
-      Flags.Map.MAP_STABLE_LIGHTS | Flags.Map.MAP_STABLE_GLOW_LIGHTS
-    );
+    this.flags &= ~(Flags.MAP_STABLE_LIGHTS | Flags.MAP_STABLE_GLOW_LIGHTS);
   }
 
   eachGlowLight(fn: MapLightFn) {
@@ -636,7 +640,7 @@ export class Map implements Types.MapType {
     const oldCell = this.cell(anim.x, anim.y);
     oldCell.removeSprite(anim.sprite);
     this.redrawCell(oldCell);
-    this.flags |= Flags.Map.MAP_CHANGED;
+    this.flags |= Flags.MAP_CHANGED;
     return true;
   }
 
@@ -665,15 +669,15 @@ export class Map implements Types.MapType {
     cell.addSprite(layer, theActor.sprite);
 
     const flag =
-      theActor === DATA.player ? Flags.Cell.HAS_PLAYER : Flags.Cell.HAS_MONSTER;
+      theActor === DATA.player ? CellFlags.HAS_PLAYER : CellFlags.HAS_MONSTER;
     cell.flags |= flag;
     // if (theActor.flags & Flags.Actor.MK_DETECTED)
     // {
-    // 	cell.flags |= Flags.Cell.MONSTER_DETECTED;
+    // 	cell.flags |= CellFlags.MONSTER_DETECTED;
     // }
 
     if (theActor.light) {
-      this.flags &= ~Flags.Map.MAP_STABLE_LIGHTS;
+      this.flags &= ~Flags.MAP_STABLE_LIGHTS;
     }
 
     // If the player moves or an actor that blocks vision and the cell is visible...
@@ -682,7 +686,7 @@ export class Map implements Types.MapType {
       theActor.isPlayer() ||
       (cell.isAnyKindOfVisible() && theActor.blocksVision())
     ) {
-      this.flags |= Flags.Map.MAP_FOV_CHANGED;
+      this.flags |= Flags.MAP_FOV_CHANGED;
     }
 
     theActor.x = x;
@@ -713,7 +717,7 @@ export class Map implements Types.MapType {
       return false;
     }
     if (actor.light) {
-      this.flags &= ~Flags.Map.MAP_STABLE_LIGHTS;
+      this.flags &= ~Flags.MAP_STABLE_LIGHTS;
     }
 
     return true;
@@ -725,11 +729,11 @@ export class Map implements Types.MapType {
     if (cell.actor === actor) {
       cell.actor = null;
       Utils.removeFromChain(this, "actors", actor);
-      cell.flags &= ~Flags.Cell.HAS_ACTOR;
+      cell.flags &= ~CellFlags.HAS_ACTOR;
       cell.removeSprite(actor.sprite);
 
       if (actor.light) {
-        this.flags &= ~Flags.Map.MAP_STABLE_LIGHTS;
+        this.flags &= ~Flags.MAP_STABLE_LIGHTS;
       }
       // If the player moves or an actor that blocks vision and the cell is visible...
       // -- we need to update the FOV
@@ -737,7 +741,7 @@ export class Map implements Types.MapType {
         actor.isPlayer() ||
         (cell.isAnyKindOfVisible() && actor.blocksVision())
       ) {
-        this.flags |= Flags.Map.MAP_FOV_CHANGED;
+        this.flags |= Flags.MAP_FOV_CHANGED;
       }
 
       this.redrawCell(cell);
@@ -755,7 +759,7 @@ export class Map implements Types.MapType {
   }
 
   // dormantAt(x: number, y: number) {  // creature *
-  // 	if (!(this.cell(x, y).flags & Flags.Cell.HAS_DORMANT_MONSTER)) {
+  // 	if (!(this.cell(x, y).flags & CellFlags.HAS_DORMANT_MONSTER)) {
   // 		return null;
   // 	}
   // 	return this.dormantActors.find( (m) => m.x == x && m.y == y );
@@ -765,16 +769,16 @@ export class Map implements Types.MapType {
   // 	theActor.x = x;
   // 	theActor.y = y;
   // 	this.dormant.add(theActor);
-  // 	cell.flags |= (Flags.Cell.HAS_DORMANT_MONSTER);
-  // 	this.flags |= Flags.Map.MAP_CHANGED;
+  // 	cell.flags |= (CellFlags.HAS_DORMANT_MONSTER);
+  // 	this.flags |= Flags.MAP_CHANGED;
   // 	return true;
   // }
   //
   // removeDormant(actor) {
   // 	const cell = this.cell(actor.x, actor.y);
-  // 	cell.flags &= ~(Flags.Cell.HAS_DORMANT_MONSTER);
-  // 	cell.flags |= Flags.Cell.NEEDS_REDRAW;
-  // 	this.flags |= Flags.Map.MAP_CHANGED;
+  // 	cell.flags &= ~(CellFlags.HAS_DORMANT_MONSTER);
+  // 	cell.flags |= CellFlags.NEEDS_REDRAW;
+  // 	this.flags |= Flags.MAP_CHANGED;
   // 	this.dormant.remove(actor);
   // }
 
@@ -788,7 +792,7 @@ export class Map implements Types.MapType {
   addItem(x: number, y: number, theItem: Types.ItemType) {
     if (!this.hasXY(x, y)) return false;
     const cell = this.cell(x, y);
-    if (cell.flags & Flags.Cell.HAS_ITEM) {
+    if (cell.flags & CellFlags.HAS_ITEM) {
       // GW.ui.message(colors.badMessageColor, 'There is already an item there.');
       return false;
     }
@@ -800,16 +804,16 @@ export class Map implements Types.MapType {
     this._items = theItem;
 
     cell.addSprite(TileLayer.ITEM, theItem.sprite);
-    cell.flags |= Flags.Cell.HAS_ITEM;
+    cell.flags |= CellFlags.HAS_ITEM;
 
     if (theItem.light) {
-      this.flags &= ~Flags.Map.MAP_STABLE_LIGHTS;
+      this.flags &= ~Flags.MAP_STABLE_LIGHTS;
     }
 
     this.redrawCell(cell);
 
     if (theItem.isDetected() || CONFIG.D_ITEM_OMNISCIENCE) {
-      cell.flags |= Flags.Cell.ITEM_DETECTED;
+      cell.flags |= CellFlags.ITEM_DETECTED;
     }
 
     return true;
@@ -840,10 +844,10 @@ export class Map implements Types.MapType {
     Utils.removeFromChain(this, "items", theItem);
 
     if (theItem.light) {
-      this.flags &= ~Flags.Map.MAP_STABLE_LIGHTS;
+      this.flags &= ~Flags.MAP_STABLE_LIGHTS;
     }
 
-    cell.flags &= ~(Flags.Cell.HAS_ITEM | Flags.Cell.ITEM_DETECTED);
+    cell.flags &= ~(CellFlags.HAS_ITEM | CellFlags.ITEM_DETECTED);
     this.redrawCell(cell);
     return true;
   }
@@ -886,7 +890,7 @@ export class Map implements Types.MapType {
         )
           return;
         walkableGrid[i][j] = 1;
-      } else if (cell.hasTileFlag(Flags.Tile.T_HAS_STAIRS)) {
+      } else if (cell.hasTileFlag(TileFlags.T_HAS_STAIRS)) {
         if (
           blockingGrid.hasXY(blockingX, blockingY) &&
           blockingGrid[blockingX][blockingY]
@@ -930,7 +934,7 @@ export class Map implements Types.MapType {
     y: number,
     maxRadius: number,
     forbiddenCellFlags = 0,
-    forbiddenTileFlags = Flags.Tile.T_OBSTRUCTS_VISION
+    forbiddenTileFlags = TileFlags.T_OBSTRUCTS_VISION
   ) {
     maxRadius = maxRadius || this.width + this.height;
     grid.fill(0);
@@ -977,11 +981,11 @@ export class Map implements Types.MapType {
     for (x = 0; x < this.width; ++x) {
       for (y = 0; y < this.height; ++y) {
         const cell = this.cell(x, y);
-        if (cell.flags & Flags.Cell.ANY_KIND_OF_VISIBLE) {
+        if (cell.flags & CellFlags.ANY_KIND_OF_VISIBLE) {
           this.storeMemory(x, y);
         }
-        cell.flags &= Flags.Cell.PERMANENT_CELL_FLAGS;
-        cell.mechFlags &= Flags.CellMech.PERMANENT_MECH_FLAGS;
+        cell.flags &= CellFlags.PERMANENT_CELL_FLAGS;
+        cell.mechFlags &= CellMechFlags.PERMANENT_MECH_FLAGS;
       }
     }
   }
@@ -993,7 +997,7 @@ export class Map implements Types.MapType {
     this.forEach(
       (c) =>
         (c.mechFlags &= ~(
-          Flags.CellMech.EVENT_FIRED_THIS_TURN | Flags.CellMech.EVENT_PROTECTED
+          CellMechFlags.EVENT_FIRED_THIS_TURN | CellMechFlags.EVENT_PROTECTED
         ))
     );
     for (let x = 0; x < this.width; ++x) {
@@ -1009,15 +1013,21 @@ export class Map implements Types.MapType {
     this.forEach(
       (c) =>
         (c.mechFlags &= ~(
-          Flags.CellMech.EVENT_FIRED_THIS_TURN | Flags.CellMech.EVENT_PROTECTED
+          CellMechFlags.EVENT_FIRED_THIS_TURN | CellMechFlags.EVENT_PROTECTED
         ))
     );
   }
 }
 
-export function makeMap(w: number, h: number, opts: any = {}) {
+export function make(w: number, h: number, floor: string, wall: string): Map;
+export function make(w: number, h: number, floor: string): Map;
+export function make(w: number, h: number, opts?: any): Map;
+export function make(w: number, h: number, opts: any = {}, wall?: string) {
   if (typeof opts === "string") {
     opts = { tile: opts };
+    if (wall) {
+      opts.wall = wall;
+    }
   }
   const map = new Map(w, h, opts);
   const floor = opts.tile || opts.floor || opts.floorTile;
@@ -1031,6 +1041,8 @@ export function makeMap(w: number, h: number, opts: any = {}) {
   return map;
 }
 
+Make.map = make;
+
 export function getCellAppearance(
   map: Map,
   x: number,
@@ -1043,7 +1055,7 @@ export function getCellAppearance(
 
   if (
     cell.isAnyKindOfVisible() &&
-    cell.flags & (Flags.Cell.CELL_CHANGED | Flags.Cell.NEEDS_REDRAW)
+    cell.flags & (CellFlags.CELL_CHANGED | CellFlags.NEEDS_REDRAW)
   ) {
     Cell.getAppearance(cell, dest);
   } else if (cell.isRevealed()) {
@@ -1060,10 +1072,10 @@ export function getCellAppearance(
   }
 
   let needDistinctness = false;
-  if (cell.flags & (Flags.Cell.IS_CURSOR | Flags.Cell.IS_IN_PATH)) {
+  if (cell.flags & (CellFlags.IS_CURSOR | CellFlags.IS_IN_PATH)) {
     const highlight =
-      cell.flags & Flags.Cell.IS_CURSOR ? COLORS.cursorColor : COLORS.yellow;
-    if (cell.hasTileMechFlag(Flags.TileMech.TM_INVERT_WHEN_HIGHLIGHTED)) {
+      cell.flags & CellFlags.IS_CURSOR ? COLORS.cursorColor : COLORS.yellow;
+    if (cell.hasTileMechFlag(TileMechFlags.TM_INVERT_WHEN_HIGHLIGHTED)) {
       Color.swap(dest.fg, dest.bg);
     } else {
       // if (!GAME.trueColorMode || !dest.needDistinctness) {
@@ -1088,7 +1100,7 @@ export function addText(
   text: string,
   fg: Color.ColorBase,
   bg: Color.ColorBase,
-  layer: Flags.Layer
+  layer: TileLayer
 ) {
   for (let ch of text) {
     const sprite = Canvas.makeSprite(ch, fg, bg);
@@ -1098,19 +1110,19 @@ export function addText(
 }
 
 export function updateGas(map: Map) {
-  if (map.flags & Flags.Map.MAP_NO_GAS) return;
+  if (map.flags & Flags.MAP_NO_GAS) return;
 
   const newVolume = Grid.alloc(map.width, map.height);
 
   map.forEach((c, x, y) => {
-    if (c.hasTileFlag(Flags.Tile.T_OBSTRUCTS_GAS)) return;
+    if (c.hasTileFlag(TileFlags.T_OBSTRUCTS_GAS)) return;
 
     let gas = c.gas;
     let highest = c.gasVolume;
     let sum = c.gasVolume;
     let count = 1;
     map.eachNeighbor(x, y, (n) => {
-      if (n.hasTileFlag(Flags.Tile.T_OBSTRUCTS_GAS)) return;
+      if (n.hasTileFlag(TileFlags.T_OBSTRUCTS_GAS)) return;
       ++count;
       sum += n.gasVolume;
       if (n.gasVolume > highest) {
@@ -1147,15 +1159,15 @@ export function updateGas(map: Map) {
         map.redrawCell(cell);
       }
     } else if (cell.gas) {
-      cell.clearLayer(Flags.Layer.GAS);
+      cell.clearLayer(TileLayer.GAS);
       map.redrawCell(cell);
     }
   });
 
   if (hasGas) {
-    map.flags &= ~Flags.Map.MAP_NO_GAS;
+    map.flags &= ~Flags.MAP_NO_GAS;
   } else {
-    map.flags |= Flags.Map.MAP_NO_GAS;
+    map.flags |= Flags.MAP_NO_GAS;
   }
   map.changed(true);
 
@@ -1163,19 +1175,19 @@ export function updateGas(map: Map) {
 }
 
 export function updateLiquid(map: Map) {
-  if (map.flags & Flags.Map.MAP_NO_LIQUID) return;
+  if (map.flags & Flags.MAP_NO_LIQUID) return;
 
   const newVolume = Grid.alloc(map.width, map.height);
 
   map.forEach((c, x, y) => {
-    if (c.hasTileFlag(Flags.Tile.T_OBSTRUCTS_LIQUID)) return;
+    if (c.hasTileFlag(TileFlags.T_OBSTRUCTS_LIQUID)) return;
 
     let liquid = c.liquid;
     let highest = c.liquidVolume;
     let count = 1;
 
     map.eachNeighbor(x, y, (n) => {
-      if (n.hasTileFlag(Flags.Tile.T_OBSTRUCTS_LIQUID)) return;
+      if (n.hasTileFlag(TileFlags.T_OBSTRUCTS_LIQUID)) return;
       ++count;
       if (n.liquidVolume > highest) {
         liquid = n.liquid;
@@ -1205,7 +1217,7 @@ export function updateLiquid(map: Map) {
 
     // disperses
     const tile = c.liquidTile;
-    if (newVolume[x][y] && random.chance(tile.dissipate, 10000)) {
+    if (newVolume[x][y] > 0 && random.chance(tile.dissipate, 10000)) {
       newVolume[x][y] -= 1;
     }
   });
@@ -1220,15 +1232,15 @@ export function updateLiquid(map: Map) {
         map.redrawCell(cell);
       }
     } else if (cell.liquid) {
-      cell.clearLayer(Flags.Layer.LIQUID);
+      cell.clearLayer(TileLayer.LIQUID);
       map.redrawCell(cell);
     }
   });
 
   if (hasLiquid) {
-    map.flags &= ~Flags.Map.MAP_NO_LIQUID;
+    map.flags &= ~Flags.MAP_NO_LIQUID;
   } else {
-    map.flags |= Flags.Map.MAP_NO_LIQUID;
+    map.flags |= Flags.MAP_NO_LIQUID;
   }
 
   map.changed(true);

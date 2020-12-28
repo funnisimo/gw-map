@@ -1,4 +1,4 @@
-import { color as Color, canvas as Canvas, utils as Utils, config as CONFIG, data as DATA, random, } from "gw-utils";
+import { color as Color, canvas as Canvas, utils as Utils, config as CONFIG, data as DATA, random, make as Make, } from "gw-utils";
 import { Tile, tiles as TILES, Layer } from "./tile";
 import * as Activation from "./activation";
 import * as Light from "./light";
@@ -611,6 +611,7 @@ export function make() {
     const cell = new Cell();
     return cell;
 }
+Make.cell = make;
 export function getAppearance(cell, dest) {
     const memory = cell.memory.mixer;
     memory.blackOut();

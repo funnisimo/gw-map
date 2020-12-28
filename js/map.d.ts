@@ -1,8 +1,9 @@
 import { utils as Utils, grid as Grid, color as Color, canvas as Canvas, types as Types } from "gw-utils";
 import * as Cell from "./cell";
 import * as Tile from "./tile";
-import * as Flags from "./flags";
+import { Map as Flags, Layer as TileLayer } from "./flags";
 import { Light } from "./light";
+export { Flags };
 export declare type MapEachFn = (cell: Cell.Cell, x: number, y: number, map: Map) => void;
 export declare type MapMatchFn = (cell: Cell.Cell, x: number, y: number, map: Map) => boolean;
 export declare type MapCostFn = (cell: Cell.Cell, x: number, y: number, map: Map) => number;
@@ -134,9 +135,10 @@ export declare class Map implements Types.MapType {
     tick(): Promise<void>;
     resetEvents(): void;
 }
-export declare function makeMap(w: number, h: number, opts?: any): Map;
+export declare function make(w: number, h: number, floor: string, wall: string): Map;
+export declare function make(w: number, h: number, floor: string): Map;
+export declare function make(w: number, h: number, opts?: any): Map;
 export declare function getCellAppearance(map: Map, x: number, y: number, dest: Canvas.Mixer): void;
-export declare function addText(map: Map, x: number, y: number, text: string, fg: Color.ColorBase, bg: Color.ColorBase, layer: Flags.Layer): void;
+export declare function addText(map: Map, x: number, y: number, text: string, fg: Color.ColorBase, bg: Color.ColorBase, layer: TileLayer): void;
 export declare function updateGas(map: Map): void;
 export declare function updateLiquid(map: Map): void;
-export {};
