@@ -755,7 +755,7 @@ export class Map {
         for (let x = 0; x < this.width; ++x) {
             for (let y = 0; y < this.height; ++y) {
                 const cell = this.cells[x][y];
-                await cell.fireEvent("tick", { map: this, x, y, cell, safe: true });
+                await cell.activate("tick", { map: this, x, y, cell, safe: true });
             }
         }
         updateLiquid(this);

@@ -1,7 +1,7 @@
 export declare enum Layer {
     GROUND = 0,
-    SURFACE = 1,
-    LIQUID = 2,
+    LIQUID = 1,
+    SURFACE = 2,
     GAS = 3,
     ITEM = 4,
     ACTOR = 5,

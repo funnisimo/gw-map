@@ -1,6 +1,6 @@
 import { flag as Flag, utils as Utils, color as Color, canvas as Canvas, } from "gw-utils";
 import { Tile as Flags, TileMech as MechFlags, Layer } from "./flags";
-import { lights } from "./light";
+import * as Light from "./light";
 export { Flags, MechFlags, Layer };
 /** Tile Class */
 export class Tile {
@@ -53,12 +53,8 @@ export class Tile {
         this.flags = Flag.from(Flags, this.flags, config.flags);
         this.mechFlags = Flag.from(MechFlags, this.mechFlags, config.mechFlags || config.flags);
         if (config.light) {
-            if (typeof config.light === "string") {
-                this.light = lights[config.light] || null;
-            }
-            else {
-                this.light = config.light;
-            }
+            // Light.from will throw an Error on invalid config
+            this.light = Light.from(config.light) || null;
         }
         if (config.sprite) {
             this.sprite = Canvas.makeSprite(config.sprite);
@@ -107,14 +103,14 @@ export class Tile {
     hasFlag(flag) {
         return (this.flags & flag) > 0;
     }
+    hasMechFlag(flag) {
+        return (this.mechFlags & flag) > 0;
+    }
     hasFlags(flags, mechFlags) {
         return ((!flags || this.flags & flags) &&
             (!mechFlags || this.mechFlags & mechFlags));
     }
-    hasMechFlag(flag) {
-        return (this.mechFlags & flag) > 0;
-    }
-    hasEvent(name) {
+    activatesOn(name) {
         return !!this.activates[name];
     }
     getName(arg) {

@@ -90,28 +90,28 @@ export class Cell {
         this.flags |= Flags.CELL_CHANGED;
     }
     get ground() {
-        return this.layers[0];
+        return this.layers[Layer.GROUND];
     }
     get liquid() {
-        return this.layers[1];
+        return this.layers[Layer.LIQUID];
     }
     get surface() {
-        return this.layers[2];
+        return this.layers[Layer.SURFACE];
     }
     get gas() {
-        return this.layers[3];
+        return this.layers[Layer.GAS];
     }
     get groundTile() {
-        return TILES[this.layers[0] || "0"];
+        return TILES[this.layers[Layer.GROUND] || "0"];
     }
     get liquidTile() {
-        return TILES[this.layers[1] || "0"];
+        return TILES[this.layers[Layer.LIQUID] || "0"];
     }
     get surfaceTile() {
-        return TILES[this.layers[2] || "0"];
+        return TILES[this.layers[Layer.SURFACE] || "0"];
     }
     get gasTile() {
-        return TILES[this.layers[3] || "0"];
+        return TILES[this.layers[Layer.GAS] || "0"];
     }
     dump() {
         if (this.actor)
@@ -269,6 +269,7 @@ export class Cell {
         let best = TILES[0];
         let bestPriority = -10000;
         for (let layer = Layer.GROUND; layer <= (skipGas ? Layer.LIQUID : Layer.GAS); ++layer) {
+            // @ts-ignore
             const id = this.layers[layer];
             if (!id)
                 continue;
@@ -407,8 +408,10 @@ export class Cell {
             tile = TILES["0"];
             tileId = null;
         }
-        const oldTileId = this.layers[tile.layer] || 0;
-        const oldTile = TILES[oldTileId] || TILES[0];
+        // @ts-ignore
+        const oldTileId = this.layers[tile.layer] || null;
+        // @ts-ignore
+        const oldTile = TILES[oldTileId] || TILES["0"];
         if ((oldTile.flags & TileFlags.T_PATHING_BLOCKER) !=
             (tile.flags & TileFlags.T_PATHING_BLOCKER)) {
             DATA.staleLoopMap = true;
@@ -422,7 +425,8 @@ export class Cell {
         if (map && this.isAnyKindOfVisible() && blocksVision != oldBlocksVision) {
             map.setFlag(MapFlags.MAP_FOV_CHANGED);
         }
-        this.layers[tile.layer] = tile.id;
+        // @ts-ignore
+        this.layers[tile.layer] = tileId;
         if (tile.layer == Layer.LIQUID) {
             this.liquidVolume =
                 volume + (tileId == oldTileId ? this.liquidVolume : 0);
@@ -448,10 +452,12 @@ export class Cell {
         // @ts-ignore
         if (typeof layer === "string")
             layer = Layer[layer];
+        // @ts-ignore
         if (this.layers[layer]) {
             // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
             this.flags |= Flags.CELL_CHANGED;
         }
+        // @ts-ignore
         this.layers[layer] = null;
         if (layer == Layer.LIQUID) {
             this.liquidVolume = 0;
@@ -496,7 +502,7 @@ export class Cell {
         this.flags |= Flags.CELL_CHANGED;
     }
     // EVENTS
-    async fireEvent(name, ctx = {}) {
+    async activate(name, ctx = {}) {
         ctx.cell = this;
         let fired = false;
         // cell.debug("fire event - %s", name);
@@ -523,9 +529,9 @@ export class Cell {
         }
         return fired;
     }
-    hasTileWithEvent(name) {
+    activatesOn(name) {
         for (let tile of this.tiles()) {
-            if (tile.hasEvent(name))
+            if (tile.activatesOn(name))
                 return true;
         }
         return false;

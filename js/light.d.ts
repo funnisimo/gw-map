@@ -21,11 +21,11 @@ export interface LightConfig {
     fadeTo?: number;
     pass?: boolean;
 }
+export declare type LightBase = LightConfig | string | any[];
 export declare function make(color: Color.ColorBase, radius: Range.RangeBase, fadeTo?: number, pass?: boolean): Light;
-export declare function make(light: LightConfig): Light;
-export declare function make(config: string): Light;
-export declare function make(config: any[]): Light;
+export declare function make(light: LightBase): Light;
 export declare const lights: Record<string, Light>;
+export declare function from(light: LightBase): Light;
 export declare function install(id: string, color: Color.ColorBase, radius: Range.RangeBase, fadeTo?: number, pass?: boolean): Light;
 export declare function install(id: string, config: LightConfig): Light;
 export declare function installAll(config?: Record<string, LightConfig>): void;

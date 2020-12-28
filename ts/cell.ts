@@ -66,7 +66,12 @@ interface SpriteData {
 }
 
 export class Cell implements Types.CellType {
-  public layers: (string | null)[] = [null, null, null, null];
+  public layers: [
+    string | null,
+    string | null,
+    string | null,
+    string | null
+  ] = [null, null, null, null];
 
   public sprites: SpriteData | null = null;
   public actor: Types.ActorType | null = null;
@@ -128,29 +133,29 @@ export class Cell implements Types.CellType {
   }
 
   get ground() {
-    return this.layers[0];
+    return this.layers[Layer.GROUND];
   }
   get liquid() {
-    return this.layers[1];
+    return this.layers[Layer.LIQUID];
   }
   get surface() {
-    return this.layers[2];
+    return this.layers[Layer.SURFACE];
   }
   get gas() {
-    return this.layers[3];
+    return this.layers[Layer.GAS];
   }
 
   get groundTile() {
-    return TILES[this.layers[0] || "0"];
+    return TILES[this.layers[Layer.GROUND] || "0"];
   }
   get liquidTile() {
-    return TILES[this.layers[1] || "0"];
+    return TILES[this.layers[Layer.LIQUID] || "0"];
   }
   get surfaceTile() {
-    return TILES[this.layers[2] || "0"];
+    return TILES[this.layers[Layer.SURFACE] || "0"];
   }
   get gasTile() {
-    return TILES[this.layers[3] || "0"];
+    return TILES[this.layers[Layer.GAS] || "0"];
   }
 
   dump(): string {
@@ -337,6 +342,7 @@ export class Cell implements Types.CellType {
       layer <= (skipGas ? Layer.LIQUID : Layer.GAS);
       ++layer
     ) {
+      // @ts-ignore
       const id = this.layers[layer];
       if (!id) continue;
       const tile = TILES[id];
@@ -493,8 +499,10 @@ export class Cell implements Types.CellType {
       tileId = null;
     }
 
-    const oldTileId = this.layers[tile.layer] || 0;
-    const oldTile = TILES[oldTileId] || TILES[0];
+    // @ts-ignore
+    const oldTileId = this.layers[tile.layer] || null;
+    // @ts-ignore
+    const oldTile = TILES[oldTileId] || TILES["0"];
 
     if (
       (oldTile.flags & TileFlags.T_PATHING_BLOCKER) !=
@@ -516,7 +524,8 @@ export class Cell implements Types.CellType {
       map.setFlag(MapFlags.MAP_FOV_CHANGED);
     }
 
-    this.layers[tile.layer] = tile.id;
+    // @ts-ignore
+    this.layers[tile.layer] = tileId;
     if (tile.layer == Layer.LIQUID) {
       this.liquidVolume =
         volume + (tileId == oldTileId ? this.liquidVolume : 0);
@@ -543,10 +552,12 @@ export class Cell implements Types.CellType {
   clearLayer(layer: Layer) {
     // @ts-ignore
     if (typeof layer === "string") layer = Layer[layer];
+    // @ts-ignore
     if (this.layers[layer]) {
       // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
       this.flags |= Flags.CELL_CHANGED;
     }
+    // @ts-ignore
     this.layers[layer] = null;
     if (layer == Layer.LIQUID) {
       this.liquidVolume = 0;

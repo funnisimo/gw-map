@@ -24,7 +24,12 @@ interface SpriteData {
     next: SpriteData | null;
 }
 export declare class Cell implements Types.CellType {
-    layers: (string | null)[];
+    layers: [
+        string | null,
+        string | null,
+        string | null,
+        string | null
+    ];
     sprites: SpriteData | null;
     actor: Types.ActorType | null;
     item: Types.ItemType | null;
@@ -102,8 +107,8 @@ export declare class Cell implements Types.CellType {
     clearLayer(layer: Layer): void;
     clearLayers(except: Layer, floorTile?: string | null): void;
     nullifyTileWithFlags(tileFlags: number, tileMechFlags?: number): void;
-    fireEvent(name: string, ctx?: any): Promise<boolean>;
-    hasTileWithEvent(name: string): boolean;
+    activate(name: string, ctx?: any): Promise<boolean>;
+    activatesOn(name: string): boolean;
     addSprite(layer: Layer, sprite: Canvas.SpriteType, priority?: number): void;
     removeSprite(sprite: Canvas.SpriteType): boolean;
     storeMemory(): void;

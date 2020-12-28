@@ -2,8 +2,8 @@ import { flag as Flag } from "gw-utils";
 export var Layer;
 (function (Layer) {
     Layer[Layer["GROUND"] = 0] = "GROUND";
-    Layer[Layer["SURFACE"] = 1] = "SURFACE";
-    Layer[Layer["LIQUID"] = 2] = "LIQUID";
+    Layer[Layer["LIQUID"] = 1] = "LIQUID";
+    Layer[Layer["SURFACE"] = 2] = "SURFACE";
     Layer[Layer["GAS"] = 3] = "GAS";
     Layer[Layer["ITEM"] = 4] = "ITEM";
     Layer[Layer["ACTOR"] = 5] = "ACTOR";

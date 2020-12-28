@@ -1,4 +1,4 @@
-import { utils as Utils, range as Range, grid as Grid, color as Color, data as DATA, config as CONFIG, } from "gw-utils";
+import { utils as Utils, range as Range, grid as Grid, color as Color, data as DATA, config as CONFIG, make as Make, } from "gw-utils";
 import * as Flags from "./flags";
 // const LIGHT_SMOOTHING_THRESHOLD = 150;       // light components higher than this magnitude will be toned down a little
 export const config = (CONFIG.light = { INTENSITY_DARK: 20 }); // less than 20% for highest color in rgb
@@ -99,7 +99,19 @@ export function make(...args) {
         return new Light(color, radius, fadeTo, pass);
     }
 }
+Make.light = make;
 export const lights = {};
+export function from(...args) {
+    if (args.length != 1)
+        Utils.ERROR("Unknown Light config: " + JSON.stringify(args));
+    const arg = args[0];
+    if (typeof arg === "string") {
+        const cached = lights[arg];
+        if (cached)
+            return cached;
+    }
+    return make(arg);
+}
 export function install(id, ...args) {
     let source;
     if (args.length == 1) {

@@ -1,7 +1,7 @@
 import { color as Color, canvas as Canvas, types as Types } from "gw-utils";
 import { Tile as Flags, TileMech as MechFlags, Layer } from "./flags";
 import { Activation } from "./activation";
-import { Light } from "./light";
+import * as Light from "./light";
 export { Flags, MechFlags, Layer };
 export interface NameConfig {
     article?: boolean | string;
@@ -16,7 +16,7 @@ export interface FullTileConfig {
     priority: number;
     sprite: Canvas.SpriteConfig;
     activates: any;
-    light: Light | string | null;
+    light: Light.LightBase | null;
     flavor: string;
     desc: string;
     name: string;
@@ -38,7 +38,7 @@ export declare class Tile implements Types.TileType {
     priority: number;
     sprite: Canvas.Sprite;
     activates: Record<string, Activation>;
-    light: any;
+    light: Light.Light | null;
     flavor: string | null;
     desc: string | null;
     name: string;
@@ -69,9 +69,9 @@ export declare class Tile implements Types.TileType {
      * @returns {boolean} Whether or not the flag is set
      */
     hasFlag(flag: number): boolean;
-    hasFlags(flags: number, mechFlags: number): number | true;
     hasMechFlag(flag: number): boolean;
-    hasEvent(name: string): boolean;
+    hasFlags(flags: number, mechFlags: number): number | true;
+    activatesOn(name: string): boolean;
     getName(): string;
     getName(opts: NameConfig): string;
     getName(article: string): string;

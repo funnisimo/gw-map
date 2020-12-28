@@ -1,15 +1,46 @@
-import { types, canvas, color, range, grid, utils } from 'gw-utils';
+import { canvas, types, color, range, grid, utils } from 'gw-utils';
 
 declare enum Layer {
     GROUND = 0,
-    SURFACE = 1,
-    LIQUID = 2,
+    LIQUID = 1,
+    SURFACE = 2,
     GAS = 3,
     ITEM = 4,
     ACTOR = 5,
     PLAYER = 6,
     FX = 7,
     UI = 8
+}
+declare enum Activation {
+    DFF_SUBSEQ_ALWAYS,
+    DFF_SUBSEQ_EVERYWHERE,
+    DFF_TREAT_AS_BLOCKING,
+    DFF_PERMIT_BLOCKING,
+    DFF_ACTIVATE_DORMANT_MONSTER,
+    DFF_BLOCKED_BY_OTHER_LAYERS,
+    DFF_SUPERPRIORITY,
+    DFF_AGGRAVATES_MONSTERS,
+    DFF_RESURRECT_ALLY,
+    DFF_EMIT_EVENT,
+    DFF_NO_REDRAW_CELL,
+    DFF_ABORT_IF_BLOCKS_MAP,
+    DFF_BLOCKED_BY_ITEMS,
+    DFF_BLOCKED_BY_ACTORS,
+    DFF_ALWAYS_FIRE,
+    DFF_NO_MARK_FIRED,
+    DFF_PROTECTED,
+    DFF_SPREAD_CIRCLE,
+    DFF_SPREAD_LINE,
+    DFF_NULL_SURFACE,
+    DFF_NULL_LIQUID,
+    DFF_NULL_GAS,
+    DFF_EVACUATE_CREATURES,
+    DFF_EVACUATE_ITEMS,
+    DFF_BUILD_IN_WALLS,
+    DFF_MUST_TOUCH_WALLS,
+    DFF_NO_TOUCH_WALLS,
+    DFF_ONLY_IF_EMPTY,
+    DFF_NULLIFY_CELL
 }
 declare enum Tile {
     T_OBSTRUCTS_PASSABILITY,
@@ -82,6 +113,57 @@ declare enum TileMech {
     TM_SWAP_ENCHANTS_ACTIVATION,
     TM_PROMOTES
 }
+declare enum Cell {
+    REVEALED,
+    VISIBLE,
+    WAS_VISIBLE,
+    IN_FOV,
+    HAS_PLAYER,
+    HAS_MONSTER,
+    HAS_DORMANT_MONSTER,
+    HAS_ITEM,
+    HAS_STAIRS,
+    NEEDS_REDRAW,
+    CELL_CHANGED,
+    IS_IN_PATH,
+    IS_CURSOR,
+    MAGIC_MAPPED,
+    ITEM_DETECTED,
+    STABLE_MEMORY,
+    CLAIRVOYANT_VISIBLE,
+    WAS_CLAIRVOYANT_VISIBLE,
+    CLAIRVOYANT_DARKENED,
+    IMPREGNABLE,
+    TELEPATHIC_VISIBLE,
+    WAS_TELEPATHIC_VISIBLE,
+    MONSTER_DETECTED,
+    WAS_MONSTER_DETECTED,
+    LIGHT_CHANGED,
+    CELL_LIT,
+    IS_IN_SHADOW,
+    CELL_DARK,
+    PERMANENT_CELL_FLAGS,
+    ANY_KIND_OF_VISIBLE,
+    HAS_ACTOR,
+    IS_WAS_ANY_KIND_OF_VISIBLE,
+    CELL_DEFAULT
+}
+declare enum CellMech {
+    SEARCHED_FROM_HERE,
+    PRESSURE_PLATE_DEPRESSED,
+    KNOWN_TO_BE_TRAP_FREE,
+    CAUGHT_FIRE_THIS_TURN,
+    EVENT_FIRED_THIS_TURN,
+    EVENT_PROTECTED,
+    IS_IN_LOOP,
+    IS_CHOKEPOINT,
+    IS_GATE_SITE,
+    IS_IN_ROOM_MACHINE,
+    IS_IN_AREA_MACHINE,
+    IS_POWERED,
+    IS_IN_MACHINE,
+    PERMANENT_MECH_FLAGS
+}
 
 declare class CellMemory {
     mixer: canvas.Mixer;
@@ -103,8 +185,13 @@ interface SpriteData {
     sprite: canvas.SpriteType;
     next: SpriteData | null;
 }
-declare class Cell implements types.CellType {
-    layers: (string | null)[];
+declare class Cell$1 implements types.CellType {
+    layers: [
+        string | null,
+        string | null,
+        string | null,
+        string | null
+    ];
     sprites: SpriteData | null;
     actor: types.ActorType | null;
     item: types.ItemType | null;
@@ -119,7 +206,7 @@ declare class Cell implements types.CellType {
     oldLight: [number, number, number];
     glowLight: [number, number, number];
     constructor();
-    copy(other: Cell): void;
+    copy(other: Cell$1): void;
     nullify(): void;
     nullifyLayers(nullLiquid?: boolean, nullSurface?: boolean, nullGas?: boolean): void;
     get ground(): string | null;
@@ -182,11 +269,28 @@ declare class Cell implements types.CellType {
     clearLayer(layer: Layer): void;
     clearLayers(except: Layer, floorTile?: string | null): void;
     nullifyTileWithFlags(tileFlags: number, tileMechFlags?: number): void;
-    fireEvent(name: string, ctx?: any): Promise<boolean>;
-    hasTileWithEvent(name: string): boolean;
+    activate(name: string, ctx?: any): Promise<boolean>;
+    activatesOn(name: string): boolean;
     addSprite(layer: Layer, sprite: canvas.SpriteType, priority?: number): void;
     removeSprite(sprite: canvas.SpriteType): boolean;
     storeMemory(): void;
+}
+declare function make(): Cell$1;
+declare function getAppearance(cell: Cell$1, dest: canvas.Mixer): boolean;
+
+type cell_d_CellMemory = CellMemory;
+declare const cell_d_CellMemory: typeof CellMemory;
+declare const cell_d_make: typeof make;
+declare const cell_d_getAppearance: typeof getAppearance;
+declare namespace cell_d {
+  export {
+    Cell as Flags,
+    CellMech as MechFlags,
+    cell_d_CellMemory as CellMemory,
+    Cell$1 as Cell,
+    cell_d_make as make,
+    cell_d_getAppearance as getAppearance,
+  };
 }
 
 declare class Light implements types.LightType {
@@ -200,10 +304,17 @@ declare class Light implements types.LightType {
     get intensity(): number;
     paint(map: Map, x: number, y: number, maintainShadows?: boolean, isMinersLight?: boolean): false | undefined;
 }
+interface LightConfig {
+    color: color.ColorBase;
+    radius: number;
+    fadeTo?: number;
+    pass?: boolean;
+}
+declare type LightBase = LightConfig | string | any[];
 
-declare type MapEachFn = (cell: Cell, x: number, y: number, map: Map) => void;
-declare type MapMatchFn = (cell: Cell, x: number, y: number, map: Map) => boolean;
-declare type MapCostFn = (cell: Cell, x: number, y: number, map: Map) => number;
+declare type MapEachFn = (cell: Cell$1, x: number, y: number, map: Map) => void;
+declare type MapMatchFn = (cell: Cell$1, x: number, y: number, map: Map) => boolean;
+declare type MapCostFn = (cell: Cell$1, x: number, y: number, map: Map) => number;
 interface MapMatchOptions {
     hallways: boolean;
     blockingMap: grid.NumGrid;
@@ -231,7 +342,7 @@ interface DisruptsOptions {
 declare class Map implements types.MapType {
     protected _width: number;
     protected _height: number;
-    cells: grid.Grid<Cell>;
+    cells: grid.Grid<Cell$1>;
     locations: any;
     config: any;
     protected _actors: any | null;
@@ -246,8 +357,8 @@ declare class Map implements types.MapType {
     get height(): number;
     start(): Promise<void>;
     nullify(): void;
-    dump(fmt?: (cell: Cell) => string): void;
-    cell(x: number, y: number): Cell;
+    dump(fmt?: (cell: Cell$1) => string): void;
+    cell(x: number, y: number): Cell$1;
     eachCell(fn: MapEachFn): void;
     forEach(fn: MapEachFn): void;
     forRect(x: number, y: number, w: number, h: number, fn: MapEachFn): void;
@@ -260,7 +371,7 @@ declare class Map implements types.MapType {
     hasTileFlag(x: number, y: number, flag: number): boolean;
     hasTileMechFlag(x: number, y: number, flag: number): boolean;
     setCellFlag(x: number, y: number, flag: number): void;
-    redrawCell(cell: Cell): void;
+    redrawCell(cell: Cell$1): void;
     redrawXY(x: number, y: number): void;
     redrawAll(): void;
     revealAll(): void;
@@ -332,8 +443,43 @@ declare class Map implements types.MapType {
     tick(): Promise<void>;
     resetEvents(): void;
 }
+declare function makeMap(w: number, h: number, opts?: any): Map;
+declare function getCellAppearance(map: Map, x: number, y: number, dest: canvas.Mixer): void;
+declare function addText(map: Map, x: number, y: number, text: string, fg: color.ColorBase, bg: color.ColorBase, layer: Layer): void;
+declare function updateGas(map: Map): void;
+declare function updateLiquid(map: Map): void;
 
-declare class Activation {
+type map_d_MapEachFn = MapEachFn;
+type map_d_MapMatchFn = MapMatchFn;
+type map_d_MapCostFn = MapCostFn;
+type map_d_MapMatchOptions = MapMatchOptions;
+type map_d_MapLightFn = MapLightFn;
+type map_d_DisruptsOptions = DisruptsOptions;
+type map_d_Map = Map;
+declare const map_d_Map: typeof Map;
+declare const map_d_makeMap: typeof makeMap;
+declare const map_d_getCellAppearance: typeof getCellAppearance;
+declare const map_d_addText: typeof addText;
+declare const map_d_updateGas: typeof updateGas;
+declare const map_d_updateLiquid: typeof updateLiquid;
+declare namespace map_d {
+  export {
+    map_d_MapEachFn as MapEachFn,
+    map_d_MapMatchFn as MapMatchFn,
+    map_d_MapCostFn as MapCostFn,
+    map_d_MapMatchOptions as MapMatchOptions,
+    map_d_MapLightFn as MapLightFn,
+    map_d_DisruptsOptions as DisruptsOptions,
+    map_d_Map as Map,
+    map_d_makeMap as makeMap,
+    map_d_getCellAppearance as getCellAppearance,
+    map_d_addText as addText,
+    map_d_updateGas as updateGas,
+    map_d_updateLiquid as updateLiquid,
+  };
+}
+
+declare class Activation$1 {
     tile: string | null;
     fn: Function | null;
     item: string | null;
@@ -353,6 +499,42 @@ declare class Activation {
     id: string | null;
     constructor(opts?: any);
 }
+declare function make$1(opts: string | any): Activation$1 | null;
+declare const activations: Record<string, Activation$1 | null>;
+declare function install(id: string, event: Activation$1 | any): any;
+declare function resetAllMessages(): void;
+declare function spawn(activation: Activation$1 | Function | string, ctx?: any): Promise<any>;
+declare function computeSpawnMap(feat: Activation$1, spawnMap: grid.NumGrid, ctx?: any): void;
+declare function spawnTiles(feat: Activation$1, spawnMap: grid.NumGrid, ctx: any, tile: Tile$1 | null, item: types.ItemType | null): Promise<boolean>;
+declare function nullifyCells(map: Map, spawnMap: grid.NumGrid, flags: number): boolean;
+declare function evacuateCreatures(map: Map, blockingMap: grid.NumGrid): boolean;
+declare function evacuateItems(map: Map, blockingMap: grid.NumGrid): boolean;
+
+declare const activation_d_activations: typeof activations;
+declare const activation_d_install: typeof install;
+declare const activation_d_resetAllMessages: typeof resetAllMessages;
+declare const activation_d_spawn: typeof spawn;
+declare const activation_d_computeSpawnMap: typeof computeSpawnMap;
+declare const activation_d_spawnTiles: typeof spawnTiles;
+declare const activation_d_nullifyCells: typeof nullifyCells;
+declare const activation_d_evacuateCreatures: typeof evacuateCreatures;
+declare const activation_d_evacuateItems: typeof evacuateItems;
+declare namespace activation_d {
+  export {
+    Activation as Flags,
+    Activation$1 as Activation,
+    make$1 as make,
+    activation_d_activations as activations,
+    activation_d_install as install,
+    activation_d_resetAllMessages as resetAllMessages,
+    activation_d_spawn as spawn,
+    activation_d_computeSpawnMap as computeSpawnMap,
+    activation_d_spawnTiles as spawnTiles,
+    activation_d_nullifyCells as nullifyCells,
+    activation_d_evacuateCreatures as evacuateCreatures,
+    activation_d_evacuateItems as evacuateItems,
+  };
+}
 
 interface NameConfig {
     article?: boolean | string;
@@ -367,7 +549,7 @@ interface FullTileConfig {
     priority: number;
     sprite: canvas.SpriteConfig;
     activates: any;
-    light: Light | string | null;
+    light: LightBase | null;
     flavor: string;
     desc: string;
     name: string;
@@ -388,8 +570,8 @@ declare class Tile$1 implements types.TileType {
     layer: Layer;
     priority: number;
     sprite: canvas.Sprite;
-    activates: Record<string, Activation>;
-    light: any;
+    activates: Record<string, Activation$1>;
+    light: Light | null;
     flavor: string | null;
     desc: string | null;
     name: string;
@@ -420,9 +602,9 @@ declare class Tile$1 implements types.TileType {
      * @returns {boolean} Whether or not the flag is set
      */
     hasFlag(flag: number): boolean;
-    hasFlags(flags: number, mechFlags: number): number | true;
     hasMechFlag(flag: number): boolean;
-    hasEvent(name: string): boolean;
+    hasFlags(flags: number, mechFlags: number): number | true;
+    activatesOn(name: string): boolean;
     getName(): string;
     getName(opts: NameConfig): string;
     getName(article: string): string;
@@ -437,9 +619,9 @@ declare const tiles: Record<string, Tile$1>;
  * @param {Object} config - The tile configuration
  * @returns {Tile} The newly created tile
  */
-declare function install(id: string, base: string | Tile$1, config: Partial<TileConfig>): Tile$1;
-declare function install(id: string, config: Partial<TileConfig>): Tile$1;
-declare function install(config: Partial<TileConfig>): Tile$1;
+declare function install$1(id: string, base: string | Tile$1, config: Partial<TileConfig>): Tile$1;
+declare function install$1(id: string, config: Partial<TileConfig>): Tile$1;
+declare function install$1(config: Partial<TileConfig>): Tile$1;
 /**
  * Adds multiple tiles to the GW.tiles collection.
  * It extracts all the id:opts pairs from the config object and uses
@@ -457,7 +639,6 @@ type tile_d_TileBase = TileBase;
 type tile_d_FullTileConfig = FullTileConfig;
 type tile_d_TileConfig = TileConfig;
 declare const tile_d_tiles: typeof tiles;
-declare const tile_d_install: typeof install;
 declare const tile_d_installAll: typeof installAll;
 declare namespace tile_d {
   export {
@@ -470,9 +651,9 @@ declare namespace tile_d {
     tile_d_TileConfig as TileConfig,
     Tile$1 as Tile,
     tile_d_tiles as tiles,
-    tile_d_install as install,
+    install$1 as install,
     tile_d_installAll as installAll,
   };
 }
 
-export { tile_d as tile };
+export { activation_d as activation, cell_d as cell, map_d as map, tile_d as tile };
