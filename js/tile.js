@@ -1,5 +1,6 @@
 import { flag as Flag, utils as Utils, color as Color, canvas as Canvas, } from "gw-utils";
 import { Tile as Flags, TileMech as MechFlags, Layer } from "./flags";
+import * as Activation from "./activation";
 import * as Light from "./light";
 export { Flags, MechFlags, Layer };
 /** Tile Class */
@@ -68,7 +69,10 @@ export class Tile {
         if (config.activates) {
             Object.entries(config.activates).forEach(([key, info]) => {
                 if (info) {
-                    this.activates[key] = info;
+                    const activation = Activation.make(info);
+                    if (activation) {
+                        this.activates[key] = activation;
+                    }
                 }
                 else {
                     delete this.activates[key];

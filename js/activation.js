@@ -1,6 +1,6 @@
 import { utils as Utils, random, grid as Grid, events as Events, color as Color, flag as Flag, data as Data, message as Msg, make as Make, } from "gw-utils";
 import { Layer, Activation as Flags, Tile as TileFlags, CellMech as CellMechFlags, Cell as CellFlags, } from "./flags";
-import { tiles as Tiles } from "./tile";
+import * as Tile from "./tile";
 export { Flags };
 export class Activation {
     constructor(opts = {}) {
@@ -39,6 +39,7 @@ export function make(opts) {
     const te = new Activation(opts);
     return te;
 }
+Make.activation = make;
 export const activations = {
     DF_NONE: null,
 };
@@ -109,7 +110,7 @@ export async function spawn(activation, ctx = {}) {
     }
     let tile = null;
     if (feat.tile) {
-        tile = Tiles[feat.tile] || null;
+        tile = Tile.tiles[feat.tile] || null;
         if (!tile) {
             Utils.ERROR("Unknown tile: " + feat.tile);
         }
@@ -259,7 +260,7 @@ export async function spawn(activation, ctx = {}) {
             if (v)
                 map.redrawXY(i, j);
         });
-        map.needsRedraw();
+        map.changed(true);
         if (!(feat.flags & Flags.DFF_NO_MARK_FIRED)) {
             spawnMap.forEach((v, i, j) => {
                 if (v) {
@@ -325,7 +326,7 @@ export function computeSpawnMap(feat, spawnMap, ctx = {}) {
     let probDec = feat.decrement || 0;
     if (feat.matchTile && typeof feat.matchTile === "string") {
         const name = feat.matchTile;
-        const tile = Tiles[name];
+        const tile = Tile.tiles[name];
         if (!tile) {
             Utils.ERROR("Failed to find match tile with name:" + name);
         }

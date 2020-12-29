@@ -516,7 +516,7 @@ declare function install(id: string, event: Activation$1 | any): any;
 declare function resetAllMessages(): void;
 declare function spawn(activation: Activation$1 | Function | string, ctx?: any): Promise<any>;
 declare function computeSpawnMap(feat: Activation$1, spawnMap: grid.NumGrid, ctx?: any): void;
-declare function spawnTiles(feat: Activation$1, spawnMap: grid.NumGrid, ctx: any, tile: Tile$1 | null, item: types.ItemType | null): Promise<boolean>;
+declare function spawnTiles(feat: Activation$1, spawnMap: grid.NumGrid, ctx: any, tile?: Tile$1 | null, item?: types.ItemType | null): Promise<boolean>;
 declare function nullifyCells(map: Map$1, spawnMap: grid.NumGrid, flags: number): boolean;
 declare function evacuateCreatures(map: Map$1, blockingMap: grid.NumGrid): boolean;
 declare function evacuateItems(map: Map$1, blockingMap: grid.NumGrid): boolean;

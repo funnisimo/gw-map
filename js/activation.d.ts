@@ -1,7 +1,7 @@
 import { grid as Grid, color as Color, types as Types } from "gw-utils";
 import { Activation as Flags } from "./flags";
-import { Tile } from "./tile";
-import { Map } from "./map";
+import * as Tile from "./tile";
+import * as Map from "./map";
 export { Flags };
 export declare class Activation {
     tile: string | null;
@@ -29,7 +29,7 @@ export declare function install(id: string, event: Activation | any): any;
 export declare function resetAllMessages(): void;
 export declare function spawn(activation: Activation | Function | string, ctx?: any): Promise<any>;
 export declare function computeSpawnMap(feat: Activation, spawnMap: Grid.NumGrid, ctx?: any): void;
-export declare function spawnTiles(feat: Activation, spawnMap: Grid.NumGrid, ctx: any, tile: Tile | null, item: Types.ItemType | null): Promise<boolean>;
-export declare function nullifyCells(map: Map, spawnMap: Grid.NumGrid, flags: number): boolean;
-export declare function evacuateCreatures(map: Map, blockingMap: Grid.NumGrid): boolean;
-export declare function evacuateItems(map: Map, blockingMap: Grid.NumGrid): boolean;
+export declare function spawnTiles(feat: Activation, spawnMap: Grid.NumGrid, ctx: any, tile?: Tile.Tile | null, item?: Types.ItemType | null): Promise<boolean>;
+export declare function nullifyCells(map: Map.Map, spawnMap: Grid.NumGrid, flags: number): boolean;
+export declare function evacuateCreatures(map: Map.Map, blockingMap: Grid.NumGrid): boolean;
+export declare function evacuateItems(map: Map.Map, blockingMap: Grid.NumGrid): boolean;

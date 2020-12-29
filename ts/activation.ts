@@ -19,9 +19,9 @@ import {
   Cell as CellFlags,
 } from "./flags";
 
-import { tiles as Tiles, Tile } from "./tile";
-import { Cell } from "./cell";
-import { Map } from "./map";
+import * as Tile from "./tile";
+import * as Cell from "./cell";
+import * as Map from "./map";
 
 export { Flags };
 
@@ -83,6 +83,8 @@ export function make(opts: string | any) {
   const te = new Activation(opts);
   return te;
 }
+
+Make.activation = make;
 
 export const activations: Record<string, Activation | null> = {
   DF_NONE: null,
@@ -166,9 +168,9 @@ export async function spawn(
     Msg.add(feat.message);
   }
 
-  let tile: Tile | null = null;
+  let tile: Tile.Tile | null = null;
   if (feat.tile) {
-    tile = Tiles[feat.tile] || null;
+    tile = Tile.tiles[feat.tile] || null;
     if (!tile) {
       Utils.ERROR("Unknown tile: " + feat.tile);
     }
@@ -337,7 +339,7 @@ export async function spawn(
       if (v) map.redrawXY(i, j);
     });
 
-    map.needsRedraw();
+    map.changed(true);
 
     if (!(feat.flags & Flags.DFF_NO_MARK_FIRED)) {
       spawnMap.forEach((v, i, j) => {
@@ -363,7 +365,7 @@ function cellIsOk(feat: Activation, x: number, y: number, ctx: any = {}) {
     if (!cell.isWall()) return false;
   } else if (feat.flags & Flags.DFF_MUST_TOUCH_WALLS) {
     let ok = false;
-    map.eachNeighbor(x, y, (c: Cell) => {
+    map.eachNeighbor(x, y, (c: Cell.Cell) => {
       if (c.isWall()) {
         ok = true;
       }
@@ -371,7 +373,7 @@ function cellIsOk(feat: Activation, x: number, y: number, ctx: any = {}) {
     if (!ok) return false;
   } else if (feat.flags & Flags.DFF_NO_TOUCH_WALLS) {
     let ok = true;
-    map.eachNeighbor(x, y, (c: Cell) => {
+    map.eachNeighbor(x, y, (c: Cell.Cell) => {
       if (c.isWall()) {
         ok = false;
       }
@@ -413,7 +415,7 @@ export function computeSpawnMap(
 
   if (feat.matchTile && typeof feat.matchTile === "string") {
     const name = feat.matchTile;
-    const tile = Tiles[name];
+    const tile = Tile.tiles[name];
     if (!tile) {
       Utils.ERROR("Failed to find match tile with name:" + name);
     }
@@ -511,8 +513,8 @@ export async function spawnTiles(
   feat: Activation,
   spawnMap: Grid.NumGrid,
   ctx: any,
-  tile: Tile | null,
-  item: Types.ItemType | null
+  tile?: Tile.Tile | null,
+  item?: Types.ItemType | null
 ) {
   let i, j;
   let accomplishedSomething;
@@ -622,7 +624,11 @@ export async function spawnTiles(
   return accomplishedSomething;
 }
 
-export function nullifyCells(map: Map, spawnMap: Grid.NumGrid, flags: number) {
+export function nullifyCells(
+  map: Map.Map,
+  spawnMap: Grid.NumGrid,
+  flags: number
+) {
   let didSomething = false;
   const nullSurface = flags & Flags.DFF_NULL_SURFACE;
   const nullLiquid = flags & Flags.DFF_NULL_LIQUID;
@@ -635,7 +641,7 @@ export function nullifyCells(map: Map, spawnMap: Grid.NumGrid, flags: number) {
   return didSomething;
 }
 
-export function evacuateCreatures(map: Map, blockingMap: Grid.NumGrid) {
+export function evacuateCreatures(map: Map.Map, blockingMap: Grid.NumGrid) {
   let i, j;
   let monst: Types.ActorType | null;
 
@@ -648,7 +654,7 @@ export function evacuateCreatures(map: Map, blockingMap: Grid.NumGrid) {
         const loc = map.matchingLocNear(
           i,
           j,
-          (cell: Cell) => {
+          (cell: Cell.Cell) => {
             return !monst?.forbidsCell(cell);
           },
           { hallways: true, blockingMap }
@@ -662,7 +668,7 @@ export function evacuateCreatures(map: Map, blockingMap: Grid.NumGrid) {
   return didSomething;
 }
 
-export function evacuateItems(map: Map, blockingMap: Grid.NumGrid) {
+export function evacuateItems(map: Map.Map, blockingMap: Grid.NumGrid) {
   let didSomething = false;
   blockingMap.forEach((v: number, i: number, j: number) => {
     if (!v) return;
@@ -672,7 +678,7 @@ export function evacuateItems(map: Map, blockingMap: Grid.NumGrid) {
     const loc = map.matchingLocNear(
       i,
       j,
-      (cell: Cell) => {
+      (cell: Cell.Cell) => {
         return !!cell.item?.forbidsCell(cell);
       },
       { hallways: true, blockingMap }

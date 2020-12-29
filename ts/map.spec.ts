@@ -97,11 +97,11 @@ describe("Map", () => {
       expect(map.cell(4, 5).liquidVolume).toEqual(0);
 
       await map.tick();
-      expect(cell.liquidVolume).toEqual(40);
+      expect(cell.liquidVolume).toEqual(39);
       expect(map.cell(4, 5).liquidVolume).toEqual(0);
 
       await map.tick();
-      expect(cell.liquidVolume).toEqual(32);
+      expect(cell.liquidVolume).toEqual(30);
       expect(map.cell(4, 5).liquidVolume).toEqual(0);
 
       rnd.mockReturnValue(0); // force dissipate

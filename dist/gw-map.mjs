@@ -1,4 +1,4 @@
-import { flag, config as config$1, color, make as make$4, range, utils, grid, canvas, message, data, events, random, path, fov, colors } from 'gw-utils';
+import { flag, color, make as make$4, utils, message, grid, data, events, random, config as config$1, range, canvas, path, fov, colors } from 'gw-utils';
 
 var Layer;
 (function (Layer) {
@@ -265,311 +265,6 @@ var Map;
     Map[Map["MAP_DEFAULT"] = Map.MAP_STABLE_LIGHTS | Map.MAP_STABLE_GLOW_LIGHTS | Map.MAP_FOV_CHANGED] = "MAP_DEFAULT";
 })(Map || (Map = {}));
 
-// const LIGHT_SMOOTHING_THRESHOLD = 150;       // light components higher than this magnitude will be toned down a little
-const config = (config$1.light = { INTENSITY_DARK: 20 }); // less than 20% for highest color in rgb
-const LIGHT_COMPONENTS = color.make();
-class Light {
-    constructor(color$1, range$1, fadeTo, pass = false) {
-        this.fadeTo = 0;
-        this.passThroughActors = false;
-        this.id = null;
-        this.color = color.from(color$1) || null; /* color */
-        this.radius = range.make(range$1 || 1);
-        this.fadeTo = fadeTo || 0;
-        this.passThroughActors = pass; // generally no, but miner light does (TODO - string parameter?  'false' or 'true')
-    }
-    copy(other) {
-        this.color = other.color;
-        this.radius.copy(other.radius);
-        this.fadeTo = other.fadeTo;
-        this.passThroughActors = other.passThroughActors;
-    }
-    get intensity() {
-        return intensity(this.color);
-    }
-    // Returns true if any part of the light hit cells that are in the player's field of view.
-    paint(map, x, y, maintainShadows = false, isMinersLight = false) {
-        if (!map)
-            return;
-        let k;
-        // let colorComponents = [0,0,0];
-        let lightMultiplier;
-        let radius = this.radius.value();
-        let outerRadius = Math.ceil(radius);
-        // calcLightComponents(colorComponents, this);
-        LIGHT_COMPONENTS.copy(this.color).bake();
-        // console.log('paint', LIGHT_COMPONENTS.toString(true), x, y, outerRadius);
-        // the miner's light does not dispel IS_IN_SHADOW,
-        // so the player can be in shadow despite casting his own light.
-        const dispelShadows = !isMinersLight &&
-            !maintainShadows &&
-            intensity(LIGHT_COMPONENTS) > config.INTENSITY_DARK;
-        const fadeToPercent = this.fadeTo;
-        const grid$1 = grid.alloc(map.width, map.height, 0);
-        map.calcFov(grid$1, x, y, outerRadius, this.passThroughActors ? 0 : Cell.HAS_ACTOR, Tile.T_OBSTRUCTS_VISION);
-        let overlappedFieldOfView = false;
-        grid$1.forCircle(x, y, outerRadius, (v, i, j) => {
-            if (!v)
-                return;
-            const cell = map.cell(i, j);
-            lightMultiplier = Math.floor(100 -
-                (100 - fadeToPercent) * (utils.distanceBetween(x, y, i, j) / radius));
-            for (k = 0; k < 3; k++) {
-                cell.light[k] += Math.floor((LIGHT_COMPONENTS[k] * lightMultiplier) / 100);
-            }
-            if (dispelShadows) {
-                cell.flags &= ~Cell.IS_IN_SHADOW;
-            }
-            if (cell.flags & (Cell.IN_FOV | Cell.ANY_KIND_OF_VISIBLE)) {
-                overlappedFieldOfView = true;
-            }
-            // console.log(i, j, lightMultiplier, cell.light);
-        });
-        if (dispelShadows) {
-            const cell = map.cell(x, y);
-            cell.flags &= ~Cell.IS_IN_SHADOW;
-        }
-        grid.free(grid$1);
-        return overlappedFieldOfView;
-    }
-}
-function intensity(color) {
-    return Math.max(color[0], color[1], color[2]);
-}
-function make(...args) {
-    if (args.length == 1) {
-        const config = args[0];
-        if (typeof config === "string") {
-            const cached = lights[config];
-            if (cached)
-                return cached;
-            const [color$1, radius, fadeTo, pass] = config
-                .split(/[,|]/)
-                .map((t) => t.trim());
-            return new Light(color.from(color$1), range.from(radius || 1), Number.parseInt(fadeTo || "0"), !!pass && pass !== "false");
-        }
-        else if (Array.isArray(config)) {
-            const [color, radius, fadeTo, pass] = config;
-            return new Light(color, radius, fadeTo, pass);
-        }
-        else if (config && config.color) {
-            return new Light(color.from(config.color), range.from(config.radius), Number.parseInt(config.fadeTo || "0"), config.pass);
-        }
-        else {
-            throw new Error("Unknown Light config - " + config);
-        }
-    }
-    else {
-        const [color, radius, fadeTo, pass] = args;
-        return new Light(color, radius, fadeTo, pass);
-    }
-}
-make$4.light = make;
-const lights = {};
-function from(...args) {
-    if (args.length != 1)
-        utils.ERROR("Unknown Light config: " + JSON.stringify(args));
-    const arg = args[0];
-    if (typeof arg === "string") {
-        const cached = lights[arg];
-        if (cached)
-            return cached;
-    }
-    return make(arg);
-}
-
-/** Tile Class */
-class Tile$1 {
-    /**
-     * Creates a new Tile object.
-     * @param {Object} [config={}] - The configuration of the Tile
-     * @param {String|Number|String[]} [config.flags=0] - Flags and MechFlags for the tile
-     * @param {String} [config.layer=GROUND] - Name of the layer for this tile
-     * @param {String} [config.ch] - The sprite character
-     * @param {String} [config.fg] - The sprite foreground color
-     * @param {String} [config.bg] - The sprite background color
-     */
-    constructor(config, base) {
-        this.flags = 0;
-        this.mechFlags = 0;
-        this.layer = Layer.GROUND;
-        this.priority = -1;
-        this.sprite = {};
-        this.activates = {};
-        this.light = null; // TODO - Light
-        this.flavor = null;
-        this.desc = null;
-        this.article = null;
-        this.dissipate = 2000; // 20 * 100 = 20%
-        if (base !== undefined) {
-            utils.assignOmitting(["activates"], this, base);
-        }
-        utils.assignOmitting([
-            "Extends",
-            "extends",
-            "flags",
-            "mechFlags",
-            "sprite",
-            "activates",
-            "ch",
-            "fg",
-            "bg",
-            "light",
-        ], this, config);
-        this.name = config.name || (base ? base.name : config.id);
-        this.id = config.id;
-        if (this.priority < 0) {
-            this.priority = 50;
-        }
-        if (this.layer !== undefined) {
-            if (typeof this.layer === "string") {
-                this.layer = Layer[this.layer];
-            }
-        }
-        this.flags = flag.from(Tile, this.flags, config.flags);
-        this.mechFlags = flag.from(TileMech, this.mechFlags, config.mechFlags || config.flags);
-        if (config.light) {
-            // Light.from will throw an Error on invalid config
-            this.light = from(config.light) || null;
-        }
-        if (config.sprite) {
-            this.sprite = canvas.makeSprite(config.sprite);
-        }
-        else if (config.ch || config.fg || config.bg) {
-            this.sprite = canvas.makeSprite(config.ch || null, config.fg || null, config.bg || null, config.opacity);
-        }
-        if (base && base.activates) {
-            Object.assign(this.activates, base.activates);
-        }
-        if (config.activates) {
-            Object.entries(config.activates).forEach(([key, info]) => {
-                if (info) {
-                    this.activates[key] = info;
-                }
-                else {
-                    delete this.activates[key];
-                }
-            });
-        }
-    }
-    /**
-     * Returns the flags for the tile after the given event is fired.
-     * @param {string} id - Name of the event to fire.
-     * @returns {number} The flags from the Tile after the event.
-     */
-    successorFlags(id) {
-        const e = this.activates[id];
-        if (!e)
-            return 0;
-        const tileId = e.tile;
-        if (!tileId)
-            return 0;
-        const tile = tiles[tileId];
-        if (!tile)
-            return 0;
-        return tile.flags;
-    }
-    /**
-     * Returns whether or not this tile as the given flag.
-     * Will return true if any bit in the flag is true, so testing with
-     * multiple flags will return true if any of them is set.
-     * @param {number} flag - The flag to check
-     * @returns {boolean} Whether or not the flag is set
-     */
-    hasFlag(flag) {
-        return (this.flags & flag) > 0;
-    }
-    hasMechFlag(flag) {
-        return (this.mechFlags & flag) > 0;
-    }
-    hasFlags(flags, mechFlags) {
-        return ((!flags || this.flags & flags) &&
-            (!mechFlags || this.mechFlags & mechFlags));
-    }
-    activatesOn(name) {
-        return !!this.activates[name];
-    }
-    getName(arg) {
-        let opts = {};
-        if (arg === true || arg === false) {
-            opts.article = arg;
-        }
-        else if (typeof arg === "string") {
-            opts.article = arg;
-        }
-        else if (arg) {
-            opts = arg;
-        }
-        if (!opts.article && !opts.color)
-            return this.name;
-        let result = this.name;
-        if (opts.color) {
-            let color$1 = this.sprite.fg;
-            if (typeof color$1 !== "string") {
-                color$1 = color.from(color$1).toString();
-            }
-            result = `Ω${color$1}Ω${this.name}∆`;
-        }
-        if (opts.article) {
-            let article = typeof opts.article === "string" ? opts.article : this.article || "a";
-            result = article + " " + result;
-        }
-        return result;
-    }
-    getDescription(opts = {}) {
-        return this.getName(opts);
-    }
-}
-// Types.Tile = Tile;
-const tiles = {};
-function install(...args) {
-    let id = args[0];
-    let base = args[1];
-    let config = args[2];
-    if (arguments.length == 1) {
-        config = args[0];
-        base = config.Extends || config.extends || {};
-        id = config.id || config.name;
-    }
-    else if (arguments.length == 2) {
-        config = base;
-        base = config.Extends || config.extends || {};
-    }
-    if (typeof base === "string") {
-        base = tiles[base] || utils.ERROR("Unknown base tile: " + base);
-    }
-    config.name = config.name || id.toLowerCase();
-    config.id = id;
-    const tile = new Tile$1(config, base);
-    tiles[id] = tile;
-    return tile;
-}
-/**
- * Adds multiple tiles to the GW.tiles collection.
- * It extracts all the id:opts pairs from the config object and uses
- * them to call addTileKind.
- * @param {Object} config - The tiles to add in [id, config] pairs
- * @returns {void} Nothing
- * @see addTileKind
- */
-function installAll(config) {
-    Object.entries(config).forEach(([id, opts]) => {
-        opts.id = id;
-        install(id, opts);
-    });
-}
-
-var tile = {
-    __proto__: null,
-    get Flags () { return Tile; },
-    get MechFlags () { return TileMech; },
-    get Layer () { return Layer; },
-    Tile: Tile$1,
-    tiles: tiles,
-    install: install,
-    installAll: installAll
-};
-
 class Activation$1 {
     constructor(opts = {}) {
         if (typeof opts === "function") {
@@ -598,7 +293,7 @@ class Activation$1 {
         this.id = opts.id || null;
     }
 }
-function make$1(opts) {
+function make(opts) {
     if (!opts)
         return null;
     if (typeof opts === "string") {
@@ -607,12 +302,13 @@ function make$1(opts) {
     const te = new Activation$1(opts);
     return te;
 }
+make$4.activation = make;
 const activations = {
     DF_NONE: null,
 };
-function install$1(id, event) {
+function install(id, event) {
     if (!(event instanceof Activation$1)) {
-        event = make$1(event);
+        event = make(event);
     }
     activations[id] = event;
     if (event)
@@ -675,10 +371,10 @@ async function spawn(activation, ctx = {}) {
         feat.messageDisplayed = true;
         message.add(feat.message);
     }
-    let tile = null;
+    let tile$1 = null;
     if (feat.tile) {
-        tile = tiles[feat.tile] || null;
-        if (!tile) {
+        tile$1 = tiles[feat.tile] || null;
+        if (!tile$1) {
             utils.ERROR("Unknown tile: " + feat.tile);
         }
     }
@@ -693,7 +389,7 @@ async function spawn(activation, ctx = {}) {
     const blocking = (ctx.blocking =
         abortIfBlocking &&
             !(feat.flags & Activation.DFF_PERMIT_BLOCKING) &&
-            ((tile && tile.flags & Tile.T_PATHING_BLOCKER) ||
+            ((tile$1 && tile$1.flags & Tile.T_PATHING_BLOCKER) ||
                 (item && item.blocksMove()) ||
                 feat.flags & Activation.DFF_TREAT_AS_BLOCKING)
             ? true
@@ -722,8 +418,8 @@ async function spawn(activation, ctx = {}) {
                 didSomething = true;
             }
         }
-        if (tile || item || feat.fn) {
-            if (await spawnTiles(feat, spawnMap, ctx, tile, item)) {
+        if (tile$1 || item || feat.fn) {
+            if (await spawnTiles(feat, spawnMap, ctx, tile$1, item)) {
                 didSomething = true;
             }
         }
@@ -796,8 +492,8 @@ async function spawn(activation, ctx = {}) {
         }
     }
     if (didSomething) {
-        if (tile &&
-            tile.flags &
+        if (tile$1 &&
+            tile$1.flags &
                 (Tile.T_DEEP_WATER | Tile.T_LAVA | Tile.T_AUTO_DESCENT)) {
             data.updateMapToShoreThisTurn = false;
         }
@@ -816,7 +512,7 @@ async function spawn(activation, ctx = {}) {
             if (v)
                 map.redrawXY(i, j);
         });
-        map.needsRedraw();
+        map.changed(true);
         if (!(feat.flags & Activation.DFF_NO_MARK_FIRED)) {
             spawnMap.forEach((v, i, j) => {
                 if (v) {
@@ -879,11 +575,11 @@ function computeSpawnMap(feat, spawnMap, ctx = {}) {
     let probDec = feat.decrement || 0;
     if (feat.matchTile && typeof feat.matchTile === "string") {
         const name = feat.matchTile;
-        const tile = tiles[name];
-        if (!tile) {
+        const tile$1 = tiles[name];
+        if (!tile$1) {
             utils.ERROR("Failed to find match tile with name:" + name);
         }
-        feat.matchTile = tile.id;
+        feat.matchTile = tile$1.id;
     }
     spawnMap[x][y] = t = 1; // incremented before anything else happens
     let radius = feat.radius || 0;
@@ -1105,9 +801,9 @@ var activation = {
     __proto__: null,
     get Flags () { return Activation; },
     Activation: Activation$1,
-    make: make$1,
+    make: make,
     activations: activations,
-    install: install$1,
+    install: install,
     resetAllMessages: resetAllMessages,
     spawn: spawn,
     computeSpawnMap: computeSpawnMap,
@@ -1115,6 +811,314 @@ var activation = {
     nullifyCells: nullifyCells,
     evacuateCreatures: evacuateCreatures,
     evacuateItems: evacuateItems
+};
+
+// const LIGHT_SMOOTHING_THRESHOLD = 150;       // light components higher than this magnitude will be toned down a little
+const config = (config$1.light = { INTENSITY_DARK: 20 }); // less than 20% for highest color in rgb
+const LIGHT_COMPONENTS = color.make();
+class Light {
+    constructor(color$1, range$1, fadeTo, pass = false) {
+        this.fadeTo = 0;
+        this.passThroughActors = false;
+        this.id = null;
+        this.color = color.from(color$1) || null; /* color */
+        this.radius = range.make(range$1 || 1);
+        this.fadeTo = fadeTo || 0;
+        this.passThroughActors = pass; // generally no, but miner light does (TODO - string parameter?  'false' or 'true')
+    }
+    copy(other) {
+        this.color = other.color;
+        this.radius.copy(other.radius);
+        this.fadeTo = other.fadeTo;
+        this.passThroughActors = other.passThroughActors;
+    }
+    get intensity() {
+        return intensity(this.color);
+    }
+    // Returns true if any part of the light hit cells that are in the player's field of view.
+    paint(map, x, y, maintainShadows = false, isMinersLight = false) {
+        if (!map)
+            return;
+        let k;
+        // let colorComponents = [0,0,0];
+        let lightMultiplier;
+        let radius = this.radius.value();
+        let outerRadius = Math.ceil(radius);
+        // calcLightComponents(colorComponents, this);
+        LIGHT_COMPONENTS.copy(this.color).bake();
+        // console.log('paint', LIGHT_COMPONENTS.toString(true), x, y, outerRadius);
+        // the miner's light does not dispel IS_IN_SHADOW,
+        // so the player can be in shadow despite casting his own light.
+        const dispelShadows = !isMinersLight &&
+            !maintainShadows &&
+            intensity(LIGHT_COMPONENTS) > config.INTENSITY_DARK;
+        const fadeToPercent = this.fadeTo;
+        const grid$1 = grid.alloc(map.width, map.height, 0);
+        map.calcFov(grid$1, x, y, outerRadius, this.passThroughActors ? 0 : Cell.HAS_ACTOR, Tile.T_OBSTRUCTS_VISION);
+        let overlappedFieldOfView = false;
+        grid$1.forCircle(x, y, outerRadius, (v, i, j) => {
+            if (!v)
+                return;
+            const cell = map.cell(i, j);
+            lightMultiplier = Math.floor(100 -
+                (100 - fadeToPercent) * (utils.distanceBetween(x, y, i, j) / radius));
+            for (k = 0; k < 3; k++) {
+                cell.light[k] += Math.floor((LIGHT_COMPONENTS[k] * lightMultiplier) / 100);
+            }
+            if (dispelShadows) {
+                cell.flags &= ~Cell.IS_IN_SHADOW;
+            }
+            if (cell.flags & (Cell.IN_FOV | Cell.ANY_KIND_OF_VISIBLE)) {
+                overlappedFieldOfView = true;
+            }
+            // console.log(i, j, lightMultiplier, cell.light);
+        });
+        if (dispelShadows) {
+            const cell = map.cell(x, y);
+            cell.flags &= ~Cell.IS_IN_SHADOW;
+        }
+        grid.free(grid$1);
+        return overlappedFieldOfView;
+    }
+}
+function intensity(color) {
+    return Math.max(color[0], color[1], color[2]);
+}
+function make$1(...args) {
+    if (args.length == 1) {
+        const config = args[0];
+        if (typeof config === "string") {
+            const cached = lights[config];
+            if (cached)
+                return cached;
+            const [color$1, radius, fadeTo, pass] = config
+                .split(/[,|]/)
+                .map((t) => t.trim());
+            return new Light(color.from(color$1), range.from(radius || 1), Number.parseInt(fadeTo || "0"), !!pass && pass !== "false");
+        }
+        else if (Array.isArray(config)) {
+            const [color, radius, fadeTo, pass] = config;
+            return new Light(color, radius, fadeTo, pass);
+        }
+        else if (config && config.color) {
+            return new Light(color.from(config.color), range.from(config.radius), Number.parseInt(config.fadeTo || "0"), config.pass);
+        }
+        else {
+            throw new Error("Unknown Light config - " + config);
+        }
+    }
+    else {
+        const [color, radius, fadeTo, pass] = args;
+        return new Light(color, radius, fadeTo, pass);
+    }
+}
+make$4.light = make$1;
+const lights = {};
+function from(...args) {
+    if (args.length != 1)
+        utils.ERROR("Unknown Light config: " + JSON.stringify(args));
+    const arg = args[0];
+    if (typeof arg === "string") {
+        const cached = lights[arg];
+        if (cached)
+            return cached;
+    }
+    return make$1(arg);
+}
+
+/** Tile Class */
+class Tile$1 {
+    /**
+     * Creates a new Tile object.
+     * @param {Object} [config={}] - The configuration of the Tile
+     * @param {String|Number|String[]} [config.flags=0] - Flags and MechFlags for the tile
+     * @param {String} [config.layer=GROUND] - Name of the layer for this tile
+     * @param {String} [config.ch] - The sprite character
+     * @param {String} [config.fg] - The sprite foreground color
+     * @param {String} [config.bg] - The sprite background color
+     */
+    constructor(config, base) {
+        this.flags = 0;
+        this.mechFlags = 0;
+        this.layer = Layer.GROUND;
+        this.priority = -1;
+        this.sprite = {};
+        this.activates = {};
+        this.light = null; // TODO - Light
+        this.flavor = null;
+        this.desc = null;
+        this.article = null;
+        this.dissipate = 2000; // 20 * 100 = 20%
+        if (base !== undefined) {
+            utils.assignOmitting(["activates"], this, base);
+        }
+        utils.assignOmitting([
+            "Extends",
+            "extends",
+            "flags",
+            "mechFlags",
+            "sprite",
+            "activates",
+            "ch",
+            "fg",
+            "bg",
+            "light",
+        ], this, config);
+        this.name = config.name || (base ? base.name : config.id);
+        this.id = config.id;
+        if (this.priority < 0) {
+            this.priority = 50;
+        }
+        if (this.layer !== undefined) {
+            if (typeof this.layer === "string") {
+                this.layer = Layer[this.layer];
+            }
+        }
+        this.flags = flag.from(Tile, this.flags, config.flags);
+        this.mechFlags = flag.from(TileMech, this.mechFlags, config.mechFlags || config.flags);
+        if (config.light) {
+            // Light.from will throw an Error on invalid config
+            this.light = from(config.light) || null;
+        }
+        if (config.sprite) {
+            this.sprite = canvas.makeSprite(config.sprite);
+        }
+        else if (config.ch || config.fg || config.bg) {
+            this.sprite = canvas.makeSprite(config.ch || null, config.fg || null, config.bg || null, config.opacity);
+        }
+        if (base && base.activates) {
+            Object.assign(this.activates, base.activates);
+        }
+        if (config.activates) {
+            Object.entries(config.activates).forEach(([key, info]) => {
+                if (info) {
+                    const activation$1 = make(info);
+                    if (activation$1) {
+                        this.activates[key] = activation$1;
+                    }
+                }
+                else {
+                    delete this.activates[key];
+                }
+            });
+        }
+    }
+    /**
+     * Returns the flags for the tile after the given event is fired.
+     * @param {string} id - Name of the event to fire.
+     * @returns {number} The flags from the Tile after the event.
+     */
+    successorFlags(id) {
+        const e = this.activates[id];
+        if (!e)
+            return 0;
+        const tileId = e.tile;
+        if (!tileId)
+            return 0;
+        const tile = tiles[tileId];
+        if (!tile)
+            return 0;
+        return tile.flags;
+    }
+    /**
+     * Returns whether or not this tile as the given flag.
+     * Will return true if any bit in the flag is true, so testing with
+     * multiple flags will return true if any of them is set.
+     * @param {number} flag - The flag to check
+     * @returns {boolean} Whether or not the flag is set
+     */
+    hasFlag(flag) {
+        return (this.flags & flag) > 0;
+    }
+    hasMechFlag(flag) {
+        return (this.mechFlags & flag) > 0;
+    }
+    hasFlags(flags, mechFlags) {
+        return ((!flags || this.flags & flags) &&
+            (!mechFlags || this.mechFlags & mechFlags));
+    }
+    activatesOn(name) {
+        return !!this.activates[name];
+    }
+    getName(arg) {
+        let opts = {};
+        if (arg === true || arg === false) {
+            opts.article = arg;
+        }
+        else if (typeof arg === "string") {
+            opts.article = arg;
+        }
+        else if (arg) {
+            opts = arg;
+        }
+        if (!opts.article && !opts.color)
+            return this.name;
+        let result = this.name;
+        if (opts.color) {
+            let color$1 = this.sprite.fg;
+            if (typeof color$1 !== "string") {
+                color$1 = color.from(color$1).toString();
+            }
+            result = `Ω${color$1}Ω${this.name}∆`;
+        }
+        if (opts.article) {
+            let article = typeof opts.article === "string" ? opts.article : this.article || "a";
+            result = article + " " + result;
+        }
+        return result;
+    }
+    getDescription(opts = {}) {
+        return this.getName(opts);
+    }
+}
+// Types.Tile = Tile;
+const tiles = {};
+function install$1(...args) {
+    let id = args[0];
+    let base = args[1];
+    let config = args[2];
+    if (arguments.length == 1) {
+        config = args[0];
+        base = config.Extends || config.extends || {};
+        id = config.id || config.name;
+    }
+    else if (arguments.length == 2) {
+        config = base;
+        base = config.Extends || config.extends || {};
+    }
+    if (typeof base === "string") {
+        base = tiles[base] || utils.ERROR("Unknown base tile: " + base);
+    }
+    config.name = config.name || id.toLowerCase();
+    config.id = id;
+    const tile = new Tile$1(config, base);
+    tiles[id] = tile;
+    return tile;
+}
+/**
+ * Adds multiple tiles to the GW.tiles collection.
+ * It extracts all the id:opts pairs from the config object and uses
+ * them to call addTileKind.
+ * @param {Object} config - The tiles to add in [id, config] pairs
+ * @returns {void} Nothing
+ * @see addTileKind
+ */
+function installAll(config) {
+    Object.entries(config).forEach(([id, opts]) => {
+        opts.id = id;
+        install$1(id, opts);
+    });
+}
+
+var tile = {
+    __proto__: null,
+    get Flags () { return Tile; },
+    get MechFlags () { return TileMech; },
+    get Layer () { return Layer; },
+    Tile: Tile$1,
+    tiles: tiles,
+    install: install$1,
+    installAll: installAll
 };
 
 // TODO - Move to gw-ui
@@ -2732,14 +2736,14 @@ var map = {
 
 // These are the minimal set of tiles to make the diggers work
 const NOTHING = "0";
-install(NOTHING, {
+install$1(NOTHING, {
     sprite: { ch: "\u2205", fg: "white", bg: "black" },
     flags: "T_OBSTRUCTS_PASSABILITY",
     name: "eerie nothingness",
     article: "an",
     priority: 0,
 });
-install("FLOOR", {
+install$1("FLOOR", {
     sprite: {
         ch: "\u00b7",
         fg: [30, 30, 30, 20, 0, 0, 0],
@@ -2748,7 +2752,7 @@ install("FLOOR", {
     priority: 10,
     article: "the",
 });
-install("DOOR", {
+install$1("DOOR", {
     sprite: { ch: "+", fg: [100, 40, 40], bg: [30, 60, 60] },
     priority: 30,
     flags: "T_IS_DOOR, T_OBSTRUCTS_TILE_EFFECTS, T_OBSTRUCTS_ITEMS, T_OBSTRUCTS_VISION, TM_VISUALLY_DISTINCT",
@@ -2758,7 +2762,7 @@ install("DOOR", {
         open: { tile: "DOOR_OPEN_ALWAYS" },
     },
 });
-install("DOOR_OPEN", "DOOR", {
+install$1("DOOR_OPEN", "DOOR", {
     sprite: { ch: "'", fg: [100, 40, 40], bg: [30, 60, 60] },
     priority: 40,
     flags: "!T_OBSTRUCTS_ITEMS, !T_OBSTRUCTS_VISION",
@@ -2771,34 +2775,34 @@ install("DOOR_OPEN", "DOOR", {
         close: { tile: "DOOR", flags: "DFF_SUPERPRIORITY, DFF_ONLY_IF_EMPTY" },
     },
 });
-install("DOOR_OPEN_ALWAYS", "DOOR_OPEN", {
+install$1("DOOR_OPEN_ALWAYS", "DOOR_OPEN", {
     activates: {
         tick: null,
         close: { tile: "DOOR", flags: "DFF_SUPERPRIORITY, DFF_ONLY_IF_EMPTY" },
     },
 });
-install("BRIDGE", {
+install$1("BRIDGE", {
     sprite: { ch: "=", fg: [100, 40, 40] },
     priority: 40,
     layer: "SURFACE",
     flags: "T_BRIDGE, TM_VISUALLY_DISTINCT",
     article: "a",
 });
-install("UP_STAIRS", {
+install$1("UP_STAIRS", {
     sprite: { ch: "<", fg: [100, 40, 40], bg: [100, 60, 20] },
     priority: 200,
     flags: "T_UP_STAIRS, T_STAIR_BLOCKERS, TM_VISUALLY_DISTINCT, TM_LIST_IN_SIDEBAR",
     name: "upward staircase",
     article: "an",
 });
-install("DOWN_STAIRS", {
+install$1("DOWN_STAIRS", {
     sprite: { ch: ">", fg: [100, 40, 40], bg: [100, 60, 20] },
     priority: 200,
     flags: "T_DOWN_STAIRS, T_STAIR_BLOCKERS, TM_VISUALLY_DISTINCT, TM_LIST_IN_SIDEBAR",
     name: "downward staircase",
     article: "a",
 });
-install("WALL", {
+install$1("WALL", {
     sprite: {
         ch: "#",
         fg: [7, 7, 7, 0, 3, 3, 3],
@@ -2808,7 +2812,7 @@ install("WALL", {
     flags: "T_OBSTRUCTS_EVERYTHING",
     article: "a",
 });
-install("LAKE", {
+install$1("LAKE", {
     sprite: {
         ch: "~",
         fg: [5, 8, 20, 10, 0, 4, 15, true],
