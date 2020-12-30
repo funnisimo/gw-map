@@ -43,19 +43,18 @@ export class Tile {
         ], this, config);
         this.name = config.name || (base ? base.name : config.id);
         this.id = config.id;
+        this.layer = this.layer || Layer.GROUND;
+        if (typeof this.layer === "string") {
+            this.layer = Layer[this.layer];
+        }
         if (this.priority < 0) {
             this.priority = 50;
-        }
-        if (this.layer !== undefined) {
-            if (typeof this.layer === "string") {
-                this.layer = Layer[this.layer];
-            }
         }
         this.flags = Flag.from(Flags, this.flags, config.flags);
         this.mechFlags = Flag.from(MechFlags, this.mechFlags, config.mechFlags || config.flags);
         if (config.light) {
             // Light.from will throw an Error on invalid config
-            this.light = Light.from(config.light) || null;
+            this.light = Light.from(config.light);
         }
         if (config.sprite) {
             this.sprite = Canvas.makeSprite(config.sprite);
@@ -70,9 +69,7 @@ export class Tile {
             Object.entries(config.activates).forEach(([key, info]) => {
                 if (info) {
                     const activation = Activation.make(info);
-                    if (activation) {
-                        this.activates[key] = activation;
-                    }
+                    this.activates[key] = activation;
                 }
                 else {
                     delete this.activates[key];
@@ -132,7 +129,10 @@ export class Tile {
             return this.name;
         let result = this.name;
         if (opts.color) {
-            let color = this.sprite.fg;
+            let color = opts.color;
+            if (opts.color === true) {
+                color = this.sprite.fg;
+            }
             if (typeof color !== "string") {
                 color = Color.from(color).toString();
             }
@@ -156,8 +156,8 @@ export function install(...args) {
     let config = args[2];
     if (arguments.length == 1) {
         config = args[0];
-        base = config.Extends || config.extends || {};
-        id = config.id || config.name;
+        base = config.Extends || {};
+        id = config.id;
     }
     else if (arguments.length == 2) {
         config = base;
@@ -166,7 +166,7 @@ export function install(...args) {
     if (typeof base === "string") {
         base = tiles[base] || Utils.ERROR("Unknown base tile: " + base);
     }
-    config.name = config.name || id.toLowerCase();
+    // config.name = config.name || base.name || id.toLowerCase();
     config.id = id;
     const tile = new Tile(config, base);
     tiles[id] = tile;

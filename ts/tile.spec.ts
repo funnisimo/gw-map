@@ -1,5 +1,6 @@
 import "jest-extended";
 import * as Tile from "./tile";
+import "./tiles";
 import { colors as COLORS } from "gw-utils";
 
 describe("flags", () => {
@@ -52,6 +53,8 @@ describe("Tile", () => {
     expect(tile.getName(true)).toEqual("a Stone Wall");
 
     expect(tile.getName({ color: true })).toEqual("Ωlight_grayΩStone Wall∆");
+    expect(tile.getName({ color: 0xfff })).toEqual("Ω#fffΩStone Wall∆");
+    expect(tile.getName({ color: "white" })).toEqual("ΩwhiteΩStone Wall∆");
     expect(tile.getName({ color: true, article: "a" })).toEqual(
       "a Ωlight_grayΩStone Wall∆"
     );
@@ -204,6 +207,98 @@ describe("Tile", () => {
       // @ts-ignore
       Tile.install("TEST", { light: 4 });
     }).toThrow();
+  });
+
+  test("successorFlags", () => {
+    const tile = Tile.install("TEST", {
+      ch: "#",
+      fg: "white",
+      activates: {
+        discover: "WALL",
+        enter: false,
+        playerEnter: { emit: "TEST" },
+        fire: { tile: "UNKNOWN" },
+      },
+    });
+
+    expect(tile.activates.discover.tile).toEqual("WALL");
+    expect(tile.hasFlag(Tile.Flags.T_OBSTRUCTS_PASSABILITY)).toBeFalsy();
+    expect(
+      tile.successorFlags("discover") & Tile.Flags.T_OBSTRUCTS_PASSABILITY
+    ).toBeTruthy();
+    expect(tile.successorFlags("enter")).toEqual(0);
+    expect(tile.successorFlags("playerEnter")).toEqual(0);
+    expect(tile.successorFlags("fire")).toEqual(0);
+  });
+
+  test("hasFlag", () => {
+    const tile = Tile.tiles.WALL;
+    expect(tile.hasFlag(Tile.Flags.T_OBSTRUCTS_PASSABILITY)).toBeTruthy();
+    expect(tile.hasFlag(Tile.Flags.T_BRIDGE)).toBeFalsy();
+  });
+
+  test("hasMechFlag", () => {
+    const tile = Tile.tiles.DOOR;
+    expect(tile.hasMechFlag(Tile.MechFlags.TM_VISUALLY_DISTINCT)).toBeTruthy();
+    expect(tile.hasMechFlag(Tile.MechFlags.TM_EXTINGUISHES_FIRE)).toBeFalsy();
+  });
+
+  test("hasFlags", () => {
+    const tile = Tile.tiles.DOOR;
+    expect(
+      tile.hasFlags(
+        Tile.Flags.T_OBSTRUCTS_VISION,
+        Tile.MechFlags.TM_VISUALLY_DISTINCT
+      )
+    ).toBeTruthy();
+    expect(tile.hasFlags(Tile.Flags.T_OBSTRUCTS_VISION, 0)).toBeTruthy();
+    expect(tile.hasFlags(0, Tile.MechFlags.TM_VISUALLY_DISTINCT)).toBeTruthy();
+
+    expect(
+      tile.hasFlags(
+        Tile.Flags.T_OBSTRUCTS_PASSABILITY,
+        Tile.MechFlags.TM_VISUALLY_DISTINCT
+      )
+    ).toBeFalsy();
+    expect(
+      tile.hasFlags(Tile.Flags.T_OBSTRUCTS_VISION, Tile.MechFlags.TM_IS_WIRED)
+    ).toBeFalsy();
+  });
+
+  test("install - { Extends }", () => {
+    const glassWall = Tile.install({
+      id: "GLASS_WALL",
+      Extends: "WALL",
+      sprite: { ch: "+", fg: "teal", bg: "red" },
+      flags: ["!T_OBSTRUCTS_VISION"],
+    });
+
+    expect(glassWall.name).toEqual("Stone Wall");
+    expect(glassWall.hasFlag(Tile.Flags.T_OBSTRUCTS_PASSABILITY)).toBeTruthy();
+  });
+
+  test("install - { Extends: Unknown }", () => {
+    expect(() =>
+      Tile.install({
+        id: "GLASS_WALL",
+        Extends: "UNKNOWN",
+        sprite: { ch: "+", fg: "teal", bg: "red" },
+        flags: ["!T_OBSTRUCTS_VISION"],
+      })
+    ).toThrow();
+  });
+
+  test("install - {}", () => {
+    const glassWall = Tile.install({
+      id: "GLASS_WALL",
+      name: "glass wall",
+      sprite: { ch: "+", fg: "teal", bg: "red" },
+      flags: "T_OBSTRUCTS_EVERYTHING,!T_OBSTRUCTS_VISION",
+    });
+
+    expect(glassWall.name).toEqual("glass wall");
+    expect(glassWall.hasFlag(Tile.Flags.T_OBSTRUCTS_PASSABILITY)).toBeTruthy();
+    expect(glassWall.hasFlag(Tile.Flags.T_OBSTRUCTS_VISION)).toBeFalsy();
   });
 });
 

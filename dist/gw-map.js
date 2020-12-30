@@ -970,19 +970,18 @@
             ], this, config);
             this.name = config.name || (base ? base.name : config.id);
             this.id = config.id;
+            this.layer = this.layer || Layer.GROUND;
+            if (typeof this.layer === "string") {
+                this.layer = Layer[this.layer];
+            }
             if (this.priority < 0) {
                 this.priority = 50;
-            }
-            if (this.layer !== undefined) {
-                if (typeof this.layer === "string") {
-                    this.layer = Layer[this.layer];
-                }
             }
             this.flags = gwUtils.flag.from(Tile, this.flags, config.flags);
             this.mechFlags = gwUtils.flag.from(TileMech, this.mechFlags, config.mechFlags || config.flags);
             if (config.light) {
                 // Light.from will throw an Error on invalid config
-                this.light = from(config.light) || null;
+                this.light = from(config.light);
             }
             if (config.sprite) {
                 this.sprite = gwUtils.canvas.makeSprite(config.sprite);
@@ -997,9 +996,7 @@
                 Object.entries(config.activates).forEach(([key, info]) => {
                     if (info) {
                         const activation$1 = make(info);
-                        if (activation$1) {
-                            this.activates[key] = activation$1;
-                        }
+                        this.activates[key] = activation$1;
                     }
                     else {
                         delete this.activates[key];
@@ -1059,7 +1056,10 @@
                 return this.name;
             let result = this.name;
             if (opts.color) {
-                let color = this.sprite.fg;
+                let color = opts.color;
+                if (opts.color === true) {
+                    color = this.sprite.fg;
+                }
                 if (typeof color !== "string") {
                     color = gwUtils.color.from(color).toString();
                 }
@@ -1083,8 +1083,8 @@
         let config = args[2];
         if (arguments.length == 1) {
             config = args[0];
-            base = config.Extends || config.extends || {};
-            id = config.id || config.name;
+            base = config.Extends || {};
+            id = config.id;
         }
         else if (arguments.length == 2) {
             config = base;
@@ -1093,7 +1093,7 @@
         if (typeof base === "string") {
             base = tiles[base] || gwUtils.utils.ERROR("Unknown base tile: " + base);
         }
-        config.name = config.name || id.toLowerCase();
+        // config.name = config.name || base.name || id.toLowerCase();
         config.id = id;
         const tile = new Tile$1(config, base);
         tiles[id] = tile;
