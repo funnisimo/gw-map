@@ -1,3 +1,4 @@
+import "../test/matchers";
 import * as UTILS from "../test/utils";
 import * as Map from "./gw";
 import * as GW from "gw-utils";
@@ -505,5 +506,79 @@ describe("tileEvent", () => {
     const cell = map.cell(ctx.x, ctx.y);
     expect(cell.liquid).toEqual("RED_LIQUID");
     expect(cell.liquidVolume).toEqual(50);
+  });
+
+  test("evacuateCreatures", () => {
+    Map.tile.install("RED_LIQUID", {
+      name: "red liquid",
+      article: "some",
+      bg: "red",
+      layer: "LIQUID",
+      activates: {
+        fire: { flags: "DFF_EVACUATE_CREATURES" },
+      },
+    });
+
+    const cell = map.cell(ctx.x, ctx.y);
+    cell._setTile("RED_LIQUID", 100);
+    const actor = {
+      forbidsCell: jest.fn().mockReturnValue(false),
+      x: -1,
+      y: -1,
+      sprite: { ch: "!" },
+      isDetected() {
+        return false;
+      },
+      isPlayer() {
+        return false;
+      },
+      blocksVision() {
+        return false;
+      },
+    };
+    // @ts-ignore
+    map.addActor(ctx.x, ctx.y, actor);
+    expect(actor).toBeAtXY(ctx.x, ctx.y);
+    expect(cell.actor).toBe(actor);
+    grid[ctx.x][ctx.y] = 1;
+
+    cell.activate("fire", ctx);
+    expect(actor.forbidsCell).toHaveBeenCalled();
+    expect(actor).not.toBeAtXY(ctx.x, ctx.y);
+    expect(cell.actor).toBeNull();
+  });
+
+  test("evacuateItems", () => {
+    Map.tile.install("RED_LIQUID", {
+      name: "red liquid",
+      article: "some",
+      bg: "red",
+      layer: "LIQUID",
+      activates: {
+        fire: { flags: "DFF_EVACUATE_ITEMS" },
+      },
+    });
+
+    const cell = map.cell(ctx.x, ctx.y);
+    cell._setTile("RED_LIQUID", 100);
+    const item = {
+      forbidsCell: jest.fn().mockReturnValue(false),
+      x: -1,
+      y: -1,
+      sprite: { ch: "!" },
+      isDetected() {
+        return false;
+      },
+    };
+    // @ts-ignore
+    map.addItem(ctx.x, ctx.y, item);
+    expect(item).toBeAtXY(ctx.x, ctx.y);
+    expect(cell.item).toBe(item);
+    grid[ctx.x][ctx.y] = 1;
+
+    cell.activate("fire", ctx);
+    expect(item.forbidsCell).toHaveBeenCalled();
+    expect(item).not.toBeAtXY(ctx.x, ctx.y);
+    expect(cell.item).toBeNull();
   });
 });

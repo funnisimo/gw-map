@@ -16,7 +16,6 @@ import {
   Activation as Flags,
   Tile as TileFlags,
   CellMech as CellMechFlags,
-  Cell as CellFlags,
 } from "./flags";
 
 import * as Tile from "./tile";
@@ -643,24 +642,25 @@ export function nullifyCells(
 
 export function evacuateCreatures(map: Map.Map, blockingMap: Grid.NumGrid) {
   let i, j;
-  let monst: Types.ActorType | null;
 
   let didSomething = false;
   for (i = 0; i < map.width; i++) {
     for (j = 0; j < map.height; j++) {
-      if (blockingMap[i][j] && map.hasCellFlag(i, j, CellFlags.HAS_ACTOR)) {
-        monst = map.actorAt(i, j);
-        if (monst === null) continue;
-        const loc = map.matchingLocNear(
-          i,
-          j,
-          (cell: Cell.Cell) => {
-            return !monst?.forbidsCell(cell);
-          },
-          { hallways: true, blockingMap }
-        );
+      if (!blockingMap[i][j]) continue;
+      const cell = map.cell(i, j);
+      if (!cell.actor) continue;
+      const monst = cell.actor;
+      const loc = map.matchingLocNear(
+        i,
+        j,
+        (cell: Cell.Cell) => {
+          return !monst.forbidsCell(cell);
+        },
+        { hallways: true, blockingMap }
+      );
+      if (loc && loc[0] >= 0 && loc[1] >= 0) {
         map.moveActor(loc[0], loc[1], monst);
-        map.redrawXY(loc[0], loc[1]);
+        // map.redrawXY(loc[0], loc[1]);
         didSomething = true;
       }
     }
@@ -675,17 +675,18 @@ export function evacuateItems(map: Map.Map, blockingMap: Grid.NumGrid) {
     const cell = map.cell(i, j);
     if (!cell.item) return;
 
+    const item: Types.ItemType = cell.item;
     const loc = map.matchingLocNear(
       i,
       j,
-      (cell: Cell.Cell) => {
-        return !!cell.item?.forbidsCell(cell);
+      (dest: Cell.Cell) => {
+        return !item.forbidsCell(dest);
       },
       { hallways: true, blockingMap }
     );
-    if (loc) {
-      map.removeItem(cell.item);
-      map.addItem(loc[0], loc[1], cell.item);
+    if (loc && loc[0] >= 0 && loc[1] >= 0) {
+      map.removeItem(item);
+      map.addItem(loc[0], loc[1], item);
       // map.redrawXY(loc[0], loc[1]);
       didSomething = true;
     }
