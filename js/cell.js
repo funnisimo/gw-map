@@ -1,6 +1,6 @@
 import { color as Color, canvas as Canvas, utils as Utils, config as CONFIG, data as DATA, random, make as Make, } from "gw-utils";
 import { Tile, tiles as TILES, Layer } from "./tile";
-import * as Activation from "./activation";
+import * as Activation from "./tileEvent";
 import * as Light from "./light";
 import { Cell as Flags, CellMech as MechFlags, TileMech as TileMechFlags, Tile as TileFlags, Map as MapFlags, } from "./flags";
 export { Flags, MechFlags };

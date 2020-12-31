@@ -269,7 +269,7 @@ var Map;
     Map[Map["MAP_DEFAULT"] = Map.MAP_STABLE_LIGHTS | Map.MAP_STABLE_GLOW_LIGHTS | Map.MAP_FOV_CHANGED] = "MAP_DEFAULT";
 })(Map || (Map = {}));
 
-class Activation$1 {
+class TileEvent {
     constructor(opts = {}) {
         if (typeof opts === "function") {
             opts = {
@@ -303,15 +303,15 @@ function make(opts) {
     if (typeof opts === "string") {
         opts = { tile: opts };
     }
-    const te = new Activation$1(opts);
+    const te = new TileEvent(opts);
     return te;
 }
-gwUtils.make.activation = make;
+gwUtils.make.tileEvent = make;
 const activations = {
     DF_NONE: null,
 };
 function install(id, event) {
-    if (!(event instanceof Activation$1)) {
+    if (!(event instanceof TileEvent)) {
         event = make(event);
     }
     activations[id] = event;
@@ -321,7 +321,7 @@ function install(id, event) {
 }
 function resetAllMessages() {
     Object.values(activations).forEach((f) => {
-        if (f instanceof Activation$1) {
+        if (f instanceof TileEvent) {
             f.messageDisplayed = false;
         }
     });
@@ -801,10 +801,10 @@ function evacuateItems(map, blockingMap) {
     return didSomething;
 }
 
-var activation = {
+var tileEvent = {
     __proto__: null,
     get Flags () { return Activation; },
-    Activation: Activation$1,
+    TileEvent: TileEvent,
     make: make,
     activations: activations,
     install: install,
@@ -929,6 +929,186 @@ function from(...args) {
     }
     return make$1(arg);
 }
+function install$1(id, ...args) {
+    let source;
+    if (args.length == 1) {
+        source = make$1(args[0]);
+    }
+    else {
+        source = make$1(args[0], args[1], args[2], args[3]);
+    }
+    lights[id] = source;
+    if (source)
+        source.id = id;
+    return source;
+}
+function installAll(config = {}) {
+    const entries = Object.entries(config);
+    entries.forEach(([name, info]) => {
+        install$1(name, info);
+    });
+}
+// export function calcLightComponents(colorComponents, theLight) {
+// 	const randComponent = cosmetic.range(0, theLight.color.rand);
+// 	colorComponents[0] = randComponent + theLight.color.red + cosmetic.range(0, theLight.color.redRand);
+// 	colorComponents[1] = randComponent + theLight.color.green + cosmetic.range(0, theLight.color.greenRand);
+// 	colorComponents[2] = randComponent + theLight.color.blue + cosmetic.range(0, theLight.color.blueRand);
+// }
+function updateDisplayDetail(map) {
+    map.eachCell((cell, _i, _j) => {
+        // clear light flags
+        cell.flags &= ~(Cell.CELL_LIT | Cell.CELL_DARK);
+        if (cell.light.some((v, i) => v !== cell.oldLight[i])) {
+            cell.flags |= Cell.LIGHT_CHANGED;
+        }
+        if (cell.isDark()) {
+            cell.flags |= Cell.CELL_DARK;
+        }
+        else if (!(cell.flags & Cell.IS_IN_SHADOW)) {
+            cell.flags |= Cell.CELL_LIT;
+        }
+    });
+}
+function backUpLighting(map, lights) {
+    let k;
+    map.eachCell((cell, i, j) => {
+        for (k = 0; k < 3; k++) {
+            lights[i][j][k] = cell.light[k];
+        }
+    });
+}
+function restoreLighting(map, lights) {
+    let k;
+    map.eachCell((cell, i, j) => {
+        for (k = 0; k < 3; k++) {
+            cell.light[k] = lights[i][j][k];
+        }
+    });
+}
+function recordOldLights(map) {
+    let k;
+    map.eachCell((cell) => {
+        for (k = 0; k < 3; k++) {
+            cell.oldLight[k] = cell.light[k];
+            cell.flags &= ~Cell.LIGHT_CHANGED;
+        }
+    });
+}
+function zeroOutLights(map) {
+    let k;
+    const light = map.ambientLight ? map.ambientLight : [0, 0, 0];
+    map.eachCell((cell, _i, _j) => {
+        for (k = 0; k < 3; k++) {
+            cell.light[k] = light[k];
+        }
+        cell.flags |= Cell.IS_IN_SHADOW;
+    });
+}
+function recordGlowLights(map) {
+    let k;
+    map.eachCell((cell) => {
+        for (k = 0; k < 3; k++) {
+            cell.glowLight[k] = cell.light[k];
+        }
+    });
+}
+function restoreGlowLights(map) {
+    let k;
+    map.eachCell((cell) => {
+        for (k = 0; k < 3; k++) {
+            cell.light[k] = cell.glowLight[k];
+        }
+    });
+}
+function updateLighting(map) {
+    // Copy Light over oldLight
+    recordOldLights(map);
+    if (map.flags & Map.MAP_STABLE_LIGHTS)
+        return false;
+    // and then zero out Light.
+    zeroOutLights(map);
+    if (map.flags & Map.MAP_STABLE_GLOW_LIGHTS) {
+        restoreGlowLights(map);
+    }
+    else {
+        // GW.debug.log('painting glow lights.');
+        // Paint all glowing tiles.
+        map.eachGlowLight((light, x, y) => {
+            //   const light = lights[id];
+            if (light) {
+                light.paint(map, x, y);
+            }
+        });
+        recordGlowLights(map);
+        map.setFlag(Map.MAP_STABLE_GLOW_LIGHTS);
+    }
+    // Cycle through monsters and paint their lights:
+    map.eachDynamicLight((light, x, y) => {
+        light.paint(map, x, y);
+        // if (monst.mutationIndex >= 0 && mutationCatalog[monst.mutationIndex].light != lights['NO_LIGHT']) {
+        //     paint(map, mutationCatalog[monst.mutationIndex].light, actor.x, actor.y, false, false);
+        // }
+        // if (actor.isBurning()) { // monst.status.burning && !(actor.kind.flags & Flags.Actor.AF_FIERY)) {
+        // 	paint(map, lights.BURNING_CREATURE, actor.x, actor.y, false, false);
+        // }
+        // if (actor.isTelepathicallyRevealed()) {
+        // 	paint(map, lights['TELEPATHY_LIGHT'], actor.x, actor.y, false, true);
+        // }
+    });
+    // Also paint telepathy lights for dormant monsters.
+    // for (monst of map.dormantMonsters) {
+    //     if (monsterTelepathicallyRevealed(monst)) {
+    //         paint(map, lights['TELEPATHY_LIGHT'], monst.xLoc, monst.yLoc, false, true);
+    //     }
+    // }
+    updateDisplayDetail(map);
+    // Miner's light:
+    const PLAYER = gwUtils.data.player;
+    if (PLAYER) {
+        const MINERS_LIGHT = lights.MINERS_LIGHT;
+        if (MINERS_LIGHT && MINERS_LIGHT.radius) {
+            MINERS_LIGHT.paint(map, PLAYER.x, PLAYER.y, true, true);
+        }
+    }
+    map.setFlag(Map.MAP_STABLE_LIGHTS);
+    // if (PLAYER.status.invisible) {
+    //     PLAYER.info.foreColor = playerInvisibleColor;
+    // } else if (playerInDarkness()) {
+    // 	PLAYER.info.foreColor = playerInDarknessColor;
+    // } else if (pmap[PLAYER.xLoc][PLAYER.yLoc].flags & IS_IN_SHADOW) {
+    // 	PLAYER.info.foreColor = playerInShadowColor;
+    // } else {
+    // 	PLAYER.info.foreColor = playerInLightColor;
+    // }
+    return true;
+}
+// TODO - Move and make more generic
+function playerInDarkness(map, PLAYER, darkColor) {
+    const cell = map.cell(PLAYER.x, PLAYER.y);
+    return (cell.light[0] + 10 < darkColor.r &&
+        cell.light[1] + 10 < darkColor.g &&
+        cell.light[2] + 10 < darkColor.b);
+}
+
+var light = {
+    __proto__: null,
+    config: config,
+    Light: Light,
+    intensity: intensity,
+    make: make$1,
+    lights: lights,
+    from: from,
+    install: install$1,
+    installAll: installAll,
+    backUpLighting: backUpLighting,
+    restoreLighting: restoreLighting,
+    recordOldLights: recordOldLights,
+    zeroOutLights: zeroOutLights,
+    recordGlowLights: recordGlowLights,
+    restoreGlowLights: restoreGlowLights,
+    updateLighting: updateLighting,
+    playerInDarkness: playerInDarkness
+};
 
 /** Tile Class */
 class Tile$1 {
@@ -995,8 +1175,8 @@ class Tile$1 {
         if (config.activates) {
             Object.entries(config.activates).forEach(([key, info]) => {
                 if (info) {
-                    const activation$1 = make(info);
-                    this.activates[key] = activation$1;
+                    const activation = make(info);
+                    this.activates[key] = activation;
                 }
                 else {
                     delete this.activates[key];
@@ -1077,7 +1257,7 @@ class Tile$1 {
 }
 // Types.Tile = Tile;
 const tiles = {};
-function install$1(...args) {
+function install$2(...args) {
     let id = args[0];
     let base = args[1];
     let config = args[2];
@@ -1107,10 +1287,10 @@ function install$1(...args) {
  * @returns {void} Nothing
  * @see addTileKind
  */
-function installAll(config) {
+function installAll$1(config) {
     Object.entries(config).forEach(([id, opts]) => {
         opts.id = id;
-        install$1(id, opts);
+        install$2(id, opts);
     });
 }
 
@@ -1121,8 +1301,8 @@ var tile = {
     get Layer () { return Layer; },
     Tile: Tile$1,
     tiles: tiles,
-    install: install$1,
-    installAll: installAll
+    install: install$2,
+    installAll: installAll$1
 };
 
 // TODO - Move to gw-ui
@@ -2740,14 +2920,14 @@ var map = {
 
 // These are the minimal set of tiles to make the diggers work
 const NOTHING = "0";
-install$1(NOTHING, {
+install$2(NOTHING, {
     sprite: { ch: "\u2205", fg: "white", bg: "black" },
     flags: "T_OBSTRUCTS_PASSABILITY",
     name: "eerie nothingness",
     article: "an",
     priority: 0,
 });
-install$1("FLOOR", {
+install$2("FLOOR", {
     sprite: {
         ch: "\u00b7",
         fg: [30, 30, 30, 20, 0, 0, 0],
@@ -2756,7 +2936,7 @@ install$1("FLOOR", {
     priority: 10,
     article: "the",
 });
-install$1("DOOR", {
+install$2("DOOR", {
     sprite: { ch: "+", fg: [100, 40, 40], bg: [30, 60, 60] },
     priority: 30,
     flags: "T_IS_DOOR, T_OBSTRUCTS_TILE_EFFECTS, T_OBSTRUCTS_ITEMS, T_OBSTRUCTS_VISION, TM_VISUALLY_DISTINCT",
@@ -2766,7 +2946,7 @@ install$1("DOOR", {
         open: { tile: "DOOR_OPEN_ALWAYS" },
     },
 });
-install$1("DOOR_OPEN", "DOOR", {
+install$2("DOOR_OPEN", "DOOR", {
     sprite: { ch: "'", fg: [100, 40, 40], bg: [30, 60, 60] },
     priority: 40,
     flags: "!T_OBSTRUCTS_ITEMS, !T_OBSTRUCTS_VISION",
@@ -2779,34 +2959,34 @@ install$1("DOOR_OPEN", "DOOR", {
         close: { tile: "DOOR", flags: "DFF_SUPERPRIORITY, DFF_ONLY_IF_EMPTY" },
     },
 });
-install$1("DOOR_OPEN_ALWAYS", "DOOR_OPEN", {
+install$2("DOOR_OPEN_ALWAYS", "DOOR_OPEN", {
     activates: {
         tick: null,
         close: { tile: "DOOR", flags: "DFF_SUPERPRIORITY, DFF_ONLY_IF_EMPTY" },
     },
 });
-install$1("BRIDGE", {
+install$2("BRIDGE", {
     sprite: { ch: "=", fg: [100, 40, 40] },
     priority: 40,
     layer: "SURFACE",
     flags: "T_BRIDGE, TM_VISUALLY_DISTINCT",
     article: "a",
 });
-install$1("UP_STAIRS", {
+install$2("UP_STAIRS", {
     sprite: { ch: "<", fg: [100, 40, 40], bg: [100, 60, 20] },
     priority: 200,
     flags: "T_UP_STAIRS, T_STAIR_BLOCKERS, TM_VISUALLY_DISTINCT, TM_LIST_IN_SIDEBAR",
     name: "upward staircase",
     article: "an",
 });
-install$1("DOWN_STAIRS", {
+install$2("DOWN_STAIRS", {
     sprite: { ch: ">", fg: [100, 40, 40], bg: [100, 60, 20] },
     priority: 200,
     flags: "T_DOWN_STAIRS, T_STAIR_BLOCKERS, TM_VISUALLY_DISTINCT, TM_LIST_IN_SIDEBAR",
     name: "downward staircase",
     article: "a",
 });
-install$1("WALL", {
+install$2("WALL", {
     sprite: {
         ch: "#",
         fg: [7, 7, 7, 0, 3, 3, 3],
@@ -2816,7 +2996,7 @@ install$1("WALL", {
     flags: "T_OBSTRUCTS_EVERYTHING",
     article: "a",
 });
-install$1("LAKE", {
+install$2("LAKE", {
     sprite: {
         ch: "~",
         fg: [5, 8, 20, 10, 0, 4, 15, true],
@@ -2828,7 +3008,10 @@ install$1("LAKE", {
     article: "the",
 });
 
-exports.activation = activation;
 exports.cell = cell;
+exports.light = light;
+exports.lights = lights;
 exports.map = map;
 exports.tile = tile;
+exports.tileEvent = tileEvent;
+exports.tiles = tiles;

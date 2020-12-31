@@ -1,6 +1,6 @@
 import { color as Color, canvas as Canvas, types as Types } from "gw-utils";
 import { Tile as Flags, TileMech as MechFlags, Layer } from "./flags";
-import * as Activation from "./activation";
+import * as TileEvent from "./tileEvent";
 import * as Light from "./light";
 export { Flags, MechFlags, Layer };
 export interface NameConfig {
@@ -37,7 +37,7 @@ export declare class Tile implements Types.TileType {
     layer: Layer;
     priority: number;
     sprite: Canvas.Sprite;
-    activates: Record<string, Activation.Activation>;
+    activates: Record<string, TileEvent.TileEvent>;
     light: Light.Light | null;
     flavor: string | null;
     desc: string | null;

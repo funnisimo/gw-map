@@ -304,6 +304,9 @@ declare namespace cell_d {
   };
 }
 
+declare const config: {
+    INTENSITY_DARK: number;
+};
 declare class Light implements types.LightType {
     color: color.Color;
     radius: range.Range;
@@ -315,6 +318,7 @@ declare class Light implements types.LightType {
     get intensity(): number;
     paint(map: Map$1, x: number, y: number, maintainShadows?: boolean, isMinersLight?: boolean): false | undefined;
 }
+declare function intensity(color: color.Color | [number, number, number]): number;
 interface LightConfig {
     color: color.ColorBase;
     radius: number;
@@ -322,6 +326,69 @@ interface LightConfig {
     pass?: boolean;
 }
 declare type LightBase = LightConfig | string | any[];
+declare function make$1(color: color.ColorBase, radius: range.RangeBase, fadeTo?: number, pass?: boolean): Light;
+declare function make$1(light: LightBase): Light;
+declare const lights: Record<string, Light>;
+declare function from(light: LightBase): Light;
+declare function install(id: string, color: color.ColorBase, radius: range.RangeBase, fadeTo?: number, pass?: boolean): Light;
+declare function install(id: string, base: LightBase): Light;
+declare function install(id: string, config: LightConfig): Light;
+declare function installAll(config?: Record<string, LightConfig>): void;
+declare type LightData = [number, number, number];
+declare type LightDataGrid = grid.Grid<LightData>;
+declare function backUpLighting(map: Map$1, lights: LightDataGrid): void;
+declare function restoreLighting(map: Map$1, lights: LightDataGrid): void;
+declare function recordOldLights(map: Map$1): void;
+declare function zeroOutLights(map: Map$1): void;
+declare function recordGlowLights(map: Map$1): void;
+declare function restoreGlowLights(map: Map$1): void;
+declare function updateLighting(map: Map$1): boolean;
+declare function playerInDarkness(map: Map$1, PLAYER: utils.XY, darkColor: color.Color): boolean;
+
+declare const light_d_config: typeof config;
+type light_d_Light = Light;
+declare const light_d_Light: typeof Light;
+declare const light_d_intensity: typeof intensity;
+type light_d_LightConfig = LightConfig;
+type light_d_LightBase = LightBase;
+declare const light_d_lights: typeof lights;
+declare const light_d_from: typeof from;
+declare const light_d_install: typeof install;
+declare const light_d_installAll: typeof installAll;
+type light_d_LightData = LightData;
+type light_d_LightDataGrid = LightDataGrid;
+declare const light_d_backUpLighting: typeof backUpLighting;
+declare const light_d_restoreLighting: typeof restoreLighting;
+declare const light_d_recordOldLights: typeof recordOldLights;
+declare const light_d_zeroOutLights: typeof zeroOutLights;
+declare const light_d_recordGlowLights: typeof recordGlowLights;
+declare const light_d_restoreGlowLights: typeof restoreGlowLights;
+declare const light_d_updateLighting: typeof updateLighting;
+declare const light_d_playerInDarkness: typeof playerInDarkness;
+declare namespace light_d {
+  export {
+    light_d_config as config,
+    light_d_Light as Light,
+    light_d_intensity as intensity,
+    light_d_LightConfig as LightConfig,
+    light_d_LightBase as LightBase,
+    make$1 as make,
+    light_d_lights as lights,
+    light_d_from as from,
+    light_d_install as install,
+    light_d_installAll as installAll,
+    light_d_LightData as LightData,
+    light_d_LightDataGrid as LightDataGrid,
+    light_d_backUpLighting as backUpLighting,
+    light_d_restoreLighting as restoreLighting,
+    light_d_recordOldLights as recordOldLights,
+    light_d_zeroOutLights as zeroOutLights,
+    light_d_recordGlowLights as recordGlowLights,
+    light_d_restoreGlowLights as restoreGlowLights,
+    light_d_updateLighting as updateLighting,
+    light_d_playerInDarkness as playerInDarkness,
+  };
+}
 
 declare type MapEachFn = (cell: Cell$1, x: number, y: number, map: Map$1) => void;
 declare type MapMatchFn = (cell: Cell$1, x: number, y: number, map: Map$1) => boolean;
@@ -454,9 +521,9 @@ declare class Map$1 implements types.MapType {
     tick(): Promise<void>;
     resetEvents(): void;
 }
-declare function make$1(w: number, h: number, floor: string, wall: string): Map$1;
-declare function make$1(w: number, h: number, floor: string): Map$1;
-declare function make$1(w: number, h: number, opts?: any): Map$1;
+declare function make$2(w: number, h: number, floor: string, wall: string): Map$1;
+declare function make$2(w: number, h: number, floor: string): Map$1;
+declare function make$2(w: number, h: number, opts?: any): Map$1;
 declare function getCellAppearance(map: Map$1, x: number, y: number, dest: canvas.Mixer): void;
 declare function addText(map: Map$1, x: number, y: number, text: string, fg: color.ColorBase, bg: color.ColorBase, layer: Layer): void;
 declare function updateGas(map: Map$1): void;
@@ -482,7 +549,7 @@ declare namespace map_d {
     map_d_MapLightFn as MapLightFn,
     map_d_DisruptsOptions as DisruptsOptions,
     Map$1 as Map,
-    make$1 as make,
+    make$2 as make,
     map_d_getCellAppearance as getCellAppearance,
     map_d_addText as addText,
     map_d_updateGas as updateGas,
@@ -490,7 +557,7 @@ declare namespace map_d {
   };
 }
 
-declare class Activation$1 {
+declare class TileEvent {
     tile: string | null;
     fn: Function | null;
     item: string | null;
@@ -510,40 +577,41 @@ declare class Activation$1 {
     id: string | null;
     constructor(opts?: any);
 }
-declare function make$2(opts: string | any): Activation$1 | null;
-declare const activations: Record<string, Activation$1 | null>;
-declare function install(id: string, event: Activation$1 | any): any;
+declare function make$3(opts: string | any): TileEvent | null;
+declare const activations: Record<string, TileEvent | null>;
+declare function install$1(id: string, event: TileEvent | any): any;
 declare function resetAllMessages(): void;
-declare function spawn(activation: Activation$1 | Function | string, ctx?: any): Promise<any>;
-declare function computeSpawnMap(feat: Activation$1, spawnMap: grid.NumGrid, ctx?: any): void;
-declare function spawnTiles(feat: Activation$1, spawnMap: grid.NumGrid, ctx: any, tile?: Tile$1 | null, item?: types.ItemType | null): Promise<boolean>;
+declare function spawn(activation: TileEvent | Function | string, ctx?: any): Promise<any>;
+declare function computeSpawnMap(feat: TileEvent, spawnMap: grid.NumGrid, ctx?: any): void;
+declare function spawnTiles(feat: TileEvent, spawnMap: grid.NumGrid, ctx: any, tile?: Tile$1 | null, item?: types.ItemType | null): Promise<boolean>;
 declare function nullifyCells(map: Map$1, spawnMap: grid.NumGrid, flags: number): boolean;
 declare function evacuateCreatures(map: Map$1, blockingMap: grid.NumGrid): boolean;
 declare function evacuateItems(map: Map$1, blockingMap: grid.NumGrid): boolean;
 
-declare const activation_d_activations: typeof activations;
-declare const activation_d_install: typeof install;
-declare const activation_d_resetAllMessages: typeof resetAllMessages;
-declare const activation_d_spawn: typeof spawn;
-declare const activation_d_computeSpawnMap: typeof computeSpawnMap;
-declare const activation_d_spawnTiles: typeof spawnTiles;
-declare const activation_d_nullifyCells: typeof nullifyCells;
-declare const activation_d_evacuateCreatures: typeof evacuateCreatures;
-declare const activation_d_evacuateItems: typeof evacuateItems;
-declare namespace activation_d {
+type tileEvent_d_TileEvent = TileEvent;
+declare const tileEvent_d_TileEvent: typeof TileEvent;
+declare const tileEvent_d_activations: typeof activations;
+declare const tileEvent_d_resetAllMessages: typeof resetAllMessages;
+declare const tileEvent_d_spawn: typeof spawn;
+declare const tileEvent_d_computeSpawnMap: typeof computeSpawnMap;
+declare const tileEvent_d_spawnTiles: typeof spawnTiles;
+declare const tileEvent_d_nullifyCells: typeof nullifyCells;
+declare const tileEvent_d_evacuateCreatures: typeof evacuateCreatures;
+declare const tileEvent_d_evacuateItems: typeof evacuateItems;
+declare namespace tileEvent_d {
   export {
     Activation as Flags,
-    Activation$1 as Activation,
-    make$2 as make,
-    activation_d_activations as activations,
-    activation_d_install as install,
-    activation_d_resetAllMessages as resetAllMessages,
-    activation_d_spawn as spawn,
-    activation_d_computeSpawnMap as computeSpawnMap,
-    activation_d_spawnTiles as spawnTiles,
-    activation_d_nullifyCells as nullifyCells,
-    activation_d_evacuateCreatures as evacuateCreatures,
-    activation_d_evacuateItems as evacuateItems,
+    tileEvent_d_TileEvent as TileEvent,
+    make$3 as make,
+    tileEvent_d_activations as activations,
+    install$1 as install,
+    tileEvent_d_resetAllMessages as resetAllMessages,
+    tileEvent_d_spawn as spawn,
+    tileEvent_d_computeSpawnMap as computeSpawnMap,
+    tileEvent_d_spawnTiles as spawnTiles,
+    tileEvent_d_nullifyCells as nullifyCells,
+    tileEvent_d_evacuateCreatures as evacuateCreatures,
+    tileEvent_d_evacuateItems as evacuateItems,
   };
 }
 
@@ -581,7 +649,7 @@ declare class Tile$1 implements types.TileType {
     layer: Layer;
     priority: number;
     sprite: canvas.Sprite;
-    activates: Record<string, Activation$1>;
+    activates: Record<string, TileEvent>;
     light: Light | null;
     flavor: string | null;
     desc: string | null;
@@ -630,9 +698,9 @@ declare const tiles: Record<string, Tile$1>;
  * @param {Object} config - The tile configuration
  * @returns {Tile} The newly created tile
  */
-declare function install$1(id: string, base: string | Tile$1, config: Partial<TileConfig>): Tile$1;
-declare function install$1(id: string, config: Partial<TileConfig>): Tile$1;
-declare function install$1(config: Partial<TileConfig>): Tile$1;
+declare function install$2(id: string, base: string | Tile$1, config: Partial<TileConfig>): Tile$1;
+declare function install$2(id: string, config: Partial<TileConfig>): Tile$1;
+declare function install$2(config: Partial<TileConfig>): Tile$1;
 /**
  * Adds multiple tiles to the GW.tiles collection.
  * It extracts all the id:opts pairs from the config object and uses
@@ -641,7 +709,7 @@ declare function install$1(config: Partial<TileConfig>): Tile$1;
  * @returns {void} Nothing
  * @see addTileKind
  */
-declare function installAll(config: Record<string, Partial<TileConfig>>): void;
+declare function installAll$1(config: Record<string, Partial<TileConfig>>): void;
 
 type tile_d_Layer = Layer;
 declare const tile_d_Layer: typeof Layer;
@@ -650,7 +718,6 @@ type tile_d_TileBase = TileBase;
 type tile_d_FullTileConfig = FullTileConfig;
 type tile_d_TileConfig = TileConfig;
 declare const tile_d_tiles: typeof tiles;
-declare const tile_d_installAll: typeof installAll;
 declare namespace tile_d {
   export {
     Tile as Flags,
@@ -662,9 +729,9 @@ declare namespace tile_d {
     tile_d_TileConfig as TileConfig,
     Tile$1 as Tile,
     tile_d_tiles as tiles,
-    install$1 as install,
-    tile_d_installAll as installAll,
+    install$2 as install,
+    installAll$1 as installAll,
   };
 }
 
-export { activation_d as activation, cell_d as cell, map_d as map, tile_d as tile };
+export { cell_d as cell, light_d as light, lights, map_d as map, tile_d as tile, tileEvent_d as tileEvent, tiles };

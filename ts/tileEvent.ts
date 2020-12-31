@@ -25,7 +25,7 @@ import * as Map from "./map";
 
 export { Flags };
 
-export class Activation {
+export class TileEvent {
   public tile: string | null;
   public fn: Function | null;
   public item: string | null;
@@ -80,18 +80,18 @@ export function make(opts: string | any) {
   if (typeof opts === "string") {
     opts = { tile: opts };
   }
-  const te = new Activation(opts);
+  const te = new TileEvent(opts);
   return te;
 }
 
-Make.activation = make;
+Make.tileEvent = make;
 
-export const activations: Record<string, Activation | null> = {
+export const activations: Record<string, TileEvent | null> = {
   DF_NONE: null,
 };
 
-export function install(id: string, event: Activation | any) {
-  if (!(event instanceof Activation)) {
+export function install(id: string, event: TileEvent | any) {
+  if (!(event instanceof TileEvent)) {
     event = make(event);
   }
   activations[id] = event;
@@ -101,7 +101,7 @@ export function install(id: string, event: Activation | any) {
 
 export function resetAllMessages() {
   Object.values(activations).forEach((f) => {
-    if (f instanceof Activation) {
+    if (f instanceof TileEvent) {
       f.messageDisplayed = false;
     }
   });
@@ -109,7 +109,7 @@ export function resetAllMessages() {
 
 // returns whether the feature was successfully generated (false if we aborted because of blocking)
 export async function spawn(
-  activation: Activation | Function | string,
+  activation: TileEvent | Function | string,
   ctx: any = {}
 ) {
   let i, j;
@@ -117,7 +117,7 @@ export async function spawn(
   if (!activation) return false;
   if (!ctx) return false;
 
-  let feat: Activation;
+  let feat: TileEvent;
   if (typeof activation === "string") {
     // @ts-ignore
     feat = activations[activation];
@@ -356,7 +356,7 @@ export async function spawn(
   return didSomething;
 }
 
-function cellIsOk(feat: Activation, x: number, y: number, ctx: any = {}) {
+function cellIsOk(feat: TileEvent, x: number, y: number, ctx: any = {}) {
   const map = ctx.map;
   if (!map.hasXY(x, y)) return false;
   const cell = map.cell(x, y);
@@ -394,7 +394,7 @@ function cellIsOk(feat: Activation, x: number, y: number, ctx: any = {}) {
 }
 
 export function computeSpawnMap(
-  feat: Activation,
+  feat: TileEvent,
   spawnMap: Grid.NumGrid,
   ctx: any = {}
 ) {
@@ -510,7 +510,7 @@ export function computeSpawnMap(
 }
 
 export async function spawnTiles(
-  feat: Activation,
+  feat: TileEvent,
   spawnMap: Grid.NumGrid,
   ctx: any,
   tile?: Tile.Tile | null,

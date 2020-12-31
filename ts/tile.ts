@@ -7,7 +7,7 @@ import {
 } from "gw-utils";
 
 import { Tile as Flags, TileMech as MechFlags, Layer } from "./flags";
-import * as Activation from "./tileEvent";
+import * as TileEvent from "./tileEvent";
 import * as Light from "./light";
 
 export { Flags, MechFlags, Layer };
@@ -57,7 +57,7 @@ export class Tile implements Types.TileType {
   public priority = -1;
 
   public sprite: Canvas.Sprite = {} as Canvas.Sprite;
-  public activates: Record<string, Activation.Activation> = {};
+  public activates: Record<string, TileEvent.TileEvent> = {};
   public light: Light.Light | null = null; // TODO - Light
 
   public flavor: string | null = null;
@@ -138,7 +138,7 @@ export class Tile implements Types.TileType {
     if (config.activates) {
       Object.entries(config.activates).forEach(([key, info]) => {
         if (info) {
-          const activation = Activation.make(info)!;
+          const activation = TileEvent.make(info)!;
           this.activates[key] = activation;
         } else {
           delete this.activates[key];
