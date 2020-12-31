@@ -686,7 +686,7 @@ export function evacuateItems(map: Map.Map, blockingMap: Grid.NumGrid) {
     if (loc) {
       map.removeItem(cell.item);
       map.addItem(loc[0], loc[1], cell.item);
-      map.redrawXY(loc[0], loc[1]);
+      // map.redrawXY(loc[0], loc[1]);
       didSomething = true;
     }
   });

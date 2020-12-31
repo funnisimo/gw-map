@@ -49,12 +49,13 @@ describe("tileEvent", () => {
   beforeEach(() => {
     map = GW.make.map(20, 20, { tile: "FLOOR", boundary: "WALL" });
     ctx = { map, x: 10, y: 10 };
+    grid = GW.grid.alloc(20, 20);
 
     UTILS.mockRandom();
   });
 
   afterEach(() => {
-    if (grid) GW.grid.free(grid);
+    GW.grid.free(grid);
     // Activation.debug = GW.utils.NOOP;
     jest.resetAllMocks();
   });
@@ -62,8 +63,6 @@ describe("tileEvent", () => {
   // COMPUTE SPAWN MAP
 
   test("can compute a spawn map", () => {
-    grid = GW.grid.alloc(20, 20);
-
     // only a single tile
     feat = GW.make.tileEvent({ tile: "WALL" })!;
     Map.tileEvent.computeSpawnMap(feat, grid, ctx);
@@ -92,7 +91,6 @@ describe("tileEvent", () => {
   // { spread: 50 }
   test("{ spread: 50 }", () => {
     GW.random.seed(12345);
-    grid = GW.grid.alloc(20, 20);
     feat = GW.make.tileEvent({ tile: "WALL", spread: 50 })!;
 
     Map.tileEvent.computeSpawnMap(feat, grid, ctx);
@@ -106,7 +104,6 @@ describe("tileEvent", () => {
   // { spread: 75, matchTile: "DOOR" }
   test('{ spread: 75, matchTile: "DOOR" }', () => {
     GW.random.seed(12345);
-    grid = GW.grid.alloc(20, 20);
     feat = GW.make.tileEvent({ tile: "WALL", spread: 50, matchTile: "DOOR" })!;
     Map.tileEvent.computeSpawnMap(feat, grid, ctx);
     // grid.dump();
@@ -125,7 +122,6 @@ describe("tileEvent", () => {
   // { spread: 50, decrement: 10 }
   test("{ spread: 50, decrement: 10 }", () => {
     GW.random.seed(12345);
-    grid = GW.grid.alloc(20, 20);
     feat = GW.make.tileEvent({ tile: "WALL", spread: 50, decrement: 10 })!;
     Map.tileEvent.computeSpawnMap(feat, grid, ctx);
     // grid.dump();
@@ -138,7 +134,6 @@ describe("tileEvent", () => {
   // DFF_SPREAD_CIRCLE
   test("{ spread: 90, decrement: 10, spread circle }", () => {
     GW.random.seed(1234567);
-    grid = GW.grid.alloc(20, 20);
     feat = GW.make.tileEvent({
       tile: "WALL",
       spread: 90,
@@ -158,7 +153,6 @@ describe("tileEvent", () => {
   // { radius: 3 }
   test("{ radius: 3 }", () => {
     GW.random.seed(12345);
-    grid = GW.grid.alloc(20, 20);
     feat = GW.make.tileEvent({ tile: "WALL", radius: 3 })!;
     // console.log(feat);
     Map.tileEvent.computeSpawnMap(feat, grid, ctx);
@@ -171,7 +165,6 @@ describe("tileEvent", () => {
   // { radius: 3, spread: 75 }
   test("{ radius: 3, spread: 75 }", () => {
     GW.random.seed(12345);
-    grid = GW.grid.alloc(20, 20);
     feat = GW.make.tileEvent({ tile: "WALL", radius: 3, spread: 75 })!;
     // console.log(feat);
 
@@ -186,7 +179,6 @@ describe("tileEvent", () => {
   // { radius: 3, spread: 75, decrement: 20 }
   test("{ radius: 3, spread: 75, decrement: 20 }", () => {
     GW.random.seed(12345);
-    grid = GW.grid.alloc(20, 20);
     feat = GW.make.tileEvent({
       tile: "WALL",
       radius: 3,
@@ -211,7 +203,6 @@ describe("tileEvent", () => {
   // SPAWN TILE
 
   test("will fill a map with a spawn map", async () => {
-    grid = GW.grid.alloc(20, 20);
     grid.fillRect(5, 5, 3, 3, 1);
     const feat = GW.make.tileEvent({ tile: "WALL" })!;
 
@@ -224,7 +215,6 @@ describe("tileEvent", () => {
   });
 
   test("will skip tiles that are event protected", async () => {
-    grid = GW.grid.alloc(20, 20);
     grid.fillRect(5, 5, 3, 3, 1);
 
     map.forRect(5, 5, 3, 3, (cell) => expect(cell.hasTile("WALL")).toBeFalsy());
