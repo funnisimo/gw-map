@@ -1,25 +1,23 @@
 import "jest-extended";
 import "../test/matchers";
-import * as Tile from "./tile";
-import * as Cell from "./cell";
-import "./tiles";
+import * as Map from "./gw";
 import * as GW from "gw-utils";
 
 describe("CellMemory", () => {
   beforeAll(() => {
-    Tile.install("TEST_FLOOR", {
+    Map.tile.install("TEST_FLOOR", {
       name: "floor",
       ch: ".",
       fg: [80, 80, 80],
       bg: [20, 20, 20],
     });
-    Tile.install("RED_LIQUID", {
+    Map.tile.install("RED_LIQUID", {
       name: "red liquid",
       article: "some",
       bg: "red",
       layer: "LIQUID",
     });
-    Tile.install("BLUE_LIQUID", {
+    Map.tile.install("BLUE_LIQUID", {
       name: "blue liquid",
       article: "some",
       bg: "blue",
@@ -28,13 +26,13 @@ describe("CellMemory", () => {
   });
 
   afterAll(() => {
-    delete Tile.tiles.TEST_FLOOR;
-    delete Tile.tiles.RED_LIQUID;
-    delete Tile.tiles.BLUE_LIQUID;
+    delete Map.tiles.TEST_FLOOR;
+    delete Map.tiles.RED_LIQUID;
+    delete Map.tiles.BLUE_LIQUID;
   });
 
   test("_setTile(0) - can clear tile", () => {
-    const c = Cell.make();
+    const c = GW.make.cell();
     c._setTile("FLOOR");
     expect(c.ground).toEqual("FLOOR");
 
@@ -43,8 +41,8 @@ describe("CellMemory", () => {
   });
 
   test("will copy another memory object", () => {
-    const a = new Cell.CellMemory();
-    const b = new Cell.CellMemory();
+    const a = new Map.cell.CellMemory();
+    const b = new Map.cell.CellMemory();
 
     a.mixer.draw("a");
     a.tileFlags = 1;
@@ -63,9 +61,9 @@ describe("CellMemory", () => {
   });
 
   test("_setTile", () => {
-    const c = Cell.make();
+    const c = GW.make.cell();
 
-    expect(Tile.tiles.FLOOR.priority).toBeLessThan(Tile.tiles.DOOR.priority);
+    expect(Map.tiles.FLOOR.priority).toBeLessThan(Map.tiles.DOOR.priority);
 
     const floor = "FLOOR";
     const wall = "WALL";
@@ -82,7 +80,7 @@ describe("CellMemory", () => {
   });
 
   test("will keep sprites in sorted order by layer, priority increasing", () => {
-    const c = Cell.make();
+    const c = GW.make.cell();
 
     c.addSprite(6, GW.make.sprite("@"));
     expect(c.sprites).toEqual({
@@ -107,7 +105,7 @@ describe("CellMemory", () => {
   });
 
   test("can support many layers", () => {
-    const c = Cell.make();
+    const c = GW.make.cell();
     c._setTile("FLOOR");
 
     const a = GW.canvas.makeSprite("@", "white", "blue");
@@ -121,7 +119,7 @@ describe("CellMemory", () => {
     expect(c.sprites!.next!.sprite).toBe(b);
 
     const app = new GW.canvas.Mixer();
-    Cell.getAppearance(c, app);
+    Map.cell.getAppearance(c, app);
 
     const ex = GW.canvas.makeSprite("@", "white", "red");
     expect(app).toEqual(ex);
@@ -129,16 +127,16 @@ describe("CellMemory", () => {
 
   test("layers will blend opacities", () => {
     GW.cosmetic.seed(12345);
-    const c = Cell.make();
+    const c = GW.make.cell();
     c._setTile("FLOOR");
 
     const a = GW.canvas.makeSprite("@", "white", "blue");
     const b = GW.canvas.makeSprite(null, null, "red", 50);
     expect(b.opacity).toEqual(50);
 
-    c.clearFlags(Cell.Flags.CELL_CHANGED);
+    c.clearFlags(Map.cell.Flags.CELL_CHANGED);
     c.addSprite(1, a);
-    expect(c.flags & Cell.Flags.CELL_CHANGED).toBeTruthy();
+    expect(c.flags & Map.cell.Flags.CELL_CHANGED).toBeTruthy();
     c.addSprite(2, b, 100);
 
     expect(c.sprites).not.toBeNull();
@@ -146,21 +144,21 @@ describe("CellMemory", () => {
     expect(c.sprites!.next!.sprite).toBe(b);
 
     const app = new GW.canvas.Mixer();
-    Cell.getAppearance(c, app);
+    Map.cell.getAppearance(c, app);
 
     const ex = GW.canvas.makeSprite("@", "white", [50, 0, 50]);
     expect(app.ch).toEqual(ex.ch);
     expect(app.fg).toEqual(ex.fg);
     expect(app.bg).toEqual(ex.bg);
 
-    c.clearFlags(Cell.Flags.CELL_CHANGED);
+    c.clearFlags(Map.cell.Flags.CELL_CHANGED);
     c.removeSprite(a);
-    expect(c.flags & Cell.Flags.CELL_CHANGED).toBeTruthy();
+    expect(c.flags & Map.cell.Flags.CELL_CHANGED).toBeTruthy();
     c.removeSprite(b);
 
     app.blackOut();
-    Cell.getAppearance(c, app);
-    const FLOOR = Tile.tiles.FLOOR.sprite;
+    Map.cell.getAppearance(c, app);
+    const FLOOR = Map.tiles.FLOOR.sprite;
     expect(app.ch).toEqual(FLOOR.ch);
     expect(app.fg).toBakeFrom(FLOOR.fg);
     expect(app.bg).toBakeFrom(FLOOR.bg);
@@ -168,31 +166,31 @@ describe("CellMemory", () => {
 
   test("will set liquid with volume", () => {
     GW.cosmetic.seed(12345);
-    const FLOOR = Tile.tiles.TEST_FLOOR.sprite;
-    const c = Cell.make();
+    const FLOOR = Map.tiles.TEST_FLOOR.sprite;
+    const c = GW.make.cell();
     c._setTile("TEST_FLOOR");
 
     const app = new GW.canvas.Mixer();
-    Cell.getAppearance(c, app);
+    Map.cell.getAppearance(c, app);
     expect(app.ch).toEqual(FLOOR.ch);
     expect(app.bg).toEqual([20, 20, 20, 0, 0, 0, 0]);
     expect(app.fg).toEqual([80, 80, 80, 0, 0, 0, 0]);
 
-    expect(Tile.tiles.RED_LIQUID).toBeObject();
-    expect(Tile.tiles.RED_LIQUID.layer).toEqual(Tile.Layer.LIQUID);
+    expect(Map.tiles.RED_LIQUID).toBeObject();
+    expect(Map.tiles.RED_LIQUID.layer).toEqual(Map.tile.Layer.LIQUID);
 
     c._setTile("RED_LIQUID", 100);
     expect(c.liquid).toEqual("RED_LIQUID");
     expect(c.liquidVolume).toEqual(100);
-    Cell.getAppearance(c, app);
+    Map.cell.getAppearance(c, app);
     expect(app.ch).toEqual(FLOOR.ch);
     expect(app.bg).toEqual([100, 0, 0, 0, 0, 0, 0]);
     expect(app.fg).toEqual([80, 80, 80, 0, 0, 0, 0]);
 
-    c.clearLayer(Tile.Layer.LIQUID);
+    c.clearLayer(Map.tile.Layer.LIQUID);
     expect(c.liquid).toEqual(null);
     expect(c.liquidVolume).toEqual(0);
-    Cell.getAppearance(c, app);
+    Map.cell.getAppearance(c, app);
     expect(app.ch).toEqual(FLOOR.ch);
     expect(app.bg).toEqual([20, 20, 20, 0, 0, 0, 0]);
     expect(app.fg).toEqual([80, 80, 80, 0, 0, 0, 0]);
@@ -200,7 +198,7 @@ describe("CellMemory", () => {
     c._setTile("RED_LIQUID", 50);
     expect(c.liquid).toEqual("RED_LIQUID");
     expect(c.liquidVolume).toEqual(50);
-    Cell.getAppearance(c, app);
+    Map.cell.getAppearance(c, app);
     expect(app.ch).toEqual(FLOOR.ch);
     expect(app.bg).toEqual([60, 10, 10, 0, 0, 0, 0]);
     expect(app.fg).toEqual([80, 80, 80, 0, 0, 0, 0]);
@@ -208,7 +206,7 @@ describe("CellMemory", () => {
     c._setTile("BLUE_LIQUID", 10);
     expect(c.liquid).toEqual("BLUE_LIQUID");
     expect(c.liquidVolume).toEqual(10);
-    Cell.getAppearance(c, app);
+    Map.cell.getAppearance(c, app);
     expect(app.ch).toEqual(FLOOR.ch);
     expect(app.bg).toEqual([16, 16, 36, 0, 0, 0, 0]);
     expect(app.fg).toEqual([80, 80, 80, 0, 0, 0, 0]);
@@ -216,12 +214,12 @@ describe("CellMemory", () => {
 
   test("will add liquid volumes", () => {
     GW.cosmetic.seed(12345);
-    const FLOOR = Tile.tiles.TEST_FLOOR.sprite;
-    const c = Cell.make();
+    const FLOOR = Map.tiles.TEST_FLOOR.sprite;
+    const c = GW.make.cell();
     c._setTile("TEST_FLOOR");
 
     const app = new GW.canvas.Mixer();
-    Cell.getAppearance(c, app);
+    Map.cell.getAppearance(c, app);
     expect(app.ch).toEqual(FLOOR.ch);
     expect(app.bg).toEqual([20, 20, 20, 0, 0, 0, 0]);
     expect(app.fg).toEqual([80, 80, 80, 0, 0, 0, 0]);
@@ -242,7 +240,7 @@ describe("CellMemory", () => {
     expect(c.liquid).toEqual("BLUE_LIQUID");
     expect(c.liquidVolume).toEqual(10);
 
-    c.clearLayer(Tile.Layer.LIQUID);
+    c.clearLayer(Map.tile.Layer.LIQUID);
     expect(c.liquid).toEqual(null);
     expect(c.liquidVolume).toEqual(0);
   });

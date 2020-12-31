@@ -1,9 +1,7 @@
 import "jest-extended";
 import "../test/matchers";
 import { mockRandom, rnd } from "../test/utils";
-import * as Tile from "./tile";
-import "./tiles";
-import * as Map from "./map";
+import * as Map from "./gw";
 import * as GW from "gw-utils";
 
 describe("Map", () => {
@@ -40,22 +38,22 @@ describe("Map", () => {
     GW.cosmetic.seed(12345);
 
     const map = GW.make.map(10, 10);
-    expect(Tile.tiles.FLOOR).toBeDefined();
+    expect(Map.tiles.FLOOR).toBeDefined();
 
     map.setTile(2, 2, "FLOOR");
 
     const sprite = new GW.canvas.Mixer();
-    Map.getCellAppearance(map, 2, 2, sprite);
-    expect(sprite.ch).toEqual(Tile.tiles.FLOOR.sprite.ch);
-    expect(sprite.fg).toBakeFrom(Tile.tiles.FLOOR.sprite.fg);
-    expect(sprite.bg).toBakeFrom(Tile.tiles.FLOOR.sprite.bg);
+    Map.map.getCellAppearance(map, 2, 2, sprite);
+    expect(sprite.ch).toEqual(Map.tiles.FLOOR.sprite.ch);
+    expect(sprite.fg).toBakeFrom(Map.tiles.FLOOR.sprite.fg);
+    expect(sprite.bg).toBakeFrom(Map.tiles.FLOOR.sprite.bg);
 
     map.setTile(2, 2, "DOOR"); // can use tile name too (slower)
 
-    Map.getCellAppearance(map, 2, 2, sprite);
-    expect(sprite.ch).toEqual(Tile.tiles.DOOR.sprite.ch);
-    expect(sprite.fg).toBakeFrom(Tile.tiles.DOOR.sprite.fg);
-    expect(sprite.bg).toBakeFrom(Tile.tiles.DOOR.sprite.bg);
+    Map.map.getCellAppearance(map, 2, 2, sprite);
+    expect(sprite.ch).toEqual(Map.tiles.DOOR.sprite.ch);
+    expect(sprite.fg).toBakeFrom(Map.tiles.DOOR.sprite.fg);
+    expect(sprite.bg).toBakeFrom(Map.tiles.DOOR.sprite.bg);
   });
 
   test("getLine", () => {
@@ -78,14 +76,14 @@ describe("Map", () => {
 
   describe("liquids", () => {
     beforeAll(() => {
-      Tile.install("RED_LIQUID", {
+      Map.tile.install("RED_LIQUID", {
         name: "red liquid",
         layer: "LIQUID",
       });
     });
 
     afterAll(() => {
-      delete Tile.tiles.RED_LIQUID;
+      delete Map.tiles.RED_LIQUID;
     });
 
     test("liquids dissipate", async () => {
