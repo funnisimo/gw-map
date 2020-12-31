@@ -10,7 +10,7 @@ import {
 } from "gw-utils";
 import { Tile, tiles as TILES, Layer } from "./tile";
 import * as Map from "./map";
-import * as Activation from "./activation";
+import * as Activation from "./tileEvent";
 import * as Light from "./light";
 import {
   Cell as Flags,

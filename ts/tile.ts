@@ -7,7 +7,7 @@ import {
 } from "gw-utils";
 
 import { Tile as Flags, TileMech as MechFlags, Layer } from "./flags";
-import * as Activation from "./activation";
+import * as Activation from "./tileEvent";
 import * as Light from "./light";
 
 export { Flags, MechFlags, Layer };
