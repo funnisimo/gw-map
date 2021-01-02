@@ -147,8 +147,7 @@ export async function spawn(
 
   // Activation.debug('spawn', x, y, 'id=', feat.id, 'tile=', feat.tile, 'item=', feat.item);
 
-  // const refreshCell = (ctx.refreshCell =
-  //   ctx.refreshCell || !(feat.flags & Flags.DFF_NO_REDRAW_CELL));
+  ctx.refreshCell = ctx.refreshCell || !(feat.flags & Flags.DFF_NO_REDRAW_CELL);
   const abortIfBlocking = (ctx.abortIfBlocking =
     ctx.abortIfBlocking || feat.flags & Flags.DFF_ABORT_IF_BLOCKS_MAP);
 
@@ -586,6 +585,7 @@ export async function spawnTiles(
       }
 
       if (feat.fn) {
+        ctx.spawnMap = spawnMap;
         if (await feat.fn(i, j, ctx)) {
           spawnMap[i][j] = 1; // so that the spawnmap reflects what actually got built
           // map.redrawCell(cell);

@@ -23,12 +23,26 @@ describe("CellMemory", () => {
       bg: "blue",
       layer: "LIQUID",
     });
+    Map.tile.install("RED_GAS", {
+      name: "red gas",
+      article: "some",
+      bg: "red",
+      layer: "GAS",
+    });
+    Map.tile.install("BLUE_GAS", {
+      name: "blue gas",
+      article: "some",
+      bg: "blue",
+      layer: "GAS",
+    });
   });
 
   afterAll(() => {
     delete Map.tiles.TEST_FLOOR;
     delete Map.tiles.RED_LIQUID;
     delete Map.tiles.BLUE_LIQUID;
+    delete Map.tiles.RED_GAS;
+    delete Map.tiles.BLUE_GAS;
   });
 
   test("_setTile(0) - can clear tile", () => {
@@ -164,6 +178,70 @@ describe("CellMemory", () => {
     expect(app.bg).toBakeFrom(FLOOR.bg);
   });
 
+  test("memory", () => {
+    const c = GW.make.cell("FLOOR");
+    c.storeMemory();
+    expect(c.memory.item).toBeNull();
+    expect(c.memory.itemQuantity).toEqual(0);
+    expect(c.memory.actor).toBeNull();
+    expect(c.memory.tile).toBe(Map.tiles.FLOOR);
+    expect(c.memory.cellFlags).toEqual(
+      Map.cell.Flags.VISIBLE |
+        Map.cell.Flags.IN_FOV |
+        Map.cell.Flags.NEEDS_REDRAW |
+        Map.cell.Flags.CELL_CHANGED
+    );
+    expect(c.memory.cellMechFlags).toEqual(0);
+    expect(c.memory.tileFlags).toEqual(0);
+    expect(c.memory.tileMechFlags).toEqual(0);
+    expect(c.memory.mixer.ch).toEqual(Map.tiles.FLOOR.sprite.ch);
+    expect(c.memory.mixer.fg).toBakeFrom(Map.tiles.FLOOR.sprite.fg);
+    expect(c.memory.mixer.bg).toBakeFrom(Map.tiles.FLOOR.sprite.bg);
+
+    const item = {
+      quantity: 1,
+      sprite: { ch: "!", fg: "white" },
+    };
+
+    const actor: GW.types.ActorType = {
+      rememberedInCell: null,
+      sprite: { ch: "@", fg: GW.colors.blue, bg: -1 },
+    } as GW.types.ActorType;
+
+    c.item = item;
+    c.actor = actor;
+
+    c.storeMemory();
+    expect(c.memory.item).toBe(item);
+    expect(c.memory.itemQuantity).toEqual(item.quantity);
+    expect(c.memory.actor).toBe(actor);
+    expect(c.memory.tile).toBe(Map.tiles.FLOOR);
+    expect(c.memory.cellFlags).toEqual(
+      Map.cell.Flags.VISIBLE |
+        Map.cell.Flags.IN_FOV |
+        Map.cell.Flags.NEEDS_REDRAW |
+        Map.cell.Flags.CELL_CHANGED |
+        Map.cell.Flags.HAS_ACTOR |
+        Map.cell.Flags.HAS_ITEM
+    );
+    expect(c.memory.cellMechFlags).toEqual(0);
+    expect(c.memory.tileFlags).toEqual(0);
+    expect(c.memory.tileMechFlags).toEqual(0);
+    expect(c.memory.mixer.ch).toEqual(actor.sprite.ch);
+    expect(c.memory.mixer.fg).toBakeFrom(actor.sprite.fg);
+    expect(c.memory.mixer.bg).toBakeFrom(Map.tiles.FLOOR.sprite.bg);
+
+    const otherCell = ({
+      storeMemory: jest.fn().mockReturnValue(undefined),
+      flags: 0,
+    } as unknown) as GW.types.CellType;
+
+    actor.rememberedInCell = otherCell;
+    c.storeMemory();
+    expect(otherCell.storeMemory).toHaveBeenCalled();
+    expect(otherCell.flags).toBeGreaterThan(0);
+  });
+
   test("will set liquid with volume", () => {
     GW.cosmetic.seed(12345);
     const FLOOR = Map.tiles.TEST_FLOOR.sprite;
@@ -243,5 +321,111 @@ describe("CellMemory", () => {
     c.clearLayer(Map.tile.Layer.LIQUID);
     expect(c.liquid).toEqual(null);
     expect(c.liquidVolume).toEqual(0);
+  });
+
+  test("will add gas volumes", () => {
+    GW.cosmetic.seed(12345);
+    const FLOOR = Map.tiles.TEST_FLOOR.sprite;
+    const c = GW.make.cell();
+    c._setTile("TEST_FLOOR");
+
+    const app = new GW.canvas.Mixer();
+    Map.cell.getAppearance(c, app);
+    expect(app.ch).toEqual(FLOOR.ch);
+    expect(app.bg).toEqual([20, 20, 20, 0, 0, 0, 0]);
+    expect(app.fg).toEqual([80, 80, 80, 0, 0, 0, 0]);
+
+    c._setTile("RED_GAS", 10);
+    expect(c.gas).toEqual("RED_GAS");
+    expect(c.gasVolume).toEqual(10);
+    Map.cell.getAppearance(c, app);
+    expect(app.ch).toEqual(FLOOR.ch);
+    expect(app.bg).toEqual([36, 16, 16, 0, 0, 0, 0]);
+    expect(app.fg).toEqual([80, 80, 80, 0, 0, 0, 0]);
+
+    c._setTile("RED_GAS", 10);
+    expect(c.gas).toEqual("RED_GAS");
+    expect(c.gasVolume).toEqual(20);
+
+    c._setTile("RED_GAS", 10);
+    expect(c.gas).toEqual("RED_GAS");
+    expect(c.gasVolume).toEqual(30);
+
+    c._setTile("BLUE_GAS", 10);
+    expect(c.gas).toEqual("BLUE_GAS");
+    expect(c.gasVolume).toEqual(10);
+
+    c.clearLayer(Map.tile.Layer.GAS);
+    expect(c.gas).toEqual(null);
+    expect(c.gasVolume).toEqual(0);
+  });
+
+  test("sprites", () => {
+    const cell = GW.make.cell("FLOOR");
+    const mixer = new GW.make.mixer();
+    const a = { bg: "blue", _n: "a" };
+    const b = { ch: "!", fg: "green", _n: "b" };
+    const c = { ch: null, fg: "red", _n: "c" };
+    const d = { bg: "yellow", _n: "d" };
+    const e = { bg: "orange", _n: "e" };
+
+    Map.cell.getAppearance(cell, mixer);
+    expect(mixer.ch).toEqual(Map.tiles.FLOOR.sprite.ch);
+    expect(mixer.fg).toBakeFrom(Map.tiles.FLOOR.sprite.fg);
+    expect(mixer.bg).toBakeFrom(Map.tiles.FLOOR.sprite.bg);
+
+    cell.addSprite(Map.tile.Layer.LIQUID, a);
+    Map.cell.getAppearance(cell, mixer);
+    expect(mixer.ch).toEqual(Map.tiles.FLOOR.sprite.ch);
+    expect(mixer.fg).toBakeFrom(Map.tiles.FLOOR.sprite.fg);
+    expect(mixer.bg).toBakeFrom(GW.colors.blue);
+
+    cell.addSprite(Map.tile.Layer.FX, b);
+    Map.cell.getAppearance(cell, mixer);
+    expect(mixer.ch).toEqual(b.ch);
+    expect(mixer.fg).toBakeFrom(GW.colors.green);
+    expect(mixer.bg).toBakeFrom(GW.colors.blue);
+
+    cell.addSprite(Map.tile.Layer.GROUND, c);
+    cell.addSprite(Map.tile.Layer.UI, d);
+    Map.cell.getAppearance(cell, mixer);
+    expect(mixer.ch).toEqual(b.ch);
+    expect(mixer.fg).toBakeFrom(GW.colors.green);
+    expect(mixer.bg).toBakeFrom(GW.colors.yellow);
+
+    expect(cell.removeSprite(e)).toBeFalsy();
+
+    cell.removeSprite(d);
+    Map.cell.getAppearance(cell, mixer);
+    expect(mixer.ch).toEqual(b.ch);
+    expect(mixer.fg).toBakeFrom(GW.colors.green);
+    expect(mixer.bg).toBakeFrom(GW.colors.blue);
+
+    cell.removeSprite(c);
+    cell.removeSprite(a);
+    Map.cell.getAppearance(cell, mixer);
+    expect(mixer.ch).toEqual(b.ch);
+    expect(mixer.fg).toBakeFrom(GW.colors.green);
+    expect(mixer.bg).toBakeFrom(Map.tiles.FLOOR.sprite.bg);
+
+    cell.removeSprite(b);
+    Map.cell.getAppearance(cell, mixer);
+    expect(mixer.ch).toEqual(Map.tiles.FLOOR.sprite.ch);
+    expect(mixer.fg).toBakeFrom(Map.tiles.FLOOR.sprite.fg);
+    expect(mixer.bg).toBakeFrom(Map.tiles.FLOOR.sprite.bg);
+
+    cell.addSprite(Map.tile.Layer.FX, b);
+    cell.addSprite(Map.tile.Layer.LIQUID, a);
+    Map.cell.getAppearance(cell, mixer);
+    expect(mixer.ch).toEqual(b.ch);
+    expect(mixer.fg).toBakeFrom(GW.colors.green);
+    expect(mixer.bg).toBakeFrom(GW.colors.blue);
+
+    cell.removeSprite(b);
+    cell.removeSprite(a);
+    Map.cell.getAppearance(cell, mixer);
+    expect(mixer.ch).toEqual(Map.tiles.FLOOR.sprite.ch);
+    expect(mixer.fg).toBakeFrom(Map.tiles.FLOOR.sprite.fg);
+    expect(mixer.bg).toBakeFrom(Map.tiles.FLOOR.sprite.bg);
   });
 });

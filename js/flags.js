@@ -222,7 +222,7 @@ export var Cell;
         Cell.WAS_CLAIRVOYANT_VISIBLE |
         Cell.TELEPATHIC_VISIBLE |
         Cell.WAS_TELEPATHIC_VISIBLE] = "IS_WAS_ANY_KIND_OF_VISIBLE";
-    Cell[Cell["CELL_DEFAULT"] = Cell.VISIBLE | Cell.IN_FOV | Cell.NEEDS_REDRAW | Cell.CELL_CHANGED | Cell.IS_IN_SHADOW] = "CELL_DEFAULT";
+    Cell[Cell["CELL_DEFAULT"] = Cell.VISIBLE | Cell.IN_FOV | Cell.NEEDS_REDRAW | Cell.CELL_CHANGED] = "CELL_DEFAULT";
 })(Cell || (Cell = {}));
 ///////////////////////////////////////////////////////
 // CELL MECH

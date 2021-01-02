@@ -41,8 +41,8 @@ export class Cell {
     constructor() {
         this.layers = [null, null, null, null];
         this.sprites = null;
-        this.actor = null;
-        this.item = null;
+        this._actor = null;
+        this._item = null;
         this.data = {};
         this.flags = Flags.CELL_DEFAULT; // non-terrain cell flags
         this.mechFlags = 0;
@@ -62,8 +62,8 @@ export class Cell {
             this.layers[i] = null;
         }
         this.sprites = null;
-        this.actor = null;
-        this.item = null;
+        this._actor = null;
+        this._item = null;
         this.data = {};
         this.flags = Flags.CELL_DEFAULT; // non-terrain cell flags
         this.mechFlags = 0;
@@ -308,7 +308,7 @@ export class Cell {
         return this.ground == null;
     }
     isEmpty() {
-        return !(this.actor || this.item);
+        return !(this._actor || this._item);
     }
     isPassableNow(limitToPlayerKnowledge = false) {
         const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
@@ -536,6 +536,40 @@ export class Cell {
         }
         return false;
     }
+    // ITEM
+    get item() {
+        return this._item;
+    }
+    set item(item) {
+        if (this.item) {
+            this.removeSprite(this.item.sprite);
+        }
+        this._item = item;
+        if (item) {
+            this.flags |= Flags.HAS_ITEM;
+            this.addSprite(Layer.ITEM, item.sprite);
+        }
+        else {
+            this.flags &= ~Flags.HAS_ITEM;
+        }
+    }
+    // ACTOR
+    get actor() {
+        return this._actor;
+    }
+    set actor(actor) {
+        if (this.actor) {
+            this.removeSprite(this.actor.sprite);
+        }
+        this._actor = actor;
+        if (actor) {
+            this.flags |= Flags.HAS_ACTOR;
+            this.addSprite(Layer.ACTOR, actor.sprite);
+        }
+        else {
+            this.flags &= ~Flags.HAS_ACTOR;
+        }
+    }
     // SPRITES
     addSprite(layer, sprite, priority = 50) {
         if (!sprite)
@@ -575,6 +609,7 @@ export class Cell {
                 prev.next = current.next;
                 return true;
             }
+            prev = current;
             current = current.next;
         }
         return false;
@@ -589,7 +624,7 @@ export class Cell {
         memory.tile = this.highestPriorityTile();
         if (this.item) {
             memory.item = this.item;
-            memory.itemQuantity = this.item.quantity || 1;
+            memory.itemQuantity = this.item.quantity;
         }
         else {
             memory.item = null;
@@ -599,7 +634,7 @@ export class Cell {
         getAppearance(this, memory.mixer);
         if (this.actor && this.isOrWasAnyKindOfVisible()) {
             if (this.actor.rememberedInCell && this.actor.rememberedInCell !== this) {
-                console.log("remembered in cell change");
+                // console.log("remembered in cell change");
                 this.actor.rememberedInCell.storeMemory();
                 this.actor.rememberedInCell.flags |= Flags.NEEDS_REDRAW;
             }
@@ -607,8 +642,11 @@ export class Cell {
         }
     }
 }
-export function make() {
+export function make(tile) {
     const cell = new Cell();
+    if (tile) {
+        cell._setTile(tile);
+    }
     return cell;
 }
 Make.cell = make;

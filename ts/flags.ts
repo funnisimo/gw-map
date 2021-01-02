@@ -252,7 +252,7 @@ export enum Cell {
     TELEPATHIC_VISIBLE |
     WAS_TELEPATHIC_VISIBLE,
 
-  CELL_DEFAULT = VISIBLE | IN_FOV | NEEDS_REDRAW | CELL_CHANGED | IS_IN_SHADOW, // !CELL_LIT until lights remove the shadow
+  CELL_DEFAULT = VISIBLE | IN_FOV | NEEDS_REDRAW | CELL_CHANGED, // !CELL_LIT until lights remove the shadow
 }
 
 ///////////////////////////////////////////////////////

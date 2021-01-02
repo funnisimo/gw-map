@@ -1,5 +1,5 @@
 import { utils as Utils, random, grid as Grid, events as Events, color as Color, flag as Flag, data as Data, message as Msg, make as Make, } from "gw-utils";
-import { Layer, Activation as Flags, Tile as TileFlags, CellMech as CellMechFlags, Cell as CellFlags, } from "./flags";
+import { Layer, Activation as Flags, Tile as TileFlags, CellMech as CellMechFlags, } from "./flags";
 import * as Tile from "./tile";
 export { Flags };
 export class TileEvent {
@@ -93,8 +93,7 @@ export async function spawn(activation, ctx = {}) {
         }
     }
     // Activation.debug('spawn', x, y, 'id=', feat.id, 'tile=', feat.tile, 'item=', feat.item);
-    // const refreshCell = (ctx.refreshCell =
-    //   ctx.refreshCell || !(feat.flags & Flags.DFF_NO_REDRAW_CELL));
+    ctx.refreshCell = ctx.refreshCell || !(feat.flags & Flags.DFF_NO_REDRAW_CELL);
     const abortIfBlocking = (ctx.abortIfBlocking =
         ctx.abortIfBlocking || feat.flags & Flags.DFF_ABORT_IF_BLOCKS_MAP);
     // if ((feat.flags & DFF_RESURRECT_ALLY) && !resurrectAlly(x, y))
@@ -478,6 +477,7 @@ export async function spawnTiles(feat, spawnMap, ctx, tile, item) {
                 }
             }
             if (feat.fn) {
+                ctx.spawnMap = spawnMap;
                 if (await feat.fn(i, j, ctx)) {
                     spawnMap[i][j] = 1; // so that the spawnmap reflects what actually got built
                     // map.redrawCell(cell);
@@ -528,19 +528,21 @@ export function nullifyCells(map, spawnMap, flags) {
 }
 export function evacuateCreatures(map, blockingMap) {
     let i, j;
-    let monst;
     let didSomething = false;
     for (i = 0; i < map.width; i++) {
         for (j = 0; j < map.height; j++) {
-            if (blockingMap[i][j] && map.hasCellFlag(i, j, CellFlags.HAS_ACTOR)) {
-                monst = map.actorAt(i, j);
-                if (monst === null)
-                    continue;
-                const loc = map.matchingLocNear(i, j, (cell) => {
-                    return !(monst === null || monst === void 0 ? void 0 : monst.forbidsCell(cell));
-                }, { hallways: true, blockingMap });
+            if (!blockingMap[i][j])
+                continue;
+            const cell = map.cell(i, j);
+            if (!cell.actor)
+                continue;
+            const monst = cell.actor;
+            const loc = map.matchingLocNear(i, j, (cell) => {
+                return !monst.forbidsCell(cell);
+            }, { hallways: true, blockingMap });
+            if (loc && loc[0] >= 0 && loc[1] >= 0) {
                 map.moveActor(loc[0], loc[1], monst);
-                map.redrawXY(loc[0], loc[1]);
+                // map.redrawXY(loc[0], loc[1]);
                 didSomething = true;
             }
         }
@@ -555,14 +557,14 @@ export function evacuateItems(map, blockingMap) {
         const cell = map.cell(i, j);
         if (!cell.item)
             return;
-        const loc = map.matchingLocNear(i, j, (cell) => {
-            var _a;
-            return !!((_a = cell.item) === null || _a === void 0 ? void 0 : _a.forbidsCell(cell));
+        const item = cell.item;
+        const loc = map.matchingLocNear(i, j, (dest) => {
+            return !item.forbidsCell(dest);
         }, { hallways: true, blockingMap });
-        if (loc) {
-            map.removeItem(cell.item);
-            map.addItem(loc[0], loc[1], cell.item);
-            map.redrawXY(loc[0], loc[1]);
+        if (loc && loc[0] >= 0 && loc[1] >= 0) {
+            map.removeItem(item);
+            map.addItem(loc[0], loc[1], item);
+            // map.redrawXY(loc[0], loc[1]);
             didSomething = true;
         }
     });

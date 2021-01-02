@@ -204,8 +204,8 @@ declare class Cell$1 implements types.CellType {
         string | null
     ];
     sprites: SpriteData | null;
-    actor: types.ActorType | null;
-    item: types.ItemType | null;
+    protected _actor: types.ActorType | null;
+    protected _item: types.ItemType | null;
     data: any;
     flags: number;
     mechFlags: number;
@@ -282,11 +282,15 @@ declare class Cell$1 implements types.CellType {
     nullifyTileWithFlags(tileFlags: number, tileMechFlags?: number): void;
     activate(name: string, ctx?: any): Promise<boolean>;
     activatesOn(name: string): boolean;
+    get item(): types.ItemType | null;
+    set item(item: types.ItemType | null);
+    get actor(): types.ActorType | null;
+    set actor(actor: types.ActorType | null);
     addSprite(layer: Layer, sprite: canvas.SpriteType, priority?: number): void;
     removeSprite(sprite: canvas.SpriteType): boolean;
     storeMemory(): void;
 }
-declare function make(): Cell$1;
+declare function make(tile?: string): Cell$1;
 declare function getAppearance(cell: Cell$1, dest: canvas.Mixer): boolean;
 
 type cell_d_CellMemory = CellMemory;

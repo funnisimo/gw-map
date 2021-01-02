@@ -227,7 +227,7 @@
             Cell.WAS_CLAIRVOYANT_VISIBLE |
             Cell.TELEPATHIC_VISIBLE |
             Cell.WAS_TELEPATHIC_VISIBLE] = "IS_WAS_ANY_KIND_OF_VISIBLE";
-        Cell[Cell["CELL_DEFAULT"] = Cell.VISIBLE | Cell.IN_FOV | Cell.NEEDS_REDRAW | Cell.CELL_CHANGED | Cell.IS_IN_SHADOW] = "CELL_DEFAULT";
+        Cell[Cell["CELL_DEFAULT"] = Cell.VISIBLE | Cell.IN_FOV | Cell.NEEDS_REDRAW | Cell.CELL_CHANGED] = "CELL_DEFAULT";
     })(Cell || (Cell = {}));
     ///////////////////////////////////////////////////////
     // CELL MECH
@@ -360,8 +360,7 @@
             }
         }
         // Activation.debug('spawn', x, y, 'id=', feat.id, 'tile=', feat.tile, 'item=', feat.item);
-        // const refreshCell = (ctx.refreshCell =
-        //   ctx.refreshCell || !(feat.flags & Flags.DFF_NO_REDRAW_CELL));
+        ctx.refreshCell = ctx.refreshCell || !(feat.flags & Activation.DFF_NO_REDRAW_CELL);
         const abortIfBlocking = (ctx.abortIfBlocking =
             ctx.abortIfBlocking || feat.flags & Activation.DFF_ABORT_IF_BLOCKS_MAP);
         // if ((feat.flags & DFF_RESURRECT_ALLY) && !resurrectAlly(x, y))
@@ -731,6 +730,7 @@
                     }
                 }
                 if (feat.fn) {
+                    ctx.spawnMap = spawnMap;
                     if (await feat.fn(i, j, ctx)) {
                         spawnMap[i][j] = 1; // so that the spawnmap reflects what actually got built
                         // map.redrawCell(cell);
@@ -760,19 +760,21 @@
     }
     function evacuateCreatures(map, blockingMap) {
         let i, j;
-        let monst;
         let didSomething = false;
         for (i = 0; i < map.width; i++) {
             for (j = 0; j < map.height; j++) {
-                if (blockingMap[i][j] && map.hasCellFlag(i, j, Cell.HAS_ACTOR)) {
-                    monst = map.actorAt(i, j);
-                    if (monst === null)
-                        continue;
-                    const loc = map.matchingLocNear(i, j, (cell) => {
-                        return !(monst === null || monst === void 0 ? void 0 : monst.forbidsCell(cell));
-                    }, { hallways: true, blockingMap });
+                if (!blockingMap[i][j])
+                    continue;
+                const cell = map.cell(i, j);
+                if (!cell.actor)
+                    continue;
+                const monst = cell.actor;
+                const loc = map.matchingLocNear(i, j, (cell) => {
+                    return !monst.forbidsCell(cell);
+                }, { hallways: true, blockingMap });
+                if (loc && loc[0] >= 0 && loc[1] >= 0) {
                     map.moveActor(loc[0], loc[1], monst);
-                    map.redrawXY(loc[0], loc[1]);
+                    // map.redrawXY(loc[0], loc[1]);
                     didSomething = true;
                 }
             }
@@ -787,14 +789,14 @@
             const cell = map.cell(i, j);
             if (!cell.item)
                 return;
-            const loc = map.matchingLocNear(i, j, (cell) => {
-                var _a;
-                return !!((_a = cell.item) === null || _a === void 0 ? void 0 : _a.forbidsCell(cell));
+            const item = cell.item;
+            const loc = map.matchingLocNear(i, j, (dest) => {
+                return !item.forbidsCell(dest);
             }, { hallways: true, blockingMap });
-            if (loc) {
-                map.removeItem(cell.item);
-                map.addItem(loc[0], loc[1], cell.item);
-                map.redrawXY(loc[0], loc[1]);
+            if (loc && loc[0] >= 0 && loc[1] >= 0) {
+                map.removeItem(item);
+                map.addItem(loc[0], loc[1], item);
+                // map.redrawXY(loc[0], loc[1]);
                 didSomething = true;
             }
         });
@@ -1342,8 +1344,8 @@
         constructor() {
             this.layers = [null, null, null, null];
             this.sprites = null;
-            this.actor = null;
-            this.item = null;
+            this._actor = null;
+            this._item = null;
             this.data = {};
             this.flags = Cell.CELL_DEFAULT; // non-terrain cell flags
             this.mechFlags = 0;
@@ -1363,8 +1365,8 @@
                 this.layers[i] = null;
             }
             this.sprites = null;
-            this.actor = null;
-            this.item = null;
+            this._actor = null;
+            this._item = null;
             this.data = {};
             this.flags = Cell.CELL_DEFAULT; // non-terrain cell flags
             this.mechFlags = 0;
@@ -1609,7 +1611,7 @@
             return this.ground == null;
         }
         isEmpty() {
-            return !(this.actor || this.item);
+            return !(this._actor || this._item);
         }
         isPassableNow(limitToPlayerKnowledge = false) {
             const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
@@ -1834,6 +1836,40 @@
             }
             return false;
         }
+        // ITEM
+        get item() {
+            return this._item;
+        }
+        set item(item) {
+            if (this.item) {
+                this.removeSprite(this.item.sprite);
+            }
+            this._item = item;
+            if (item) {
+                this.flags |= Cell.HAS_ITEM;
+                this.addSprite(Layer.ITEM, item.sprite);
+            }
+            else {
+                this.flags &= ~Cell.HAS_ITEM;
+            }
+        }
+        // ACTOR
+        get actor() {
+            return this._actor;
+        }
+        set actor(actor) {
+            if (this.actor) {
+                this.removeSprite(this.actor.sprite);
+            }
+            this._actor = actor;
+            if (actor) {
+                this.flags |= Cell.HAS_ACTOR;
+                this.addSprite(Layer.ACTOR, actor.sprite);
+            }
+            else {
+                this.flags &= ~Cell.HAS_ACTOR;
+            }
+        }
         // SPRITES
         addSprite(layer, sprite, priority = 50) {
             if (!sprite)
@@ -1873,6 +1909,7 @@
                     prev.next = current.next;
                     return true;
                 }
+                prev = current;
                 current = current.next;
             }
             return false;
@@ -1887,7 +1924,7 @@
             memory.tile = this.highestPriorityTile();
             if (this.item) {
                 memory.item = this.item;
-                memory.itemQuantity = this.item.quantity || 1;
+                memory.itemQuantity = this.item.quantity;
             }
             else {
                 memory.item = null;
@@ -1897,7 +1934,7 @@
             getAppearance(this, memory.mixer);
             if (this.actor && this.isOrWasAnyKindOfVisible()) {
                 if (this.actor.rememberedInCell && this.actor.rememberedInCell !== this) {
-                    console.log("remembered in cell change");
+                    // console.log("remembered in cell change");
                     this.actor.rememberedInCell.storeMemory();
                     this.actor.rememberedInCell.flags |= Cell.NEEDS_REDRAW;
                 }
@@ -1905,8 +1942,11 @@
             }
         }
     }
-    function make$2() {
+    function make$2(tile) {
         const cell = new Cell$1();
+        if (tile) {
+            cell._setTile(tile);
+        }
         return cell;
     }
     gwUtils.make.cell = make$2;

@@ -78,7 +78,6 @@ describe("light", () => {
       expect(map.flags & Map.map.Flags.MAP_STABLE_LIGHTS).toBeTruthy();
       map.eachCell((cell) => {
         expect(cell.light).toEqual([100, 100, 100]);
-        expect(cell.flags & Map.cell.Flags.IS_IN_SHADOW).toBeTruthy();
         expect(cell.flags & Map.cell.Flags.CELL_LIT).toBeFalsy();
         expect(cell.flags & Map.cell.Flags.CELL_DARK).toBeFalsy();
         expect(cell.flags & Map.cell.Flags.LIGHT_CHANGED).toBeFalsy();

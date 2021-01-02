@@ -31,8 +31,8 @@ export declare class Cell implements Types.CellType {
         string | null
     ];
     sprites: SpriteData | null;
-    actor: Types.ActorType | null;
-    item: Types.ItemType | null;
+    protected _actor: Types.ActorType | null;
+    protected _item: Types.ItemType | null;
     data: any;
     flags: number;
     mechFlags: number;
@@ -109,9 +109,13 @@ export declare class Cell implements Types.CellType {
     nullifyTileWithFlags(tileFlags: number, tileMechFlags?: number): void;
     activate(name: string, ctx?: any): Promise<boolean>;
     activatesOn(name: string): boolean;
+    get item(): Types.ItemType | null;
+    set item(item: Types.ItemType | null);
+    get actor(): Types.ActorType | null;
+    set actor(actor: Types.ActorType | null);
     addSprite(layer: Layer, sprite: Canvas.SpriteType, priority?: number): void;
     removeSprite(sprite: Canvas.SpriteType): boolean;
     storeMemory(): void;
 }
-export declare function make(): Cell;
+export declare function make(tile?: string): Cell;
 export declare function getAppearance(cell: Cell, dest: Canvas.Mixer): boolean;

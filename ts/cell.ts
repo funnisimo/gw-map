@@ -75,8 +75,8 @@ export class Cell implements Types.CellType {
   ] = [null, null, null, null];
 
   public sprites: SpriteData | null = null;
-  public actor: Types.ActorType | null = null;
-  public item: Types.ItemType | null = null;
+  protected _actor: Types.ActorType | null = null;
+  protected _item: Types.ItemType | null = null;
   public data: any = {};
 
   public flags: number = Flags.CELL_DEFAULT; // non-terrain cell flags
@@ -102,8 +102,8 @@ export class Cell implements Types.CellType {
     }
 
     this.sprites = null;
-    this.actor = null;
-    this.item = null;
+    this._actor = null;
+    this._item = null;
     this.data = {};
 
     this.flags = Flags.CELL_DEFAULT; // non-terrain cell flags
@@ -386,7 +386,7 @@ export class Cell implements Types.CellType {
   }
 
   isEmpty(): boolean {
-    return !(this.actor || this.item);
+    return !(this._actor || this._item);
   }
 
   isPassableNow(limitToPlayerKnowledge = false): boolean {
@@ -638,6 +638,42 @@ export class Cell implements Types.CellType {
     return false;
   }
 
+  // ITEM
+  get item() {
+    return this._item;
+  }
+
+  set item(item: Types.ItemType | null) {
+    if (this.item) {
+      this.removeSprite(this.item.sprite);
+    }
+    this._item = item;
+    if (item) {
+      this.flags |= Flags.HAS_ITEM;
+      this.addSprite(Layer.ITEM, item.sprite);
+    } else {
+      this.flags &= ~Flags.HAS_ITEM;
+    }
+  }
+
+  // ACTOR
+  get actor() {
+    return this._actor;
+  }
+
+  set actor(actor: Types.ActorType | null) {
+    if (this.actor) {
+      this.removeSprite(this.actor.sprite);
+    }
+    this._actor = actor;
+    if (actor) {
+      this.flags |= Flags.HAS_ACTOR;
+      this.addSprite(Layer.ACTOR, actor.sprite);
+    } else {
+      this.flags &= ~Flags.HAS_ACTOR;
+    }
+  }
+
   // SPRITES
 
   addSprite(layer: Layer, sprite: Canvas.SpriteType, priority = 50) {
@@ -687,6 +723,7 @@ export class Cell implements Types.CellType {
         prev.next = current.next;
         return true;
       }
+      prev = current;
       current = current.next;
     }
     return false;
@@ -703,7 +740,7 @@ export class Cell implements Types.CellType {
     memory.tile = this.highestPriorityTile();
     if (this.item) {
       memory.item = this.item;
-      memory.itemQuantity = this.item.quantity || 1;
+      memory.itemQuantity = this.item.quantity;
     } else {
       memory.item = null;
       memory.itemQuantity = 0;
@@ -713,7 +750,7 @@ export class Cell implements Types.CellType {
 
     if (this.actor && this.isOrWasAnyKindOfVisible()) {
       if (this.actor.rememberedInCell && this.actor.rememberedInCell !== this) {
-        console.log("remembered in cell change");
+        // console.log("remembered in cell change");
         this.actor.rememberedInCell.storeMemory();
         this.actor.rememberedInCell.flags |= Flags.NEEDS_REDRAW;
       }
@@ -722,8 +759,11 @@ export class Cell implements Types.CellType {
   }
 }
 
-export function make() {
+export function make(tile?: string) {
   const cell = new Cell();
+  if (tile) {
+    cell._setTile(tile);
+  }
   return cell;
 }
 

@@ -508,7 +508,26 @@ describe("tileEvent", () => {
     expect(cell.liquidVolume).toEqual(50);
   });
 
-  test("evacuateCreatures", () => {
+  test("spawn fn", async () => {
+    const fn = jest.fn().mockReturnValue(true);
+    Map.tile.install("RED_LIQUID", {
+      name: "red liquid",
+      article: "some",
+      bg: "red",
+      layer: "LIQUID",
+      activates: {
+        fire: { fn },
+      },
+    });
+
+    const cell = map.cell(ctx.x, ctx.y);
+    cell._setTile("RED_LIQUID", 100);
+
+    await cell.activate("fire", ctx);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  test("evacuateCreatures", async () => {
     Map.tile.install("RED_LIQUID", {
       name: "red liquid",
       article: "some",
@@ -542,13 +561,13 @@ describe("tileEvent", () => {
     expect(cell.actor).toBe(actor);
     grid[ctx.x][ctx.y] = 1;
 
-    cell.activate("fire", ctx);
+    await cell.activate("fire", ctx);
     expect(actor.forbidsCell).toHaveBeenCalled();
     expect(actor).not.toBeAtXY(ctx.x, ctx.y);
     expect(cell.actor).toBeNull();
   });
 
-  test("evacuateItems", () => {
+  test("evacuateItems", async () => {
     Map.tile.install("RED_LIQUID", {
       name: "red liquid",
       article: "some",
@@ -576,7 +595,7 @@ describe("tileEvent", () => {
     expect(cell.item).toBe(item);
     grid[ctx.x][ctx.y] = 1;
 
-    cell.activate("fire", ctx);
+    await cell.activate("fire", ctx);
     expect(item.forbidsCell).toHaveBeenCalled();
     expect(item).not.toBeAtXY(ctx.x, ctx.y);
     expect(cell.item).toBeNull();
