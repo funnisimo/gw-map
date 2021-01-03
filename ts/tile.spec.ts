@@ -27,7 +27,9 @@ describe("Tile", () => {
     const tile = new Map.tile.Tile({
       id: "WALL",
       name: "Stone Wall",
-      sprite: { ch: "#", fg: "light_gray", bg: "dark_gray" },
+      ch: "#",
+      fg: "light_gray",
+      bg: "dark_gray",
       flags: ["T_OBSTRUCTS_EVERYTHING"],
       priority: 90,
     });
@@ -36,7 +38,7 @@ describe("Tile", () => {
 
     expect(tile.flags).toEqual(Map.tile.Flags.T_OBSTRUCTS_EVERYTHING);
     expect(tile.mechFlags).toEqual(0);
-    expect(tile.sprite).toEqual({
+    expect(tile).toMatchObject({
       ch: "#",
       fg: COLORS.light_gray,
       bg: COLORS.dark_gray,
@@ -77,25 +79,29 @@ describe("Tile", () => {
       priority: 90,
     });
 
-    expect(tile.sprite.ch).toEqual("#");
-    expect(tile.sprite.fg).toBe(COLORS.light_gray);
-    expect(tile.sprite.bg).toBe(COLORS.dark_gray);
+    expect(tile.ch).toEqual("#");
+    expect(tile.fg).toBe(COLORS.light_gray);
+    expect(tile.bg).toBe(COLORS.dark_gray);
   });
 
   test("can create tiles with see through bg", () => {
     const tile = new Map.tile.Tile({
       id: "TEST",
-      sprite: { ch: "#", fg: "light_gray", bg: null },
+      ch: "#",
+      fg: "light_gray",
+      bg: null,
     });
 
-    expect(tile.sprite.bg).toEqual(-1);
+    expect(tile.bg).toEqual(-1);
   });
 
   test("can extend another tile", () => {
     const wall = new Map.tile.Tile({
       id: "WALL",
       name: "Stone Wall",
-      sprite: { ch: "#", fg: "light_gray", bg: "dark_gray" },
+      ch: "#",
+      fg: "light_gray",
+      bg: "dark_gray",
       flags: ["T_OBSTRUCTS_EVERYTHING"],
       priority: 90,
     });
@@ -106,7 +112,8 @@ describe("Tile", () => {
       {
         id: "GLASS_WALL",
         name: "Glass Wall",
-        sprite: { ch: "+", fg: "teal" },
+        ch: "+",
+        fg: "teal",
         flags: ["!T_OBSTRUCTS_VISION"],
       },
       wall
@@ -119,8 +126,12 @@ describe("Tile", () => {
     expect(
       glassWall.flags & Map.tile.Flags.T_OBSTRUCTS_PASSABILITY
     ).toBeTruthy();
-    expect(glassWall.sprite).not.toBe(wall.sprite);
-    expect(glassWall.sprite).toEqual({ ch: "+", fg: COLORS.teal, bg: -1 });
+    expect(glassWall).not.toBe(wall);
+    expect(glassWall).toMatchObject({
+      ch: "+",
+      fg: COLORS.teal,
+      bg: wall.bg,
+    });
 
     // expect(glassWall.getName()).toEqual('Glass Wall');
   });
@@ -129,14 +140,17 @@ describe("Tile", () => {
     Map.tile.installAll({
       WALL: {
         name: "Stone Wall",
-        sprite: { ch: "#", fg: "light_gray", bg: "dark_gray" },
+        ch: "#",
+        fg: "light_gray",
+        bg: "dark_gray",
         flags: ["T_OBSTRUCTS_EVERYTHING"],
         priority: 90,
       },
       GLASS_WALL: {
         Extends: "WALL",
         name: "Glass Wall",
-        sprite: { fg: "teal", bg: "silver" },
+        fg: "teal",
+        bg: "silver",
         flags: ["!T_OBSTRUCTS_VISION"],
       },
     });
@@ -156,7 +170,9 @@ describe("Tile", () => {
     const carpet = new Map.tile.Tile({
       id: "CARPET",
       name: "Carpet",
-      sprite: { ch: "+", fg: "dark_red", bg: "dark_teal" },
+      ch: "+",
+      fg: "dark_red",
+      bg: "dark_teal",
       priority: 10,
       layer: "SURFACE",
     });
@@ -166,7 +182,9 @@ describe("Tile", () => {
 
   test("can use objects for activations", async () => {
     const carpet = Map.tile.install("CARPET", {
-      sprite: { ch: "+", fg: "#f66", bg: "#ff6" },
+      ch: "+",
+      fg: "#f66",
+      bg: "#ff6",
       activates: {
         tick: { chance: 0, log: "testing" },
       },
@@ -184,11 +202,16 @@ describe("Tile", () => {
     expect(WALL).toBeDefined();
 
     const custom = Map.tile.install("CUSTOM", "WALL", {
-      sprite: { ch: "+", fg: "white" },
+      ch: "+",
+      fg: "white",
       name: "Custom Wall",
     });
 
-    expect(custom.sprite).toEqual({ ch: "+", fg: COLORS.white, bg: -1 });
+    expect(custom).toMatchObject({
+      ch: "+",
+      fg: COLORS.white,
+      bg: Map.tiles.WALL.bg,
+    });
     expect(custom.name).toEqual("Custom Wall");
     expect(custom.id).toEqual("CUSTOM");
   });
@@ -279,7 +302,9 @@ describe("Tile", () => {
     const glassWall = Map.tile.install({
       id: "GLASS_WALL",
       Extends: "WALL",
-      sprite: { ch: "+", fg: "teal", bg: "red" },
+      ch: "+",
+      fg: "teal",
+      bg: "red",
       flags: ["!T_OBSTRUCTS_VISION"],
     });
 
@@ -294,7 +319,9 @@ describe("Tile", () => {
       Map.tile.install({
         id: "GLASS_WALL",
         Extends: "UNKNOWN",
-        sprite: { ch: "+", fg: "teal", bg: "red" },
+        ch: "+",
+        fg: "teal",
+        bg: "red",
         flags: ["!T_OBSTRUCTS_VISION"],
       })
     ).toThrow();
@@ -304,7 +331,9 @@ describe("Tile", () => {
     const glassWall = Map.tile.install({
       id: "GLASS_WALL",
       name: "glass wall",
-      sprite: { ch: "+", fg: "teal", bg: "red" },
+      ch: "+",
+      fg: "teal",
+      bg: "red",
       flags: "T_OBSTRUCTS_EVERYTHING,!T_OBSTRUCTS_VISION",
     });
 

@@ -39,7 +39,7 @@ export class CellMemory {
 }
 export class Cell {
     constructor() {
-        this.layers = [null, null, null, null];
+        this.layers = [];
         this.sprites = null;
         this._actor = null;
         this._item = null;
@@ -90,28 +90,32 @@ export class Cell {
         this.flags |= Flags.CELL_CHANGED;
     }
     get ground() {
-        return this.layers[Layer.GROUND];
+        var _a;
+        return ((_a = this.layers[Layer.GROUND]) === null || _a === void 0 ? void 0 : _a.id) || null;
     }
     get liquid() {
-        return this.layers[Layer.LIQUID];
+        var _a;
+        return ((_a = this.layers[Layer.LIQUID]) === null || _a === void 0 ? void 0 : _a.id) || null;
     }
     get surface() {
-        return this.layers[Layer.SURFACE];
+        var _a;
+        return ((_a = this.layers[Layer.SURFACE]) === null || _a === void 0 ? void 0 : _a.id) || null;
     }
     get gas() {
-        return this.layers[Layer.GAS];
+        var _a;
+        return ((_a = this.layers[Layer.GAS]) === null || _a === void 0 ? void 0 : _a.id) || null;
     }
     get groundTile() {
-        return TILES[this.layers[Layer.GROUND] || "0"];
+        return this.layers[Layer.GROUND] || TILES.NULL;
     }
     get liquidTile() {
-        return TILES[this.layers[Layer.LIQUID] || "0"];
+        return this.layers[Layer.LIQUID] || TILES.NULL;
     }
     get surfaceTile() {
-        return TILES[this.layers[Layer.SURFACE] || "0"];
+        return this.layers[Layer.SURFACE] || TILES.NULL;
     }
     get gasTile() {
-        return TILES[this.layers[Layer.GAS] || "0"];
+        return this.layers[Layer.GAS] || TILES.NULL;
     }
     dump() {
         if (this.actor)
@@ -121,11 +125,11 @@ export class Cell {
         for (let i = this.layers.length - 1; i >= 0; --i) {
             if (!this.layers[i])
                 continue;
-            const tile = TILES[this.layers[i] || "0"];
-            if (tile.sprite.ch)
-                return tile.sprite.ch;
+            const tile = this.layers[i] || TILES.NULL;
+            if (tile.ch)
+                return tile.ch;
         }
-        return TILES[0].sprite.ch;
+        return TILES[0].ch;
     }
     changed() {
         return this.flags & Flags.CELL_CHANGED;
@@ -160,14 +164,13 @@ export class Cell {
     lightChanged() {
         return this.flags & Flags.LIGHT_CHANGED;
     } // TODO
-    tile(layer = 0) {
-        const id = this.layers[layer] || 0;
-        return TILES[id];
+    tile(layer = Layer.GROUND) {
+        return this.layers[layer] || TILES.NULL;
     }
     *tiles() {
-        for (let id of this.layers) {
-            if (id) {
-                yield TILES[id];
+        for (let tile of this.layers) {
+            if (tile) {
+                yield tile;
             }
         }
     }
@@ -237,7 +240,7 @@ export class Cell {
         else {
             id = tile;
         }
-        return this.layers.includes(id);
+        return this.layers.some((t) => t && t.id === id);
     }
     // hasTileInGroup(...groups) {
     //   if (groups.length == 1 && Array.isArray(groups[0])) {
@@ -270,10 +273,9 @@ export class Cell {
         let bestPriority = -10000;
         for (let layer = Layer.GROUND; layer <= (skipGas ? Layer.LIQUID : Layer.GAS); ++layer) {
             // @ts-ignore
-            const id = this.layers[layer];
-            if (!id)
+            const tile = this.layers[layer];
+            if (!tile)
                 continue;
-            const tile = TILES[id];
             if (tile.priority > bestPriority) {
                 best = tile;
                 bestPriority = tile.priority;
@@ -391,7 +393,8 @@ export class Cell {
         map = map || DATA.map;
         let tile;
         if (tileId === null) {
-            tile = TILES["0"];
+            tile = TILES.NULL;
+            tileId = null;
         }
         else if (typeof tileId === "string") {
             tile = TILES[tileId];
@@ -405,13 +408,11 @@ export class Cell {
         }
         if (!tile) {
             Utils.WARN("Unknown tile - " + tileId);
-            tile = TILES["0"];
+            tile = TILES.NULL;
             tileId = null;
         }
-        // @ts-ignore
-        const oldTileId = this.layers[tile.layer] || null;
-        // @ts-ignore
-        const oldTile = TILES[oldTileId] || TILES["0"];
+        const oldTile = this.layers[tile.layer] || TILES.NULL;
+        const oldTileId = oldTile === TILES.NULL ? null : oldTile.id;
         if ((oldTile.flags & TileFlags.T_PATHING_BLOCKER) !=
             (tile.flags & TileFlags.T_PATHING_BLOCKER)) {
             DATA.staleLoopMap = true;
@@ -425,8 +426,11 @@ export class Cell {
         if (map && this.isAnyKindOfVisible() && blocksVision != oldBlocksVision) {
             map.setFlag(MapFlags.MAP_FOV_CHANGED);
         }
-        // @ts-ignore
-        this.layers[tile.layer] = tileId;
+        if (oldTileId !== null)
+            this.removeSprite(oldTile);
+        this.layers[tile.layer] = tileId === null ? null : tile;
+        if (tileId !== null)
+            this.addSprite(tile.layer, tile);
         if (tile.layer == Layer.LIQUID) {
             this.liquidVolume =
                 volume + (tileId == oldTileId ? this.liquidVolume : 0);
@@ -439,7 +443,7 @@ export class Cell {
                 map.clearFlag(MapFlags.MAP_NO_GAS);
         }
         if (tile.layer > 0 && this.layers[0] === null) {
-            this.layers[0] = "FLOOR"; // TODO - Not good
+            this.layers[0] = TILES.FLOOR; // TODO - Not good
         }
         // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
         this.flags |= Flags.CELL_CHANGED;
@@ -452,12 +456,12 @@ export class Cell {
         // @ts-ignore
         if (typeof layer === "string")
             layer = Layer[layer];
-        // @ts-ignore
-        if (this.layers[layer]) {
+        const current = this.layers[layer];
+        if (current) {
             // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
             this.flags |= Flags.CELL_CHANGED;
+            this.removeSprite(current);
         }
-        // @ts-ignore
         this.layers[layer] = null;
         if (layer == Layer.LIQUID) {
             this.liquidVolume = 0;
@@ -467,10 +471,10 @@ export class Cell {
         }
     }
     clearLayers(except, floorTile) {
-        floorTile = floorTile ? floorTile : this.layers[0];
+        const tile = floorTile ? TILES[floorTile] : this.layers[0];
         for (let layer = 0; layer < this.layers.length; layer++) {
             if (layer != except && layer != Layer.GAS) {
-                this.layers[layer] = layer ? null : floorTile;
+                this.layers[layer] = layer ? null : tile;
             }
         }
         // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
@@ -478,10 +482,9 @@ export class Cell {
     }
     nullifyTileWithFlags(tileFlags, tileMechFlags = 0) {
         for (let i = 0; i < this.layers.length; ++i) {
-            const id = this.layers[i];
-            if (!id)
+            const tile = this.layers[i];
+            if (!tile)
                 continue;
-            const tile = TILES[id];
             if (tileFlags && tileMechFlags) {
                 if (tile.flags & tileFlags && tile.mechFlags & tileMechFlags) {
                     this.layers[i] = null;
@@ -653,23 +656,17 @@ Make.cell = make;
 export function getAppearance(cell, dest) {
     const memory = cell.memory.mixer;
     memory.blackOut();
-    let needDistinctness = false;
-    for (let tile of cell.tiles()) {
-        let alpha = 100;
-        if (tile.layer == Layer.LIQUID) {
-            alpha = Utils.clamp(cell.liquidVolume || 0, 20, 100);
-        }
-        else if (tile.layer == Layer.GAS) {
-            alpha = Utils.clamp(cell.gasVolume || 0, 20, 100);
-        }
-        memory.drawSprite(tile.sprite, alpha);
-        if (tile.mechFlags & TileMechFlags.TM_VISUALLY_DISTINCT) {
-            needDistinctness = true;
-        }
-    }
+    let needDistinctness = cell.tileMechFlags() & TileMechFlags.TM_VISUALLY_DISTINCT;
     let current = cell.sprites;
     while (current) {
-        memory.drawSprite(current.sprite);
+        let alpha = current.sprite.opacity || 100;
+        if (current.layer == Layer.LIQUID) {
+            alpha = Utils.clamp(cell.liquidVolume || 0, 20, 100);
+        }
+        else if (current.layer == Layer.GAS) {
+            alpha = Utils.clamp(cell.gasVolume || 0, 20, 100);
+        }
+        memory.drawSprite(current.sprite, alpha);
         current = current.next;
     }
     memory.fg.multiply(cell.light);

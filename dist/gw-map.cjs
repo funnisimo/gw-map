@@ -1113,7 +1113,7 @@ var light = {
 };
 
 /** Tile Class */
-class Tile$1 {
+class Tile$1 extends gwUtils.canvas.Sprite {
     /**
      * Creates a new Tile object.
      * @param {Object} [config={}] - The configuration of the Tile
@@ -1124,11 +1124,11 @@ class Tile$1 {
      * @param {String} [config.bg] - The sprite background color
      */
     constructor(config, base) {
+        super(gwUtils.utils.first(config.ch, base === null || base === void 0 ? void 0 : base.ch, -1), gwUtils.utils.first(config.fg, base === null || base === void 0 ? void 0 : base.fg, -1), gwUtils.utils.first(config.bg, base === null || base === void 0 ? void 0 : base.bg, -1), gwUtils.utils.first(config.opacity, base === null || base === void 0 ? void 0 : base.opacity, 100));
         this.flags = 0;
         this.mechFlags = 0;
         this.layer = Layer.GROUND;
         this.priority = -1;
-        this.sprite = {};
         this.activates = {};
         this.light = null; // TODO - Light
         this.flavor = null;
@@ -1136,7 +1136,7 @@ class Tile$1 {
         this.article = null;
         this.dissipate = 2000; // 20 * 100 = 20%
         if (base !== undefined) {
-            gwUtils.utils.assignOmitting(["activates"], this, base);
+            gwUtils.utils.assignOmitting(["activates", "ch", "fg", "bg", "opacity"], this, base);
         }
         gwUtils.utils.assignOmitting([
             "Extends",
@@ -1148,6 +1148,7 @@ class Tile$1 {
             "ch",
             "fg",
             "bg",
+            "opacity",
             "light",
         ], this, config);
         this.name = config.name || (base ? base.name : config.id);
@@ -1164,12 +1165,6 @@ class Tile$1 {
         if (config.light) {
             // Light.from will throw an Error on invalid config
             this.light = from(config.light);
-        }
-        if (config.sprite) {
-            this.sprite = gwUtils.canvas.makeSprite(config.sprite);
-        }
-        else if (config.ch || config.fg || config.bg) {
-            this.sprite = gwUtils.canvas.makeSprite(config.ch || null, config.fg || null, config.bg || null, config.opacity);
         }
         if (base && base.activates) {
             Object.assign(this.activates, base.activates);
@@ -1240,7 +1235,7 @@ class Tile$1 {
         if (opts.color) {
             let color = opts.color;
             if (opts.color === true) {
-                color = this.sprite.fg;
+                color = this.fg;
             }
             if (typeof color !== "string") {
                 color = gwUtils.color.from(color).toString();
@@ -1258,6 +1253,10 @@ class Tile$1 {
     }
 }
 // Types.Tile = Tile;
+function make$2(config) {
+    return new Tile$1(config);
+}
+gwUtils.make.tile = make$2;
 const tiles = {};
 function install$2(...args) {
     let id = args[0];
@@ -1302,6 +1301,7 @@ var tile = {
     get MechFlags () { return TileMech; },
     get Layer () { return Layer; },
     Tile: Tile$1,
+    make: make$2,
     tiles: tiles,
     install: install$2,
     installAll: installAll$1
@@ -1342,7 +1342,7 @@ class CellMemory {
 }
 class Cell$1 {
     constructor() {
-        this.layers = [null, null, null, null];
+        this.layers = [];
         this.sprites = null;
         this._actor = null;
         this._item = null;
@@ -1393,28 +1393,32 @@ class Cell$1 {
         this.flags |= Cell.CELL_CHANGED;
     }
     get ground() {
-        return this.layers[Layer.GROUND];
+        var _a;
+        return ((_a = this.layers[Layer.GROUND]) === null || _a === void 0 ? void 0 : _a.id) || null;
     }
     get liquid() {
-        return this.layers[Layer.LIQUID];
+        var _a;
+        return ((_a = this.layers[Layer.LIQUID]) === null || _a === void 0 ? void 0 : _a.id) || null;
     }
     get surface() {
-        return this.layers[Layer.SURFACE];
+        var _a;
+        return ((_a = this.layers[Layer.SURFACE]) === null || _a === void 0 ? void 0 : _a.id) || null;
     }
     get gas() {
-        return this.layers[Layer.GAS];
+        var _a;
+        return ((_a = this.layers[Layer.GAS]) === null || _a === void 0 ? void 0 : _a.id) || null;
     }
     get groundTile() {
-        return tiles[this.layers[Layer.GROUND] || "0"];
+        return this.layers[Layer.GROUND] || tiles.NULL;
     }
     get liquidTile() {
-        return tiles[this.layers[Layer.LIQUID] || "0"];
+        return this.layers[Layer.LIQUID] || tiles.NULL;
     }
     get surfaceTile() {
-        return tiles[this.layers[Layer.SURFACE] || "0"];
+        return this.layers[Layer.SURFACE] || tiles.NULL;
     }
     get gasTile() {
-        return tiles[this.layers[Layer.GAS] || "0"];
+        return this.layers[Layer.GAS] || tiles.NULL;
     }
     dump() {
         if (this.actor)
@@ -1424,11 +1428,11 @@ class Cell$1 {
         for (let i = this.layers.length - 1; i >= 0; --i) {
             if (!this.layers[i])
                 continue;
-            const tile = tiles[this.layers[i] || "0"];
-            if (tile.sprite.ch)
-                return tile.sprite.ch;
+            const tile = this.layers[i] || tiles.NULL;
+            if (tile.ch)
+                return tile.ch;
         }
-        return tiles[0].sprite.ch;
+        return tiles[0].ch;
     }
     changed() {
         return this.flags & Cell.CELL_CHANGED;
@@ -1463,14 +1467,13 @@ class Cell$1 {
     lightChanged() {
         return this.flags & Cell.LIGHT_CHANGED;
     } // TODO
-    tile(layer = 0) {
-        const id = this.layers[layer] || 0;
-        return tiles[id];
+    tile(layer = Layer.GROUND) {
+        return this.layers[layer] || tiles.NULL;
     }
     *tiles() {
-        for (let id of this.layers) {
-            if (id) {
-                yield tiles[id];
+        for (let tile of this.layers) {
+            if (tile) {
+                yield tile;
             }
         }
     }
@@ -1540,7 +1543,7 @@ class Cell$1 {
         else {
             id = tile;
         }
-        return this.layers.includes(id);
+        return this.layers.some((t) => t && t.id === id);
     }
     // hasTileInGroup(...groups) {
     //   if (groups.length == 1 && Array.isArray(groups[0])) {
@@ -1573,10 +1576,9 @@ class Cell$1 {
         let bestPriority = -10000;
         for (let layer = Layer.GROUND; layer <= (skipGas ? Layer.LIQUID : Layer.GAS); ++layer) {
             // @ts-ignore
-            const id = this.layers[layer];
-            if (!id)
+            const tile = this.layers[layer];
+            if (!tile)
                 continue;
-            const tile = tiles[id];
             if (tile.priority > bestPriority) {
                 best = tile;
                 bestPriority = tile.priority;
@@ -1694,7 +1696,8 @@ class Cell$1 {
         map = map || gwUtils.data.map;
         let tile;
         if (tileId === null) {
-            tile = tiles["0"];
+            tile = tiles.NULL;
+            tileId = null;
         }
         else if (typeof tileId === "string") {
             tile = tiles[tileId];
@@ -1708,13 +1711,11 @@ class Cell$1 {
         }
         if (!tile) {
             gwUtils.utils.WARN("Unknown tile - " + tileId);
-            tile = tiles["0"];
+            tile = tiles.NULL;
             tileId = null;
         }
-        // @ts-ignore
-        const oldTileId = this.layers[tile.layer] || null;
-        // @ts-ignore
-        const oldTile = tiles[oldTileId] || tiles["0"];
+        const oldTile = this.layers[tile.layer] || tiles.NULL;
+        const oldTileId = oldTile === tiles.NULL ? null : oldTile.id;
         if ((oldTile.flags & Tile.T_PATHING_BLOCKER) !=
             (tile.flags & Tile.T_PATHING_BLOCKER)) {
             gwUtils.data.staleLoopMap = true;
@@ -1728,8 +1729,11 @@ class Cell$1 {
         if (map && this.isAnyKindOfVisible() && blocksVision != oldBlocksVision) {
             map.setFlag(Map.MAP_FOV_CHANGED);
         }
-        // @ts-ignore
-        this.layers[tile.layer] = tileId;
+        if (oldTileId !== null)
+            this.removeSprite(oldTile);
+        this.layers[tile.layer] = tileId === null ? null : tile;
+        if (tileId !== null)
+            this.addSprite(tile.layer, tile);
         if (tile.layer == Layer.LIQUID) {
             this.liquidVolume =
                 volume + (tileId == oldTileId ? this.liquidVolume : 0);
@@ -1742,7 +1746,7 @@ class Cell$1 {
                 map.clearFlag(Map.MAP_NO_GAS);
         }
         if (tile.layer > 0 && this.layers[0] === null) {
-            this.layers[0] = "FLOOR"; // TODO - Not good
+            this.layers[0] = tiles.FLOOR; // TODO - Not good
         }
         // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
         this.flags |= Cell.CELL_CHANGED;
@@ -1755,12 +1759,12 @@ class Cell$1 {
         // @ts-ignore
         if (typeof layer === "string")
             layer = Layer[layer];
-        // @ts-ignore
-        if (this.layers[layer]) {
+        const current = this.layers[layer];
+        if (current) {
             // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
             this.flags |= Cell.CELL_CHANGED;
+            this.removeSprite(current);
         }
-        // @ts-ignore
         this.layers[layer] = null;
         if (layer == Layer.LIQUID) {
             this.liquidVolume = 0;
@@ -1770,10 +1774,10 @@ class Cell$1 {
         }
     }
     clearLayers(except, floorTile) {
-        floorTile = floorTile ? floorTile : this.layers[0];
+        const tile = floorTile ? tiles[floorTile] : this.layers[0];
         for (let layer = 0; layer < this.layers.length; layer++) {
             if (layer != except && layer != Layer.GAS) {
-                this.layers[layer] = layer ? null : floorTile;
+                this.layers[layer] = layer ? null : tile;
             }
         }
         // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
@@ -1781,10 +1785,9 @@ class Cell$1 {
     }
     nullifyTileWithFlags(tileFlags, tileMechFlags = 0) {
         for (let i = 0; i < this.layers.length; ++i) {
-            const id = this.layers[i];
-            if (!id)
+            const tile = this.layers[i];
+            if (!tile)
                 continue;
-            const tile = tiles[id];
             if (tileFlags && tileMechFlags) {
                 if (tile.flags & tileFlags && tile.mechFlags & tileMechFlags) {
                     this.layers[i] = null;
@@ -1942,34 +1945,28 @@ class Cell$1 {
         }
     }
 }
-function make$2(tile) {
+function make$3(tile) {
     const cell = new Cell$1();
     if (tile) {
         cell._setTile(tile);
     }
     return cell;
 }
-gwUtils.make.cell = make$2;
+gwUtils.make.cell = make$3;
 function getAppearance(cell, dest) {
     const memory = cell.memory.mixer;
     memory.blackOut();
-    let needDistinctness = false;
-    for (let tile of cell.tiles()) {
-        let alpha = 100;
-        if (tile.layer == Layer.LIQUID) {
-            alpha = gwUtils.utils.clamp(cell.liquidVolume || 0, 20, 100);
-        }
-        else if (tile.layer == Layer.GAS) {
-            alpha = gwUtils.utils.clamp(cell.gasVolume || 0, 20, 100);
-        }
-        memory.drawSprite(tile.sprite, alpha);
-        if (tile.mechFlags & TileMech.TM_VISUALLY_DISTINCT) {
-            needDistinctness = true;
-        }
-    }
+    let needDistinctness = cell.tileMechFlags() & TileMech.TM_VISUALLY_DISTINCT;
     let current = cell.sprites;
     while (current) {
-        memory.drawSprite(current.sprite);
+        let alpha = current.sprite.opacity || 100;
+        if (current.layer == Layer.LIQUID) {
+            alpha = gwUtils.utils.clamp(cell.liquidVolume || 0, 20, 100);
+        }
+        else if (current.layer == Layer.GAS) {
+            alpha = gwUtils.utils.clamp(cell.gasVolume || 0, 20, 100);
+        }
+        memory.drawSprite(current.sprite, alpha);
         current = current.next;
     }
     memory.fg.multiply(cell.light);
@@ -1988,7 +1985,7 @@ var cell = {
     get MechFlags () { return CellMech; },
     CellMemory: CellMemory,
     Cell: Cell$1,
-    make: make$2,
+    make: make$3,
     getAppearance: getAppearance
 };
 
@@ -2754,7 +2751,7 @@ class Map$1 {
         this.forEach((c) => (c.mechFlags &= ~(CellMech.EVENT_FIRED_THIS_TURN | CellMech.EVENT_PROTECTED)));
     }
 }
-function make$3(w, h, opts = {}, wall) {
+function make$4(w, h, opts = {}, wall) {
     if (typeof opts === "string") {
         opts = { tile: opts };
         if (wall) {
@@ -2772,7 +2769,7 @@ function make$3(w, h, opts = {}, wall) {
     }
     return map;
 }
-gwUtils.make.map = make$3;
+gwUtils.make.map = make$4;
 function getCellAppearance(map, x, y, dest) {
     dest.blackOut();
     if (!map.hasXY(x, y))
@@ -2951,7 +2948,7 @@ var map = {
     __proto__: null,
     get Flags () { return Map; },
     Map: Map$1,
-    make: make$3,
+    make: make$4,
     getCellAppearance: getCellAppearance,
     addText: addText,
     updateGas: updateGas,
@@ -2959,25 +2956,26 @@ var map = {
 };
 
 // These are the minimal set of tiles to make the diggers work
-const NOTHING = "0";
-install$2(NOTHING, {
-    sprite: { ch: "\u2205", fg: "white", bg: "black" },
+install$2("NULL", {
+    ch: "\u2205",
+    fg: "white",
+    bg: "black",
     flags: "T_OBSTRUCTS_PASSABILITY",
     name: "eerie nothingness",
     article: "an",
     priority: 0,
 });
 install$2("FLOOR", {
-    sprite: {
-        ch: "\u00b7",
-        fg: [30, 30, 30, 20, 0, 0, 0],
-        bg: [2, 2, 10, 0, 2, 2, 0],
-    },
+    ch: "\u00b7",
+    fg: [30, 30, 30, 20, 0, 0, 0],
+    bg: [2, 2, 10, 0, 2, 2, 0],
     priority: 10,
     article: "the",
 });
 install$2("DOOR", {
-    sprite: { ch: "+", fg: [100, 40, 40], bg: [30, 60, 60] },
+    ch: "+",
+    fg: [100, 40, 40],
+    bg: [30, 60, 60],
     priority: 30,
     flags: "T_IS_DOOR, T_OBSTRUCTS_TILE_EFFECTS, T_OBSTRUCTS_ITEMS, T_OBSTRUCTS_VISION, TM_VISUALLY_DISTINCT",
     article: "a",
@@ -2987,7 +2985,9 @@ install$2("DOOR", {
     },
 });
 install$2("DOOR_OPEN", "DOOR", {
-    sprite: { ch: "'", fg: [100, 40, 40], bg: [30, 60, 60] },
+    ch: "'",
+    fg: [100, 40, 40],
+    bg: [30, 60, 60],
     priority: 40,
     flags: "!T_OBSTRUCTS_ITEMS, !T_OBSTRUCTS_VISION",
     name: "open door",
@@ -3006,42 +3006,43 @@ install$2("DOOR_OPEN_ALWAYS", "DOOR_OPEN", {
     },
 });
 install$2("BRIDGE", {
-    sprite: { ch: "=", fg: [100, 40, 40] },
+    ch: "=",
+    fg: [100, 40, 40],
     priority: 40,
     layer: "SURFACE",
     flags: "T_BRIDGE, TM_VISUALLY_DISTINCT",
     article: "a",
 });
 install$2("UP_STAIRS", {
-    sprite: { ch: "<", fg: [100, 40, 40], bg: [100, 60, 20] },
+    ch: "<",
+    fg: [100, 40, 40],
+    bg: [100, 60, 20],
     priority: 200,
     flags: "T_UP_STAIRS, T_STAIR_BLOCKERS, TM_VISUALLY_DISTINCT, TM_LIST_IN_SIDEBAR",
     name: "upward staircase",
     article: "an",
 });
 install$2("DOWN_STAIRS", {
-    sprite: { ch: ">", fg: [100, 40, 40], bg: [100, 60, 20] },
+    ch: ">",
+    fg: [100, 40, 40],
+    bg: [100, 60, 20],
     priority: 200,
     flags: "T_DOWN_STAIRS, T_STAIR_BLOCKERS, TM_VISUALLY_DISTINCT, TM_LIST_IN_SIDEBAR",
     name: "downward staircase",
     article: "a",
 });
 install$2("WALL", {
-    sprite: {
-        ch: "#",
-        fg: [7, 7, 7, 0, 3, 3, 3],
-        bg: [40, 40, 40, 10, 10, 0, 5],
-    },
+    ch: "#",
+    fg: [7, 7, 7, 0, 3, 3, 3],
+    bg: [40, 40, 40, 10, 10, 0, 5],
     priority: 100,
     flags: "T_OBSTRUCTS_EVERYTHING",
     article: "a",
 });
 install$2("LAKE", {
-    sprite: {
-        ch: "~",
-        fg: [5, 8, 20, 10, 0, 4, 15, true],
-        bg: [10, 15, 41, 6, 5, 5, 5, true],
-    },
+    ch: "~",
+    fg: [5, 8, 20, 10, 0, 4, 15, true],
+    bg: [10, 15, 41, 6, 5, 5, 5, true],
     priority: 50,
     flags: "T_DEEP_WATER",
     name: "deep water",

@@ -14,7 +14,6 @@ export interface FullTileConfig {
     mechFlags: number | string | any[];
     layer: Layer | keyof typeof Layer;
     priority: number;
-    sprite: Canvas.SpriteConfig;
     activates: any;
     light: Light.LightBase | null;
     flavor: string;
@@ -31,17 +30,15 @@ export interface FullTileConfig {
 declare type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>;
 export declare type TileConfig = AtLeast<FullTileConfig, "id">;
 /** Tile Class */
-export declare class Tile implements Types.TileType {
+export declare class Tile extends Canvas.Sprite implements Types.TileType {
     flags: number;
     mechFlags: number;
     layer: Layer;
     priority: number;
-    sprite: Canvas.Sprite;
     activates: Record<string, TileEvent.TileEvent>;
     light: Light.Light | null;
     flavor: string | null;
     desc: string | null;
-    name: string;
     article: string | null;
     id: string;
     dissipate: number;
@@ -78,6 +75,7 @@ export declare class Tile implements Types.TileType {
     getName(article: boolean): string;
     getDescription(opts?: any): string;
 }
+export declare function make(config: TileConfig): Tile;
 export declare const tiles: Record<string, Tile>;
 /**
  * Adds a new Tile into the GW.tiles collection.

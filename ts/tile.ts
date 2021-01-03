@@ -4,6 +4,7 @@ import {
   color as Color,
   canvas as Canvas,
   types as Types,
+  make as Make,
 } from "gw-utils";
 
 import { Tile as Flags, TileMech as MechFlags, Layer } from "./flags";
@@ -27,7 +28,6 @@ export interface FullTileConfig {
   layer: Layer | keyof typeof Layer;
   priority: number;
 
-  sprite: Canvas.SpriteConfig;
   activates: any;
   light: Light.LightBase | null;
 
@@ -50,19 +50,17 @@ declare type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>;
 export type TileConfig = AtLeast<FullTileConfig, "id">;
 
 /** Tile Class */
-export class Tile implements Types.TileType {
+export class Tile extends Canvas.Sprite implements Types.TileType {
   public flags = 0;
   public mechFlags = 0;
   public layer: Layer = Layer.GROUND;
   public priority = -1;
 
-  public sprite: Canvas.Sprite = {} as Canvas.Sprite;
   public activates: Record<string, TileEvent.TileEvent> = {};
   public light: Light.Light | null = null; // TODO - Light
 
   public flavor: string | null = null;
   public desc: string | null = null;
-  public name: string;
   public article: string | null = null;
   public id: string;
 
@@ -78,8 +76,19 @@ export class Tile implements Types.TileType {
    * @param {String} [config.bg] - The sprite background color
    */
   constructor(config: TileConfig, base?: Tile) {
+    super(
+      Utils.first(config.ch, base?.ch, -1),
+      Utils.first(config.fg, base?.fg, -1),
+      Utils.first(config.bg, base?.bg, -1),
+      Utils.first(config.opacity, base?.opacity, 100)
+    );
+
     if (base !== undefined) {
-      Utils.assignOmitting(["activates"], this, base);
+      Utils.assignOmitting(
+        ["activates", "ch", "fg", "bg", "opacity"],
+        this,
+        base
+      );
     }
     Utils.assignOmitting(
       [
@@ -92,6 +101,7 @@ export class Tile implements Types.TileType {
         "ch",
         "fg",
         "bg",
+        "opacity",
         "light",
       ],
       this,
@@ -119,17 +129,6 @@ export class Tile implements Types.TileType {
     if (config.light) {
       // Light.from will throw an Error on invalid config
       this.light = Light.from(config.light);
-    }
-
-    if (config.sprite) {
-      this.sprite = Canvas.makeSprite(config.sprite);
-    } else if (config.ch || config.fg || config.bg) {
-      this.sprite = Canvas.makeSprite(
-        config.ch || null,
-        config.fg || null,
-        config.bg || null,
-        config.opacity
-      );
     }
 
     if (base && base.activates) {
@@ -208,7 +207,7 @@ export class Tile implements Types.TileType {
     if (opts.color) {
       let color: Color.ColorBase = opts.color as Color.ColorBase;
       if (opts.color === true) {
-        color = this.sprite.fg;
+        color = this.fg;
       }
       if (typeof color !== "string") {
         color = Color.from(color).toString();
@@ -249,6 +248,12 @@ export class Tile implements Types.TileType {
 }
 
 // Types.Tile = Tile;
+
+export function make(config: TileConfig) {
+  return new Tile(config);
+}
+
+Make.tile = make;
 
 export const tiles: Record<string, Tile> = {};
 

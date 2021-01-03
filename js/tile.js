@@ -1,10 +1,10 @@
-import { flag as Flag, utils as Utils, color as Color, canvas as Canvas, } from "gw-utils";
+import { flag as Flag, utils as Utils, color as Color, canvas as Canvas, make as Make, } from "gw-utils";
 import { Tile as Flags, TileMech as MechFlags, Layer } from "./flags";
 import * as TileEvent from "./tileEvent";
 import * as Light from "./light";
 export { Flags, MechFlags, Layer };
 /** Tile Class */
-export class Tile {
+export class Tile extends Canvas.Sprite {
     /**
      * Creates a new Tile object.
      * @param {Object} [config={}] - The configuration of the Tile
@@ -15,11 +15,11 @@ export class Tile {
      * @param {String} [config.bg] - The sprite background color
      */
     constructor(config, base) {
+        super(Utils.first(config.ch, base === null || base === void 0 ? void 0 : base.ch, -1), Utils.first(config.fg, base === null || base === void 0 ? void 0 : base.fg, -1), Utils.first(config.bg, base === null || base === void 0 ? void 0 : base.bg, -1), Utils.first(config.opacity, base === null || base === void 0 ? void 0 : base.opacity, 100));
         this.flags = 0;
         this.mechFlags = 0;
         this.layer = Layer.GROUND;
         this.priority = -1;
-        this.sprite = {};
         this.activates = {};
         this.light = null; // TODO - Light
         this.flavor = null;
@@ -27,7 +27,7 @@ export class Tile {
         this.article = null;
         this.dissipate = 2000; // 20 * 100 = 20%
         if (base !== undefined) {
-            Utils.assignOmitting(["activates"], this, base);
+            Utils.assignOmitting(["activates", "ch", "fg", "bg", "opacity"], this, base);
         }
         Utils.assignOmitting([
             "Extends",
@@ -39,6 +39,7 @@ export class Tile {
             "ch",
             "fg",
             "bg",
+            "opacity",
             "light",
         ], this, config);
         this.name = config.name || (base ? base.name : config.id);
@@ -55,12 +56,6 @@ export class Tile {
         if (config.light) {
             // Light.from will throw an Error on invalid config
             this.light = Light.from(config.light);
-        }
-        if (config.sprite) {
-            this.sprite = Canvas.makeSprite(config.sprite);
-        }
-        else if (config.ch || config.fg || config.bg) {
-            this.sprite = Canvas.makeSprite(config.ch || null, config.fg || null, config.bg || null, config.opacity);
         }
         if (base && base.activates) {
             Object.assign(this.activates, base.activates);
@@ -131,7 +126,7 @@ export class Tile {
         if (opts.color) {
             let color = opts.color;
             if (opts.color === true) {
-                color = this.sprite.fg;
+                color = this.fg;
             }
             if (typeof color !== "string") {
                 color = Color.from(color).toString();
@@ -149,6 +144,10 @@ export class Tile {
     }
 }
 // Types.Tile = Tile;
+export function make(config) {
+    return new Tile(config);
+}
+Make.tile = make;
 export const tiles = {};
 export function install(...args) {
     let id = args[0];

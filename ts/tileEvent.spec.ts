@@ -15,7 +15,9 @@ describe("tileEvent", () => {
 
   beforeAll(() => {
     Map.tile.install(ROUGH_WATER, {
-      sprite: { ch: "R", fg: "blue", bg: "green" },
+      ch: "R",
+      fg: "blue",
+      bg: "green",
       priority: 70,
       flags: "T_DEEP_WATER",
       name: "water",
@@ -25,7 +27,9 @@ describe("tileEvent", () => {
       },
     });
     Map.tile.install(WAVE, {
-      sprite: { ch: "W", fg: "white", bg: "blue" },
+      ch: "W",
+      fg: "white",
+      bg: "blue",
       priority: 60,
       flags: "T_DEEP_WATER",
       name: "wave crest",

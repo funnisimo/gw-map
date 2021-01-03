@@ -196,13 +196,9 @@ interface SpriteData {
     sprite: canvas.SpriteType;
     next: SpriteData | null;
 }
+declare type LayerTile = Tile$1 | null;
 declare class Cell$1 implements types.CellType {
-    layers: [
-        string | null,
-        string | null,
-        string | null,
-        string | null
-    ];
+    layers: LayerTile[];
     sprites: SpriteData | null;
     protected _actor: types.ActorType | null;
     protected _item: types.ItemType | null;
@@ -239,8 +235,8 @@ declare class Cell$1 implements types.CellType {
     hasVisibleLight(): boolean;
     isDark(): boolean;
     lightChanged(): number;
-    tile(layer?: number): Tile$1;
-    tiles(): Generator<Tile$1, void, unknown>;
+    tile(layer?: Layer): Tile$1;
+    tiles(): Generator<Tile$1>;
     tileFlags(limitToPlayerKnowledge?: boolean): number;
     tileMechFlags(limitToPlayerKnowledge?: boolean): number;
     hasTileFlag(flagMask?: number, limitToPlayerKnowledge?: boolean): boolean;
@@ -630,7 +626,6 @@ interface FullTileConfig {
     mechFlags: number | string | any[];
     layer: Layer | keyof typeof Layer;
     priority: number;
-    sprite: canvas.SpriteConfig;
     activates: any;
     light: LightBase | null;
     flavor: string;
@@ -647,17 +642,15 @@ interface FullTileConfig {
 declare type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>;
 declare type TileConfig = AtLeast<FullTileConfig, "id">;
 /** Tile Class */
-declare class Tile$1 implements types.TileType {
+declare class Tile$1 extends canvas.Sprite implements types.TileType {
     flags: number;
     mechFlags: number;
     layer: Layer;
     priority: number;
-    sprite: canvas.Sprite;
     activates: Record<string, TileEvent>;
     light: Light | null;
     flavor: string | null;
     desc: string | null;
-    name: string;
     article: string | null;
     id: string;
     dissipate: number;
@@ -694,6 +687,7 @@ declare class Tile$1 implements types.TileType {
     getName(article: boolean): string;
     getDescription(opts?: any): string;
 }
+declare function make$4(config: TileConfig): Tile$1;
 declare const tiles: Record<string, Tile$1>;
 /**
  * Adds a new Tile into the GW.tiles collection.
@@ -732,6 +726,7 @@ declare namespace tile_d {
     tile_d_FullTileConfig as FullTileConfig,
     tile_d_TileConfig as TileConfig,
     Tile$1 as Tile,
+    make$4 as make,
     tile_d_tiles as tiles,
     install$2 as install,
     installAll$1 as installAll,

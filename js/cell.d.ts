@@ -23,13 +23,9 @@ interface SpriteData {
     sprite: Canvas.SpriteType;
     next: SpriteData | null;
 }
+declare type LayerTile = Tile | null;
 export declare class Cell implements Types.CellType {
-    layers: [
-        string | null,
-        string | null,
-        string | null,
-        string | null
-    ];
+    layers: LayerTile[];
     sprites: SpriteData | null;
     protected _actor: Types.ActorType | null;
     protected _item: Types.ItemType | null;
@@ -66,8 +62,8 @@ export declare class Cell implements Types.CellType {
     hasVisibleLight(): boolean;
     isDark(): boolean;
     lightChanged(): number;
-    tile(layer?: number): Tile;
-    tiles(): Generator<Tile, void, unknown>;
+    tile(layer?: Layer): Tile;
+    tiles(): Generator<Tile>;
     tileFlags(limitToPlayerKnowledge?: boolean): number;
     tileMechFlags(limitToPlayerKnowledge?: boolean): number;
     hasTileFlag(flagMask?: number, limitToPlayerKnowledge?: boolean): boolean;
