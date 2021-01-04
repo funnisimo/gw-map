@@ -232,11 +232,11 @@ export class Map {
     setTile(x, y, tileId, volume = 0) {
         return this.cell(x, y)._setTile(tileId, volume, this);
     }
-    nullifyTileWithFlags(x, y, tileFlags, tileMechFlags = 0) {
+    clearLayersWithFlags(x, y, tileFlags, tileMechFlags = 0) {
         const cell = this.cell(x, y);
-        cell.nullifyTileWithFlags(tileFlags, tileMechFlags);
+        cell.clearLayersWithFlags(tileFlags, tileMechFlags);
     }
-    nullifyCellLayers(x, y, nullLiquid = true, nullSurface = true, nullGas = true) {
+    clearCellLayers(x, y, nullLiquid = true, nullSurface = true, nullGas = true) {
         this.changed(true);
         return this.cell(x, y).nullifyLayers(nullLiquid, nullSurface, nullGas);
     }

@@ -347,17 +347,17 @@ export class Map implements Types.MapType {
     return this.cell(x, y)._setTile(tileId, volume, this);
   }
 
-  nullifyTileWithFlags(
+  clearLayersWithFlags(
     x: number,
     y: number,
     tileFlags: number,
     tileMechFlags = 0
   ) {
     const cell = this.cell(x, y);
-    cell.nullifyTileWithFlags(tileFlags, tileMechFlags);
+    cell.clearLayersWithFlags(tileFlags, tileMechFlags);
   }
 
-  nullifyCellLayers(
+  clearCellLayers(
     x: number,
     y: number,
     nullLiquid = true,

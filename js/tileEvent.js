@@ -521,7 +521,7 @@ export function nullifyCells(map, spawnMap, flags) {
     spawnMap.forEach((v, i, j) => {
         if (!v)
             return;
-        map.nullifyCellLayers(i, j, !!nullLiquid, !!nullSurface, !!nullGas);
+        map.clearCellLayers(i, j, !!nullLiquid, !!nullSurface, !!nullGas);
         didSomething = true;
     });
     return didSomething;

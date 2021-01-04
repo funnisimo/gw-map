@@ -1,6 +1,7 @@
 import { flag as Flag } from "gw-utils";
 
 export enum Layer {
+  ALL_LAYERS = -1,
   GROUND = 0,
   LIQUID,
   SURFACE,

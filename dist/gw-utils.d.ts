@@ -1,6 +1,7 @@
 import { canvas, types, color, range, grid, utils } from 'gw-utils';
 
 declare enum Layer {
+    ALL_LAYERS = -1,
     GROUND = 0,
     LIQUID = 1,
     SURFACE = 2,
@@ -253,8 +254,8 @@ declare class Cell$1 implements types.CellType {
     discoveredTileFlags(): number;
     hasDiscoveredTileFlag(flag: number): number;
     highestPriorityTile(skipGas?: boolean): Tile$1;
-    tileWithFlag(tileFlag: number): Tile$1 | null;
-    tileWithMechFlag(mechFlag: number): Tile$1 | null;
+    tileWithFlag(tileFlag: number): LayerTile;
+    tileWithMechFlag(mechFlag: number): LayerTile;
     tileDesc(): string | null;
     tileFlavor(): string | null;
     getName(opts?: {}): string;
@@ -274,8 +275,8 @@ declare class Cell$1 implements types.CellType {
     obstructsLayer(layer: Layer): boolean;
     _setTile(tileId?: Tile$1 | string | null, volume?: number, map?: Map$1): boolean;
     clearLayer(layer: Layer): void;
-    clearLayers(except: Layer, floorTile?: string | null): void;
-    nullifyTileWithFlags(tileFlags: number, tileMechFlags?: number): void;
+    clearLayers(except?: Layer, ground?: string | null): void;
+    clearLayersWithFlags(tileFlags: number, tileMechFlags?: number): void;
     activate(name: string, ctx?: any): Promise<boolean>;
     activatesOn(name: string): boolean;
     get item(): types.ItemType | null;
@@ -485,8 +486,8 @@ declare class Map$1 implements types.MapType {
     highestPriorityTile(x: number, y: number, skipGas?: boolean): Tile$1;
     tileFlavor(x: number, y: number): string | null;
     setTile(x: number, y: number, tileId: string | null, volume?: number): boolean;
-    nullifyTileWithFlags(x: number, y: number, tileFlags: number, tileMechFlags?: number): void;
-    nullifyCellLayers(x: number, y: number, nullLiquid?: boolean, nullSurface?: boolean, nullGas?: boolean): void;
+    clearLayersWithFlags(x: number, y: number, tileFlags: number, tileMechFlags?: number): void;
+    clearCellLayers(x: number, y: number, nullLiquid?: boolean, nullSurface?: boolean, nullGas?: boolean): void;
     fill(tileId: string | null, boundaryTile?: string | null): void;
     neighborCount(x: number, y: number, matchFn: MapMatchFn, only4dirs?: boolean): number;
     passableArcCount(x: number, y: number): number;
@@ -581,7 +582,7 @@ declare function make$3(opts: string | any): TileEvent | null;
 declare const activations: Record<string, TileEvent | null>;
 declare function install$1(id: string, event: TileEvent | any): any;
 declare function resetAllMessages(): void;
-declare function spawn(activation: TileEvent | Function | string, ctx?: any): Promise<any>;
+declare function spawn(activation: TileEvent | Function | string, ctx?: any): Promise<boolean>;
 declare function computeSpawnMap(feat: TileEvent, spawnMap: grid.NumGrid, ctx?: any): void;
 declare function spawnTiles(feat: TileEvent, spawnMap: grid.NumGrid, ctx: any, tile?: Tile$1 | null, item?: types.ItemType | null): Promise<boolean>;
 declare function nullifyCells(map: Map$1, spawnMap: grid.NumGrid, flags: number): boolean;

@@ -2,6 +2,7 @@ import { flag, color, make as make$5, utils, message, grid, data, events, random
 
 var Layer;
 (function (Layer) {
+    Layer[Layer["ALL_LAYERS"] = -1] = "ALL_LAYERS";
     Layer[Layer["GROUND"] = 0] = "GROUND";
     Layer[Layer["LIQUID"] = 1] = "LIQUID";
     Layer[Layer["SURFACE"] = 2] = "SURFACE";
@@ -749,7 +750,7 @@ function nullifyCells(map, spawnMap, flags) {
     spawnMap.forEach((v, i, j) => {
         if (!v)
             return;
-        map.nullifyCellLayers(i, j, !!nullLiquid, !!nullSurface, !!nullGas);
+        map.clearCellLayers(i, j, !!nullLiquid, !!nullSurface, !!nullGas);
         didSomething = true;
     });
     return didSomething;
@@ -1769,39 +1770,44 @@ class Cell$1 {
             this.gasVolume = 0;
         }
     }
-    clearLayers(except, floorTile) {
-        const tile = floorTile ? tiles[floorTile] : this.layers[0];
+    clearLayers(except = Layer.GROUND, ground) {
+        const floorTile = ground ? tiles[ground] : this.groundTile;
         for (let layer = 0; layer < this.layers.length; layer++) {
             if (layer != except && layer != Layer.GAS) {
-                this.layers[layer] = layer ? null : tile;
+                if (layer === Layer.GROUND) {
+                    if (floorTile !== this.groundTile)
+                        this._setTile(floorTile);
+                }
+                else {
+                    this.clearLayer(layer);
+                }
             }
         }
         // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
         this.flags |= Cell.CELL_CHANGED;
     }
-    nullifyTileWithFlags(tileFlags, tileMechFlags = 0) {
+    clearLayersWithFlags(tileFlags, tileMechFlags = 0) {
         for (let i = 0; i < this.layers.length; ++i) {
             const tile = this.layers[i];
             if (!tile)
                 continue;
             if (tileFlags && tileMechFlags) {
                 if (tile.flags & tileFlags && tile.mechFlags & tileMechFlags) {
-                    this.layers[i] = null;
+                    this.clearLayer(i);
                 }
             }
             else if (tileFlags) {
                 if (tile.flags & tileFlags) {
-                    this.layers[i] = null;
+                    this.clearLayer(i);
                 }
             }
             else if (tileMechFlags) {
-                if (tile.flags & tileMechFlags) {
-                    this.layers[i] = null;
+                if (tile.mechFlags & tileMechFlags) {
+                    this.clearLayer(i);
                 }
             }
         }
         // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
-        this.flags |= Cell.CELL_CHANGED;
     }
     // EVENTS
     async activate(name, ctx = {}) {
@@ -2215,11 +2221,11 @@ class Map$1 {
     setTile(x, y, tileId, volume = 0) {
         return this.cell(x, y)._setTile(tileId, volume, this);
     }
-    nullifyTileWithFlags(x, y, tileFlags, tileMechFlags = 0) {
+    clearLayersWithFlags(x, y, tileFlags, tileMechFlags = 0) {
         const cell = this.cell(x, y);
-        cell.nullifyTileWithFlags(tileFlags, tileMechFlags);
+        cell.clearLayersWithFlags(tileFlags, tileMechFlags);
     }
-    nullifyCellLayers(x, y, nullLiquid = true, nullSurface = true, nullGas = true) {
+    clearCellLayers(x, y, nullLiquid = true, nullSurface = true, nullGas = true) {
         this.changed(true);
         return this.cell(x, y).nullifyLayers(nullLiquid, nullSurface, nullGas);
     }

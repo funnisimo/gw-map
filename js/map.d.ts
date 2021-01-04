@@ -99,8 +99,8 @@ export declare class Map implements Types.MapType {
     highestPriorityTile(x: number, y: number, skipGas?: boolean): Tile.Tile;
     tileFlavor(x: number, y: number): string | null;
     setTile(x: number, y: number, tileId: string | null, volume?: number): boolean;
-    nullifyTileWithFlags(x: number, y: number, tileFlags: number, tileMechFlags?: number): void;
-    nullifyCellLayers(x: number, y: number, nullLiquid?: boolean, nullSurface?: boolean, nullGas?: boolean): void;
+    clearLayersWithFlags(x: number, y: number, tileFlags: number, tileMechFlags?: number): void;
+    clearCellLayers(x: number, y: number, nullLiquid?: boolean, nullSurface?: boolean, nullGas?: boolean): void;
     fill(tileId: string | null, boundaryTile?: string | null): void;
     neighborCount(x: number, y: number, matchFn: MapMatchFn, only4dirs?: boolean): number;
     passableArcCount(x: number, y: number): number;

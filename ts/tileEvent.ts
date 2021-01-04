@@ -110,7 +110,7 @@ export function resetAllMessages() {
 export async function spawn(
   activation: TileEvent | Function | string,
   ctx: any = {}
-) {
+): Promise<boolean> {
   let i, j;
 
   if (!activation) return false;
@@ -634,7 +634,7 @@ export function nullifyCells(
   const nullGas = flags & Flags.DFF_NULL_GAS;
   spawnMap.forEach((v, i, j) => {
     if (!v) return;
-    map.nullifyCellLayers(i, j, !!nullLiquid, !!nullSurface, !!nullGas);
+    map.clearCellLayers(i, j, !!nullLiquid, !!nullSurface, !!nullGas);
     didSomething = true;
   });
   return didSomething;

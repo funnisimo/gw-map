@@ -1,6 +1,7 @@
 import { flag as Flag } from "gw-utils";
 export var Layer;
 (function (Layer) {
+    Layer[Layer["ALL_LAYERS"] = -1] = "ALL_LAYERS";
     Layer[Layer["GROUND"] = 0] = "GROUND";
     Layer[Layer["LIQUID"] = 1] = "LIQUID";
     Layer[Layer["SURFACE"] = 2] = "SURFACE";

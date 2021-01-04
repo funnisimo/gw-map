@@ -470,39 +470,44 @@ export class Cell {
             this.gasVolume = 0;
         }
     }
-    clearLayers(except, floorTile) {
-        const tile = floorTile ? TILES[floorTile] : this.layers[0];
+    clearLayers(except = Layer.GROUND, ground) {
+        const floorTile = ground ? TILES[ground] : this.groundTile;
         for (let layer = 0; layer < this.layers.length; layer++) {
             if (layer != except && layer != Layer.GAS) {
-                this.layers[layer] = layer ? null : tile;
+                if (layer === Layer.GROUND) {
+                    if (floorTile !== this.groundTile)
+                        this._setTile(floorTile);
+                }
+                else {
+                    this.clearLayer(layer);
+                }
             }
         }
         // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
         this.flags |= Flags.CELL_CHANGED;
     }
-    nullifyTileWithFlags(tileFlags, tileMechFlags = 0) {
+    clearLayersWithFlags(tileFlags, tileMechFlags = 0) {
         for (let i = 0; i < this.layers.length; ++i) {
             const tile = this.layers[i];
             if (!tile)
                 continue;
             if (tileFlags && tileMechFlags) {
                 if (tile.flags & tileFlags && tile.mechFlags & tileMechFlags) {
-                    this.layers[i] = null;
+                    this.clearLayer(i);
                 }
             }
             else if (tileFlags) {
                 if (tile.flags & tileFlags) {
-                    this.layers[i] = null;
+                    this.clearLayer(i);
                 }
             }
             else if (tileMechFlags) {
-                if (tile.flags & tileMechFlags) {
-                    this.layers[i] = null;
+                if (tile.mechFlags & tileMechFlags) {
+                    this.clearLayer(i);
                 }
             }
         }
         // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
-        this.flags |= Flags.CELL_CHANGED;
     }
     // EVENTS
     async activate(name, ctx = {}) {

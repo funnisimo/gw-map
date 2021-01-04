@@ -80,8 +80,8 @@ export declare class Cell implements Types.CellType {
     discoveredTileFlags(): number;
     hasDiscoveredTileFlag(flag: number): number;
     highestPriorityTile(skipGas?: boolean): Tile;
-    tileWithFlag(tileFlag: number): Tile | null;
-    tileWithMechFlag(mechFlag: number): Tile | null;
+    tileWithFlag(tileFlag: number): LayerTile;
+    tileWithMechFlag(mechFlag: number): LayerTile;
     tileDesc(): string | null;
     tileFlavor(): string | null;
     getName(opts?: {}): string;
@@ -101,8 +101,8 @@ export declare class Cell implements Types.CellType {
     obstructsLayer(layer: Layer): boolean;
     _setTile(tileId?: Tile | string | null, volume?: number, map?: Map.Map): boolean;
     clearLayer(layer: Layer): void;
-    clearLayers(except: Layer, floorTile?: string | null): void;
-    nullifyTileWithFlags(tileFlags: number, tileMechFlags?: number): void;
+    clearLayers(except?: Layer, ground?: string | null): void;
+    clearLayersWithFlags(tileFlags: number, tileMechFlags?: number): void;
     activate(name: string, ctx?: any): Promise<boolean>;
     activatesOn(name: string): boolean;
     get item(): Types.ItemType | null;

@@ -1,9 +1,10 @@
 import "jest-extended";
 import "../test/matchers";
+import * as UTILS from "../test/utils";
 import * as Map from "./gw";
 import * as GW from "gw-utils";
 
-describe("CellMemory", () => {
+describe("Cell", () => {
   beforeAll(() => {
     Map.tile.install("TEST_FLOOR", {
       name: "floor",
@@ -15,24 +16,29 @@ describe("CellMemory", () => {
       name: "red liquid",
       article: "some",
       bg: "red",
+      flags: "TM_EXTINGUISHES_FIRE, T_DEEP_WATER",
       layer: "LIQUID",
     });
     Map.tile.install("BLUE_LIQUID", {
       name: "blue liquid",
       article: "some",
       bg: "blue",
+      flags: "TM_STAND_IN_TILE",
       layer: "LIQUID",
     });
     Map.tile.install("RED_GAS", {
       name: "red gas",
       article: "some",
       bg: "red",
+      flags:
+        "T_SPONTANEOUSLY_IGNITES, T_IS_FLAMMABLE, T_CAUSES_EXPLOSIVE_DAMAGE",
       layer: "GAS",
     });
     Map.tile.install("BLUE_GAS", {
       name: "blue gas",
       article: "some",
       bg: "blue",
+      flags: "T_IS_FLAMMABLE",
       layer: "GAS",
     });
     Map.tile.install({
@@ -41,6 +47,14 @@ describe("CellMemory", () => {
       fg: "red",
       activates: {
         enter: "FLOOR",
+      },
+    });
+    Map.tile.install({
+      id: "LOW_CHANCE",
+      ch: "!",
+      fg: "red",
+      activates: {
+        enter: { tile: "FLOOR", chance: 1 },
       },
     });
   });
@@ -52,14 +66,13 @@ describe("CellMemory", () => {
     delete Map.tiles.RED_GAS;
     delete Map.tiles.BLUE_GAS;
     delete Map.tiles.ENTER;
+    delete Map.tiles.LOW_CHANCE;
   });
 
-  test("_setTile(0) - can clear tile", () => {
+  test("_setTile(null) - can clear tile", () => {
     const c = GW.make.cell();
     c._setTile("FLOOR");
     expect(c.ground).toEqual("FLOOR");
-
-    debugger;
 
     c._setTile(null);
     expect(c.ground).toEqual(null);
@@ -445,5 +458,98 @@ describe("CellMemory", () => {
     const cell = GW.make.cell("ENTER");
     expect(cell.activatesOn("enter")).toBeTruthy();
     expect(cell.activatesOn("fire")).toBeFalsy();
+  });
+
+  test("activate", async () => {
+    const cell = GW.make.cell("LOW_CHANCE");
+    UTILS.mockRandom();
+    expect(await cell.activate("enter", {})).toBeFalsy();
+  });
+
+  test("clearLayer", () => {
+    const cell = GW.make.cell("FLOOR");
+    cell._setTile("RED_LIQUID", 100);
+    expect(cell.ground).toEqual("FLOOR");
+    expect(cell.liquid).toEqual("RED_LIQUID");
+    expect(cell.liquidVolume).toEqual(100);
+    cell.clearLayer(Map.tile.Layer.LIQUID);
+    expect(cell.ground).toEqual("FLOOR");
+    expect(cell.liquid).toBeNull();
+    expect(cell.liquidVolume).toEqual(0);
+
+    cell._setTile("RED_GAS", 100);
+    expect(cell.gas).toEqual("RED_GAS");
+    expect(cell.gasVolume).toEqual(100);
+    cell.clearLayer(Map.tile.Layer.GAS);
+    expect(cell.ground).toEqual("FLOOR");
+    expect(cell.gas).toBeNull();
+    expect(cell.gasVolume).toEqual(0);
+  });
+
+  test("clearLayers", () => {
+    const cell = GW.make.cell("ENTER");
+    cell._setTile("BRIDGE");
+    cell._setTile("RED_LIQUID", 100);
+    cell._setTile("RED_GAS", 100);
+
+    expect(cell.groundTile).toBe(Map.tiles.ENTER);
+    expect(cell.surfaceTile).toBe(Map.tiles.BRIDGE);
+    expect(cell.liquidTile).toBe(Map.tiles.RED_LIQUID);
+    expect(cell.gasTile).toBe(Map.tiles.RED_GAS);
+
+    cell.clearLayers(); // does not clear gas
+    expect(cell.ground).toBe("ENTER");
+    expect(cell.surface).toBeNull();
+    expect(cell.liquid).toBeNull();
+    expect(cell.gas).toEqual("RED_GAS");
+
+    cell._setTile("BRIDGE");
+    cell._setTile("RED_LIQUID", 100);
+    cell._setTile("RED_GAS", 100);
+    expect(cell.groundTile).toBe(Map.tiles.ENTER);
+    expect(cell.surfaceTile).toBe(Map.tiles.BRIDGE);
+    expect(cell.liquidTile).toBe(Map.tiles.RED_LIQUID);
+    expect(cell.gasTile).toBe(Map.tiles.RED_GAS);
+
+    cell.clearLayers(Map.tile.Layer.SURFACE, "FLOOR");
+    expect(cell.groundTile).toBe(Map.tiles.FLOOR);
+    expect(cell.surfaceTile).toBe(Map.tiles.BRIDGE);
+    expect(cell.liquid).toBeNull();
+    expect(cell.gasTile).toBe(Map.tiles.RED_GAS);
+  });
+
+  test("clarLayerWithFlags", () => {
+    const cell = GW.make.cell("ENTER");
+    cell._setTile("BRIDGE");
+    cell._setTile("RED_LIQUID", 100);
+    cell._setTile("RED_GAS", 100);
+
+    expect(cell.groundTile).toBe(Map.tiles.ENTER);
+    expect(cell.surfaceTile).toBe(Map.tiles.BRIDGE);
+    expect(cell.liquidTile).toBe(Map.tiles.RED_LIQUID);
+    expect(cell.gasTile).toBe(Map.tiles.RED_GAS);
+
+    cell.clearLayersWithFlags(Map.tile.Flags.T_BRIDGE);
+    expect(cell.groundTile).toBe(Map.tiles.ENTER);
+    expect(cell.surface).toBeNull();
+    expect(cell.liquidTile).toBe(Map.tiles.RED_LIQUID);
+    expect(cell.gasTile).toBe(Map.tiles.RED_GAS);
+
+    cell._setTile("BRIDGE");
+    cell.clearLayersWithFlags(
+      Map.tile.Flags.T_DEEP_WATER,
+      Map.tile.MechFlags.TM_EXTINGUISHES_FIRE
+    );
+    expect(cell.groundTile).toBe(Map.tiles.ENTER);
+    expect(cell.surfaceTile).toBe(Map.tiles.BRIDGE);
+    expect(cell.liquid).toBeNull();
+    expect(cell.gasTile).toBe(Map.tiles.RED_GAS);
+
+    cell._setTile("RED_LIQUID", 100);
+    cell.clearLayersWithFlags(0, Map.tile.MechFlags.TM_EXTINGUISHES_FIRE);
+    expect(cell.groundTile).toBe(Map.tiles.ENTER);
+    expect(cell.surfaceTile).toBe(Map.tiles.BRIDGE);
+    expect(cell.liquid).toBeNull();
+    expect(cell.gasTile).toBe(Map.tiles.RED_GAS);
   });
 });

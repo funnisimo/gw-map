@@ -15,6 +15,7 @@ export function mockRandom() {
   // @ts-ignore
   Random.configure({ make });
   make.mockClear();
+  return rnd;
 }
 
 export async function alwaysAsync(fn: Function, count = 1000) {

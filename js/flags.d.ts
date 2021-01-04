@@ -1,4 +1,5 @@
 export declare enum Layer {
+    ALL_LAYERS = -1,
     GROUND = 0,
     LIQUID = 1,
     SURFACE = 2,
