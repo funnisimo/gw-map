@@ -42,6 +42,9 @@ export declare enum Activation {
     DFF_NULLIFY_CELL
 }
 export declare enum Tile {
+    T_LIQUID,
+    T_SURFACE,
+    T_GAS,
     T_OBSTRUCTS_PASSABILITY,
     T_OBSTRUCTS_VISION,
     T_OBSTRUCTS_ITEMS,
@@ -50,7 +53,6 @@ export declare enum Tile {
     T_OBSTRUCTS_LIQUID,
     T_OBSTRUCTS_TILE_EFFECTS,
     T_OBSTRUCTS_DIAGONAL_MOVEMENT,
-    T_GAS,
     T_BRIDGE,
     T_AUTO_DESCENT,
     T_LAVA,
@@ -59,14 +61,7 @@ export declare enum Tile {
     T_IS_FLAMMABLE,
     T_IS_FIRE,
     T_ENTANGLES,
-    T_CAUSES_POISON,
-    T_CAUSES_DAMAGE,
-    T_CAUSES_NAUSEA,
-    T_CAUSES_PARALYSIS,
-    T_CAUSES_CONFUSION,
-    T_CAUSES_HEALING,
     T_IS_TRAP,
-    T_CAUSES_EXPLOSIVE_DAMAGE,
     T_SACRED,
     T_UP_STAIRS,
     T_DOWN_STAIRS,
@@ -81,8 +76,6 @@ export declare enum Tile {
     T_MOVES_ITEMS,
     T_CAN_BE_BRIDGED,
     T_OBSTRUCTS_EVERYTHING,
-    T_HARMFUL_TERRAIN,
-    T_RESPIRATION_IMMUNITIES,
     T_IS_LIQUID,
     T_STAIR_BLOCKERS
 }

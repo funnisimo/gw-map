@@ -38,7 +38,7 @@ describe("Tile", () => {
 
     expect(tile.flags).toEqual(Map.tile.Flags.T_OBSTRUCTS_EVERYTHING);
     expect(tile.mechFlags).toEqual(0);
-    expect(tile).toMatchObject({
+    expect(tile.sprite).toMatchObject({
       ch: "#",
       fg: COLORS.light_gray,
       bg: COLORS.dark_gray,
@@ -79,9 +79,9 @@ describe("Tile", () => {
       priority: 90,
     });
 
-    expect(tile.ch).toEqual("#");
-    expect(tile.fg).toBe(COLORS.light_gray);
-    expect(tile.bg).toBe(COLORS.dark_gray);
+    expect(tile.sprite.ch).toEqual("#");
+    expect(tile.sprite.fg).toBe(COLORS.light_gray);
+    expect(tile.sprite.bg).toBe(COLORS.dark_gray);
   });
 
   test("can create tiles with see through bg", () => {
@@ -92,7 +92,7 @@ describe("Tile", () => {
       bg: null,
     });
 
-    expect(tile.bg).toEqual(-1);
+    expect(tile.sprite.bg).toEqual(-1);
   });
 
   test("can extend another tile", () => {
@@ -127,10 +127,10 @@ describe("Tile", () => {
       glassWall.flags & Map.tile.Flags.T_OBSTRUCTS_PASSABILITY
     ).toBeTruthy();
     expect(glassWall).not.toBe(wall);
-    expect(glassWall).toMatchObject({
+    expect(glassWall.sprite).toMatchObject({
       ch: "+",
       fg: COLORS.teal,
-      bg: wall.bg,
+      bg: wall.sprite.bg,
     });
 
     // expect(glassWall.getName()).toEqual('Glass Wall');
@@ -207,10 +207,10 @@ describe("Tile", () => {
       name: "Custom Wall",
     });
 
-    expect(custom).toMatchObject({
+    expect(custom.sprite).toMatchObject({
       ch: "+",
       fg: COLORS.white,
-      bg: Map.tiles.WALL.bg,
+      bg: Map.tiles.WALL.sprite.bg,
     });
     expect(custom.name).toEqual("Custom Wall");
     expect(custom.id).toEqual("CUSTOM");

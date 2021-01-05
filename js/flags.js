@@ -53,31 +53,33 @@ export var Activation;
 // TILE
 export var Tile;
 (function (Tile) {
-    Tile[Tile["T_OBSTRUCTS_PASSABILITY"] = Fl(0)] = "T_OBSTRUCTS_PASSABILITY";
-    Tile[Tile["T_OBSTRUCTS_VISION"] = Fl(1)] = "T_OBSTRUCTS_VISION";
-    Tile[Tile["T_OBSTRUCTS_ITEMS"] = Fl(2)] = "T_OBSTRUCTS_ITEMS";
-    Tile[Tile["T_OBSTRUCTS_SURFACE"] = Fl(3)] = "T_OBSTRUCTS_SURFACE";
-    Tile[Tile["T_OBSTRUCTS_GAS"] = Fl(4)] = "T_OBSTRUCTS_GAS";
-    Tile[Tile["T_OBSTRUCTS_LIQUID"] = Fl(5)] = "T_OBSTRUCTS_LIQUID";
-    Tile[Tile["T_OBSTRUCTS_TILE_EFFECTS"] = Fl(6)] = "T_OBSTRUCTS_TILE_EFFECTS";
-    Tile[Tile["T_OBSTRUCTS_DIAGONAL_MOVEMENT"] = Fl(7)] = "T_OBSTRUCTS_DIAGONAL_MOVEMENT";
-    Tile[Tile["T_GAS"] = Fl(9)] = "T_GAS";
-    Tile[Tile["T_BRIDGE"] = Fl(10)] = "T_BRIDGE";
-    Tile[Tile["T_AUTO_DESCENT"] = Fl(11)] = "T_AUTO_DESCENT";
-    Tile[Tile["T_LAVA"] = Fl(12)] = "T_LAVA";
-    Tile[Tile["T_DEEP_WATER"] = Fl(13)] = "T_DEEP_WATER";
-    Tile[Tile["T_SPONTANEOUSLY_IGNITES"] = Fl(14)] = "T_SPONTANEOUSLY_IGNITES";
-    Tile[Tile["T_IS_FLAMMABLE"] = Fl(15)] = "T_IS_FLAMMABLE";
-    Tile[Tile["T_IS_FIRE"] = Fl(16)] = "T_IS_FIRE";
-    Tile[Tile["T_ENTANGLES"] = Fl(17)] = "T_ENTANGLES";
-    Tile[Tile["T_CAUSES_POISON"] = Fl(18)] = "T_CAUSES_POISON";
-    Tile[Tile["T_CAUSES_DAMAGE"] = Fl(19)] = "T_CAUSES_DAMAGE";
-    Tile[Tile["T_CAUSES_NAUSEA"] = Fl(20)] = "T_CAUSES_NAUSEA";
-    Tile[Tile["T_CAUSES_PARALYSIS"] = Fl(21)] = "T_CAUSES_PARALYSIS";
-    Tile[Tile["T_CAUSES_CONFUSION"] = Fl(22)] = "T_CAUSES_CONFUSION";
-    Tile[Tile["T_CAUSES_HEALING"] = Fl(23)] = "T_CAUSES_HEALING";
+    Tile[Tile["T_LIQUID"] = Fl(0)] = "T_LIQUID";
+    Tile[Tile["T_SURFACE"] = Fl(1)] = "T_SURFACE";
+    Tile[Tile["T_GAS"] = Fl(2)] = "T_GAS";
+    Tile[Tile["T_OBSTRUCTS_PASSABILITY"] = Fl(3)] = "T_OBSTRUCTS_PASSABILITY";
+    Tile[Tile["T_OBSTRUCTS_VISION"] = Fl(4)] = "T_OBSTRUCTS_VISION";
+    Tile[Tile["T_OBSTRUCTS_ITEMS"] = Fl(5)] = "T_OBSTRUCTS_ITEMS";
+    Tile[Tile["T_OBSTRUCTS_SURFACE"] = Fl(6)] = "T_OBSTRUCTS_SURFACE";
+    Tile[Tile["T_OBSTRUCTS_GAS"] = Fl(7)] = "T_OBSTRUCTS_GAS";
+    Tile[Tile["T_OBSTRUCTS_LIQUID"] = Fl(8)] = "T_OBSTRUCTS_LIQUID";
+    Tile[Tile["T_OBSTRUCTS_TILE_EFFECTS"] = Fl(9)] = "T_OBSTRUCTS_TILE_EFFECTS";
+    Tile[Tile["T_OBSTRUCTS_DIAGONAL_MOVEMENT"] = Fl(10)] = "T_OBSTRUCTS_DIAGONAL_MOVEMENT";
+    Tile[Tile["T_BRIDGE"] = Fl(11)] = "T_BRIDGE";
+    Tile[Tile["T_AUTO_DESCENT"] = Fl(12)] = "T_AUTO_DESCENT";
+    Tile[Tile["T_LAVA"] = Fl(13)] = "T_LAVA";
+    Tile[Tile["T_DEEP_WATER"] = Fl(14)] = "T_DEEP_WATER";
+    Tile[Tile["T_SPONTANEOUSLY_IGNITES"] = Fl(15)] = "T_SPONTANEOUSLY_IGNITES";
+    Tile[Tile["T_IS_FLAMMABLE"] = Fl(16)] = "T_IS_FLAMMABLE";
+    Tile[Tile["T_IS_FIRE"] = Fl(17)] = "T_IS_FIRE";
+    Tile[Tile["T_ENTANGLES"] = Fl(18)] = "T_ENTANGLES";
+    // T_CAUSES_POISON = Fl(18), // any non-levitating creature gets 10 poison
+    // T_CAUSES_DAMAGE = Fl(19), // anything on the tile takes max(1-2, 10%) damage per turn
+    // T_CAUSES_NAUSEA = Fl(20), // any creature on the tile becomes nauseous
+    // T_CAUSES_PARALYSIS = Fl(21), // anything caught on this tile is paralyzed
+    // T_CAUSES_CONFUSION = Fl(22), // causes creatures on this tile to become confused
+    // T_CAUSES_HEALING = Fl(23), // heals 20% max HP per turn for any player or non-inanimate monsters
     Tile[Tile["T_IS_TRAP"] = Fl(24)] = "T_IS_TRAP";
-    Tile[Tile["T_CAUSES_EXPLOSIVE_DAMAGE"] = Fl(25)] = "T_CAUSES_EXPLOSIVE_DAMAGE";
+    // T_CAUSES_EXPLOSIVE_DAMAGE = Fl(25), // is an explosion; deals higher of 15-20 or 50% damage instantly, but not again for five turns
     Tile[Tile["T_SACRED"] = Fl(26)] = "T_SACRED";
     Tile[Tile["T_UP_STAIRS"] = Fl(27)] = "T_UP_STAIRS";
     Tile[Tile["T_DOWN_STAIRS"] = Fl(28)] = "T_DOWN_STAIRS";
@@ -123,16 +125,16 @@ export var Tile;
         Tile.T_OBSTRUCTS_SURFACE |
         Tile.T_OBSTRUCTS_LIQUID |
         Tile.T_OBSTRUCTS_DIAGONAL_MOVEMENT] = "T_OBSTRUCTS_EVERYTHING";
-    Tile[Tile["T_HARMFUL_TERRAIN"] = Tile.T_CAUSES_POISON |
-        Tile.T_IS_FIRE |
-        Tile.T_CAUSES_DAMAGE |
-        Tile.T_CAUSES_PARALYSIS |
-        Tile.T_CAUSES_CONFUSION |
-        Tile.T_CAUSES_EXPLOSIVE_DAMAGE] = "T_HARMFUL_TERRAIN";
-    Tile[Tile["T_RESPIRATION_IMMUNITIES"] = Tile.T_CAUSES_DAMAGE |
-        Tile.T_CAUSES_CONFUSION |
-        Tile.T_CAUSES_PARALYSIS |
-        Tile.T_CAUSES_NAUSEA] = "T_RESPIRATION_IMMUNITIES";
+    // T_HARMFUL_TERRAIN = T_CAUSES_POISON |
+    //   T_IS_FIRE |
+    //   T_CAUSES_DAMAGE |
+    //   T_CAUSES_PARALYSIS |
+    //   T_CAUSES_CONFUSION |
+    //   T_CAUSES_EXPLOSIVE_DAMAGE,
+    // T_RESPIRATION_IMMUNITIES = T_CAUSES_DAMAGE |
+    //   T_CAUSES_CONFUSION |
+    //   T_CAUSES_PARALYSIS |
+    //   T_CAUSES_NAUSEA,
     Tile[Tile["T_IS_LIQUID"] = Tile.T_LAVA | Tile.T_AUTO_DESCENT | Tile.T_DEEP_WATER] = "T_IS_LIQUID";
     Tile[Tile["T_STAIR_BLOCKERS"] = Tile.T_OBSTRUCTS_ITEMS |
         Tile.T_OBSTRUCTS_SURFACE |

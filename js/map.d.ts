@@ -98,7 +98,7 @@ export declare class Map implements Types.MapType {
     blocksVision(x: number, y: number): boolean;
     highestPriorityTile(x: number, y: number, skipGas?: boolean): Tile.Tile;
     tileFlavor(x: number, y: number): string | null;
-    setTile(x: number, y: number, tileId: string | null, volume?: number): boolean;
+    setTile(x: number, y: number, tileId: string | null, volume?: number): true | void;
     clearLayersWithFlags(x: number, y: number, tileFlags: number, tileMechFlags?: number): void;
     clearCellLayers(x: number, y: number, nullLiquid?: boolean, nullSurface?: boolean, nullGas?: boolean): void;
     fill(tileId: string | null, boundaryTile?: string | null): void;
@@ -139,6 +139,6 @@ export declare function make(w: number, h: number, floor: string, wall: string):
 export declare function make(w: number, h: number, floor: string): Map;
 export declare function make(w: number, h: number, opts?: any): Map;
 export declare function getCellAppearance(map: Map, x: number, y: number, dest: Canvas.Mixer): void;
-export declare function addText(map: Map, x: number, y: number, text: string, fg: Color.ColorBase, bg: Color.ColorBase, layer: TileLayer): void;
+export declare function addText(map: Map, x: number, y: number, text: string, fg: Color.ColorBase, bg: Color.ColorBase, layer?: TileLayer): void;
 export declare function updateGas(map: Map): void;
 export declare function updateLiquid(map: Map): void;

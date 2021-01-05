@@ -44,6 +44,9 @@ declare enum Activation {
     DFF_NULLIFY_CELL
 }
 declare enum Tile {
+    T_LIQUID,
+    T_SURFACE,
+    T_GAS,
     T_OBSTRUCTS_PASSABILITY,
     T_OBSTRUCTS_VISION,
     T_OBSTRUCTS_ITEMS,
@@ -52,7 +55,6 @@ declare enum Tile {
     T_OBSTRUCTS_LIQUID,
     T_OBSTRUCTS_TILE_EFFECTS,
     T_OBSTRUCTS_DIAGONAL_MOVEMENT,
-    T_GAS,
     T_BRIDGE,
     T_AUTO_DESCENT,
     T_LAVA,
@@ -61,14 +63,7 @@ declare enum Tile {
     T_IS_FLAMMABLE,
     T_IS_FIRE,
     T_ENTANGLES,
-    T_CAUSES_POISON,
-    T_CAUSES_DAMAGE,
-    T_CAUSES_NAUSEA,
-    T_CAUSES_PARALYSIS,
-    T_CAUSES_CONFUSION,
-    T_CAUSES_HEALING,
     T_IS_TRAP,
-    T_CAUSES_EXPLOSIVE_DAMAGE,
     T_SACRED,
     T_UP_STAIRS,
     T_DOWN_STAIRS,
@@ -83,8 +78,6 @@ declare enum Tile {
     T_MOVES_ITEMS,
     T_CAN_BE_BRIDGED,
     T_OBSTRUCTS_EVERYTHING,
-    T_HARMFUL_TERRAIN,
-    T_RESPIRATION_IMMUNITIES,
     T_IS_LIQUID,
     T_STAIR_BLOCKERS
 }
@@ -254,8 +247,8 @@ declare class Cell$1 implements types.CellType {
     discoveredTileFlags(): number;
     hasDiscoveredTileFlag(flag: number): number;
     highestPriorityTile(skipGas?: boolean): Tile$1;
-    tileWithFlag(tileFlag: number): LayerTile;
-    tileWithMechFlag(mechFlag: number): LayerTile;
+    tileWithFlag(tileFlag: number): Tile$1 | null;
+    tileWithMechFlag(mechFlag: number): Tile$1 | null;
     tileDesc(): string | null;
     tileFlavor(): string | null;
     getName(opts?: {}): string;
@@ -273,7 +266,7 @@ declare class Cell$1 implements types.CellType {
     hasGas(limitToPlayerKnowledge?: boolean): boolean;
     markRevealed(): boolean;
     obstructsLayer(layer: Layer): boolean;
-    _setTile(tileId?: Tile$1 | string | null, volume?: number, map?: Map$1): boolean;
+    _setTile(tileId?: Tile$1 | string | null, volume?: number, map?: Map$1): true | void;
     clearLayer(layer: Layer): void;
     clearLayers(except?: Layer, ground?: string | null): void;
     clearLayersWithFlags(tileFlags: number, tileMechFlags?: number): void;
@@ -283,7 +276,7 @@ declare class Cell$1 implements types.CellType {
     set item(item: types.ItemType | null);
     get actor(): types.ActorType | null;
     set actor(actor: types.ActorType | null);
-    addSprite(layer: Layer, sprite: canvas.SpriteType, priority?: number): void;
+    addSprite(sprite: canvas.SpriteType, layer?: Layer, priority?: number): void;
     removeSprite(sprite: canvas.SpriteType): boolean;
     storeMemory(): void;
 }
@@ -485,7 +478,7 @@ declare class Map$1 implements types.MapType {
     blocksVision(x: number, y: number): boolean;
     highestPriorityTile(x: number, y: number, skipGas?: boolean): Tile$1;
     tileFlavor(x: number, y: number): string | null;
-    setTile(x: number, y: number, tileId: string | null, volume?: number): boolean;
+    setTile(x: number, y: number, tileId: string | null, volume?: number): true | void;
     clearLayersWithFlags(x: number, y: number, tileFlags: number, tileMechFlags?: number): void;
     clearCellLayers(x: number, y: number, nullLiquid?: boolean, nullSurface?: boolean, nullGas?: boolean): void;
     fill(tileId: string | null, boundaryTile?: string | null): void;
@@ -526,7 +519,7 @@ declare function make$2(w: number, h: number, floor: string, wall: string): Map$
 declare function make$2(w: number, h: number, floor: string): Map$1;
 declare function make$2(w: number, h: number, opts?: any): Map$1;
 declare function getCellAppearance(map: Map$1, x: number, y: number, dest: canvas.Mixer): void;
-declare function addText(map: Map$1, x: number, y: number, text: string, fg: color.ColorBase, bg: color.ColorBase, layer: Layer): void;
+declare function addText(map: Map$1, x: number, y: number, text: string, fg: color.ColorBase, bg: color.ColorBase, layer?: Layer): void;
 declare function updateGas(map: Map$1): void;
 declare function updateLiquid(map: Map$1): void;
 
@@ -643,11 +636,13 @@ interface FullTileConfig {
 declare type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>;
 declare type TileConfig = AtLeast<FullTileConfig, "id">;
 /** Tile Class */
-declare class Tile$1 extends canvas.Sprite implements types.TileType {
+declare class Tile$1 implements types.TileType {
+    name: string;
     flags: number;
     mechFlags: number;
     layer: Layer;
     priority: number;
+    sprite: canvas.Sprite;
     activates: Record<string, TileEvent>;
     light: Light | null;
     flavor: string | null;

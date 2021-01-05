@@ -4,7 +4,7 @@ import * as TileEvent from "./tileEvent";
 import * as Light from "./light";
 export { Flags, MechFlags, Layer };
 /** Tile Class */
-export class Tile extends Canvas.Sprite {
+export class Tile {
     /**
      * Creates a new Tile object.
      * @param {Object} [config={}] - The configuration of the Tile
@@ -15,7 +15,6 @@ export class Tile extends Canvas.Sprite {
      * @param {String} [config.bg] - The sprite background color
      */
     constructor(config, base) {
-        super(Utils.first(config.ch, base === null || base === void 0 ? void 0 : base.ch, -1), Utils.first(config.fg, base === null || base === void 0 ? void 0 : base.fg, -1), Utils.first(config.bg, base === null || base === void 0 ? void 0 : base.bg, -1), Utils.first(config.opacity, base === null || base === void 0 ? void 0 : base.opacity, 100));
         this.flags = 0;
         this.mechFlags = 0;
         this.layer = Layer.GROUND;
@@ -26,7 +25,7 @@ export class Tile extends Canvas.Sprite {
         this.desc = null;
         this.article = null;
         this.dissipate = 2000; // 20 * 100 = 20%
-        if (base !== undefined) {
+        if (base) {
             Utils.assignOmitting(["activates", "ch", "fg", "bg", "opacity"], this, base);
         }
         Utils.assignOmitting([
@@ -44,6 +43,7 @@ export class Tile extends Canvas.Sprite {
         ], this, config);
         this.name = config.name || (base ? base.name : config.id);
         this.id = config.id;
+        this.sprite = new Canvas.Sprite(Utils.first(config.ch, base ? base.sprite.ch : -1), Utils.first(config.fg, base ? base.sprite.fg : -1), Utils.first(config.bg, base ? base.sprite.bg : -1), Utils.first(config.opacity, base ? base.sprite.opacity : 100));
         this.layer = this.layer || Layer.GROUND;
         if (typeof this.layer === "string") {
             this.layer = Layer[this.layer];
@@ -126,7 +126,7 @@ export class Tile extends Canvas.Sprite {
         if (opts.color) {
             let color = opts.color;
             if (opts.color === true) {
-                color = this.fg;
+                color = this.sprite.fg;
             }
             if (typeof color !== "string") {
                 color = Color.from(color).toString();
@@ -155,12 +155,12 @@ export function install(...args) {
     let config = args[2];
     if (arguments.length == 1) {
         config = args[0];
-        base = config.Extends || {};
+        base = config.Extends || null;
         id = config.id;
     }
     else if (arguments.length == 2) {
         config = base;
-        base = config.Extends || config.extends || {};
+        base = config.Extends || config.extends || null;
     }
     if (typeof base === "string") {
         base = tiles[base] || Utils.ERROR("Unknown base tile: " + base);

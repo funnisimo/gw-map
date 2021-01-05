@@ -432,7 +432,7 @@ export class Map {
         if (!this.hasXY(x, y))
             return false;
         const cell = this.cell(x, y);
-        cell.addSprite(TileLayer.FX, anim.sprite);
+        cell.addSprite(anim.sprite, TileLayer.FX);
         anim.x = x;
         anim.y = y;
         this.redrawCell(cell);
@@ -445,7 +445,7 @@ export class Map {
         const oldCell = this.cell(anim.x, anim.y);
         oldCell.removeSprite(anim.sprite);
         this.redrawCell(oldCell);
-        cell.addSprite(TileLayer.FX, anim.sprite);
+        cell.addSprite(anim.sprite, TileLayer.FX);
         this.redrawCell(cell);
         anim.x = x;
         anim.y = y;
@@ -478,7 +478,7 @@ export class Map {
         theActor.next = this._actors;
         this._actors = theActor;
         const layer = theActor === DATA.player ? TileLayer.PLAYER : TileLayer.ACTOR;
-        cell.addSprite(layer, theActor.sprite);
+        cell.addSprite(theActor.sprite, layer);
         const flag = theActor === DATA.player ? CellFlags.HAS_PLAYER : CellFlags.HAS_MONSTER;
         cell.flags |= flag;
         // if (theActor.flags & Flags.Actor.MK_DETECTED)
@@ -594,7 +594,7 @@ export class Map {
         cell.item = theItem;
         theItem.next = this._items;
         this._items = theItem;
-        cell.addSprite(TileLayer.ITEM, theItem.sprite);
+        cell.addSprite(theItem.sprite, TileLayer.ITEM);
         cell.flags |= CellFlags.HAS_ITEM;
         if (theItem.light) {
             this.flags &= ~Flags.MAP_STABLE_LIGHTS;
@@ -828,7 +828,7 @@ export function addText(map, x, y, text, fg, bg, layer) {
     for (let ch of text) {
         const sprite = Canvas.makeSprite(ch, fg, bg);
         const cell = map.cell(x++, y);
-        cell.addSprite(layer || TileLayer.GROUND, sprite);
+        cell.addSprite(sprite, layer || TileLayer.GROUND);
     }
 }
 export function updateGas(map) {

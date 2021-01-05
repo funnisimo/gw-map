@@ -50,11 +50,13 @@ declare type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>;
 export type TileConfig = AtLeast<FullTileConfig, "id">;
 
 /** Tile Class */
-export class Tile extends Canvas.Sprite implements Types.TileType {
+export class Tile implements Types.TileType {
+  public name: string;
   public flags = 0;
   public mechFlags = 0;
   public layer: Layer = Layer.GROUND;
   public priority = -1;
+  public sprite: Canvas.Sprite;
 
   public activates: Record<string, TileEvent.TileEvent> = {};
   public light: Light.Light | null = null; // TODO - Light
@@ -76,14 +78,7 @@ export class Tile extends Canvas.Sprite implements Types.TileType {
    * @param {String} [config.bg] - The sprite background color
    */
   constructor(config: TileConfig, base?: Tile) {
-    super(
-      Utils.first(config.ch, base?.ch, -1),
-      Utils.first(config.fg, base?.fg, -1),
-      Utils.first(config.bg, base?.bg, -1),
-      Utils.first(config.opacity, base?.opacity, 100)
-    );
-
-    if (base !== undefined) {
+    if (base) {
       Utils.assignOmitting(
         ["activates", "ch", "fg", "bg", "opacity"],
         this,
@@ -109,6 +104,13 @@ export class Tile extends Canvas.Sprite implements Types.TileType {
     );
     this.name = config.name || (base ? base.name : config.id);
     this.id = config.id;
+
+    this.sprite = new Canvas.Sprite(
+      Utils.first(config.ch, base ? base.sprite.ch : -1),
+      Utils.first(config.fg, base ? base.sprite.fg : -1),
+      Utils.first(config.bg, base ? base.sprite.bg : -1),
+      Utils.first(config.opacity, base ? base.sprite.opacity : 100)
+    );
 
     this.layer = this.layer || Layer.GROUND;
     if (typeof this.layer === "string") {
@@ -207,7 +209,7 @@ export class Tile extends Canvas.Sprite implements Types.TileType {
     if (opts.color) {
       let color: Color.ColorBase = opts.color as Color.ColorBase;
       if (opts.color === true) {
-        color = this.fg;
+        color = this.sprite.fg;
       }
       if (typeof color !== "string") {
         color = Color.from(color).toString();
@@ -278,11 +280,11 @@ export function install(...args: any[]) {
 
   if (arguments.length == 1) {
     config = args[0];
-    base = config.Extends || {};
+    base = config.Extends || null;
     id = config.id;
   } else if (arguments.length == 2) {
     config = base;
-    base = config.Extends || config.extends || {};
+    base = config.Extends || config.extends || null;
   }
 
   if (typeof base === "string") {

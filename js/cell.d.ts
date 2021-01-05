@@ -80,8 +80,8 @@ export declare class Cell implements Types.CellType {
     discoveredTileFlags(): number;
     hasDiscoveredTileFlag(flag: number): number;
     highestPriorityTile(skipGas?: boolean): Tile;
-    tileWithFlag(tileFlag: number): LayerTile;
-    tileWithMechFlag(mechFlag: number): LayerTile;
+    tileWithFlag(tileFlag: number): Tile | null;
+    tileWithMechFlag(mechFlag: number): Tile | null;
     tileDesc(): string | null;
     tileFlavor(): string | null;
     getName(opts?: {}): string;
@@ -99,7 +99,7 @@ export declare class Cell implements Types.CellType {
     hasGas(limitToPlayerKnowledge?: boolean): boolean;
     markRevealed(): boolean;
     obstructsLayer(layer: Layer): boolean;
-    _setTile(tileId?: Tile | string | null, volume?: number, map?: Map.Map): boolean;
+    _setTile(tileId?: Tile | string | null, volume?: number, map?: Map.Map): true | void;
     clearLayer(layer: Layer): void;
     clearLayers(except?: Layer, ground?: string | null): void;
     clearLayersWithFlags(tileFlags: number, tileMechFlags?: number): void;
@@ -109,7 +109,7 @@ export declare class Cell implements Types.CellType {
     set item(item: Types.ItemType | null);
     get actor(): Types.ActorType | null;
     set actor(actor: Types.ActorType | null);
-    addSprite(layer: Layer, sprite: Canvas.SpriteType, priority?: number): void;
+    addSprite(sprite: Canvas.SpriteType, layer?: Layer, priority?: number): void;
     removeSprite(sprite: Canvas.SpriteType): boolean;
     storeMemory(): void;
 }

@@ -59,35 +59,37 @@ export enum Activation {
 // TILE
 
 export enum Tile {
-  T_OBSTRUCTS_PASSABILITY = Fl(0), // cannot be walked through
-  T_OBSTRUCTS_VISION = Fl(1), // blocks line of sight
-  T_OBSTRUCTS_ITEMS = Fl(2), // items can't be on this tile
-  T_OBSTRUCTS_SURFACE = Fl(3), // grass, blood, etc. cannot exist on this tile
-  T_OBSTRUCTS_GAS = Fl(4), // blocks the permeation of gas
-  T_OBSTRUCTS_LIQUID = Fl(5),
-  T_OBSTRUCTS_TILE_EFFECTS = Fl(6),
-  T_OBSTRUCTS_DIAGONAL_MOVEMENT = Fl(7), // can't step diagonally around this tile
+  T_LIQUID = Fl(0),
+  T_SURFACE = Fl(1),
+  T_GAS = Fl(2),
 
-  T_GAS = Fl(9),
+  T_OBSTRUCTS_PASSABILITY = Fl(3), // cannot be walked through
+  T_OBSTRUCTS_VISION = Fl(4), // blocks line of sight
+  T_OBSTRUCTS_ITEMS = Fl(5), // items can't be on this tile
+  T_OBSTRUCTS_SURFACE = Fl(6), // grass, blood, etc. cannot exist on this tile
+  T_OBSTRUCTS_GAS = Fl(7), // blocks the permeation of gas
+  T_OBSTRUCTS_LIQUID = Fl(8),
+  T_OBSTRUCTS_TILE_EFFECTS = Fl(9),
+  T_OBSTRUCTS_DIAGONAL_MOVEMENT = Fl(10), // can't step diagonally around this tile
 
-  T_BRIDGE = Fl(10), // Acts as a bridge over the folowing types=
-  T_AUTO_DESCENT = Fl(11), // automatically drops creatures down a depth level and does some damage (2d6)
-  T_LAVA = Fl(12), // kills any non-levitating non-fire-immune creature instantly
-  T_DEEP_WATER = Fl(13), // steals items 50% of the time and moves them around randomly
+  T_BRIDGE = Fl(11), // Acts as a bridge over the folowing types=
+  T_AUTO_DESCENT = Fl(12), // automatically drops creatures down a depth level and does some damage (2d6)
+  T_LAVA = Fl(13), // kills any non-levitating non-fire-immune creature instantly
+  T_DEEP_WATER = Fl(14), // steals items 50% of the time and moves them around randomly
 
-  T_SPONTANEOUSLY_IGNITES = Fl(14), // monsters avoid unless chasing player or immune to fire
-  T_IS_FLAMMABLE = Fl(15), // terrain can catch fire
-  T_IS_FIRE = Fl(16), // terrain is a type of fire; ignites neighboring flammable cells
-  T_ENTANGLES = Fl(17), // entangles players and monsters like a spiderweb
+  T_SPONTANEOUSLY_IGNITES = Fl(15), // monsters avoid unless chasing player or immune to fire
+  T_IS_FLAMMABLE = Fl(16), // terrain can catch fire
+  T_IS_FIRE = Fl(17), // terrain is a type of fire; ignites neighboring flammable cells
+  T_ENTANGLES = Fl(18), // entangles players and monsters like a spiderweb
 
-  T_CAUSES_POISON = Fl(18), // any non-levitating creature gets 10 poison
-  T_CAUSES_DAMAGE = Fl(19), // anything on the tile takes max(1-2, 10%) damage per turn
-  T_CAUSES_NAUSEA = Fl(20), // any creature on the tile becomes nauseous
-  T_CAUSES_PARALYSIS = Fl(21), // anything caught on this tile is paralyzed
-  T_CAUSES_CONFUSION = Fl(22), // causes creatures on this tile to become confused
-  T_CAUSES_HEALING = Fl(23), // heals 20% max HP per turn for any player or non-inanimate monsters
+  // T_CAUSES_POISON = Fl(18), // any non-levitating creature gets 10 poison
+  // T_CAUSES_DAMAGE = Fl(19), // anything on the tile takes max(1-2, 10%) damage per turn
+  // T_CAUSES_NAUSEA = Fl(20), // any creature on the tile becomes nauseous
+  // T_CAUSES_PARALYSIS = Fl(21), // anything caught on this tile is paralyzed
+  // T_CAUSES_CONFUSION = Fl(22), // causes creatures on this tile to become confused
+  // T_CAUSES_HEALING = Fl(23), // heals 20% max HP per turn for any player or non-inanimate monsters
   T_IS_TRAP = Fl(24), // spews gas of type specified in fireType when stepped on
-  T_CAUSES_EXPLOSIVE_DAMAGE = Fl(25), // is an explosion; deals higher of 15-20 or 50% damage instantly, but not again for five turns
+  // T_CAUSES_EXPLOSIVE_DAMAGE = Fl(25), // is an explosion; deals higher of 15-20 or 50% damage instantly, but not again for five turns
   T_SACRED = Fl(26), // monsters that aren't allies of the player will avoid stepping here
 
   T_UP_STAIRS = Fl(27),
@@ -135,16 +137,16 @@ export enum Tile {
     T_OBSTRUCTS_SURFACE |
     T_OBSTRUCTS_LIQUID |
     T_OBSTRUCTS_DIAGONAL_MOVEMENT,
-  T_HARMFUL_TERRAIN = T_CAUSES_POISON |
-    T_IS_FIRE |
-    T_CAUSES_DAMAGE |
-    T_CAUSES_PARALYSIS |
-    T_CAUSES_CONFUSION |
-    T_CAUSES_EXPLOSIVE_DAMAGE,
-  T_RESPIRATION_IMMUNITIES = T_CAUSES_DAMAGE |
-    T_CAUSES_CONFUSION |
-    T_CAUSES_PARALYSIS |
-    T_CAUSES_NAUSEA,
+  // T_HARMFUL_TERRAIN = T_CAUSES_POISON |
+  //   T_IS_FIRE |
+  //   T_CAUSES_DAMAGE |
+  //   T_CAUSES_PARALYSIS |
+  //   T_CAUSES_CONFUSION |
+  //   T_CAUSES_EXPLOSIVE_DAMAGE,
+  // T_RESPIRATION_IMMUNITIES = T_CAUSES_DAMAGE |
+  //   T_CAUSES_CONFUSION |
+  //   T_CAUSES_PARALYSIS |
+  //   T_CAUSES_NAUSEA,
   T_IS_LIQUID = T_LAVA | T_AUTO_DESCENT | T_DEEP_WATER,
   T_STAIR_BLOCKERS = T_OBSTRUCTS_ITEMS |
     T_OBSTRUCTS_SURFACE |

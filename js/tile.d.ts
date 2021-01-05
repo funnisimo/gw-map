@@ -30,11 +30,13 @@ export interface FullTileConfig {
 declare type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>;
 export declare type TileConfig = AtLeast<FullTileConfig, "id">;
 /** Tile Class */
-export declare class Tile extends Canvas.Sprite implements Types.TileType {
+export declare class Tile implements Types.TileType {
+    name: string;
     flags: number;
     mechFlags: number;
     layer: Layer;
     priority: number;
+    sprite: Canvas.Sprite;
     activates: Record<string, TileEvent.TileEvent>;
     light: Light.Light | null;
     flavor: string | null;

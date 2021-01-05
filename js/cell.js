@@ -126,10 +126,10 @@ export class Cell {
             if (!this.layers[i])
                 continue;
             const tile = this.layers[i] || TILES.NULL;
-            if (tile.ch)
-                return tile.ch;
+            if (tile.sprite.ch)
+                return tile.sprite.ch;
         }
-        return TILES[0].ch;
+        return TILES[0].sprite.ch;
     }
     changed() {
         return this.flags & Flags.CELL_CHANGED;
@@ -371,6 +371,9 @@ export class Cell {
         let tileFlags = useMemory ? this.memory.tileFlags : this.tileFlags();
         return !!(tileFlags & TileFlags.T_IS_LIQUID);
     }
+    // TODO - Should this look at the tiles instead of the flags?
+    // What if a gas tile is not set with T_GAS?
+    // Should we force T_GAS if layer === GAS when creating a tile?
     hasGas(limitToPlayerKnowledge = false) {
         const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
         let tileFlags = useMemory ? this.memory.tileFlags : this.tileFlags();
@@ -381,10 +384,7 @@ export class Cell {
         if (this.flags & Flags.REVEALED)
             return false;
         this.flags |= Flags.REVEALED;
-        if (!this.hasTileFlag(TileFlags.T_PATHING_BLOCKER)) {
-            DATA.xpxpThisTurn++;
-        }
-        return true;
+        return !this.hasTileFlag(TileFlags.T_PATHING_BLOCKER);
     }
     obstructsLayer(layer) {
         return (layer == Layer.SURFACE && this.hasTileFlag(TileFlags.T_OBSTRUCTS_SURFACE));
@@ -403,13 +403,8 @@ export class Cell {
             tile = tileId;
             tileId = tile.id;
         }
-        else if (!!tileId) {
-            Utils.ERROR("Unknown tile: " + tileId);
-        }
         if (!tile) {
-            Utils.WARN("Unknown tile - " + tileId);
-            tile = TILES.NULL;
-            tileId = null;
+            return Utils.ERROR("Unknown tile - " + tileId);
         }
         const oldTile = this.layers[tile.layer] || TILES.NULL;
         const oldTileId = oldTile === TILES.NULL ? null : oldTile.id;
@@ -419,7 +414,7 @@ export class Cell {
         }
         if (tile.flags & TileFlags.T_IS_FIRE &&
             !(oldTile.flags & TileFlags.T_IS_FIRE)) {
-            this.setFlags(0, MechFlags.CAUGHT_FIRE_THIS_TURN);
+            this.mechFlags |= MechFlags.CAUGHT_FIRE_THIS_TURN;
         }
         const blocksVision = tile.flags & TileFlags.T_OBSTRUCTS_VISION;
         const oldBlocksVision = oldTile.flags & TileFlags.T_OBSTRUCTS_VISION;
@@ -427,10 +422,10 @@ export class Cell {
             map.setFlag(MapFlags.MAP_FOV_CHANGED);
         }
         if (oldTileId !== null)
-            this.removeSprite(oldTile);
+            this.removeSprite(oldTile.sprite);
         this.layers[tile.layer] = tileId === null ? null : tile;
         if (tileId !== null)
-            this.addSprite(tile.layer, tile);
+            this.addSprite(tile.sprite, tile.layer);
         if (tile.layer == Layer.LIQUID) {
             this.liquidVolume =
                 volume + (tileId == oldTileId ? this.liquidVolume : 0);
@@ -442,7 +437,7 @@ export class Cell {
             if (map)
                 map.clearFlag(MapFlags.MAP_NO_GAS);
         }
-        if (tile.layer > 0 && this.layers[0] === null) {
+        if (tile.layer > 0 && !this.layers[0]) {
             this.layers[0] = TILES.FLOOR; // TODO - Not good
         }
         // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
@@ -460,7 +455,7 @@ export class Cell {
         if (current) {
             // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
             this.flags |= Flags.CELL_CHANGED;
-            this.removeSprite(current);
+            this.removeSprite(current.sprite);
         }
         this.layers[layer] = null;
         if (layer == Layer.LIQUID) {
@@ -555,7 +550,7 @@ export class Cell {
         this._item = item;
         if (item) {
             this.flags |= Flags.HAS_ITEM;
-            this.addSprite(Layer.ITEM, item.sprite);
+            this.addSprite(item.sprite, Layer.ITEM);
         }
         else {
             this.flags &= ~Flags.HAS_ITEM;
@@ -572,14 +567,14 @@ export class Cell {
         this._actor = actor;
         if (actor) {
             this.flags |= Flags.HAS_ACTOR;
-            this.addSprite(Layer.ACTOR, actor.sprite);
+            this.addSprite(actor.sprite, Layer.ACTOR);
         }
         else {
             this.flags &= ~Flags.HAS_ACTOR;
         }
     }
     // SPRITES
-    addSprite(layer, sprite, priority = 50) {
+    addSprite(sprite, layer = Layer.GROUND, priority = 50) {
         if (!sprite)
             return;
         // this.flags |= Flags.NEEDS_REDRAW;

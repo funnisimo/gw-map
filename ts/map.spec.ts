@@ -44,16 +44,16 @@ describe("Map", () => {
 
     const sprite = new GW.canvas.Mixer();
     Map.map.getCellAppearance(map, 2, 2, sprite);
-    expect(sprite.ch).toEqual(Map.tiles.FLOOR.ch);
-    expect(sprite.fg).toBakeFrom(Map.tiles.FLOOR.fg);
-    expect(sprite.bg).toBakeFrom(Map.tiles.FLOOR.bg);
+    expect(sprite.ch).toEqual(Map.tiles.FLOOR.sprite.ch);
+    expect(sprite.fg).toBakeFrom(Map.tiles.FLOOR.sprite.fg);
+    expect(sprite.bg).toBakeFrom(Map.tiles.FLOOR.sprite.bg);
 
     map.setTile(2, 2, "DOOR"); // can use tile name too (slower)
 
     Map.map.getCellAppearance(map, 2, 2, sprite);
-    expect(sprite.ch).toEqual(Map.tiles.DOOR.ch);
-    expect(sprite.fg).toBakeFrom(Map.tiles.DOOR.fg);
-    expect(sprite.bg).toBakeFrom(Map.tiles.DOOR.bg);
+    expect(sprite.ch).toEqual(Map.tiles.DOOR.sprite.ch);
+    expect(sprite.fg).toBakeFrom(Map.tiles.DOOR.sprite.fg);
+    expect(sprite.bg).toBakeFrom(Map.tiles.DOOR.sprite.bg);
   });
 
   test("getLine", () => {

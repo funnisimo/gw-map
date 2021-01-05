@@ -616,7 +616,7 @@ export class Map implements Types.MapType {
   addFx(x: number, y: number, anim: Types.FxType) {
     if (!this.hasXY(x, y)) return false;
     const cell = this.cell(x, y);
-    cell.addSprite(TileLayer.FX, anim.sprite);
+    cell.addSprite(anim.sprite, TileLayer.FX);
     anim.x = x;
     anim.y = y;
     this.redrawCell(cell);
@@ -629,7 +629,7 @@ export class Map implements Types.MapType {
     const oldCell = this.cell(anim.x, anim.y);
     oldCell.removeSprite(anim.sprite);
     this.redrawCell(oldCell);
-    cell.addSprite(TileLayer.FX, anim.sprite);
+    cell.addSprite(anim.sprite, TileLayer.FX);
     this.redrawCell(cell);
     anim.x = x;
     anim.y = y;
@@ -666,7 +666,7 @@ export class Map implements Types.MapType {
     this._actors = theActor;
 
     const layer = theActor === DATA.player ? TileLayer.PLAYER : TileLayer.ACTOR;
-    cell.addSprite(layer, theActor.sprite);
+    cell.addSprite(theActor.sprite, layer);
 
     const flag =
       theActor === DATA.player ? CellFlags.HAS_PLAYER : CellFlags.HAS_MONSTER;
@@ -803,7 +803,7 @@ export class Map implements Types.MapType {
     theItem.next = this._items;
     this._items = theItem;
 
-    cell.addSprite(TileLayer.ITEM, theItem.sprite);
+    cell.addSprite(theItem.sprite, TileLayer.ITEM);
     cell.flags |= CellFlags.HAS_ITEM;
 
     if (theItem.light) {
@@ -1100,12 +1100,12 @@ export function addText(
   text: string,
   fg: Color.ColorBase,
   bg: Color.ColorBase,
-  layer: TileLayer
+  layer?: TileLayer
 ) {
   for (let ch of text) {
     const sprite = Canvas.makeSprite(ch, fg, bg);
     const cell = map.cell(x++, y);
-    cell.addSprite(layer || TileLayer.GROUND, sprite);
+    cell.addSprite(sprite, layer || TileLayer.GROUND);
   }
 }
 

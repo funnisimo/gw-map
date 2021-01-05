@@ -54,31 +54,33 @@ var Activation;
 // TILE
 var Tile;
 (function (Tile) {
-    Tile[Tile["T_OBSTRUCTS_PASSABILITY"] = Fl(0)] = "T_OBSTRUCTS_PASSABILITY";
-    Tile[Tile["T_OBSTRUCTS_VISION"] = Fl(1)] = "T_OBSTRUCTS_VISION";
-    Tile[Tile["T_OBSTRUCTS_ITEMS"] = Fl(2)] = "T_OBSTRUCTS_ITEMS";
-    Tile[Tile["T_OBSTRUCTS_SURFACE"] = Fl(3)] = "T_OBSTRUCTS_SURFACE";
-    Tile[Tile["T_OBSTRUCTS_GAS"] = Fl(4)] = "T_OBSTRUCTS_GAS";
-    Tile[Tile["T_OBSTRUCTS_LIQUID"] = Fl(5)] = "T_OBSTRUCTS_LIQUID";
-    Tile[Tile["T_OBSTRUCTS_TILE_EFFECTS"] = Fl(6)] = "T_OBSTRUCTS_TILE_EFFECTS";
-    Tile[Tile["T_OBSTRUCTS_DIAGONAL_MOVEMENT"] = Fl(7)] = "T_OBSTRUCTS_DIAGONAL_MOVEMENT";
-    Tile[Tile["T_GAS"] = Fl(9)] = "T_GAS";
-    Tile[Tile["T_BRIDGE"] = Fl(10)] = "T_BRIDGE";
-    Tile[Tile["T_AUTO_DESCENT"] = Fl(11)] = "T_AUTO_DESCENT";
-    Tile[Tile["T_LAVA"] = Fl(12)] = "T_LAVA";
-    Tile[Tile["T_DEEP_WATER"] = Fl(13)] = "T_DEEP_WATER";
-    Tile[Tile["T_SPONTANEOUSLY_IGNITES"] = Fl(14)] = "T_SPONTANEOUSLY_IGNITES";
-    Tile[Tile["T_IS_FLAMMABLE"] = Fl(15)] = "T_IS_FLAMMABLE";
-    Tile[Tile["T_IS_FIRE"] = Fl(16)] = "T_IS_FIRE";
-    Tile[Tile["T_ENTANGLES"] = Fl(17)] = "T_ENTANGLES";
-    Tile[Tile["T_CAUSES_POISON"] = Fl(18)] = "T_CAUSES_POISON";
-    Tile[Tile["T_CAUSES_DAMAGE"] = Fl(19)] = "T_CAUSES_DAMAGE";
-    Tile[Tile["T_CAUSES_NAUSEA"] = Fl(20)] = "T_CAUSES_NAUSEA";
-    Tile[Tile["T_CAUSES_PARALYSIS"] = Fl(21)] = "T_CAUSES_PARALYSIS";
-    Tile[Tile["T_CAUSES_CONFUSION"] = Fl(22)] = "T_CAUSES_CONFUSION";
-    Tile[Tile["T_CAUSES_HEALING"] = Fl(23)] = "T_CAUSES_HEALING";
+    Tile[Tile["T_LIQUID"] = Fl(0)] = "T_LIQUID";
+    Tile[Tile["T_SURFACE"] = Fl(1)] = "T_SURFACE";
+    Tile[Tile["T_GAS"] = Fl(2)] = "T_GAS";
+    Tile[Tile["T_OBSTRUCTS_PASSABILITY"] = Fl(3)] = "T_OBSTRUCTS_PASSABILITY";
+    Tile[Tile["T_OBSTRUCTS_VISION"] = Fl(4)] = "T_OBSTRUCTS_VISION";
+    Tile[Tile["T_OBSTRUCTS_ITEMS"] = Fl(5)] = "T_OBSTRUCTS_ITEMS";
+    Tile[Tile["T_OBSTRUCTS_SURFACE"] = Fl(6)] = "T_OBSTRUCTS_SURFACE";
+    Tile[Tile["T_OBSTRUCTS_GAS"] = Fl(7)] = "T_OBSTRUCTS_GAS";
+    Tile[Tile["T_OBSTRUCTS_LIQUID"] = Fl(8)] = "T_OBSTRUCTS_LIQUID";
+    Tile[Tile["T_OBSTRUCTS_TILE_EFFECTS"] = Fl(9)] = "T_OBSTRUCTS_TILE_EFFECTS";
+    Tile[Tile["T_OBSTRUCTS_DIAGONAL_MOVEMENT"] = Fl(10)] = "T_OBSTRUCTS_DIAGONAL_MOVEMENT";
+    Tile[Tile["T_BRIDGE"] = Fl(11)] = "T_BRIDGE";
+    Tile[Tile["T_AUTO_DESCENT"] = Fl(12)] = "T_AUTO_DESCENT";
+    Tile[Tile["T_LAVA"] = Fl(13)] = "T_LAVA";
+    Tile[Tile["T_DEEP_WATER"] = Fl(14)] = "T_DEEP_WATER";
+    Tile[Tile["T_SPONTANEOUSLY_IGNITES"] = Fl(15)] = "T_SPONTANEOUSLY_IGNITES";
+    Tile[Tile["T_IS_FLAMMABLE"] = Fl(16)] = "T_IS_FLAMMABLE";
+    Tile[Tile["T_IS_FIRE"] = Fl(17)] = "T_IS_FIRE";
+    Tile[Tile["T_ENTANGLES"] = Fl(18)] = "T_ENTANGLES";
+    // T_CAUSES_POISON = Fl(18), // any non-levitating creature gets 10 poison
+    // T_CAUSES_DAMAGE = Fl(19), // anything on the tile takes max(1-2, 10%) damage per turn
+    // T_CAUSES_NAUSEA = Fl(20), // any creature on the tile becomes nauseous
+    // T_CAUSES_PARALYSIS = Fl(21), // anything caught on this tile is paralyzed
+    // T_CAUSES_CONFUSION = Fl(22), // causes creatures on this tile to become confused
+    // T_CAUSES_HEALING = Fl(23), // heals 20% max HP per turn for any player or non-inanimate monsters
     Tile[Tile["T_IS_TRAP"] = Fl(24)] = "T_IS_TRAP";
-    Tile[Tile["T_CAUSES_EXPLOSIVE_DAMAGE"] = Fl(25)] = "T_CAUSES_EXPLOSIVE_DAMAGE";
+    // T_CAUSES_EXPLOSIVE_DAMAGE = Fl(25), // is an explosion; deals higher of 15-20 or 50% damage instantly, but not again for five turns
     Tile[Tile["T_SACRED"] = Fl(26)] = "T_SACRED";
     Tile[Tile["T_UP_STAIRS"] = Fl(27)] = "T_UP_STAIRS";
     Tile[Tile["T_DOWN_STAIRS"] = Fl(28)] = "T_DOWN_STAIRS";
@@ -124,16 +126,16 @@ var Tile;
         Tile.T_OBSTRUCTS_SURFACE |
         Tile.T_OBSTRUCTS_LIQUID |
         Tile.T_OBSTRUCTS_DIAGONAL_MOVEMENT] = "T_OBSTRUCTS_EVERYTHING";
-    Tile[Tile["T_HARMFUL_TERRAIN"] = Tile.T_CAUSES_POISON |
-        Tile.T_IS_FIRE |
-        Tile.T_CAUSES_DAMAGE |
-        Tile.T_CAUSES_PARALYSIS |
-        Tile.T_CAUSES_CONFUSION |
-        Tile.T_CAUSES_EXPLOSIVE_DAMAGE] = "T_HARMFUL_TERRAIN";
-    Tile[Tile["T_RESPIRATION_IMMUNITIES"] = Tile.T_CAUSES_DAMAGE |
-        Tile.T_CAUSES_CONFUSION |
-        Tile.T_CAUSES_PARALYSIS |
-        Tile.T_CAUSES_NAUSEA] = "T_RESPIRATION_IMMUNITIES";
+    // T_HARMFUL_TERRAIN = T_CAUSES_POISON |
+    //   T_IS_FIRE |
+    //   T_CAUSES_DAMAGE |
+    //   T_CAUSES_PARALYSIS |
+    //   T_CAUSES_CONFUSION |
+    //   T_CAUSES_EXPLOSIVE_DAMAGE,
+    // T_RESPIRATION_IMMUNITIES = T_CAUSES_DAMAGE |
+    //   T_CAUSES_CONFUSION |
+    //   T_CAUSES_PARALYSIS |
+    //   T_CAUSES_NAUSEA,
     Tile[Tile["T_IS_LIQUID"] = Tile.T_LAVA | Tile.T_AUTO_DESCENT | Tile.T_DEEP_WATER] = "T_IS_LIQUID";
     Tile[Tile["T_STAIR_BLOCKERS"] = Tile.T_OBSTRUCTS_ITEMS |
         Tile.T_OBSTRUCTS_SURFACE |
@@ -1110,7 +1112,7 @@ var light = {
 };
 
 /** Tile Class */
-class Tile$1 extends canvas.Sprite {
+class Tile$1 {
     /**
      * Creates a new Tile object.
      * @param {Object} [config={}] - The configuration of the Tile
@@ -1121,7 +1123,6 @@ class Tile$1 extends canvas.Sprite {
      * @param {String} [config.bg] - The sprite background color
      */
     constructor(config, base) {
-        super(utils.first(config.ch, base === null || base === void 0 ? void 0 : base.ch, -1), utils.first(config.fg, base === null || base === void 0 ? void 0 : base.fg, -1), utils.first(config.bg, base === null || base === void 0 ? void 0 : base.bg, -1), utils.first(config.opacity, base === null || base === void 0 ? void 0 : base.opacity, 100));
         this.flags = 0;
         this.mechFlags = 0;
         this.layer = Layer.GROUND;
@@ -1132,7 +1133,7 @@ class Tile$1 extends canvas.Sprite {
         this.desc = null;
         this.article = null;
         this.dissipate = 2000; // 20 * 100 = 20%
-        if (base !== undefined) {
+        if (base) {
             utils.assignOmitting(["activates", "ch", "fg", "bg", "opacity"], this, base);
         }
         utils.assignOmitting([
@@ -1150,6 +1151,7 @@ class Tile$1 extends canvas.Sprite {
         ], this, config);
         this.name = config.name || (base ? base.name : config.id);
         this.id = config.id;
+        this.sprite = new canvas.Sprite(utils.first(config.ch, base ? base.sprite.ch : -1), utils.first(config.fg, base ? base.sprite.fg : -1), utils.first(config.bg, base ? base.sprite.bg : -1), utils.first(config.opacity, base ? base.sprite.opacity : 100));
         this.layer = this.layer || Layer.GROUND;
         if (typeof this.layer === "string") {
             this.layer = Layer[this.layer];
@@ -1232,7 +1234,7 @@ class Tile$1 extends canvas.Sprite {
         if (opts.color) {
             let color$1 = opts.color;
             if (opts.color === true) {
-                color$1 = this.fg;
+                color$1 = this.sprite.fg;
             }
             if (typeof color$1 !== "string") {
                 color$1 = color.from(color$1).toString();
@@ -1261,12 +1263,12 @@ function install$2(...args) {
     let config = args[2];
     if (arguments.length == 1) {
         config = args[0];
-        base = config.Extends || {};
+        base = config.Extends || null;
         id = config.id;
     }
     else if (arguments.length == 2) {
         config = base;
-        base = config.Extends || config.extends || {};
+        base = config.Extends || config.extends || null;
     }
     if (typeof base === "string") {
         base = tiles[base] || utils.ERROR("Unknown base tile: " + base);
@@ -1426,10 +1428,10 @@ class Cell$1 {
             if (!this.layers[i])
                 continue;
             const tile = this.layers[i] || tiles.NULL;
-            if (tile.ch)
-                return tile.ch;
+            if (tile.sprite.ch)
+                return tile.sprite.ch;
         }
-        return tiles[0].ch;
+        return tiles[0].sprite.ch;
     }
     changed() {
         return this.flags & Cell.CELL_CHANGED;
@@ -1671,6 +1673,9 @@ class Cell$1 {
         let tileFlags = useMemory ? this.memory.tileFlags : this.tileFlags();
         return !!(tileFlags & Tile.T_IS_LIQUID);
     }
+    // TODO - Should this look at the tiles instead of the flags?
+    // What if a gas tile is not set with T_GAS?
+    // Should we force T_GAS if layer === GAS when creating a tile?
     hasGas(limitToPlayerKnowledge = false) {
         const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
         let tileFlags = useMemory ? this.memory.tileFlags : this.tileFlags();
@@ -1681,10 +1686,7 @@ class Cell$1 {
         if (this.flags & Cell.REVEALED)
             return false;
         this.flags |= Cell.REVEALED;
-        if (!this.hasTileFlag(Tile.T_PATHING_BLOCKER)) {
-            data.xpxpThisTurn++;
-        }
-        return true;
+        return !this.hasTileFlag(Tile.T_PATHING_BLOCKER);
     }
     obstructsLayer(layer) {
         return (layer == Layer.SURFACE && this.hasTileFlag(Tile.T_OBSTRUCTS_SURFACE));
@@ -1703,13 +1705,8 @@ class Cell$1 {
             tile = tileId;
             tileId = tile.id;
         }
-        else if (!!tileId) {
-            utils.ERROR("Unknown tile: " + tileId);
-        }
         if (!tile) {
-            utils.WARN("Unknown tile - " + tileId);
-            tile = tiles.NULL;
-            tileId = null;
+            return utils.ERROR("Unknown tile - " + tileId);
         }
         const oldTile = this.layers[tile.layer] || tiles.NULL;
         const oldTileId = oldTile === tiles.NULL ? null : oldTile.id;
@@ -1719,7 +1716,7 @@ class Cell$1 {
         }
         if (tile.flags & Tile.T_IS_FIRE &&
             !(oldTile.flags & Tile.T_IS_FIRE)) {
-            this.setFlags(0, CellMech.CAUGHT_FIRE_THIS_TURN);
+            this.mechFlags |= CellMech.CAUGHT_FIRE_THIS_TURN;
         }
         const blocksVision = tile.flags & Tile.T_OBSTRUCTS_VISION;
         const oldBlocksVision = oldTile.flags & Tile.T_OBSTRUCTS_VISION;
@@ -1727,10 +1724,10 @@ class Cell$1 {
             map.setFlag(Map.MAP_FOV_CHANGED);
         }
         if (oldTileId !== null)
-            this.removeSprite(oldTile);
+            this.removeSprite(oldTile.sprite);
         this.layers[tile.layer] = tileId === null ? null : tile;
         if (tileId !== null)
-            this.addSprite(tile.layer, tile);
+            this.addSprite(tile.sprite, tile.layer);
         if (tile.layer == Layer.LIQUID) {
             this.liquidVolume =
                 volume + (tileId == oldTileId ? this.liquidVolume : 0);
@@ -1742,7 +1739,7 @@ class Cell$1 {
             if (map)
                 map.clearFlag(Map.MAP_NO_GAS);
         }
-        if (tile.layer > 0 && this.layers[0] === null) {
+        if (tile.layer > 0 && !this.layers[0]) {
             this.layers[0] = tiles.FLOOR; // TODO - Not good
         }
         // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
@@ -1760,7 +1757,7 @@ class Cell$1 {
         if (current) {
             // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
             this.flags |= Cell.CELL_CHANGED;
-            this.removeSprite(current);
+            this.removeSprite(current.sprite);
         }
         this.layers[layer] = null;
         if (layer == Layer.LIQUID) {
@@ -1852,7 +1849,7 @@ class Cell$1 {
         this._item = item;
         if (item) {
             this.flags |= Cell.HAS_ITEM;
-            this.addSprite(Layer.ITEM, item.sprite);
+            this.addSprite(item.sprite, Layer.ITEM);
         }
         else {
             this.flags &= ~Cell.HAS_ITEM;
@@ -1869,14 +1866,14 @@ class Cell$1 {
         this._actor = actor;
         if (actor) {
             this.flags |= Cell.HAS_ACTOR;
-            this.addSprite(Layer.ACTOR, actor.sprite);
+            this.addSprite(actor.sprite, Layer.ACTOR);
         }
         else {
             this.flags &= ~Cell.HAS_ACTOR;
         }
     }
     // SPRITES
-    addSprite(layer, sprite, priority = 50) {
+    addSprite(sprite, layer = Layer.GROUND, priority = 50) {
         if (!sprite)
             return;
         // this.flags |= Flags.NEEDS_REDRAW;
@@ -2421,7 +2418,7 @@ class Map$1 {
         if (!this.hasXY(x, y))
             return false;
         const cell = this.cell(x, y);
-        cell.addSprite(Layer.FX, anim.sprite);
+        cell.addSprite(anim.sprite, Layer.FX);
         anim.x = x;
         anim.y = y;
         this.redrawCell(cell);
@@ -2434,7 +2431,7 @@ class Map$1 {
         const oldCell = this.cell(anim.x, anim.y);
         oldCell.removeSprite(anim.sprite);
         this.redrawCell(oldCell);
-        cell.addSprite(Layer.FX, anim.sprite);
+        cell.addSprite(anim.sprite, Layer.FX);
         this.redrawCell(cell);
         anim.x = x;
         anim.y = y;
@@ -2467,7 +2464,7 @@ class Map$1 {
         theActor.next = this._actors;
         this._actors = theActor;
         const layer = theActor === data.player ? Layer.PLAYER : Layer.ACTOR;
-        cell.addSprite(layer, theActor.sprite);
+        cell.addSprite(theActor.sprite, layer);
         const flag = theActor === data.player ? Cell.HAS_PLAYER : Cell.HAS_MONSTER;
         cell.flags |= flag;
         // if (theActor.flags & Flags.Actor.MK_DETECTED)
@@ -2583,7 +2580,7 @@ class Map$1 {
         cell.item = theItem;
         theItem.next = this._items;
         this._items = theItem;
-        cell.addSprite(Layer.ITEM, theItem.sprite);
+        cell.addSprite(theItem.sprite, Layer.ITEM);
         cell.flags |= Cell.HAS_ITEM;
         if (theItem.light) {
             this.flags &= ~Map.MAP_STABLE_LIGHTS;
@@ -2815,7 +2812,7 @@ function addText(map, x, y, text, fg, bg, layer) {
     for (let ch of text) {
         const sprite = canvas.makeSprite(ch, fg, bg);
         const cell = map.cell(x++, y);
-        cell.addSprite(layer || Layer.GROUND, sprite);
+        cell.addSprite(sprite, layer || Layer.GROUND);
     }
 }
 function updateGas(map) {
