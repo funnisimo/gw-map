@@ -1,5 +1,5 @@
 import { utils as Utils, random, grid as Grid, events as Events, color as Color, flag as Flag, data as Data, message as Msg, make as Make, } from "gw-utils";
-import { Layer, Activation as Flags, Tile as TileFlags, CellMech as CellMechFlags, } from "./flags";
+import { Depth, Activation as Flags, Tile as TileFlags, CellMech as CellMechFlags, Layer as LayerFlags, } from "./flags";
 import * as Tile from "./tile";
 export { Flags };
 export class TileEvent {
@@ -125,7 +125,7 @@ export async function spawn(activation, ctx = {}) {
     const blocking = (ctx.blocking =
         abortIfBlocking &&
             !(feat.flags & Flags.DFF_PERMIT_BLOCKING) &&
-            ((tile && tile.flags & TileFlags.T_PATHING_BLOCKER) ||
+            ((tile && tile.blocksPathing()) ||
                 (item && item.blocksMove()) ||
                 feat.flags & Flags.DFF_TREAT_AS_BLOCKING)
             ? true
@@ -240,7 +240,7 @@ export async function spawn(activation, ctx = {}) {
     }
     if (didSomething) {
         if (tile &&
-            tile.flags &
+            tile.flags.tile &
                 (TileFlags.T_DEEP_WATER | TileFlags.T_LAVA | TileFlags.T_AUTO_DESCENT)) {
             Data.updateMapToShoreThisTurn = false;
         }
@@ -259,7 +259,7 @@ export async function spawn(activation, ctx = {}) {
             if (v)
                 map.redrawXY(i, j);
         });
-        map.changed(true);
+        map.changed = true;
         if (!(feat.flags & Flags.DFF_NO_MARK_FIRED)) {
             spawnMap.forEach((v, i, j) => {
                 if (v) {
@@ -305,7 +305,7 @@ function cellIsOk(feat, x, y, ctx = {}) {
         return false;
     if (feat.matchTile && !cell.hasTile(feat.matchTile))
         return false;
-    if (cell.hasTileFlag(TileFlags.T_OBSTRUCTS_TILE_EFFECTS) &&
+    if (cell.hasLayerFlag(LayerFlags.L_BLOCKS_EFFECTS) &&
         !feat.matchTile &&
         (ctx.x != x || ctx.y != y))
         return false;
@@ -431,23 +431,22 @@ export async function spawnTiles(feat, spawnMap, ctx, tile, item) {
             if (cell.mechFlags & CellMechFlags.EVENT_PROTECTED)
                 continue;
             if (tile) {
-                if (cell.layers[tile.layer] === tile.id) {
+                if (cell.tile(tile.depth) === tile) {
                     // If the new cell does not already contains the fill terrain,
-                    if (tile.layer == Layer.GAS) {
+                    if (tile.depth == Depth.GAS) {
                         spawnMap[i][j] = 1;
                         cell.gasVolume += volume;
                     }
-                    else if (tile.layer == Layer.LIQUID) {
+                    else if (tile.depth == Depth.LIQUID) {
                         spawnMap[i][j] = 1;
                         cell.liquidVolume += volume;
                     }
                 }
-                else if ((superpriority || cell.tile(tile.layer).priority < tile.priority) && // If the terrain in the layer to be overwritten has a higher priority number (unless superpriority),
-                    !cell.obstructsLayer(tile.layer) && // If we will be painting into the surface layer when that cell forbids it,
+                else if ((superpriority || cell.tile(tile.depth).priority < tile.priority) && // If the terrain in the layer to be overwritten has a higher priority number (unless superpriority),
+                    !cell.obstructsLayer(tile.depth) && // If we will be painting into the surface layer when that cell forbids it,
                     (!cell.item || !(feat.flags & Flags.DFF_BLOCKED_BY_ITEMS)) &&
                     (!cell.actor || !(feat.flags & Flags.DFF_BLOCKED_BY_ACTORS)) &&
-                    (!blockedByOtherLayers ||
-                        cell.highestPriorityTile().priority < tile.priority)) {
+                    (!blockedByOtherLayers || cell.topmostTile().priority < tile.priority)) {
                     // if the fill won't violate the priority of the most important terrain in this cell:
                     spawnMap[i][j] = 1; // so that the spawnmap reflects what actually got built
                     map.setTile(i, j, tile, volume);
@@ -462,7 +461,7 @@ export async function spawnTiles(feat, spawnMap, ctx, tile, item) {
             }
             if (item) {
                 if (superpriority || !cell.item) {
-                    if (!cell.hasTileFlag(TileFlags.T_OBSTRUCTS_ITEMS)) {
+                    if (!cell.hasLayerFlag(LayerFlags.L_BLOCKS_ITEMS)) {
                         spawnMap[i][j] = 1; // so that the spawnmap reflects what actually got built
                         if (cell.item) {
                             map.removeItem(cell.item);
@@ -509,7 +508,7 @@ export async function spawnTiles(feat, spawnMap, ctx, tile, item) {
         }
     }
     if (accomplishedSomething) {
-        map.changed(true);
+        map.changed = true;
     }
     return accomplishedSomething;
 }

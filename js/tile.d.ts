@@ -1,44 +1,33 @@
-import { color as Color, canvas as Canvas, types as Types } from "gw-utils";
-import { Tile as Flags, TileMech as MechFlags, Layer } from "./flags";
+import { color as Color, types as Types } from "gw-utils";
+import { Tile as Flags, TileMech as MechFlags } from "./flags";
 import * as TileEvent from "./tileEvent";
-import * as Light from "./light";
-export { Flags, MechFlags, Layer };
+import * as Layer from "./layer";
+export { Flags, MechFlags };
 export interface NameConfig {
     article?: boolean | string;
     color?: boolean | string | Color.ColorBase;
 }
 export declare type TileBase = TileConfig | string;
-export interface FullTileConfig {
+export interface FullTileConfig extends Layer.LayerConfig {
     Extends: string | Tile;
     flags: number | string | any[];
     mechFlags: number | string | any[];
-    layer: Layer | keyof typeof Layer;
     priority: number;
     activates: any;
-    light: Light.LightBase | null;
     flavor: string;
     desc: string;
     name: string;
     article: string;
     id: string;
-    ch: string | null;
-    fg: Color.ColorBase | null;
-    bg: Color.ColorBase | null;
-    opacity: number;
     dissipate: number;
 }
 declare type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>;
 export declare type TileConfig = AtLeast<FullTileConfig, "id">;
 /** Tile Class */
-export declare class Tile implements Types.TileType {
+export declare class Tile extends Layer.Layer implements Types.TileType {
     name: string;
-    flags: number;
-    mechFlags: number;
-    layer: Layer;
-    priority: number;
-    sprite: Canvas.Sprite;
+    flags: Types.TileFlags;
     activates: Record<string, TileEvent.TileEvent>;
-    light: Light.Light | null;
     flavor: string | null;
     desc: string | null;
     article: string | null;
@@ -53,13 +42,7 @@ export declare class Tile implements Types.TileType {
      * @param {String} [config.fg] - The sprite foreground color
      * @param {String} [config.bg] - The sprite background color
      */
-    constructor(config: TileConfig, base?: Tile);
-    /**
-     * Returns the flags for the tile after the given event is fired.
-     * @param {string} id - Name of the event to fire.
-     * @returns {number} The flags from the Tile after the event.
-     */
-    successorFlags(id: string): number;
+    constructor(config: TileConfig);
     /**
      * Returns whether or not this tile as the given flag.
      * Will return true if any bit in the flag is true, so testing with
@@ -67,9 +50,10 @@ export declare class Tile implements Types.TileType {
      * @param {number} flag - The flag to check
      * @returns {boolean} Whether or not the flag is set
      */
-    hasFlag(flag: number): boolean;
-    hasMechFlag(flag: number): boolean;
-    hasFlags(flags: number, mechFlags: number): number | true;
+    hasAllFlags(flag: number): boolean;
+    hasAllLayerFlags(flag: number): boolean;
+    hasAllMechFlags(flag: number): boolean;
+    blocksPathing(): number;
     activatesOn(name: string): boolean;
     getName(): string;
     getName(opts: NameConfig): string;
@@ -88,7 +72,7 @@ export declare const tiles: Record<string, Tile>;
  */
 export declare function install(id: string, base: string | Tile, config: Partial<TileConfig>): Tile;
 export declare function install(id: string, config: Partial<TileConfig>): Tile;
-export declare function install(config: Partial<TileConfig>): Tile;
+export declare function install(config: TileConfig): Tile;
 /**
  * Adds multiple tiles to the GW.tiles collection.
  * It extracts all the id:opts pairs from the config object and uses

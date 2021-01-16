@@ -21,7 +21,7 @@ Tile.install("DOOR", {
     fg: [100, 40, 40],
     bg: [30, 60, 60],
     priority: 30,
-    flags: "T_IS_DOOR, T_OBSTRUCTS_TILE_EFFECTS, T_OBSTRUCTS_ITEMS, T_OBSTRUCTS_VISION, TM_VISUALLY_DISTINCT",
+    flags: "T_IS_DOOR, L_BLOCKS_EFFECTS, L_BLOCKS_ITEMS, L_BLOCKS_VISION, TM_VISUALLY_DISTINCT",
     article: "a",
     activates: {
         enter: { tile: "DOOR_OPEN" },
@@ -33,7 +33,7 @@ Tile.install("DOOR_OPEN", "DOOR", {
     fg: [100, 40, 40],
     bg: [30, 60, 60],
     priority: 40,
-    flags: "!T_OBSTRUCTS_ITEMS, !T_OBSTRUCTS_VISION",
+    flags: "!L_BLOCKS_ITEMS, !L_BLOCKS_VISION",
     name: "open door",
     article: "an",
     activates: {
@@ -53,25 +53,25 @@ Tile.install("BRIDGE", {
     ch: "=",
     fg: [100, 40, 40],
     priority: 40,
-    layer: "SURFACE",
+    depth: "SURFACE",
     flags: "T_BRIDGE, TM_VISUALLY_DISTINCT",
     article: "a",
 });
 Tile.install("UP_STAIRS", {
     ch: "<",
-    fg: [100, 40, 40],
-    bg: [100, 60, 20],
+    fg: [100, 50, 50],
+    bg: [40, 20, 20],
     priority: 200,
-    flags: "T_UP_STAIRS, T_STAIR_BLOCKERS, TM_VISUALLY_DISTINCT, TM_LIST_IN_SIDEBAR",
+    flags: "T_UP_STAIRS, L_BLOCKED_BY_STAIRS, TM_VISUALLY_DISTINCT, TM_LIST_IN_SIDEBAR",
     name: "upward staircase",
     article: "an",
 });
 Tile.install("DOWN_STAIRS", {
     ch: ">",
-    fg: [100, 40, 40],
-    bg: [100, 60, 20],
+    fg: [100, 50, 50],
+    bg: [40, 20, 20],
     priority: 200,
-    flags: "T_DOWN_STAIRS, T_STAIR_BLOCKERS, TM_VISUALLY_DISTINCT, TM_LIST_IN_SIDEBAR",
+    flags: "T_DOWN_STAIRS, L_BLOCKED_BY_STAIRS, TM_VISUALLY_DISTINCT, TM_LIST_IN_SIDEBAR",
     name: "downward staircase",
     article: "a",
 });
@@ -80,8 +80,11 @@ Tile.install("WALL", {
     fg: [7, 7, 7, 0, 3, 3, 3],
     bg: [40, 40, 40, 10, 10, 0, 5],
     priority: 100,
-    flags: "T_OBSTRUCTS_EVERYTHING",
+    flags: "L_BLOCKS_EVERYTHING",
     article: "a",
+    name: "stone wall",
+    desc: "A wall made from rough cut stone.",
+    flavor: "a rough stone wall",
 });
 Tile.install("LAKE", {
     ch: "~",

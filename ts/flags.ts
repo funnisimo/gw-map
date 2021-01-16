@@ -1,6 +1,6 @@
 import { flag as Flag } from "gw-utils";
 
-export enum Layer {
+export enum Depth {
   ALL_LAYERS = -1,
   GROUND = 0,
   LIQUID,
@@ -14,6 +14,45 @@ export enum Layer {
 }
 
 const Fl = Flag.fl;
+
+export enum Layer {
+  L_DYNAMIC = Fl(0), // for movable things like actors or items
+  L_SUPERPRIORITY = Fl(1), // will overwrite layers at same depth with higher priority
+  L_SECRETLY_PASSABLE = Fl(2), // will become passable if discovered/activated/etc...
+
+  L_BLOCKS_MOVE = Fl(3), // cannot be walked through
+  L_BLOCKS_VISION = Fl(4), // blocks line of sight
+  L_BLOCKS_SURFACE = Fl(6), // grass, blood, etc. cannot exist on this tile
+  L_BLOCKS_LIQUID = Fl(8),
+  L_BLOCKS_GAS = Fl(7), // blocks the permeation of gas
+  L_BLOCKS_ITEMS = Fl(5), // items can't be on this tile
+  L_BLOCKS_ACTORS = Fl(11), // actors can't be on this tile
+  L_BLOCKS_EFFECTS = Fl(9),
+  L_BLOCKS_DIAGONAL = Fl(10), // can't step diagonally around this tile
+
+  L_BLOCKED_BY_STAIRS = L_BLOCKS_ITEMS |
+    L_BLOCKS_SURFACE |
+    L_BLOCKS_GAS |
+    L_BLOCKS_LIQUID |
+    L_BLOCKS_EFFECTS |
+    L_BLOCKS_ACTORS,
+
+  L_BLOCKS_SCENT = L_BLOCKS_MOVE | L_BLOCKS_VISION,
+  L_DIVIDES_LEVEL = L_BLOCKS_MOVE,
+  L_WAYPOINT_BLOCKER = L_BLOCKS_MOVE,
+
+  L_IS_WALL = L_BLOCKS_MOVE |
+    L_BLOCKS_VISION |
+    L_BLOCKS_LIQUID |
+    L_BLOCKS_GAS |
+    L_BLOCKS_EFFECTS |
+    L_BLOCKS_DIAGONAL,
+
+  L_BLOCKS_EVERYTHING = L_IS_WALL |
+    L_BLOCKS_ITEMS |
+    L_BLOCKS_ACTORS |
+    L_BLOCKS_SURFACE,
+}
 
 ///////////////////////////////////////////////////////
 // TILE EVENT
@@ -63,15 +102,6 @@ export enum Tile {
   T_SURFACE = Fl(1),
   T_GAS = Fl(2),
 
-  T_OBSTRUCTS_PASSABILITY = Fl(3), // cannot be walked through
-  T_OBSTRUCTS_VISION = Fl(4), // blocks line of sight
-  T_OBSTRUCTS_ITEMS = Fl(5), // items can't be on this tile
-  T_OBSTRUCTS_SURFACE = Fl(6), // grass, blood, etc. cannot exist on this tile
-  T_OBSTRUCTS_GAS = Fl(7), // blocks the permeation of gas
-  T_OBSTRUCTS_LIQUID = Fl(8),
-  T_OBSTRUCTS_TILE_EFFECTS = Fl(9),
-  T_OBSTRUCTS_DIAGONAL_MOVEMENT = Fl(10), // can't step diagonally around this tile
-
   T_BRIDGE = Fl(11), // Acts as a bridge over the folowing types=
   T_AUTO_DESCENT = Fl(12), // automatically drops creatures down a depth level and does some damage (2d6)
   T_LAVA = Fl(13), // kills any non-levitating non-fire-immune creature instantly
@@ -98,45 +128,30 @@ export enum Tile {
   T_IS_DOOR = Fl(30),
 
   T_HAS_STAIRS = T_UP_STAIRS | T_DOWN_STAIRS | T_PORTAL,
-  T_OBSTRUCTS_SCENT = T_OBSTRUCTS_PASSABILITY |
-    T_OBSTRUCTS_VISION |
-    T_AUTO_DESCENT |
+  T_OBSTRUCTS_SCENT = T_AUTO_DESCENT |
     T_LAVA |
     T_DEEP_WATER |
     T_SPONTANEOUSLY_IGNITES |
     T_HAS_STAIRS,
-  T_PATHING_BLOCKER = T_OBSTRUCTS_PASSABILITY |
-    T_AUTO_DESCENT |
+  T_PATHING_BLOCKER = T_AUTO_DESCENT |
     T_IS_TRAP |
     T_LAVA |
     T_DEEP_WATER |
     T_IS_FIRE |
     T_SPONTANEOUSLY_IGNITES |
     T_ENTANGLES,
-  T_DIVIDES_LEVEL = T_OBSTRUCTS_PASSABILITY |
-    T_AUTO_DESCENT |
-    T_IS_TRAP |
-    T_LAVA |
-    T_DEEP_WATER,
+  T_DIVIDES_LEVEL = T_AUTO_DESCENT | T_IS_TRAP | T_LAVA | T_DEEP_WATER,
   T_LAKE_PATHING_BLOCKER = T_AUTO_DESCENT |
     T_LAVA |
     T_DEEP_WATER |
     T_SPONTANEOUSLY_IGNITES,
-  T_WAYPOINT_BLOCKER = T_OBSTRUCTS_PASSABILITY |
-    T_AUTO_DESCENT |
+  T_WAYPOINT_BLOCKER = T_AUTO_DESCENT |
     T_IS_TRAP |
     T_LAVA |
     T_DEEP_WATER |
     T_SPONTANEOUSLY_IGNITES,
   T_MOVES_ITEMS = T_DEEP_WATER | T_LAVA,
   T_CAN_BE_BRIDGED = T_AUTO_DESCENT | T_LAVA | T_DEEP_WATER,
-  T_OBSTRUCTS_EVERYTHING = T_OBSTRUCTS_PASSABILITY |
-    T_OBSTRUCTS_VISION |
-    T_OBSTRUCTS_ITEMS |
-    T_OBSTRUCTS_GAS |
-    T_OBSTRUCTS_SURFACE |
-    T_OBSTRUCTS_LIQUID |
-    T_OBSTRUCTS_DIAGONAL_MOVEMENT,
   // T_HARMFUL_TERRAIN = T_CAUSES_POISON |
   //   T_IS_FIRE |
   //   T_CAUSES_DAMAGE |
@@ -147,12 +162,7 @@ export enum Tile {
   //   T_CAUSES_CONFUSION |
   //   T_CAUSES_PARALYSIS |
   //   T_CAUSES_NAUSEA,
-  T_IS_LIQUID = T_LAVA | T_AUTO_DESCENT | T_DEEP_WATER,
-  T_STAIR_BLOCKERS = T_OBSTRUCTS_ITEMS |
-    T_OBSTRUCTS_SURFACE |
-    T_OBSTRUCTS_GAS |
-    T_OBSTRUCTS_LIQUID |
-    T_OBSTRUCTS_TILE_EFFECTS,
+  T_IS_DEEP_LIQUID = T_LAVA | T_AUTO_DESCENT | T_DEEP_WATER,
 }
 
 ///////////////////////////////////////////////////////

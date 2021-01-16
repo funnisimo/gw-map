@@ -1,18 +1,52 @@
 import { flag as Flag } from "gw-utils";
+export var Depth;
+(function (Depth) {
+    Depth[Depth["ALL_LAYERS"] = -1] = "ALL_LAYERS";
+    Depth[Depth["GROUND"] = 0] = "GROUND";
+    Depth[Depth["LIQUID"] = 1] = "LIQUID";
+    Depth[Depth["SURFACE"] = 2] = "SURFACE";
+    Depth[Depth["GAS"] = 3] = "GAS";
+    Depth[Depth["ITEM"] = 4] = "ITEM";
+    Depth[Depth["ACTOR"] = 5] = "ACTOR";
+    Depth[Depth["PLAYER"] = 6] = "PLAYER";
+    Depth[Depth["FX"] = 7] = "FX";
+    Depth[Depth["UI"] = 8] = "UI";
+})(Depth || (Depth = {}));
+const Fl = Flag.fl;
 export var Layer;
 (function (Layer) {
-    Layer[Layer["ALL_LAYERS"] = -1] = "ALL_LAYERS";
-    Layer[Layer["GROUND"] = 0] = "GROUND";
-    Layer[Layer["LIQUID"] = 1] = "LIQUID";
-    Layer[Layer["SURFACE"] = 2] = "SURFACE";
-    Layer[Layer["GAS"] = 3] = "GAS";
-    Layer[Layer["ITEM"] = 4] = "ITEM";
-    Layer[Layer["ACTOR"] = 5] = "ACTOR";
-    Layer[Layer["PLAYER"] = 6] = "PLAYER";
-    Layer[Layer["FX"] = 7] = "FX";
-    Layer[Layer["UI"] = 8] = "UI";
+    Layer[Layer["L_DYNAMIC"] = Fl(0)] = "L_DYNAMIC";
+    Layer[Layer["L_SUPERPRIORITY"] = Fl(1)] = "L_SUPERPRIORITY";
+    Layer[Layer["L_SECRETLY_PASSABLE"] = Fl(2)] = "L_SECRETLY_PASSABLE";
+    Layer[Layer["L_BLOCKS_MOVE"] = Fl(3)] = "L_BLOCKS_MOVE";
+    Layer[Layer["L_BLOCKS_VISION"] = Fl(4)] = "L_BLOCKS_VISION";
+    Layer[Layer["L_BLOCKS_SURFACE"] = Fl(6)] = "L_BLOCKS_SURFACE";
+    Layer[Layer["L_BLOCKS_LIQUID"] = Fl(8)] = "L_BLOCKS_LIQUID";
+    Layer[Layer["L_BLOCKS_GAS"] = Fl(7)] = "L_BLOCKS_GAS";
+    Layer[Layer["L_BLOCKS_ITEMS"] = Fl(5)] = "L_BLOCKS_ITEMS";
+    Layer[Layer["L_BLOCKS_ACTORS"] = Fl(11)] = "L_BLOCKS_ACTORS";
+    Layer[Layer["L_BLOCKS_EFFECTS"] = Fl(9)] = "L_BLOCKS_EFFECTS";
+    Layer[Layer["L_BLOCKS_DIAGONAL"] = Fl(10)] = "L_BLOCKS_DIAGONAL";
+    Layer[Layer["L_BLOCKED_BY_STAIRS"] = Layer.L_BLOCKS_ITEMS |
+        Layer.L_BLOCKS_SURFACE |
+        Layer.L_BLOCKS_GAS |
+        Layer.L_BLOCKS_LIQUID |
+        Layer.L_BLOCKS_EFFECTS |
+        Layer.L_BLOCKS_ACTORS] = "L_BLOCKED_BY_STAIRS";
+    Layer[Layer["L_BLOCKS_SCENT"] = Layer.L_BLOCKS_MOVE | Layer.L_BLOCKS_VISION] = "L_BLOCKS_SCENT";
+    Layer[Layer["L_DIVIDES_LEVEL"] = Layer.L_BLOCKS_MOVE] = "L_DIVIDES_LEVEL";
+    Layer[Layer["L_WAYPOINT_BLOCKER"] = Layer.L_BLOCKS_MOVE] = "L_WAYPOINT_BLOCKER";
+    Layer[Layer["L_IS_WALL"] = Layer.L_BLOCKS_MOVE |
+        Layer.L_BLOCKS_VISION |
+        Layer.L_BLOCKS_LIQUID |
+        Layer.L_BLOCKS_GAS |
+        Layer.L_BLOCKS_EFFECTS |
+        Layer.L_BLOCKS_DIAGONAL] = "L_IS_WALL";
+    Layer[Layer["L_BLOCKS_EVERYTHING"] = Layer.L_IS_WALL |
+        Layer.L_BLOCKS_ITEMS |
+        Layer.L_BLOCKS_ACTORS |
+        Layer.L_BLOCKS_SURFACE] = "L_BLOCKS_EVERYTHING";
 })(Layer || (Layer = {}));
-const Fl = Flag.fl;
 ///////////////////////////////////////////////////////
 // TILE EVENT
 export var Activation;
@@ -56,14 +90,6 @@ export var Tile;
     Tile[Tile["T_LIQUID"] = Fl(0)] = "T_LIQUID";
     Tile[Tile["T_SURFACE"] = Fl(1)] = "T_SURFACE";
     Tile[Tile["T_GAS"] = Fl(2)] = "T_GAS";
-    Tile[Tile["T_OBSTRUCTS_PASSABILITY"] = Fl(3)] = "T_OBSTRUCTS_PASSABILITY";
-    Tile[Tile["T_OBSTRUCTS_VISION"] = Fl(4)] = "T_OBSTRUCTS_VISION";
-    Tile[Tile["T_OBSTRUCTS_ITEMS"] = Fl(5)] = "T_OBSTRUCTS_ITEMS";
-    Tile[Tile["T_OBSTRUCTS_SURFACE"] = Fl(6)] = "T_OBSTRUCTS_SURFACE";
-    Tile[Tile["T_OBSTRUCTS_GAS"] = Fl(7)] = "T_OBSTRUCTS_GAS";
-    Tile[Tile["T_OBSTRUCTS_LIQUID"] = Fl(8)] = "T_OBSTRUCTS_LIQUID";
-    Tile[Tile["T_OBSTRUCTS_TILE_EFFECTS"] = Fl(9)] = "T_OBSTRUCTS_TILE_EFFECTS";
-    Tile[Tile["T_OBSTRUCTS_DIAGONAL_MOVEMENT"] = Fl(10)] = "T_OBSTRUCTS_DIAGONAL_MOVEMENT";
     Tile[Tile["T_BRIDGE"] = Fl(11)] = "T_BRIDGE";
     Tile[Tile["T_AUTO_DESCENT"] = Fl(12)] = "T_AUTO_DESCENT";
     Tile[Tile["T_LAVA"] = Fl(13)] = "T_LAVA";
@@ -86,45 +112,30 @@ export var Tile;
     Tile[Tile["T_PORTAL"] = Fl(29)] = "T_PORTAL";
     Tile[Tile["T_IS_DOOR"] = Fl(30)] = "T_IS_DOOR";
     Tile[Tile["T_HAS_STAIRS"] = Tile.T_UP_STAIRS | Tile.T_DOWN_STAIRS | Tile.T_PORTAL] = "T_HAS_STAIRS";
-    Tile[Tile["T_OBSTRUCTS_SCENT"] = Tile.T_OBSTRUCTS_PASSABILITY |
-        Tile.T_OBSTRUCTS_VISION |
-        Tile.T_AUTO_DESCENT |
+    Tile[Tile["T_OBSTRUCTS_SCENT"] = Tile.T_AUTO_DESCENT |
         Tile.T_LAVA |
         Tile.T_DEEP_WATER |
         Tile.T_SPONTANEOUSLY_IGNITES |
         Tile.T_HAS_STAIRS] = "T_OBSTRUCTS_SCENT";
-    Tile[Tile["T_PATHING_BLOCKER"] = Tile.T_OBSTRUCTS_PASSABILITY |
-        Tile.T_AUTO_DESCENT |
+    Tile[Tile["T_PATHING_BLOCKER"] = Tile.T_AUTO_DESCENT |
         Tile.T_IS_TRAP |
         Tile.T_LAVA |
         Tile.T_DEEP_WATER |
         Tile.T_IS_FIRE |
         Tile.T_SPONTANEOUSLY_IGNITES |
         Tile.T_ENTANGLES] = "T_PATHING_BLOCKER";
-    Tile[Tile["T_DIVIDES_LEVEL"] = Tile.T_OBSTRUCTS_PASSABILITY |
-        Tile.T_AUTO_DESCENT |
-        Tile.T_IS_TRAP |
-        Tile.T_LAVA |
-        Tile.T_DEEP_WATER] = "T_DIVIDES_LEVEL";
+    Tile[Tile["T_DIVIDES_LEVEL"] = Tile.T_AUTO_DESCENT | Tile.T_IS_TRAP | Tile.T_LAVA | Tile.T_DEEP_WATER] = "T_DIVIDES_LEVEL";
     Tile[Tile["T_LAKE_PATHING_BLOCKER"] = Tile.T_AUTO_DESCENT |
         Tile.T_LAVA |
         Tile.T_DEEP_WATER |
         Tile.T_SPONTANEOUSLY_IGNITES] = "T_LAKE_PATHING_BLOCKER";
-    Tile[Tile["T_WAYPOINT_BLOCKER"] = Tile.T_OBSTRUCTS_PASSABILITY |
-        Tile.T_AUTO_DESCENT |
+    Tile[Tile["T_WAYPOINT_BLOCKER"] = Tile.T_AUTO_DESCENT |
         Tile.T_IS_TRAP |
         Tile.T_LAVA |
         Tile.T_DEEP_WATER |
         Tile.T_SPONTANEOUSLY_IGNITES] = "T_WAYPOINT_BLOCKER";
     Tile[Tile["T_MOVES_ITEMS"] = Tile.T_DEEP_WATER | Tile.T_LAVA] = "T_MOVES_ITEMS";
     Tile[Tile["T_CAN_BE_BRIDGED"] = Tile.T_AUTO_DESCENT | Tile.T_LAVA | Tile.T_DEEP_WATER] = "T_CAN_BE_BRIDGED";
-    Tile[Tile["T_OBSTRUCTS_EVERYTHING"] = Tile.T_OBSTRUCTS_PASSABILITY |
-        Tile.T_OBSTRUCTS_VISION |
-        Tile.T_OBSTRUCTS_ITEMS |
-        Tile.T_OBSTRUCTS_GAS |
-        Tile.T_OBSTRUCTS_SURFACE |
-        Tile.T_OBSTRUCTS_LIQUID |
-        Tile.T_OBSTRUCTS_DIAGONAL_MOVEMENT] = "T_OBSTRUCTS_EVERYTHING";
     // T_HARMFUL_TERRAIN = T_CAUSES_POISON |
     //   T_IS_FIRE |
     //   T_CAUSES_DAMAGE |
@@ -135,12 +146,7 @@ export var Tile;
     //   T_CAUSES_CONFUSION |
     //   T_CAUSES_PARALYSIS |
     //   T_CAUSES_NAUSEA,
-    Tile[Tile["T_IS_LIQUID"] = Tile.T_LAVA | Tile.T_AUTO_DESCENT | Tile.T_DEEP_WATER] = "T_IS_LIQUID";
-    Tile[Tile["T_STAIR_BLOCKERS"] = Tile.T_OBSTRUCTS_ITEMS |
-        Tile.T_OBSTRUCTS_SURFACE |
-        Tile.T_OBSTRUCTS_GAS |
-        Tile.T_OBSTRUCTS_LIQUID |
-        Tile.T_OBSTRUCTS_TILE_EFFECTS] = "T_STAIR_BLOCKERS";
+    Tile[Tile["T_IS_DEEP_LIQUID"] = Tile.T_LAVA | Tile.T_AUTO_DESCENT | Tile.T_DEEP_WATER] = "T_IS_DEEP_LIQUID";
 })(Tile || (Tile = {}));
 ///////////////////////////////////////////////////////
 // TILE MECH

@@ -22,9 +22,11 @@ import {
   Tile as TileFlags,
   CellMech as CellMechFlags,
   TileMech as TileMechFlags,
-  Layer as TileLayer,
+  Depth as TileLayer,
+  Layer as LayerFlags,
 } from "./flags";
 import { Light } from "./light";
+import * as Layer from "./layer";
 
 export { Flags };
 
@@ -62,18 +64,17 @@ export interface MapMatchOptions {
   forbidTileFlags: number;
   forbidTileMechFlags: number;
   tile: Tile.Tile;
-  tries: number;
   deterministic: boolean;
 }
 
 interface LightInfo extends Utils.Chainable {
-  light: Light;
+  light: Types.LightType;
   x: number;
   y: number;
   next: LightInfo | null;
 }
 
-export type MapLightFn = (light: Light, x: number, y: number) => void;
+export type MapLightFn = (light: Types.LightType, x: number, y: number) => void;
 
 export interface DisruptsOptions {
   gridOffsetX: number;
@@ -128,8 +129,9 @@ export class Map implements Types.MapType {
 
   async start() {}
 
-  nullify() {
-    this.cells.forEach((c) => c.nullify());
+  clear() {
+    this.cells.forEach((c) => c.clear());
+    this.changed = true;
   }
   dump(fmt?: (cell: Cell.Cell) => string) {
     this.cells.dump(fmt || ((c: Cell.Cell) => c.dump()));
@@ -150,6 +152,15 @@ export class Map implements Types.MapType {
   eachNeighbor(x: number, y: number, fn: MapEachFn, only4dirs = false) {
     this.cells.eachNeighbor(x, y, (c, i, j) => fn(c, i, j, this), only4dirs);
   }
+  count(fn: MapMatchFn) {
+    let count = 0;
+    this.forEach((c, x, y, g) => {
+      if (fn(c, x, y, g)) {
+        ++count;
+      }
+    });
+    return count;
+  }
 
   hasXY(x: number, y: number) {
     return this.cells.hasXY(x, y);
@@ -158,35 +169,37 @@ export class Map implements Types.MapType {
     return this.cells.isBoundaryXY(x, y);
   }
 
-  changed(v?: boolean) {
+  get changed() {
+    return (this.flags & Flags.MAP_CHANGED) > 0;
+  }
+
+  set changed(v: boolean) {
     if (v === true) {
       this.flags |= Flags.MAP_CHANGED;
     } else if (v === false) {
       this.flags &= ~Flags.MAP_CHANGED;
     }
-    return this.flags & Flags.MAP_CHANGED;
   }
 
-  hasCellFlag(x: number, y: number, flag: number) {
+  hasCellFlag(x: number, y: number, flag: CellFlags) {
     return this.cell(x, y).flags & flag;
   }
-  hasCellMechFlag(x: number, y: number, flag: number) {
+  hasCellMechFlag(x: number, y: number, flag: CellMechFlags) {
     return this.cell(x, y).mechFlags & flag;
   }
-  hasTileFlag(x: number, y: number, flag: number) {
+  hasLayerFlag(x: number, y: number, flag: LayerFlags) {
+    return this.cell(x, y).hasLayerFlag(flag);
+  }
+  hasTileFlag(x: number, y: number, flag: TileFlags) {
     return this.cell(x, y).hasTileFlag(flag);
   }
-  hasTileMechFlag(x: number, y: number, flag: number) {
+  hasTileMechFlag(x: number, y: number, flag: TileMechFlags) {
     return this.cell(x, y).hasTileMechFlag(flag);
-  }
-
-  setCellFlag(x: number, y: number, flag: number) {
-    this.cell(x, y).flags |= flag;
   }
 
   redrawCell(cell: Cell.Cell) {
     // if (cell.isAnyKindOfVisible()) {
-    cell._needsRedraw();
+    cell.needsRedraw = true;
     this.flags |= Flags.MAP_CHANGED;
     // }
   }
@@ -199,10 +212,10 @@ export class Map implements Types.MapType {
   redrawAll() {
     this.forEach((c) => {
       // if (c.isAnyKindOfVisible()) {
-      c.flags |= CellFlags.NEEDS_REDRAW;
+      c.needsRedraw = true;
       // }
     });
-    this.flags |= Flags.MAP_CHANGED;
+    this.changed = true;
   }
 
   revealAll() {
@@ -210,6 +223,9 @@ export class Map implements Types.MapType {
       c.markRevealed();
       c.storeMemory();
     });
+    if (DATA.player) {
+      DATA.player.invalidateCostMap();
+    }
   }
 
   markRevealed(x: number, y: number) {
@@ -218,6 +234,7 @@ export class Map implements Types.MapType {
       DATA.player.invalidateCostMap();
     }
   }
+
   isVisible(x: number, y: number) {
     return this.cell(x, y).isVisible();
   }
@@ -227,13 +244,32 @@ export class Map implements Types.MapType {
   isOrWasAnyKindOfVisible(x: number, y: number) {
     return this.cell(x, y).isOrWasAnyKindOfVisible();
   }
-  hasVisibleLight(x: number, y: number) {
-    return this.cell(x, y).hasVisibleLight();
+
+  get lightChanged() {
+    return (this.flags & Flags.MAP_STABLE_LIGHTS) == 0;
+  }
+  set lightChanged(v: boolean) {
+    if (v) {
+      this.flags &= ~Flags.MAP_STABLE_LIGHTS;
+    } else {
+      this.flags |= Flags.MAP_STABLE_LIGHTS;
+    }
+  }
+
+  get glowLightChanged() {
+    return (this.flags & Flags.MAP_STABLE_GLOW_LIGHTS) == 0;
+  }
+  set glowLightChanged(v: boolean) {
+    if (v) {
+      this.flags &= ~(Flags.MAP_STABLE_GLOW_LIGHTS | Flags.MAP_STABLE_LIGHTS);
+    } else {
+      this.flags |= Flags.MAP_STABLE_GLOW_LIGHTS;
+    }
   }
 
   setFlag(flag: number) {
     this.flags |= flag;
-    this.changed(true);
+    this.changed = true;
   }
 
   setFlags(mapFlag = 0, cellFlag = 0, cellMechFlag = 0) {
@@ -243,12 +279,12 @@ export class Map implements Types.MapType {
     if (cellFlag || cellMechFlag) {
       this.forEach((c) => c.setFlags(cellFlag, cellMechFlag));
     }
-    this.changed(true);
+    this.changed = true;
   }
 
   clearFlag(flag: number) {
     this.flags &= ~flag;
-    this.changed(true);
+    this.changed = true;
   }
 
   clearFlags(mapFlag = 0, cellFlag = 0, cellMechFlag = 0) {
@@ -258,8 +294,12 @@ export class Map implements Types.MapType {
     if (cellFlag || cellMechFlag) {
       this.forEach((cell) => cell.clearFlags(cellFlag, cellMechFlag));
     }
-    this.changed(true);
+    this.changed = true;
   }
+
+  // setCellFlag(x: number, y: number, flag: number) {
+  //   this.cell(x, y).flags |= flag;
+  // }
 
   setCellFlags(x: number, y: number, cellFlag = 0, cellMechFlag = 0) {
     this.cell(x, y).setFlags(cellFlag, cellMechFlag);
@@ -268,13 +308,16 @@ export class Map implements Types.MapType {
 
   clearCellFlags(x: number, y: number, cellFlags = 0, cellMechFlags = 0) {
     this.cell(x, y).clearFlags(cellFlags, cellMechFlags);
-    this.changed(true);
+    this.changed = true;
   }
 
   hasTile(x: number, y: number, tile: string) {
     return this.cells[x][y].hasTile(tile);
   }
 
+  layerFlags(x: number, y: number, limitToPlayerKnowledge = false) {
+    return this.cells[x][y].layerFlags(limitToPlayerKnowledge);
+  }
   tileFlags(x: number, y: number, limitToPlayerKnowledge = false) {
     return this.cells[x][y].tileFlags(limitToPlayerKnowledge);
   }
@@ -295,22 +338,15 @@ export class Map implements Types.MapType {
 
   // hasTileInGroup(x, y, ...groups) { return this.cells[x][y].hasTileInGroup(...groups); }
 
-  discoveredTileFlags(x: number, y: number) {
-    return this.cells[x][y].discoveredTileFlags();
-  }
-  hasDiscoveredTileFlag(x: number, y: number, flag = 0) {
-    return this.cells[x][y].hasDiscoveredTileFlag(flag);
-  }
+  // discoveredTileFlags(x: number, y: number) {
+  //   return this.cells[x][y].discoveredTileFlags();
+  // }
+  // hasDiscoveredTileFlag(x: number, y: number, flag = 0) {
+  //   return this.cells[x][y].hasDiscoveredTileFlag(flag);
+  // }
 
-  canBePassed(x: number, y: number, limitToPlayerKnowledge = false) {
-    return this.cells[x][y].canBePassed(limitToPlayerKnowledge);
-  }
-  isPassableNow(x: number, y: number, limitToPlayerKnowledge = false) {
-    return this.cells[x][y].isPassableNow(limitToPlayerKnowledge);
-  }
-
-  isNull(x: number, y: number) {
-    return this.cells[x][y].isNull();
+  isClear(x: number, y: number) {
+    return this.cells[x][y].isClear();
   }
   isEmpty(x: number, y: number) {
     return this.cells[x][y].isEmpty();
@@ -318,8 +354,11 @@ export class Map implements Types.MapType {
   isObstruction(x: number, y: number, limitToPlayerKnowledge = false) {
     return this.cells[x][y].isObstruction(limitToPlayerKnowledge);
   }
-  isDoor(x: number, y: number, limitToPlayerKnowledge = false) {
-    return this.cells[x][y].isDoor(limitToPlayerKnowledge);
+  isDoorway(x: number, y: number, limitToPlayerKnowledge = false) {
+    return this.cells[x][y].isDoorway(limitToPlayerKnowledge);
+  }
+  isSecretDoorway(x: number, y: number, limitToPlayerKnowledge = false) {
+    return this.cells[x][y].isSecretDoorway(limitToPlayerKnowledge);
   }
   isLiquid(x: number, y: number, limitToPlayerKnowledge = false) {
     return this.cells[x][y].isLiquid(limitToPlayerKnowledge);
@@ -335,23 +374,37 @@ export class Map implements Types.MapType {
     return this.cells[x][y].blocksVision();
   }
 
-  highestPriorityTile(x: number, y: number, skipGas = false) {
-    return this.cells[x][y].highestPriorityTile(skipGas);
+  isMoveableNow(x: number, y: number, limitToPlayerKnowledge = false) {
+    return this.cells[x][y].isMoveableNow(limitToPlayerKnowledge);
+  }
+  isWalkableNow(x: number, y: number, limitToPlayerKnowledge = false) {
+    return this.cells[x][y].isWalkableNow(limitToPlayerKnowledge);
+  }
+  canBeWalked(x: number, y: number, limitToPlayerKnowledge = false) {
+    return this.cells[x][y].canBeWalked(limitToPlayerKnowledge);
+  }
+
+  topmostTile(x: number, y: number, skipGas = false) {
+    return this.cells[x][y].topmostTile(skipGas);
   }
 
   tileFlavor(x: number, y: number) {
     return this.cells[x][y].tileFlavor();
   }
 
-  setTile(x: number, y: number, tileId: string | null, volume = 0) {
-    return this.cell(x, y)._setTile(tileId, volume, this);
+  setTile(x: number, y: number, tileId: Tile.Tile | string | null, volume = 0) {
+    return this.cell(x, y).setTile(tileId, volume, this);
   }
 
-  clearLayersWithFlags(
+  clearCell(x: number, y: number) {
+    this.cell(x, y).clear();
+  }
+
+  clearCellLayersWithFlags(
     x: number,
     y: number,
-    tileFlags: number,
-    tileMechFlags = 0
+    tileFlags: TileFlags,
+    tileMechFlags: TileMechFlags = 0
   ) {
     const cell = this.cell(x, y);
     cell.clearLayersWithFlags(tileFlags, tileMechFlags);
@@ -364,8 +417,8 @@ export class Map implements Types.MapType {
     nullSurface = true,
     nullGas = true
   ) {
-    this.changed(true);
-    return this.cell(x, y).nullifyLayers(nullLiquid, nullSurface, nullGas);
+    this.changed = true;
+    return this.cell(x, y).clearLayers(nullLiquid, nullSurface, nullGas);
   }
 
   fill(tileId: string | null, boundaryTile?: string | null) {
@@ -397,9 +450,9 @@ export class Map implements Types.MapType {
     return count;
   }
 
-  passableArcCount(x: number, y: number) {
+  walkableArcCount(x: number, y: number) {
     if (!this.hasXY(x, y)) return -1;
-    return this.cells.arcCount(x, y, (c) => c.isPassableNow());
+    return this.cells.arcCount(x, y, (c) => c.isWalkableNow());
   }
 
   diagonalBlocked(
@@ -412,26 +465,23 @@ export class Map implements Types.MapType {
     if (x1 == x2 || y1 == y2) {
       return false; // If it's not a diagonal, it's not diagonally blocked.
     }
-    const locFlags1 = this.tileFlags(x1, y2, limitToPlayerKnowledge);
-    if (locFlags1 & TileFlags.T_OBSTRUCTS_DIAGONAL_MOVEMENT) {
+    if (this.isObstruction(x1, y2, limitToPlayerKnowledge)) {
       return true;
     }
-    const locFlags2 = this.tileFlags(x2, y1, limitToPlayerKnowledge);
-    if (locFlags2 & TileFlags.T_OBSTRUCTS_DIAGONAL_MOVEMENT) {
+    if (this.isObstruction(x2, y1, limitToPlayerKnowledge)) {
       return true;
     }
     return false;
   }
 
-  fillCostGrid(costGrid: Grid.NumGrid, costFn: MapCostFn) {
-    costFn = costFn || Utils.ONE;
+  fillCostGrid(costGrid: Grid.NumGrid, costFn?: MapCostFn) {
+    costFn =
+      costFn || ((c: Cell.Cell) => (c.isWalkableNow() ? 1 : Path.OBSTRUCTION));
     this.cells.forEach((cell, i, j) => {
-      if (cell.isNull()) {
+      if (cell.isClear()) {
         costGrid[i][j] = Path.OBSTRUCTION;
       } else {
-        costGrid[i][j] = cell.canBePassed()
-          ? costFn(cell, i, j, this)
-          : Path.OBSTRUCTION;
+        costGrid[i][j] = costFn!(cell, i, j, this);
       }
     });
   }
@@ -441,7 +491,7 @@ export class Map implements Types.MapType {
     y: number,
     matcher: MapMatchFn,
     only4dirs = false
-  ) {
+  ): Utils.Loc {
     const maxIndex = only4dirs ? 4 : 8;
     for (let d = 0; d < maxIndex; ++d) {
       const dir = Utils.DIRS[d];
@@ -451,7 +501,7 @@ export class Map implements Types.MapType {
         if (matcher(this.cells[i][j], i, j, this)) return [i, j];
       }
     }
-    return null;
+    return [-1, -1];
   }
 
   // blockingMap is optional
@@ -501,7 +551,7 @@ export class Map implements Types.MapType {
             (!blockingMap || !blockingMap[i][j]) &&
             matcher(cell, i, j, this) &&
             (!forbidLiquid || !cell.liquid) &&
-            (hallwaysAllowed || this.passableArcCount(i, j) < 2)
+            (hallwaysAllowed || this.walkableArcCount(i, j) < 2)
           ) {
             candidateLocs.push([i, j]);
           }
@@ -527,7 +577,9 @@ export class Map implements Types.MapType {
   // no creatures, items or stairs and with either a matching liquid and dungeon type
   // or at least one layer of type terrainType.
   // A dungeon, liquid type of -1 will match anything.
-  randomMatchingLoc(opts: Partial<MapMatchOptions> = {}) {
+  randomMatchingLoc(opts: Partial<MapMatchOptions>): Utils.Loc;
+  randomMatchingLoc(match: MapMatchFn): Utils.Loc;
+  randomMatchingLoc(opts: MapMatchFn | Partial<MapMatchOptions> = {}) {
     let x;
     let y;
     let cell;
@@ -535,6 +587,8 @@ export class Map implements Types.MapType {
     if (typeof opts === "function") {
       opts = { match: opts };
     }
+
+    const sequence = random.sequence(this.width * this.height);
 
     const hallwaysAllowed = opts.hallways || false;
     const blockingMap = opts.blockingMap || null;
@@ -544,15 +598,13 @@ export class Map implements Types.MapType {
     const forbidTileFlags = opts.forbidTileFlags || 0;
     const forbidTileMechFlags = opts.forbidTileMechFlags || 0;
     const tile = opts.tile || null;
-    let tries = opts.tries || 500;
 
-    let retry = true;
-    while (retry) {
-      tries--;
-      if (!tries) break;
-
-      x = random.range(0, this.width - 1);
-      y = random.range(0, this.height - 1);
+    let success = false;
+    let index = 0;
+    while (!success && index < sequence.length) {
+      const v = sequence[index];
+      x = v % this.width;
+      y = Math.floor(v / this.width);
       cell = this.cell(x, y);
 
       if (
@@ -562,16 +614,17 @@ export class Map implements Types.MapType {
         (!forbidCellFlags || !(cell.flags & forbidCellFlags)) &&
         (!forbidTileFlags || !cell.hasTileFlag(forbidTileFlags)) &&
         (!forbidTileMechFlags || !cell.hasTileMechFlag(forbidTileMechFlags)) &&
-        (hallwaysAllowed || this.passableArcCount(x, y) < 2) &&
+        (hallwaysAllowed || this.walkableArcCount(x, y) < 2) &&
         matcher(cell, x, y, this)
       ) {
-        retry = false;
+        success = true;
       }
+      ++index;
     }
 
-    if (!tries) {
+    if (!success) {
       // map.debug('randomMatchingLocation', dungeonType, liquidType, terrainType, ' => FAIL');
-      return false;
+      return [-1, -1];
     }
 
     // map.debug('randomMatchingLocation', dungeonType, liquidType, terrainType, ' => ', x, y);
@@ -580,19 +633,46 @@ export class Map implements Types.MapType {
 
   // LIGHT
 
-  addLight(x: number, y: number, light: Light) {
+  hasVisibleLight(x: number, y: number) {
+    return this.cell(x, y).hasVisibleLight();
+  }
+
+  addStaticLight(x: number, y: number, light: Light) {
     const info: LightInfo = { x, y, light, next: this.lights };
     this.lights = info;
-    this.flags &= ~(Flags.MAP_STABLE_LIGHTS | Flags.MAP_STABLE_GLOW_LIGHTS);
+    this.glowLightChanged = true;
     return info;
   }
 
-  removeLight(info: LightInfo) {
-    Utils.removeFromChain(this, "lights", info);
-    this.flags &= ~(Flags.MAP_STABLE_LIGHTS | Flags.MAP_STABLE_GLOW_LIGHTS);
+  removeStaticLight(x: number, y: number, light?: Light) {
+    let prev = this.lights;
+    if (!prev) return;
+
+    function matches(info: LightInfo) {
+      if (info.x != x || info.y != y) return false;
+      return !light || light === info.light;
+    }
+
+    this.glowLightChanged = true;
+
+    while (prev && matches(prev)) {
+      prev = this.lights = prev.next;
+    }
+
+    if (!prev) return;
+
+    let current = prev.next;
+    while (current) {
+      if (matches(current)) {
+        prev.next = current.next;
+      } else {
+        prev = current;
+      }
+      current = current.next;
+    }
   }
 
-  eachGlowLight(fn: MapLightFn) {
+  eachStaticLight(fn: MapLightFn) {
     Utils.eachChain(this.lights, (info: LightInfo) =>
       fn(info.light, info.x, info.y)
     );
@@ -606,17 +686,17 @@ export class Map implements Types.MapType {
   }
 
   eachDynamicLight(fn: MapLightFn) {
-    Utils.eachChain(this._actors, (actor: any) => {
+    Utils.eachChain(this._actors, (actor: Types.ActorType) => {
       if (actor.light) fn(actor.light, actor.x, actor.y);
     });
   }
 
-  // FX
+  // Layers
 
   addFx(x: number, y: number, anim: Types.FxType) {
     if (!this.hasXY(x, y)) return false;
     const cell = this.cell(x, y);
-    cell.addSprite(anim.sprite, TileLayer.FX);
+    cell.addLayer(anim);
     anim.x = x;
     anim.y = y;
     this.redrawCell(cell);
@@ -627,9 +707,9 @@ export class Map implements Types.MapType {
     if (!this.hasXY(x, y)) return false;
     const cell = this.cell(x, y);
     const oldCell = this.cell(anim.x, anim.y);
-    oldCell.removeSprite(anim.sprite);
+    oldCell.removeLayer(anim);
     this.redrawCell(oldCell);
-    cell.addSprite(anim.sprite, TileLayer.FX);
+    cell.addLayer(anim);
     this.redrawCell(cell);
     anim.x = x;
     anim.y = y;
@@ -638,7 +718,7 @@ export class Map implements Types.MapType {
 
   removeFx(anim: Types.FxType) {
     const oldCell = this.cell(anim.x, anim.y);
-    oldCell.removeSprite(anim.sprite);
+    oldCell.removeLayer(anim);
     this.redrawCell(oldCell);
     this.flags |= Flags.MAP_CHANGED;
     return true;
@@ -661,12 +741,9 @@ export class Map implements Types.MapType {
       return false;
     }
 
-    cell.actor = theActor;
+    cell.actor = theActor; // adjusts the layer
     theActor.next = this._actors;
     this._actors = theActor;
-
-    const layer = theActor === DATA.player ? TileLayer.PLAYER : TileLayer.ACTOR;
-    cell.addSprite(theActor.sprite, layer);
 
     const flag =
       theActor === DATA.player ? CellFlags.HAS_PLAYER : CellFlags.HAS_MONSTER;
@@ -677,7 +754,7 @@ export class Map implements Types.MapType {
     // }
 
     if (theActor.light) {
-      this.flags &= ~Flags.MAP_STABLE_LIGHTS;
+      this.lightChanged = true;
     }
 
     // If the player moves or an actor that blocks vision and the cell is visible...
@@ -698,7 +775,7 @@ export class Map implements Types.MapType {
 
   addActorNear(x: number, y: number, theActor: Types.ActorType) {
     const loc = this.matchingLocNear(x, y, (cell) => {
-      return theActor.avoidsCell(cell);
+      return !theActor.avoidsCell(cell);
     });
     if (!loc || loc[0] < 0) {
       // GW.ui.message(colors.badMessageColor, 'There is no place to put the actor.');
@@ -717,7 +794,7 @@ export class Map implements Types.MapType {
       return false;
     }
     if (actor.light) {
-      this.flags &= ~Flags.MAP_STABLE_LIGHTS;
+      this.lightChanged = true;
     }
 
     return true;
@@ -729,11 +806,9 @@ export class Map implements Types.MapType {
     if (cell.actor === actor) {
       cell.actor = null;
       Utils.removeFromChain(this, "actors", actor);
-      cell.flags &= ~CellFlags.HAS_ACTOR;
-      cell.removeSprite(actor.sprite);
 
       if (actor.light) {
-        this.flags &= ~Flags.MAP_STABLE_LIGHTS;
+        this.lightChanged = true;
       }
       // If the player moves or an actor that blocks vision and the cell is visible...
       // -- we need to update the FOV
@@ -792,22 +867,19 @@ export class Map implements Types.MapType {
   addItem(x: number, y: number, theItem: Types.ItemType) {
     if (!this.hasXY(x, y)) return false;
     const cell = this.cell(x, y);
-    if (cell.flags & CellFlags.HAS_ITEM) {
+    if (cell.item) {
       // GW.ui.message(colors.badMessageColor, 'There is already an item there.');
       return false;
     }
     theItem.x = x;
     theItem.y = y;
 
-    cell.item = theItem;
+    cell.item = theItem; // adjusts the layers
     theItem.next = this._items;
     this._items = theItem;
 
-    cell.addSprite(theItem.sprite, TileLayer.ITEM);
-    cell.flags |= CellFlags.HAS_ITEM;
-
     if (theItem.light) {
-      this.flags &= ~Flags.MAP_STABLE_LIGHTS;
+      this.lightChanged = true;
     }
 
     this.redrawCell(cell);
@@ -821,7 +893,7 @@ export class Map implements Types.MapType {
 
   addItemNear(x: number, y: number, theItem: Types.ItemType) {
     const loc = this.matchingLocNear(x, y, (cell) => {
-      return theItem.forbidsCell(cell);
+      return !theItem.forbidsCell(cell);
     });
     if (!loc || loc[0] < 0) {
       // GW.ui.message(colors.badMessageColor, 'There is no place to put the item.');
@@ -838,13 +910,11 @@ export class Map implements Types.MapType {
     const cell = this.cell(x, y);
     if (cell.item !== theItem) return false;
 
-    cell.removeSprite(theItem.sprite);
-
     cell.item = null;
     Utils.removeFromChain(this, "items", theItem);
 
     if (theItem.light) {
-      this.flags &= ~Flags.MAP_STABLE_LIGHTS;
+      this.lightChanged = true;
     }
 
     cell.flags &= ~(CellFlags.HAS_ITEM | CellFlags.ITEM_DETECTED);
@@ -865,7 +935,7 @@ export class Map implements Types.MapType {
   // 	}
   // }
 
-  gridDisruptsPassability(
+  gridDisruptsWalkability(
     blockingGrid: Grid.NumGrid,
     opts: Partial<DisruptsOptions> = {}
   ) {
@@ -874,31 +944,24 @@ export class Map implements Types.MapType {
 
     const gridOffsetX = opts.gridOffsetX || 0;
     const gridOffsetY = opts.gridOffsetY || 0;
-    const bounds = opts.bounds || null;
+    const bounds = opts.bounds || null; // TODO - Where is this used ???
 
     // Get all walkable locations after lake added
     this.cells.forEach((cell, i, j) => {
       if (bounds && !bounds.contains(i, j)) return; // outside bounds
       const blockingX = i + gridOffsetX;
       const blockingY = j + gridOffsetY;
-      if (cell.isNull()) {
-        return; // do nothing
-      } else if (cell.canBePassed()) {
-        if (
-          blockingGrid.hasXY(blockingX, blockingY) &&
-          blockingGrid[blockingX][blockingY]
-        )
-          return;
-        walkableGrid[i][j] = 1;
+      if (cell.isClear()) {
+        return; // not walkable
       } else if (cell.hasTileFlag(TileFlags.T_HAS_STAIRS)) {
-        if (
-          blockingGrid.hasXY(blockingX, blockingY) &&
-          blockingGrid[blockingX][blockingY]
-        ) {
+        if (blockingGrid.get(blockingX, blockingY)) {
           disrupts = true;
         } else {
           walkableGrid[i][j] = 1;
         }
+      } else if (cell.canBeWalked()) {
+        if (blockingGrid.get(blockingX, blockingY)) return;
+        walkableGrid[i][j] = 1;
       }
     });
 
@@ -934,7 +997,7 @@ export class Map implements Types.MapType {
     y: number,
     maxRadius: number,
     forbiddenCellFlags = 0,
-    forbiddenTileFlags = TileFlags.T_OBSTRUCTS_VISION
+    forbiddenLayerFlags = LayerFlags.L_BLOCKS_VISION
   ) {
     maxRadius = maxRadius || this.width + this.height;
     grid.fill(0);
@@ -944,7 +1007,7 @@ export class Map implements Types.MapType {
         return !!(
           !grid.hasXY(i, j) ||
           map.hasCellFlag(i, j, forbiddenCellFlags) ||
-          map.hasTileFlag(i, j, forbiddenTileFlags)
+          map.hasLayerFlag(i, j, forbiddenLayerFlags)
         );
       },
       calcRadius(x: number, y: number) {
@@ -961,8 +1024,9 @@ export class Map implements Types.MapType {
   }
 
   losFromTo(a: Utils.XY, b: Utils.XY) {
+    if (Utils.equalsXY(a, b)) return true;
     const line = Utils.getLine(a.x, a.y, b.x, b.y);
-    if (!line || !line.length) return false;
+    if (!line.length) return false;
 
     return !line.some((loc) => {
       return this.blocksVision(loc[0], loc[1]);
@@ -994,12 +1058,7 @@ export class Map implements Types.MapType {
 
   async tick() {
     // map.debug("tick");
-    this.forEach(
-      (c) =>
-        (c.mechFlags &= ~(
-          CellMechFlags.EVENT_FIRED_THIS_TURN | CellMechFlags.EVENT_PROTECTED
-        ))
-    );
+    this.resetCellEvents();
     for (let x = 0; x < this.width; ++x) {
       for (let y = 0; y < this.height; ++y) {
         const cell = this.cells[x][y];
@@ -1007,9 +1066,10 @@ export class Map implements Types.MapType {
       }
     }
     updateLiquid(this);
+    updateGas(this);
   }
 
-  resetEvents() {
+  resetCellEvents() {
     this.forEach(
       (c) =>
         (c.mechFlags &= ~(
@@ -1043,6 +1103,13 @@ export function make(w: number, h: number, opts: any = {}, wall?: string) {
 
 Make.map = make;
 
+if (!COLORS.cursor) {
+  Color.install("cursor", COLORS.yellow);
+}
+if (!COLORS.path) {
+  Color.install("path", COLORS.gold);
+}
+
 export function getCellAppearance(
   map: Map,
   x: number,
@@ -1058,14 +1125,15 @@ export function getCellAppearance(
     cell.flags & (CellFlags.CELL_CHANGED | CellFlags.NEEDS_REDRAW)
   ) {
     Cell.getAppearance(cell, dest);
-  } else if (cell.isRevealed()) {
+  } else {
+    // if (cell.isRevealed()) {
     dest.drawSprite(cell.memory.mixer);
   }
 
   if (cell.isVisible()) {
     // keep here to allow for games that do not use fov to work
   } else if (!cell.isRevealed()) {
-    dest.blackOut();
+    if (!cell.isAnyKindOfVisible()) dest.blackOut();
   } else if (!cell.isAnyKindOfVisible()) {
     dest.bg.mix(COLORS.black, 30);
     dest.fg.mix(COLORS.black, 30);
@@ -1074,7 +1142,7 @@ export function getCellAppearance(
   let needDistinctness = false;
   if (cell.flags & (CellFlags.IS_CURSOR | CellFlags.IS_IN_PATH)) {
     const highlight =
-      cell.flags & CellFlags.IS_CURSOR ? COLORS.cursorColor : COLORS.yellow;
+      cell.flags & CellFlags.IS_CURSOR ? COLORS.cursor : COLORS.path;
     if (cell.hasTileMechFlag(TileMechFlags.TM_INVERT_WHEN_HIGHLIGHTED)) {
       Color.swap(dest.fg, dest.bg);
     } else {
@@ -1098,14 +1166,20 @@ export function addText(
   x: number,
   y: number,
   text: string,
-  fg: Color.ColorBase,
-  bg: Color.ColorBase,
+  fg: Color.ColorBase | null,
+  bg: Color.ColorBase | null,
   layer?: TileLayer
 ) {
   for (let ch of text) {
-    const sprite = Canvas.makeSprite(ch, fg, bg);
+    const sprite = Layer.make({
+      ch,
+      fg,
+      bg,
+      depth: layer || TileLayer.GROUND,
+      priority: 200,
+    }); // on top of ground tiles
     const cell = map.cell(x++, y);
-    cell.addSprite(sprite, layer || TileLayer.GROUND);
+    cell.addLayer(sprite);
   }
 }
 
@@ -1115,27 +1189,28 @@ export function updateGas(map: Map) {
   const newVolume = Grid.alloc(map.width, map.height);
 
   map.forEach((c, x, y) => {
-    if (c.hasTileFlag(TileFlags.T_OBSTRUCTS_GAS)) return;
+    if (c.hasLayerFlag(LayerFlags.L_BLOCKS_GAS)) return;
 
-    let gas = c.gas;
+    let gas = c.gasTile;
     let highest = c.gasVolume;
-    let sum = c.gasVolume;
+    let sum = c.gasVolume || 0;
     let count = 1;
-    map.eachNeighbor(x, y, (n) => {
-      if (n.hasTileFlag(TileFlags.T_OBSTRUCTS_GAS)) return;
+
+    map.eachNeighbor(x, y, (n, _i, _j) => {
+      if (n.hasLayerFlag(LayerFlags.L_BLOCKS_GAS)) return;
       ++count;
       sum += n.gasVolume;
       if (n.gasVolume > highest) {
-        gas = n.gas;
+        gas = n.gasTile;
         highest = n.gasVolume;
       }
     });
 
-    if (!sum) return;
+    if (sum <= 0) return;
 
     const newVol = Math.floor(sum / count);
-    if (c.gas != gas) {
-      c._setTile(gas, newVol, map); // volume = 1 to start, will change later
+    if (c.gasTile != gas) {
+      c.setTile(gas, 0, map); // volume = 0 to start, will change later
     }
     newVolume[x][y] += newVol;
 
@@ -1143,16 +1218,27 @@ export function updateGas(map: Map) {
     if (rem && random.number(count) < rem) {
       newVolume[x][y] += 1;
     }
+
     // disperses
-    // if (newVolume[x][y] && random.chance(20)) {
-    // 	newVolume[x][y] -= 1;
-    // }
+    if (newVolume[x][y] > 0 && gas.dissipate) {
+      if (gas.dissipate > 10000) {
+        newVolume[x][y] -= Math.floor(gas.dissipate / 10000);
+        if (random.chance(gas.dissipate % 10000, 10000)) {
+          newVolume[x][y] -= 1;
+        }
+      } else if (random.chance(gas.dissipate, 10000)) {
+        newVolume[x][y] -= 1;
+        // console.log("dissipate", reduce, x, y, newVolume[x][y]);
+      }
+    }
   });
+
+  // newVolume.dump();
 
   let hasGas = false;
   newVolume.forEach((v, i, j) => {
     const cell = map.cell(i, j);
-    if (v) {
+    if (v > 0) {
       hasGas = true;
       if (cell.gas && cell.gasVolume !== v) {
         cell.gasVolume = v;
@@ -1169,7 +1255,7 @@ export function updateGas(map: Map) {
   } else {
     map.flags |= Flags.MAP_NO_GAS;
   }
-  map.changed(true);
+  map.changed = true;
 
   Grid.free(newVolume);
 }
@@ -1180,52 +1266,56 @@ export function updateLiquid(map: Map) {
   const newVolume = Grid.alloc(map.width, map.height);
 
   map.forEach((c, x, y) => {
-    if (c.hasTileFlag(TileFlags.T_OBSTRUCTS_LIQUID)) return;
+    if (c.hasLayerFlag(LayerFlags.L_BLOCKS_LIQUID)) return;
 
-    let liquid = c.liquid;
+    let liquid = c.liquidTile;
     let highest = c.liquidVolume;
+    let sum = c.liquidVolume || 0;
     let count = 1;
 
-    map.eachNeighbor(x, y, (n) => {
-      if (n.hasTileFlag(TileFlags.T_OBSTRUCTS_LIQUID)) return;
+    map.eachNeighbor(x, y, (n, _i, _j) => {
+      if (n.hasLayerFlag(LayerFlags.L_BLOCKS_LIQUID)) return;
       ++count;
+      sum += n.liquidVolume;
       if (n.liquidVolume > highest) {
-        liquid = n.liquid;
+        liquid = n.liquidTile;
         highest = n.liquidVolume;
       }
     });
 
-    let newVol = c.liquidVolume;
-    if (newVol > 10 && count > 1) {
-      let spread = Math.round(0.2 * c.liquidVolume);
-      if (spread > 5) {
-        newVol -= spread;
-        if (c.liquid != liquid) {
-          c._setTile(liquid, newVol, map); // volume = 1 to start, will change later
-        }
+    if (sum <= 0) return;
 
-        // spread = Math.floor(spread / count);
-        if (spread) {
-          newVolume.eachNeighbor(x, y, (v, i, j) => {
-            newVolume[i][j] = v + spread;
-          });
-        }
-      }
+    const newVol = Math.floor(sum / count);
+    if (c.liquidTile != liquid) {
+      c.setTile(liquid, 0, map); // volume = 0 to start, will change later
     }
-
     newVolume[x][y] += newVol;
 
+    const rem = sum - count * Math.floor(sum / count);
+    if (rem && random.number(count) < rem) {
+      newVolume[x][y] += 1;
+    }
+
     // disperses
-    const tile = c.liquidTile;
-    if (newVolume[x][y] > 0 && random.chance(tile.dissipate, 10000)) {
-      newVolume[x][y] -= 1;
+    if (newVolume[x][y] > 0 && liquid.dissipate) {
+      if (liquid.dissipate > 10000) {
+        newVolume[x][y] -= Math.floor(liquid.dissipate / 10000);
+        if (random.chance(liquid.dissipate % 10000, 10000)) {
+          newVolume[x][y] -= 1;
+        }
+      } else if (random.chance(liquid.dissipate, 10000)) {
+        newVolume[x][y] -= 1;
+        // console.log("dissipate", reduce, x, y, newVolume[x][y]);
+      }
     }
   });
+
+  // newVolume.dump();
 
   let hasLiquid = false;
   newVolume.forEach((v, i, j) => {
     const cell = map.cell(i, j);
-    if (v) {
+    if (v > 0) {
       hasLiquid = true;
       if (cell.liquid && cell.liquidVolume !== v) {
         cell.liquidVolume = v;
@@ -1242,8 +1332,7 @@ export function updateLiquid(map: Map) {
   } else {
     map.flags |= Flags.MAP_NO_LIQUID;
   }
-
-  map.changed(true);
+  map.changed = true;
 
   Grid.free(newVolume);
 }

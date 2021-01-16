@@ -1,4 +1,4 @@
-export declare enum Layer {
+export declare enum Depth {
     ALL_LAYERS = -1,
     GROUND = 0,
     LIQUID = 1,
@@ -9,6 +9,26 @@ export declare enum Layer {
     PLAYER = 6,
     FX = 7,
     UI = 8
+}
+export declare enum Layer {
+    L_DYNAMIC,
+    L_SUPERPRIORITY,
+    L_SECRETLY_PASSABLE,
+    L_BLOCKS_MOVE,
+    L_BLOCKS_VISION,
+    L_BLOCKS_SURFACE,
+    L_BLOCKS_LIQUID,
+    L_BLOCKS_GAS,
+    L_BLOCKS_ITEMS,
+    L_BLOCKS_ACTORS,
+    L_BLOCKS_EFFECTS,
+    L_BLOCKS_DIAGONAL,
+    L_BLOCKED_BY_STAIRS,
+    L_BLOCKS_SCENT,
+    L_DIVIDES_LEVEL,
+    L_WAYPOINT_BLOCKER,
+    L_IS_WALL,
+    L_BLOCKS_EVERYTHING
 }
 export declare enum Activation {
     DFF_SUBSEQ_ALWAYS,
@@ -45,14 +65,6 @@ export declare enum Tile {
     T_LIQUID,
     T_SURFACE,
     T_GAS,
-    T_OBSTRUCTS_PASSABILITY,
-    T_OBSTRUCTS_VISION,
-    T_OBSTRUCTS_ITEMS,
-    T_OBSTRUCTS_SURFACE,
-    T_OBSTRUCTS_GAS,
-    T_OBSTRUCTS_LIQUID,
-    T_OBSTRUCTS_TILE_EFFECTS,
-    T_OBSTRUCTS_DIAGONAL_MOVEMENT,
     T_BRIDGE,
     T_AUTO_DESCENT,
     T_LAVA,
@@ -75,9 +87,7 @@ export declare enum Tile {
     T_WAYPOINT_BLOCKER,
     T_MOVES_ITEMS,
     T_CAN_BE_BRIDGED,
-    T_OBSTRUCTS_EVERYTHING,
-    T_IS_LIQUID,
-    T_STAIR_BLOCKERS
+    T_IS_DEEP_LIQUID
 }
 export declare enum TileMech {
     TM_IS_SECRET,

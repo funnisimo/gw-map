@@ -25,7 +25,7 @@ export class Light {
     // Returns true if any part of the light hit cells that are in the player's field of view.
     paint(map, x, y, maintainShadows = false, isMinersLight = false) {
         if (!map)
-            return;
+            return false;
         let k;
         // let colorComponents = [0,0,0];
         let lightMultiplier;
@@ -41,7 +41,7 @@ export class Light {
             intensity(LIGHT_COMPONENTS) > config.INTENSITY_DARK;
         const fadeToPercent = this.fadeTo;
         const grid = Grid.alloc(map.width, map.height, 0);
-        map.calcFov(grid, x, y, outerRadius, this.passThroughActors ? 0 : Flags.Cell.HAS_ACTOR, Flags.Tile.T_OBSTRUCTS_VISION);
+        map.calcFov(grid, x, y, outerRadius, this.passThroughActors ? 0 : Flags.Cell.HAS_ACTOR, Flags.Layer.L_BLOCKS_VISION);
         let overlappedFieldOfView = false;
         grid.forCircle(x, y, outerRadius, (v, i, j) => {
             if (!v)
@@ -142,7 +142,7 @@ function updateDisplayDetail(map) {
         // clear light flags
         cell.flags &= ~(Flags.Cell.CELL_LIT | Flags.Cell.CELL_DARK);
         if (cell.light.some((v, i) => v !== cell.oldLight[i])) {
-            cell.flags |= Flags.Cell.LIGHT_CHANGED;
+            cell.lightChanged = true;
         }
         if (cell.isDark()) {
             cell.flags |= Flags.Cell.CELL_DARK;
@@ -152,28 +152,28 @@ function updateDisplayDetail(map) {
         }
     });
 }
-export function backUpLighting(map, lights) {
-    let k;
-    map.eachCell((cell, i, j) => {
-        for (k = 0; k < 3; k++) {
-            lights[i][j][k] = cell.light[k];
-        }
-    });
-}
-export function restoreLighting(map, lights) {
-    let k;
-    map.eachCell((cell, i, j) => {
-        for (k = 0; k < 3; k++) {
-            cell.light[k] = lights[i][j][k];
-        }
-    });
-}
+// export function backUpLighting(map: Map.Map, lights: LightDataGrid) {
+//   let k;
+//   map.eachCell((cell, i, j) => {
+//     for (k = 0; k < 3; k++) {
+//       lights[i][j][k] = cell.light[k];
+//     }
+//   });
+// }
+// export function restoreLighting(map: Map.Map, lights: LightDataGrid) {
+//   let k;
+//   map.eachCell((cell, i, j) => {
+//     for (k = 0; k < 3; k++) {
+//       cell.light[k] = lights[i][j][k];
+//     }
+//   });
+// }
 export function recordOldLights(map) {
     let k;
     map.eachCell((cell) => {
         for (k = 0; k < 3; k++) {
             cell.oldLight[k] = cell.light[k];
-            cell.flags &= ~Flags.Cell.LIGHT_CHANGED;
+            cell.lightChanged = false;
         }
     });
 }
@@ -206,24 +206,24 @@ export function restoreGlowLights(map) {
 export function updateLighting(map) {
     // Copy Light over oldLight
     recordOldLights(map);
-    if (map.flags & Flags.Map.MAP_STABLE_LIGHTS)
+    if (!map.lightChanged)
         return false;
     // and then zero out Light.
     zeroOutLights(map);
-    if (map.flags & Flags.Map.MAP_STABLE_GLOW_LIGHTS) {
+    if (!map.glowLightChanged) {
         restoreGlowLights(map);
     }
     else {
         // GW.debug.log('painting glow lights.');
         // Paint all glowing tiles.
-        map.eachGlowLight((light, x, y) => {
+        map.eachStaticLight((light, x, y) => {
             //   const light = lights[id];
             if (light) {
                 light.paint(map, x, y);
             }
         });
         recordGlowLights(map);
-        map.setFlag(Flags.Map.MAP_STABLE_GLOW_LIGHTS);
+        map.glowLightChanged = false;
     }
     // Cycle through monsters and paint their lights:
     map.eachDynamicLight((light, x, y) => {
@@ -248,12 +248,12 @@ export function updateLighting(map) {
     // Miner's light:
     const PLAYER = DATA.player;
     if (PLAYER) {
-        const MINERS_LIGHT = lights.MINERS_LIGHT;
-        if (MINERS_LIGHT && MINERS_LIGHT.radius) {
-            MINERS_LIGHT.paint(map, PLAYER.x, PLAYER.y, true, true);
+        const PLAYERS_LIGHT = lights.PLAYERS_LIGHT;
+        if (PLAYERS_LIGHT && PLAYERS_LIGHT.radius) {
+            PLAYERS_LIGHT.paint(map, PLAYER.x, PLAYER.y, true, true);
         }
     }
-    map.setFlag(Flags.Map.MAP_STABLE_LIGHTS);
+    map.lightChanged = false;
     // if (PLAYER.status.invisible) {
     //     PLAYER.info.foreColor = playerInvisibleColor;
     // } else if (playerInDarkness()) {
@@ -265,10 +265,13 @@ export function updateLighting(map) {
     // }
     return true;
 }
-// TODO - Move and make more generic
+// TODO - Move?
 export function playerInDarkness(map, PLAYER, darkColor) {
     const cell = map.cell(PLAYER.x, PLAYER.y);
-    return (cell.light[0] + 10 < darkColor.r &&
-        cell.light[1] + 10 < darkColor.g &&
-        cell.light[2] + 10 < darkColor.b);
+    return cell.isDark(darkColor);
+    // return (
+    //   cell.light[0] + 10 < darkColor.r &&
+    //   cell.light[1] + 10 < darkColor.g &&
+    //   cell.light[2] + 10 < darkColor.b
+    // );
 }

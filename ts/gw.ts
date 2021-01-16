@@ -1,3 +1,4 @@
+export * as layer from "./layer";
 export * as tile from "./tile";
 export * as light from "./light";
 export * as cell from "./cell";

@@ -7,6 +7,11 @@ export declare class TileEvent {
     tile: string | null;
     fn: Function | null;
     item: string | null;
+    message: string | null;
+    lightFlare: string | null;
+    flashColor: Color.Color | null;
+    messageDisplayed: boolean;
+    emit: string | null;
     chance: number;
     volume: number;
     spread: number;
@@ -15,11 +20,6 @@ export declare class TileEvent {
     flags: number;
     matchTile: string | null;
     next: string | null;
-    message: string | null;
-    lightFlare: string | null;
-    flashColor: Color.Color | null;
-    messageDisplayed: boolean;
-    emit: string | null;
     id: string | null;
     constructor(opts?: any);
 }

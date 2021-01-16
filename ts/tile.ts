@@ -2,16 +2,15 @@ import {
   flag as Flag,
   utils as Utils,
   color as Color,
-  canvas as Canvas,
   types as Types,
   make as Make,
 } from "gw-utils";
 
-import { Tile as Flags, TileMech as MechFlags, Layer } from "./flags";
+import { Tile as Flags, TileMech as MechFlags } from "./flags";
 import * as TileEvent from "./tileEvent";
-import * as Light from "./light";
+import * as Layer from "./layer";
 
-export { Flags, MechFlags, Layer };
+export { Flags, MechFlags };
 
 export interface NameConfig {
   article?: boolean | string;
@@ -20,27 +19,20 @@ export interface NameConfig {
 
 export type TileBase = TileConfig | string;
 
-export interface FullTileConfig {
+export interface FullTileConfig extends Layer.LayerConfig {
   Extends: string | Tile;
 
   flags: number | string | any[];
   mechFlags: number | string | any[];
-  layer: Layer | keyof typeof Layer;
   priority: number;
 
   activates: any;
-  light: Light.LightBase | null;
 
   flavor: string;
   desc: string;
   name: string;
   article: string;
   id: string;
-
-  ch: string | null;
-  fg: Color.ColorBase | null;
-  bg: Color.ColorBase | null;
-  opacity: number;
 
   dissipate: number; // 20 * 100 = 20%
 }
@@ -50,16 +42,11 @@ declare type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>;
 export type TileConfig = AtLeast<FullTileConfig, "id">;
 
 /** Tile Class */
-export class Tile implements Types.TileType {
+export class Tile extends Layer.Layer implements Types.TileType {
   public name: string;
-  public flags = 0;
-  public mechFlags = 0;
-  public layer: Layer = Layer.GROUND;
-  public priority = -1;
-  public sprite: Canvas.Sprite;
+  public flags: Types.TileFlags = { layer: 0, tile: 0, tileMech: 0 };
 
   public activates: Record<string, TileEvent.TileEvent> = {};
-  public light: Light.Light | null = null; // TODO - Light
 
   public flavor: string | null = null;
   public desc: string | null = null;
@@ -77,19 +64,46 @@ export class Tile implements Types.TileType {
    * @param {String} [config.fg] - The sprite foreground color
    * @param {String} [config.bg] - The sprite background color
    */
-  constructor(config: TileConfig, base?: Tile) {
+  constructor(config: TileConfig) {
+    super(
+      (() => {
+        if (!config.Extends) return config;
+
+        if (typeof config.Extends === "string") {
+          config.Extends = tiles[config.Extends];
+          if (!config.Extends)
+            throw new Error("Unknown tile base - " + config.Extends);
+        }
+        const base = config.Extends;
+
+        config.ch = Utils.first(config.ch, base.sprite.ch, -1);
+        config.fg = Utils.first(config.fg, base.sprite.fg, -1);
+        config.bg = Utils.first(config.bg, base.sprite.bg, -1);
+        config.depth = Utils.first(config.depth, base.depth);
+        config.priority = Utils.first(config.priority, base.priority);
+        config.opacity = Utils.first(config.opacity, base.sprite.opacity);
+
+        return config;
+      })()
+    );
+    let base: Tile = config.Extends as Tile;
     if (base) {
       Utils.assignOmitting(
-        ["activates", "ch", "fg", "bg", "opacity"],
+        ["sprite", "depth", "priority", "activates", "flags"],
         this,
         base
       );
+      if (base.activates) {
+        Object.assign(this.activates, base.activates);
+      }
+      Object.assign(this.flags, base.flags);
     }
     Utils.assignOmitting(
       [
         "Extends",
         "extends",
         "flags",
+        "layerFlags",
         "mechFlags",
         "sprite",
         "activates",
@@ -98,6 +112,9 @@ export class Tile implements Types.TileType {
         "bg",
         "opacity",
         "light",
+        "depth",
+        "priority",
+        "flags",
       ],
       this,
       config
@@ -105,37 +122,21 @@ export class Tile implements Types.TileType {
     this.name = config.name || (base ? base.name : config.id);
     this.id = config.id;
 
-    this.sprite = new Canvas.Sprite(
-      Utils.first(config.ch, base ? base.sprite.ch : -1),
-      Utils.first(config.fg, base ? base.sprite.fg : -1),
-      Utils.first(config.bg, base ? base.sprite.bg : -1),
-      Utils.first(config.opacity, base ? base.sprite.opacity : 100)
+    // @ts-ignore
+    this.flags.tile = Flag.from(Flags, this.flags.tile, config.flags);
+    // @ts-ignore
+    this.flags.layer = Flag.from(
+      Layer.Flags,
+      this.flags.layer,
+      config.layerFlags || config.flags
     );
-
-    this.layer = this.layer || Layer.GROUND;
-    if (typeof this.layer === "string") {
-      this.layer = Layer[this.layer as keyof typeof Layer];
-    }
-
-    if (this.priority < 0) {
-      this.priority = 50;
-    }
-
-    this.flags = Flag.from(Flags, this.flags, config.flags);
-    this.mechFlags = Flag.from(
+    // @ts-ignore
+    this.flags.tileMech = Flag.from(
       MechFlags,
-      this.mechFlags,
+      this.flags.tileMech,
       config.mechFlags || config.flags
     );
 
-    if (config.light) {
-      // Light.from will throw an Error on invalid config
-      this.light = Light.from(config.light);
-    }
-
-    if (base && base.activates) {
-      Object.assign(this.activates, base.activates);
-    }
     if (config.activates) {
       Object.entries(config.activates).forEach(([key, info]) => {
         if (info) {
@@ -149,39 +150,28 @@ export class Tile implements Types.TileType {
   }
 
   /**
-   * Returns the flags for the tile after the given event is fired.
-   * @param {string} id - Name of the event to fire.
-   * @returns {number} The flags from the Tile after the event.
-   */
-  successorFlags(id: string): number {
-    const e = this.activates[id];
-    if (!e) return 0;
-    const tileId = e.tile;
-    if (!tileId) return 0;
-    const tile = tiles[tileId];
-    if (!tile) return 0;
-    return tile.flags;
-  }
-
-  /**
    * Returns whether or not this tile as the given flag.
    * Will return true if any bit in the flag is true, so testing with
    * multiple flags will return true if any of them is set.
    * @param {number} flag - The flag to check
    * @returns {boolean} Whether or not the flag is set
    */
-  hasFlag(flag: number): boolean {
-    return (this.flags & flag) > 0;
+  hasAllFlags(flag: number): boolean {
+    return (this.flags.tile & flag) === flag;
   }
 
-  hasMechFlag(flag: number) {
-    return (this.mechFlags & flag) > 0;
+  hasAllLayerFlags(flag: number) {
+    return (this.flags.layer & flag) === flag;
   }
 
-  hasFlags(flags: number, mechFlags: number) {
+  hasAllMechFlags(flag: number) {
+    return (this.flags.tileMech & flag) === flag;
+  }
+
+  blocksPathing() {
     return (
-      (!flags || this.flags & flags) &&
-      (!mechFlags || this.mechFlags & mechFlags)
+      this.flags.layer & Layer.Flags.L_BLOCKS_MOVE ||
+      this.flags.tile & Flags.T_PATHING_BLOCKER
     );
   }
 
@@ -209,7 +199,7 @@ export class Tile implements Types.TileType {
     if (opts.color) {
       let color: Color.ColorBase = opts.color as Color.ColorBase;
       if (opts.color === true) {
-        color = this.sprite.fg;
+        color = this.sprite.fg || "white";
       }
       if (typeof color !== "string") {
         color = Color.from(color).toString();
@@ -272,7 +262,7 @@ export function install(
   config: Partial<TileConfig>
 ): Tile;
 export function install(id: string, config: Partial<TileConfig>): Tile;
-export function install(config: Partial<TileConfig>): Tile;
+export function install(config: TileConfig): Tile;
 export function install(...args: any[]) {
   let id = args[0];
   let base = args[1];
@@ -280,20 +270,19 @@ export function install(...args: any[]) {
 
   if (arguments.length == 1) {
     config = args[0];
-    base = config.Extends || null;
+    config.Extends = config.Extends || null;
     id = config.id;
   } else if (arguments.length == 2) {
     config = base;
-    base = config.Extends || config.extends || null;
   }
 
   if (typeof base === "string") {
-    base = tiles[base] || Utils.ERROR("Unknown base tile: " + base);
+    config.Extends = tiles[base] || Utils.ERROR("Unknown base tile: " + base);
   }
 
   // config.name = config.name || base.name || id.toLowerCase();
   config.id = id;
-  const tile = new Tile(config, base);
+  const tile = make(config);
   tiles[id] = tile;
   return tile;
 }

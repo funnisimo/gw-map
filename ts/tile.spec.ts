@@ -4,12 +4,11 @@ import { colors as COLORS } from "gw-utils";
 
 describe("flags", () => {
   test("flags", () => {
-    const flags = Map.tile.Flags;
+    expect(Map.tile.Flags.T_BRIDGE).toBeGreaterThan(0);
 
-    expect(flags.T_BRIDGE).toBeGreaterThan(0);
-
-    let f = flags.T_OBSTRUCTS_EVERYTHING;
-    expect(f & flags.T_OBSTRUCTS_VISION).toBeTruthy();
+    const LayerFlags = Map.layer.Flags;
+    let f = LayerFlags.L_BLOCKS_EVERYTHING;
+    expect(f & LayerFlags.L_BLOCKS_VISION).toBeTruthy();
   });
 
   test("mechFlags", () => {
@@ -30,20 +29,20 @@ describe("Tile", () => {
       ch: "#",
       fg: "light_gray",
       bg: "dark_gray",
-      flags: ["T_OBSTRUCTS_EVERYTHING"],
+      flags: ["L_BLOCKS_EVERYTHING"],
       priority: 90,
     });
 
     expect(tile).toBeDefined();
 
-    expect(tile.flags).toEqual(Map.tile.Flags.T_OBSTRUCTS_EVERYTHING);
-    expect(tile.mechFlags).toEqual(0);
+    expect(tile.flags.layer).toEqual(Map.layer.Flags.L_BLOCKS_EVERYTHING);
+    expect(tile.flags.tileMech).toEqual(0);
     expect(tile.sprite).toMatchObject({
       ch: "#",
       fg: COLORS.light_gray,
       bg: COLORS.dark_gray,
     });
-    expect(tile.layer).toEqual(Map.tile.Layer.GROUND);
+    expect(tile.depth).toEqual(Map.layer.Depth.GROUND);
     expect(tile.activates).toEqual({});
     expect(tile.priority).toEqual(90);
     expect(tile.name).toEqual("Stone Wall");
@@ -102,30 +101,27 @@ describe("Tile", () => {
       ch: "#",
       fg: "light_gray",
       bg: "dark_gray",
-      flags: ["T_OBSTRUCTS_EVERYTHING"],
+      flags: ["L_BLOCKS_EVERYTHING"],
       priority: 90,
     });
 
     expect(wall).toBeDefined();
 
-    const glassWall = new Map.tile.Tile(
-      {
-        id: "GLASS_WALL",
-        name: "Glass Wall",
-        ch: "+",
-        fg: "teal",
-        flags: ["!T_OBSTRUCTS_VISION"],
-      },
-      wall
-    );
+    const glassWall = new Map.tile.Tile({
+      id: "GLASS_WALL",
+      name: "Glass Wall",
+      ch: "+",
+      fg: "teal",
+      flags: ["!L_BLOCKS_VISION"],
+      Extends: wall,
+    });
 
     expect(glassWall).toBeDefined();
 
-    expect(glassWall.flags).not.toEqual(wall.flags);
-    expect(glassWall.flags & Map.tile.Flags.T_OBSTRUCTS_VISION).toBeFalsy();
-    expect(
-      glassWall.flags & Map.tile.Flags.T_OBSTRUCTS_PASSABILITY
-    ).toBeTruthy();
+    expect(glassWall.flags.layer).not.toEqual(wall.flags);
+    expect(glassWall.flags.layer & Map.layer.Flags.L_BLOCKS_VISION).toBeFalsy();
+    expect(glassWall.flags.layer & Map.layer.Flags.L_BLOCKS_MOVE).toBeTruthy();
+    expect(glassWall.flags.tile).toEqual(wall.flags.tile);
     expect(glassWall).not.toBe(wall);
     expect(glassWall.sprite).toMatchObject({
       ch: "+",
@@ -143,7 +139,7 @@ describe("Tile", () => {
         ch: "#",
         fg: "light_gray",
         bg: "dark_gray",
-        flags: ["T_OBSTRUCTS_EVERYTHING"],
+        flags: ["L_BLOCKS_EVERYTHING"],
         priority: 90,
       },
       GLASS_WALL: {
@@ -151,18 +147,20 @@ describe("Tile", () => {
         name: "Glass Wall",
         fg: "teal",
         bg: "silver",
-        flags: ["!T_OBSTRUCTS_VISION"],
+        flags: ["!L_BLOCKS_VISION"],
       },
     });
 
     expect(Map.tiles.WALL.getName()).toEqual("Stone Wall");
-    expect(Map.tiles.WALL.flags).toEqual(Map.tile.Flags.T_OBSTRUCTS_EVERYTHING);
+    expect(Map.tiles.WALL.flags.layer).toEqual(
+      Map.layer.Flags.L_BLOCKS_EVERYTHING
+    );
     expect(Map.tiles.GLASS_WALL.getName()).toEqual("Glass Wall");
     expect(
-      Map.tiles.GLASS_WALL.flags & Map.tile.Flags.T_OBSTRUCTS_VISION
+      Map.tiles.GLASS_WALL.flags.layer & Map.layer.Flags.L_BLOCKS_VISION
     ).toBeFalsy();
     expect(
-      Map.tiles.GLASS_WALL.flags & Map.tile.Flags.T_OBSTRUCTS_PASSABILITY
+      Map.tiles.GLASS_WALL.flags.layer & Map.layer.Flags.L_BLOCKS_MOVE
     ).toBeTruthy();
   });
 
@@ -174,10 +172,10 @@ describe("Tile", () => {
       fg: "dark_red",
       bg: "dark_teal",
       priority: 10,
-      layer: "SURFACE",
+      depth: "SURFACE",
     });
 
-    expect(carpet.layer).toEqual(Map.tile.Layer.SURFACE);
+    expect(carpet.depth).toEqual(Map.layer.Depth.SURFACE);
   });
 
   test("can use objects for activations", async () => {
@@ -188,7 +186,7 @@ describe("Tile", () => {
       activates: {
         tick: { chance: 0, log: "testing" },
       },
-      layer: "SURFACE",
+      depth: "SURFACE",
     });
 
     expect(Map.tiles.CARPET).toBe(carpet);
@@ -233,68 +231,19 @@ describe("Tile", () => {
     }).toThrow();
   });
 
-  test("successorFlags", () => {
-    const tile = Map.tile.install("TEST", {
-      ch: "#",
-      fg: "white",
-      activates: {
-        discover: "WALL",
-        enter: false,
-        playerEnter: { emit: "TEST" },
-        fire: { tile: "UNKNOWN" },
-      },
-    });
-
-    expect(tile.activates.discover.tile).toEqual("WALL");
-    expect(tile.hasFlag(Map.tile.Flags.T_OBSTRUCTS_PASSABILITY)).toBeFalsy();
-    expect(
-      tile.successorFlags("discover") & Map.tile.Flags.T_OBSTRUCTS_PASSABILITY
-    ).toBeTruthy();
-    expect(tile.successorFlags("enter")).toEqual(0);
-    expect(tile.successorFlags("playerEnter")).toEqual(0);
-    expect(tile.successorFlags("fire")).toEqual(0);
-  });
-
   test("hasFlag", () => {
     const tile = Map.tiles.WALL;
-    expect(tile.hasFlag(Map.tile.Flags.T_OBSTRUCTS_PASSABILITY)).toBeTruthy();
-    expect(tile.hasFlag(Map.tile.Flags.T_BRIDGE)).toBeFalsy();
+    expect(tile.hasAllLayerFlags(Map.layer.Flags.L_BLOCKS_MOVE)).toBeTruthy();
+    expect(tile.hasAllFlags(Map.tile.Flags.T_BRIDGE)).toBeFalsy();
   });
 
   test("hasMechFlag", () => {
     const tile = Map.tiles.DOOR;
     expect(
-      tile.hasMechFlag(Map.tile.MechFlags.TM_VISUALLY_DISTINCT)
+      tile.hasAllMechFlags(Map.tile.MechFlags.TM_VISUALLY_DISTINCT)
     ).toBeTruthy();
     expect(
-      tile.hasMechFlag(Map.tile.MechFlags.TM_EXTINGUISHES_FIRE)
-    ).toBeFalsy();
-  });
-
-  test("hasFlags", () => {
-    const tile = Map.tiles.DOOR;
-    expect(
-      tile.hasFlags(
-        Map.tile.Flags.T_OBSTRUCTS_VISION,
-        Map.tile.MechFlags.TM_VISUALLY_DISTINCT
-      )
-    ).toBeTruthy();
-    expect(tile.hasFlags(Map.tile.Flags.T_OBSTRUCTS_VISION, 0)).toBeTruthy();
-    expect(
-      tile.hasFlags(0, Map.tile.MechFlags.TM_VISUALLY_DISTINCT)
-    ).toBeTruthy();
-
-    expect(
-      tile.hasFlags(
-        Map.tile.Flags.T_OBSTRUCTS_PASSABILITY,
-        Map.tile.MechFlags.TM_VISUALLY_DISTINCT
-      )
-    ).toBeFalsy();
-    expect(
-      tile.hasFlags(
-        Map.tile.Flags.T_OBSTRUCTS_VISION,
-        Map.tile.MechFlags.TM_IS_WIRED
-      )
+      tile.hasAllMechFlags(Map.tile.MechFlags.TM_EXTINGUISHES_FIRE)
     ).toBeFalsy();
   });
 
@@ -305,12 +254,12 @@ describe("Tile", () => {
       ch: "+",
       fg: "teal",
       bg: "red",
-      flags: ["!T_OBSTRUCTS_VISION"],
+      flags: ["!L_BLOCKS_VISION"],
     });
 
     expect(glassWall.name).toEqual("Stone Wall");
     expect(
-      glassWall.hasFlag(Map.tile.Flags.T_OBSTRUCTS_PASSABILITY)
+      glassWall.hasAllLayerFlags(Map.layer.Flags.L_BLOCKS_MOVE)
     ).toBeTruthy();
   });
 
@@ -322,7 +271,7 @@ describe("Tile", () => {
         ch: "+",
         fg: "teal",
         bg: "red",
-        flags: ["!T_OBSTRUCTS_VISION"],
+        flags: ["!L_BLOCKS_VISION"],
       })
     ).toThrow();
   });
@@ -334,14 +283,21 @@ describe("Tile", () => {
       ch: "+",
       fg: "teal",
       bg: "red",
-      flags: "T_OBSTRUCTS_EVERYTHING,!T_OBSTRUCTS_VISION",
+      flags: "L_BLOCKS_EVERYTHING,!L_BLOCKS_VISION",
     });
 
     expect(glassWall.name).toEqual("glass wall");
     expect(
-      glassWall.hasFlag(Map.tile.Flags.T_OBSTRUCTS_PASSABILITY)
+      glassWall.hasAllLayerFlags(Map.layer.Flags.L_BLOCKS_MOVE)
     ).toBeTruthy();
-    expect(glassWall.hasFlag(Map.tile.Flags.T_OBSTRUCTS_VISION)).toBeFalsy();
+    expect(
+      glassWall.hasAllLayerFlags(Map.layer.Flags.L_BLOCKS_VISION)
+    ).toBeFalsy();
+    expect(
+      glassWall.hasAllLayerFlags(
+        Map.layer.Flags.L_BLOCKS_VISION | Map.layer.Flags.L_BLOCKS_MOVE
+      )
+    ).toBeFalsy();
   });
 });
 

@@ -1,10 +1,10 @@
-import { flag as Flag, utils as Utils, color as Color, canvas as Canvas, make as Make, } from "gw-utils";
-import { Tile as Flags, TileMech as MechFlags, Layer } from "./flags";
+import { flag as Flag, utils as Utils, color as Color, make as Make, } from "gw-utils";
+import { Tile as Flags, TileMech as MechFlags } from "./flags";
 import * as TileEvent from "./tileEvent";
-import * as Light from "./light";
-export { Flags, MechFlags, Layer };
+import * as Layer from "./layer";
+export { Flags, MechFlags };
 /** Tile Class */
-export class Tile {
+export class Tile extends Layer.Layer {
     /**
      * Creates a new Tile object.
      * @param {Object} [config={}] - The configuration of the Tile
@@ -14,24 +14,43 @@ export class Tile {
      * @param {String} [config.fg] - The sprite foreground color
      * @param {String} [config.bg] - The sprite background color
      */
-    constructor(config, base) {
-        this.flags = 0;
-        this.mechFlags = 0;
-        this.layer = Layer.GROUND;
-        this.priority = -1;
+    constructor(config) {
+        super((() => {
+            if (!config.Extends)
+                return config;
+            if (typeof config.Extends === "string") {
+                config.Extends = tiles[config.Extends];
+                if (!config.Extends)
+                    throw new Error("Unknown tile base - " + config.Extends);
+            }
+            const base = config.Extends;
+            config.ch = Utils.first(config.ch, base.sprite.ch, -1);
+            config.fg = Utils.first(config.fg, base.sprite.fg, -1);
+            config.bg = Utils.first(config.bg, base.sprite.bg, -1);
+            config.depth = Utils.first(config.depth, base.depth);
+            config.priority = Utils.first(config.priority, base.priority);
+            config.opacity = Utils.first(config.opacity, base.sprite.opacity);
+            return config;
+        })());
+        this.flags = { layer: 0, tile: 0, tileMech: 0 };
         this.activates = {};
-        this.light = null; // TODO - Light
         this.flavor = null;
         this.desc = null;
         this.article = null;
         this.dissipate = 2000; // 20 * 100 = 20%
+        let base = config.Extends;
         if (base) {
-            Utils.assignOmitting(["activates", "ch", "fg", "bg", "opacity"], this, base);
+            Utils.assignOmitting(["sprite", "depth", "priority", "activates", "flags"], this, base);
+            if (base.activates) {
+                Object.assign(this.activates, base.activates);
+            }
+            Object.assign(this.flags, base.flags);
         }
         Utils.assignOmitting([
             "Extends",
             "extends",
             "flags",
+            "layerFlags",
             "mechFlags",
             "sprite",
             "activates",
@@ -40,26 +59,18 @@ export class Tile {
             "bg",
             "opacity",
             "light",
+            "depth",
+            "priority",
+            "flags",
         ], this, config);
         this.name = config.name || (base ? base.name : config.id);
         this.id = config.id;
-        this.sprite = new Canvas.Sprite(Utils.first(config.ch, base ? base.sprite.ch : -1), Utils.first(config.fg, base ? base.sprite.fg : -1), Utils.first(config.bg, base ? base.sprite.bg : -1), Utils.first(config.opacity, base ? base.sprite.opacity : 100));
-        this.layer = this.layer || Layer.GROUND;
-        if (typeof this.layer === "string") {
-            this.layer = Layer[this.layer];
-        }
-        if (this.priority < 0) {
-            this.priority = 50;
-        }
-        this.flags = Flag.from(Flags, this.flags, config.flags);
-        this.mechFlags = Flag.from(MechFlags, this.mechFlags, config.mechFlags || config.flags);
-        if (config.light) {
-            // Light.from will throw an Error on invalid config
-            this.light = Light.from(config.light);
-        }
-        if (base && base.activates) {
-            Object.assign(this.activates, base.activates);
-        }
+        // @ts-ignore
+        this.flags.tile = Flag.from(Flags, this.flags.tile, config.flags);
+        // @ts-ignore
+        this.flags.layer = Flag.from(Layer.Flags, this.flags.layer, config.layerFlags || config.flags);
+        // @ts-ignore
+        this.flags.tileMech = Flag.from(MechFlags, this.flags.tileMech, config.mechFlags || config.flags);
         if (config.activates) {
             Object.entries(config.activates).forEach(([key, info]) => {
                 if (info) {
@@ -73,38 +84,24 @@ export class Tile {
         }
     }
     /**
-     * Returns the flags for the tile after the given event is fired.
-     * @param {string} id - Name of the event to fire.
-     * @returns {number} The flags from the Tile after the event.
-     */
-    successorFlags(id) {
-        const e = this.activates[id];
-        if (!e)
-            return 0;
-        const tileId = e.tile;
-        if (!tileId)
-            return 0;
-        const tile = tiles[tileId];
-        if (!tile)
-            return 0;
-        return tile.flags;
-    }
-    /**
      * Returns whether or not this tile as the given flag.
      * Will return true if any bit in the flag is true, so testing with
      * multiple flags will return true if any of them is set.
      * @param {number} flag - The flag to check
      * @returns {boolean} Whether or not the flag is set
      */
-    hasFlag(flag) {
-        return (this.flags & flag) > 0;
+    hasAllFlags(flag) {
+        return (this.flags.tile & flag) === flag;
     }
-    hasMechFlag(flag) {
-        return (this.mechFlags & flag) > 0;
+    hasAllLayerFlags(flag) {
+        return (this.flags.layer & flag) === flag;
     }
-    hasFlags(flags, mechFlags) {
-        return ((!flags || this.flags & flags) &&
-            (!mechFlags || this.mechFlags & mechFlags));
+    hasAllMechFlags(flag) {
+        return (this.flags.tileMech & flag) === flag;
+    }
+    blocksPathing() {
+        return (this.flags.layer & Layer.Flags.L_BLOCKS_MOVE ||
+            this.flags.tile & Flags.T_PATHING_BLOCKER);
     }
     activatesOn(name) {
         return !!this.activates[name];
@@ -126,7 +123,7 @@ export class Tile {
         if (opts.color) {
             let color = opts.color;
             if (opts.color === true) {
-                color = this.sprite.fg;
+                color = this.sprite.fg || "white";
             }
             if (typeof color !== "string") {
                 color = Color.from(color).toString();
@@ -155,19 +152,18 @@ export function install(...args) {
     let config = args[2];
     if (arguments.length == 1) {
         config = args[0];
-        base = config.Extends || null;
+        config.Extends = config.Extends || null;
         id = config.id;
     }
     else if (arguments.length == 2) {
         config = base;
-        base = config.Extends || config.extends || null;
     }
     if (typeof base === "string") {
-        base = tiles[base] || Utils.ERROR("Unknown base tile: " + base);
+        config.Extends = tiles[base] || Utils.ERROR("Unknown base tile: " + base);
     }
     // config.name = config.name || base.name || id.toLowerCase();
     config.id = id;
-    const tile = new Tile(config, base);
+    const tile = make(config);
     tiles[id] = tile;
     return tile;
 }

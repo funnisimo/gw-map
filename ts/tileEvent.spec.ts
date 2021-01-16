@@ -130,10 +130,10 @@ describe("tileEvent", () => {
     feat = GW.make.tileEvent({ tile: "WALL", spread: 50, decrement: 10 })!;
     Map.tileEvent.computeSpawnMap(feat, grid, ctx);
     // grid.dump();
-    expect(grid.count((v) => !!v)).toEqual(10);
+    expect(grid.count((v) => !!v)).toEqual(11);
     expect(grid[10][10]).toEqual(1);
     expect(grid[9][8]).toEqual(0);
-    expect(grid[8][13]).toEqual(6);
+    expect(grid[13][10]).toEqual(6);
   });
 
   // DFF_SPREAD_CIRCLE
@@ -149,8 +149,8 @@ describe("tileEvent", () => {
     expect(feat.flags).toEqual(Map.tileEvent.Flags.DFF_SPREAD_CIRCLE);
     Map.tileEvent.computeSpawnMap(feat, grid, ctx);
     // grid.dump();
-    expect(grid.count((v) => !!v)).toEqual(37);
-    grid.forCircle(10, 10, 3, (v) => expect(v).toEqual(1));
+    expect(grid.count((v) => !!v)).toEqual(137);
+    grid.forCircle(10, 10, 6, (v) => expect(v).toEqual(1));
   });
 
   test.todo("Add some walls and test that circle does not pass through them.");
@@ -175,10 +175,10 @@ describe("tileEvent", () => {
 
     Map.tileEvent.computeSpawnMap(feat, grid, ctx);
     // grid.dump();
-    expect(grid.count((v) => !!v)).toEqual(29);
+    expect(grid.count((v) => !!v)).toEqual(30);
     expect(grid[10][10]).toEqual(1);
-    expect(grid[10][8]).toEqual(0);
-    expect(grid[10][7]).toEqual(1);
+    expect(grid[9][10]).toEqual(0);
+    expect(grid[8][10]).toEqual(1);
   });
 
   // { radius: 3, spread: 75, decrement: 20 }
@@ -193,10 +193,10 @@ describe("tileEvent", () => {
     // console.log(feat);
     Map.tileEvent.computeSpawnMap(feat, grid, ctx);
     // grid.dump();
-    expect(grid.count((v) => !!v)).toEqual(13);
+    expect(grid.count((v) => !!v)).toEqual(12);
     expect(grid[10][10]).toEqual(1);
-    expect(grid[12][10]).toEqual(0);
-    expect(grid[13][10]).toEqual(1);
+    expect(grid[10][11]).toEqual(0);
+    expect(grid[10][12]).toEqual(1);
   });
 
   // { match: 2, radius: 1 }
@@ -491,9 +491,9 @@ describe("tileEvent", () => {
     expect(map.hasTile(10, 11, "DOOR")).toBeTruthy();
     expect(map.hasTile(10, 12, "DOOR")).toBeTruthy();
     expect(map.hasTile(10, 13, "DOOR")).toBeTruthy();
-    expect(map.hasTile(10, 14, "DOOR")).toBeTruthy();
+    // expect(map.hasTile(10, 14, "DOOR")).toBeTruthy();
 
-    expect(map.cells.count((c) => c.hasTile("DOOR"))).toEqual(5);
+    expect(map.cells.count((c) => c.hasTile("DOOR"))).toEqual(4);
   });
 
   test("Will add liquids with volume", async () => {
@@ -501,7 +501,7 @@ describe("tileEvent", () => {
       name: "red liquid",
       article: "some",
       bg: "red",
-      layer: "LIQUID",
+      depth: "LIQUID",
     });
 
     const feat = GW.make.tileEvent({ tile: "RED_LIQUID", volume: 50 })!;
@@ -518,14 +518,14 @@ describe("tileEvent", () => {
       name: "red liquid",
       article: "some",
       bg: "red",
-      layer: "LIQUID",
+      depth: "LIQUID",
       activates: {
         fire: { fn },
       },
     });
 
     const cell = map.cell(ctx.x, ctx.y);
-    cell._setTile("RED_LIQUID", 100);
+    cell.setTile("RED_LIQUID", 100);
 
     await cell.activate("fire", ctx);
     expect(fn).toHaveBeenCalledTimes(1);
@@ -536,14 +536,14 @@ describe("tileEvent", () => {
       name: "red liquid",
       article: "some",
       bg: "red",
-      layer: "LIQUID",
+      depth: "LIQUID",
       activates: {
         fire: { flags: "DFF_EVACUATE_CREATURES" },
       },
     });
 
     const cell = map.cell(ctx.x, ctx.y);
-    cell._setTile("RED_LIQUID", 100);
+    cell.setTile("RED_LIQUID", 100);
     const actor = {
       forbidsCell: jest.fn().mockReturnValue(false),
       x: -1,
@@ -576,14 +576,14 @@ describe("tileEvent", () => {
       name: "red liquid",
       article: "some",
       bg: "red",
-      layer: "LIQUID",
+      depth: "LIQUID",
       activates: {
         fire: { flags: "DFF_EVACUATE_ITEMS" },
       },
     });
 
     const cell = map.cell(ctx.x, ctx.y);
-    cell._setTile("RED_LIQUID", 100);
+    cell.setTile("RED_LIQUID", 100);
     const item = {
       forbidsCell: jest.fn().mockReturnValue(false),
       x: -1,

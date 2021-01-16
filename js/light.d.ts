@@ -12,7 +12,7 @@ export declare class Light implements Types.LightType {
     constructor(color: Color.ColorBase, range: string | Range.Range, fadeTo: number, pass?: boolean);
     copy(other: Light): void;
     get intensity(): number;
-    paint(map: Map.Map, x: number, y: number, maintainShadows?: boolean, isMinersLight?: boolean): false | undefined;
+    paint(map: Map.Map, x: number, y: number, maintainShadows?: boolean, isMinersLight?: boolean): boolean;
 }
 export declare function intensity(color: Color.Color | [number, number, number]): number;
 export interface LightConfig {
@@ -29,14 +29,12 @@ export declare function from(light: LightBase): Light;
 export declare function install(id: string, color: Color.ColorBase, radius: Range.RangeBase, fadeTo?: number, pass?: boolean): Light;
 export declare function install(id: string, base: LightBase): Light;
 export declare function install(id: string, config: LightConfig): Light;
-export declare function installAll(config?: Record<string, LightConfig>): void;
+export declare function installAll(config?: Record<string, LightConfig | LightBase>): void;
 export declare type LightData = [number, number, number];
 export declare type LightDataGrid = Grid.Grid<LightData>;
-export declare function backUpLighting(map: Map.Map, lights: LightDataGrid): void;
-export declare function restoreLighting(map: Map.Map, lights: LightDataGrid): void;
 export declare function recordOldLights(map: Map.Map): void;
 export declare function zeroOutLights(map: Map.Map): void;
 export declare function recordGlowLights(map: Map.Map): void;
 export declare function restoreGlowLights(map: Map.Map): void;
 export declare function updateLighting(map: Map.Map): boolean;
-export declare function playerInDarkness(map: Map.Map, PLAYER: Utils.XY, darkColor: Color.Color): boolean;
+export declare function playerInDarkness(map: Map.Map, PLAYER: Utils.XY, darkColor?: Color.Color): boolean;
