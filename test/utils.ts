@@ -69,5 +69,6 @@ export function makeItem() {
     sprite: { ch: "!", fg: "white" },
     isDetected: jest.fn().mockReturnValue(false),
     forbidsCell: jest.fn().mockReturnValue(false),
+    clone: jest.fn().mockImplementation(makeItem),
   } as unknown) as Types.ItemType;
 }

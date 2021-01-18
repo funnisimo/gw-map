@@ -636,9 +636,7 @@ function make$2(opts) {
     return te;
 }
 make$6.tileEvent = make$2;
-const activations = {
-    DF_NONE: null,
-};
+const activations = {};
 function install$1(id, event) {
     if (!(event instanceof TileEvent)) {
         event = make$2(event);
@@ -647,6 +645,11 @@ function install$1(id, event) {
     if (event)
         event.id = id;
     return event;
+}
+function installAll$1(events) {
+    Object.entries(events).forEach(([id, config]) => {
+        install$1(id, config);
+    });
 }
 function resetAllMessages() {
     Object.values(activations).forEach((f) => {
@@ -659,9 +662,9 @@ function resetAllMessages() {
 async function spawn(activation, ctx = {}) {
     let i, j;
     if (!activation)
-        return false;
+        utils.ERROR("No activation.");
     if (!ctx)
-        return false;
+        utils.ERROR("Context required - and must include map, x, y");
     let feat;
     if (typeof activation === "string") {
         // @ts-ignore
@@ -678,7 +681,7 @@ async function spawn(activation, ctx = {}) {
     const map = ctx.map;
     const x = ctx.x;
     const y = ctx.y;
-    if (!map || x === undefined || y === undefined) {
+    if (x === undefined || y === undefined || !map) {
         utils.ERROR("MAP, x, y are required in context.");
     }
     if (ctx.safe &&
@@ -1138,6 +1141,7 @@ var tileEvent = {
     make: make$2,
     activations: activations,
     install: install$1,
+    installAll: installAll$1,
     resetAllMessages: resetAllMessages,
     spawn: spawn,
     computeSpawnMap: computeSpawnMap,
@@ -1319,7 +1323,7 @@ function install$2(...args) {
  * @returns {void} Nothing
  * @see addTileKind
  */
-function installAll$1(config) {
+function installAll$2(config) {
     Object.entries(config).forEach(([id, opts]) => {
         opts.id = id;
         install$2(id, opts);
@@ -1334,7 +1338,7 @@ var tile = {
     make: make$3,
     tiles: tiles,
     install: install$2,
-    installAll: installAll$1
+    installAll: installAll$2
 };
 
 // TODO - Move to gw-ui

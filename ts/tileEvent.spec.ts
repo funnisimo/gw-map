@@ -65,6 +65,120 @@ describe("tileEvent", () => {
     jest.resetAllMocks();
   });
 
+  test("constructor - fn", () => {
+    const fn = jest.fn();
+    const te = new Map.tileEvent.TileEvent(fn);
+    expect(te.fn).toBe(fn);
+  });
+
+  test("install", () => {
+    const te = Map.tileEvent.install("TEST", {
+      tile: "FLOOR",
+    });
+
+    expect(Map.tileEvent.activations.TEST).toBe(te);
+
+    const te2 = Map.tileEvent.install("TEST2", te);
+    expect(te2).toBe(te);
+    expect(Map.tileEvent.activations.TEST2).toBe(te);
+  });
+
+  test("resetAllMessages", () => {
+    Map.tileEvent.installAll({
+      TEST: { tile: "FLOOR" },
+      TEST2: { tile: "WALL" },
+    });
+
+    Map.tileEvent.activations.TEST.messageDisplayed = true;
+    Map.tileEvent.activations.TEST2.messageDisplayed = true;
+
+    Map.tileEvent.resetAllMessages();
+
+    expect(Map.tileEvent.activations.TEST.messageDisplayed).toEqual(false);
+    expect(Map.tileEvent.activations.TEST2.messageDisplayed).toEqual(false);
+  });
+
+  describe("spawn", () => {
+    let map: Map.map.Map;
+
+    beforeAll(() => {
+      Map.tileEvent.installAll({
+        TEST: { tile: "FLOOR" },
+        TEST2: { tile: "WALL" },
+      });
+    });
+
+    beforeEach(() => {
+      map = GW.make.map(10, 10, "FLOOR");
+    });
+
+    test("from string", async () => {
+      await Map.tileEvent.spawn("TEST2", { map, x: 2, y: 2 });
+      expect(map.hasTile(2, 2, "WALL")).toBeTruthy();
+    });
+
+    test("requires map, x, y in ctx", async () => {
+      await expect(() => Map.tileEvent.spawn("TEST2", null)).rejects.toThrow();
+      await expect(() =>
+        Map.tileEvent.spawn("TEST2", { x: 2, y: 2 })
+      ).rejects.toThrow();
+      await expect(() =>
+        Map.tileEvent.spawn("TEST2", { map, y: 2 })
+      ).rejects.toThrow();
+      await expect(() =>
+        Map.tileEvent.spawn("TEST2", { map, x: 2 })
+      ).rejects.toThrow();
+    });
+
+    test("invalid tile", async () => {
+      const feat = Map.tileEvent.install("UNKNOWN_TILE", {
+        tile: "UNKNOWN",
+      });
+      expect(Map.tiles.UNKNOWN).toBeUndefined();
+      expect(feat.tile).toEqual("UNKNOWN");
+      await expect(() =>
+        Map.tileEvent.spawn(feat, { map, x: 2, y: 2 })
+      ).rejects.toThrow();
+    });
+  });
+
+  function messageCount() {
+    let count: number = 0;
+    GW.message.forEach(() => {
+      ++count;
+      return true;
+    });
+    return count;
+  }
+
+  test("message", async () => {
+    const te = Map.tileEvent.install("TEST", {
+      message: "Test message",
+    });
+    const map: Map.map.Map = GW.make.map(10, 10, "FLOOR");
+    const cell: Map.cell.Cell = map.cell(2, 3);
+    expect(map.isVisible(2, 3)).toBeTruthy();
+    expect(te.messageDisplayed).toBeFalsy();
+    expect(messageCount()).toEqual(0);
+
+    await Map.tileEvent.spawn("TEST", { map, x: 2, y: 3 });
+    expect(te.messageDisplayed).toBeTruthy();
+    debugger;
+    expect(messageCount()).toEqual(1);
+
+    await Map.tileEvent.spawn("TEST", { map, x: 2, y: 3 });
+    expect(messageCount()).toEqual(1); // no more calls
+    expect(te.messageDisplayed).toBeTruthy();
+
+    map.clearCellFlags(2, 3, Map.cell.Flags.ANY_KIND_OF_VISIBLE);
+    expect(cell.isVisible()).toBeFalsy();
+    Map.tileEvent.resetAllMessages();
+    expect(te.messageDisplayed).toBeFalsy();
+    await Map.tileEvent.spawn("TEST", { map, x: 2, y: 3 });
+    expect(messageCount()).toEqual(1); // no more calls
+    expect(te.messageDisplayed).toBeFalsy();
+  });
+
   // COMPUTE SPAWN MAP
 
   test("can compute a spawn map", () => {

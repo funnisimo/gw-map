@@ -201,8 +201,9 @@ declare class TileEvent {
     constructor(opts?: any);
 }
 declare function make(opts: string | any): TileEvent | null;
-declare const activations: Record<string, TileEvent | null>;
+declare const activations: Record<string, TileEvent>;
 declare function install(id: string, event: TileEvent | any): any;
+declare function installAll(events: Record<string, TileEvent | any>): void;
 declare function resetAllMessages(): void;
 declare function spawn(activation: TileEvent | Function | string, ctx?: any): Promise<boolean>;
 declare function computeSpawnMap(feat: TileEvent, spawnMap: grid.NumGrid, ctx?: any): void;
@@ -216,6 +217,7 @@ declare const tileEvent_d_TileEvent: typeof TileEvent;
 declare const tileEvent_d_make: typeof make;
 declare const tileEvent_d_activations: typeof activations;
 declare const tileEvent_d_install: typeof install;
+declare const tileEvent_d_installAll: typeof installAll;
 declare const tileEvent_d_resetAllMessages: typeof resetAllMessages;
 declare const tileEvent_d_spawn: typeof spawn;
 declare const tileEvent_d_computeSpawnMap: typeof computeSpawnMap;
@@ -230,6 +232,7 @@ declare namespace tileEvent_d {
     tileEvent_d_make as make,
     tileEvent_d_activations as activations,
     tileEvent_d_install as install,
+    tileEvent_d_installAll as installAll,
     tileEvent_d_resetAllMessages as resetAllMessages,
     tileEvent_d_spawn as spawn,
     tileEvent_d_computeSpawnMap as computeSpawnMap,
@@ -318,14 +321,13 @@ declare function install$1(config: TileConfig): Tile$1;
  * @returns {void} Nothing
  * @see addTileKind
  */
-declare function installAll(config: Record<string, Partial<TileConfig>>): void;
+declare function installAll$1(config: Record<string, Partial<TileConfig>>): void;
 
 type tile_d_NameConfig = NameConfig;
 type tile_d_TileBase = TileBase;
 type tile_d_FullTileConfig = FullTileConfig;
 type tile_d_TileConfig = TileConfig;
 declare const tile_d_tiles: typeof tiles;
-declare const tile_d_installAll: typeof installAll;
 declare namespace tile_d {
   export {
     Tile as Flags,
@@ -338,7 +340,7 @@ declare namespace tile_d {
     make$1 as make,
     tile_d_tiles as tiles,
     install$1 as install,
-    tile_d_installAll as installAll,
+    installAll$1 as installAll,
   };
 }
 
@@ -675,7 +677,7 @@ declare function from(light: LightBase): Light;
 declare function install$2(id: string, color: color.ColorBase, radius: range.RangeBase, fadeTo?: number, pass?: boolean): Light;
 declare function install$2(id: string, base: LightBase): Light;
 declare function install$2(id: string, config: LightConfig): Light;
-declare function installAll$1(config?: Record<string, LightConfig | LightBase>): void;
+declare function installAll$2(config?: Record<string, LightConfig | LightBase>): void;
 declare type LightData = [number, number, number];
 declare type LightDataGrid = grid.Grid<LightData>;
 declare function recordOldLights(map: Map$1): void;
@@ -712,7 +714,7 @@ declare namespace light_d {
     light_d_lights as lights,
     light_d_from as from,
     install$2 as install,
-    installAll$1 as installAll,
+    installAll$2 as installAll,
     light_d_LightData as LightData,
     light_d_LightDataGrid as LightDataGrid,
     light_d_recordOldLights as recordOldLights,

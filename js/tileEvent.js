@@ -40,9 +40,7 @@ export function make(opts) {
     return te;
 }
 Make.tileEvent = make;
-export const activations = {
-    DF_NONE: null,
-};
+export const activations = {};
 export function install(id, event) {
     if (!(event instanceof TileEvent)) {
         event = make(event);
@@ -51,6 +49,11 @@ export function install(id, event) {
     if (event)
         event.id = id;
     return event;
+}
+export function installAll(events) {
+    Object.entries(events).forEach(([id, config]) => {
+        install(id, config);
+    });
 }
 export function resetAllMessages() {
     Object.values(activations).forEach((f) => {
@@ -63,9 +66,9 @@ export function resetAllMessages() {
 export async function spawn(activation, ctx = {}) {
     let i, j;
     if (!activation)
-        return false;
+        Utils.ERROR("No activation.");
     if (!ctx)
-        return false;
+        Utils.ERROR("Context required - and must include map, x, y");
     let feat;
     if (typeof activation === "string") {
         // @ts-ignore
@@ -82,7 +85,7 @@ export async function spawn(activation, ctx = {}) {
     const map = ctx.map;
     const x = ctx.x;
     const y = ctx.y;
-    if (!map || x === undefined || y === undefined) {
+    if (x === undefined || y === undefined || !map) {
         Utils.ERROR("MAP, x, y are required in context.");
     }
     if (ctx.safe &&

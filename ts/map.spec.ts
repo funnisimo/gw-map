@@ -1100,7 +1100,6 @@ describe("Map", () => {
         let ok = true;
         let sameCount = 0;
         while (ok && sameCount < 20 && roundCount < 1000) {
-          debugger;
           // console.log("ROUND", roundCount, UTILS.v);
           await map.tick();
           // updateGas(map);
@@ -1343,7 +1342,6 @@ describe("Map", () => {
       let ok = true;
       let sameCount = 0;
       while (ok && sameCount < 20 && roundCount < 1000) {
-        debugger;
         // console.log("ROUND", roundCount, UTILS.v);
         await map.tick();
         // updateGas(map);

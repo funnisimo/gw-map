@@ -89,9 +89,7 @@ export function make(opts: string | any) {
 
 Make.tileEvent = make;
 
-export const activations: Record<string, TileEvent | null> = {
-  DF_NONE: null,
-};
+export const activations: Record<string, TileEvent> = {};
 
 export function install(id: string, event: TileEvent | any) {
   if (!(event instanceof TileEvent)) {
@@ -100,6 +98,12 @@ export function install(id: string, event: TileEvent | any) {
   activations[id] = event;
   if (event) event.id = id;
   return event;
+}
+
+export function installAll(events: Record<string, TileEvent | any>) {
+  Object.entries(events).forEach(([id, config]) => {
+    install(id, config);
+  });
 }
 
 export function resetAllMessages() {
@@ -117,8 +121,8 @@ export async function spawn(
 ): Promise<boolean> {
   let i, j;
 
-  if (!activation) return false;
-  if (!ctx) return false;
+  if (!activation) Utils.ERROR("No activation.");
+  if (!ctx) Utils.ERROR("Context required - and must include map, x, y");
 
   let feat: TileEvent;
   if (typeof activation === "string") {
@@ -135,7 +139,7 @@ export async function spawn(
   const x = ctx.x;
   const y = ctx.y;
 
-  if (!map || x === undefined || y === undefined) {
+  if (x === undefined || y === undefined || !map) {
     Utils.ERROR("MAP, x, y are required in context.");
   }
 
