@@ -1,4 +1,4 @@
-import { utils as Utils, random, grid as Grid, fov as Fov, flag as Flag, path as Path, color as Color, colors as COLORS, config as CONFIG, data as DATA, make as Make, } from "gw-utils";
+import { utils as Utils, random, grid as Grid, fov as Fov, flag as Flag, path as Path, color as Color, colors as COLORS, canvas as Canvas, config as CONFIG, data as DATA, make as Make, } from "gw-utils";
 import * as Cell from "./cell";
 import { Map as Flags, Cell as CellFlags, Tile as TileFlags, CellMech as CellMechFlags, TileMech as TileMechFlags, Depth as TileLayer, Layer as LayerFlags, } from "./flags";
 import * as Layer from "./layer";
@@ -121,6 +121,16 @@ export class Map {
             // }
         });
         this.changed = true;
+    }
+    drawInto(canvas, _opts = {}) {
+        const mixer = new Canvas.Mixer();
+        for (let x = 0; x < canvas.width; ++x) {
+            for (let y = 0; y < canvas.height; ++y) {
+                getCellAppearance(this, x, y, mixer);
+                const glyph = typeof mixer.ch === 'number' ? mixer.ch : canvas.toGlyph(mixer.ch);
+                canvas.draw(x, y, glyph, mixer.fg.toInt(), mixer.bg.toInt());
+            }
+        }
     }
     revealAll() {
         this.forEach((c) => {

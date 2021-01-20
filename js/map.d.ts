@@ -67,6 +67,7 @@ export declare class Map implements Types.MapType {
     redrawCell(cell: Cell.Cell): void;
     redrawXY(x: number, y: number): void;
     redrawAll(): void;
+    drawInto(canvas: Canvas.Canvas, _opts?: any): void;
     revealAll(): void;
     markRevealed(x: number, y: number): void;
     isVisible(x: number, y: number): number;

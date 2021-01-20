@@ -82,8 +82,8 @@ export declare class Cell implements Types.CellType {
     hasMechFlag(flag: MechFlags, limitToPlayerKnowledge?: boolean): boolean;
     hasTile(tile: string | Tile): boolean;
     topmostTile(skipGas?: boolean): Tile;
-    tileWithFlag(tileFlag: number): Tile | null;
-    tileWithMechFlag(mechFlag: number): Tile | null;
+    tileWithFlag(tileFlag: number): LayerTile;
+    tileWithMechFlag(mechFlag: number): LayerTile;
     tileDesc(): string | null;
     tileFlavor(): string | null;
     getName(opts?: {}): string;

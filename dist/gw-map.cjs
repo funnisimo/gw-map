@@ -2201,6 +2201,16 @@ class Map$1 {
         });
         this.changed = true;
     }
+    drawInto(canvas, _opts = {}) {
+        const mixer = new GW.canvas.Mixer();
+        for (let x = 0; x < canvas.width; ++x) {
+            for (let y = 0; y < canvas.height; ++y) {
+                getCellAppearance(this, x, y, mixer);
+                const glyph = typeof mixer.ch === 'number' ? mixer.ch : canvas.toGlyph(mixer.ch);
+                canvas.draw(x, y, glyph, mixer.fg.toInt(), mixer.bg.toInt());
+            }
+        }
+    }
     revealAll() {
         this.forEach((c) => {
             c.markRevealed();

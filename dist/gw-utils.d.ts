@@ -422,8 +422,8 @@ declare class Cell$1 implements types.CellType {
     hasMechFlag(flag: CellMech, limitToPlayerKnowledge?: boolean): boolean;
     hasTile(tile: string | Tile$1): boolean;
     topmostTile(skipGas?: boolean): Tile$1;
-    tileWithFlag(tileFlag: number): Tile$1 | null;
-    tileWithMechFlag(mechFlag: number): Tile$1 | null;
+    tileWithFlag(tileFlag: number): LayerTile;
+    tileWithMechFlag(mechFlag: number): LayerTile;
     tileDesc(): string | null;
     tileFlavor(): string | null;
     getName(opts?: {}): string;
@@ -536,6 +536,7 @@ declare class Map$1 implements types.MapType {
     redrawCell(cell: Cell$1): void;
     redrawXY(x: number, y: number): void;
     redrawAll(): void;
+    drawInto(canvas: canvas.Canvas, _opts?: any): void;
     revealAll(): void;
     markRevealed(x: number, y: number): void;
     isVisible(x: number, y: number): number;

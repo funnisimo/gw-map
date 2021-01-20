@@ -2197,6 +2197,16 @@ class Map$1 {
         });
         this.changed = true;
     }
+    drawInto(canvas$1, _opts = {}) {
+        const mixer = new canvas.Mixer();
+        for (let x = 0; x < canvas$1.width; ++x) {
+            for (let y = 0; y < canvas$1.height; ++y) {
+                getCellAppearance(this, x, y, mixer);
+                const glyph = typeof mixer.ch === 'number' ? mixer.ch : canvas$1.toGlyph(mixer.ch);
+                canvas$1.draw(x, y, glyph, mixer.fg.toInt(), mixer.bg.toInt());
+            }
+        }
+    }
     revealAll() {
         this.forEach((c) => {
             c.markRevealed();
