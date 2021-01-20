@@ -56,7 +56,10 @@ describe("tileEvent", () => {
     ctx = { map, x: 10, y: 10 };
     grid = GW.grid.alloc(20, 20);
 
+    GW.data.gameHasEnded = false;
+
     UTILS.mockRandom();
+    GW.events.removeAllListeners();
   });
 
   afterEach(() => {
@@ -207,6 +210,120 @@ describe("tileEvent", () => {
     expect(grid.count(3)).toEqual(8);
   });
 
+  test("spawn map - build in walls", () => {
+    // not on a wall
+    feat = GW.make.tileEvent({ tile: "FLOOR", flags: "DFF_BUILD_IN_WALLS" })!;
+    Map.tileEvent.computeSpawnMap(feat, grid, ctx);
+    expect(grid.count(1)).toEqual(0);
+    expect(grid.count(0)).toEqual(20 * 20);
+
+    // tile and neighbors
+    map.setTile(ctx.x, ctx.y, "WALL");
+    Map.tileEvent.computeSpawnMap(feat, grid, ctx);
+    expect(grid.count(1)).toEqual(1);
+    expect(grid.count(0)).toEqual(20 * 20 - 1);
+    expect(grid[10][10]).toEqual(1);
+  });
+
+  test("spawn map - must touch walls", () => {
+    // not near a wall
+    feat = GW.make.tileEvent({ tile: "FLOOR", flags: "DFF_MUST_TOUCH_WALLS" })!;
+    Map.tileEvent.computeSpawnMap(feat, grid, ctx);
+    expect(grid.count(1)).toEqual(0);
+    expect(grid.count(0)).toEqual(20 * 20);
+
+    // not on a wall
+    map.setTile(ctx.x, ctx.y, "WALL");
+    Map.tileEvent.computeSpawnMap(feat, grid, ctx);
+    expect(grid.count(1)).toEqual(0);
+    expect(grid.count(0)).toEqual(20 * 20);
+    expect(grid[10][10]).toEqual(0);
+
+    // next to a wall
+    map.setTile(ctx.x, ctx.y, "FLOOR");
+    map.setTile(ctx.x, ctx.y - 1, "WALL");
+    Map.tileEvent.computeSpawnMap(feat, grid, ctx);
+    expect(grid.count(1)).toEqual(1);
+    expect(grid.count(0)).toEqual(20 * 20 - 1);
+    expect(grid[10][10]).toEqual(1);
+  });
+
+  test("spawn map - no touch walls", () => {
+    feat = GW.make.tileEvent({ tile: "FLOOR", flags: "DFF_NO_TOUCH_WALLS" })!;
+
+    // no walls - ok
+    Map.tileEvent.computeSpawnMap(feat, grid, ctx);
+    expect(grid.count(1)).toEqual(1);
+    expect(grid.count(0)).toEqual(20 * 20 - 1);
+    expect(grid[10][10]).toEqual(1);
+
+    // on a wall - no
+    map.setTile(ctx.x, ctx.y, "WALL");
+    Map.tileEvent.computeSpawnMap(feat, grid, ctx);
+    expect(grid.count(1)).toEqual(0);
+    expect(grid.count(0)).toEqual(20 * 20);
+    expect(grid[10][10]).toEqual(0);
+
+    // next to a wall - no
+    map.setTile(ctx.x, ctx.y, "FLOOR");
+    map.setTile(ctx.x, ctx.y - 1, "WALL");
+    Map.tileEvent.computeSpawnMap(feat, grid, ctx);
+    expect(grid.count(1)).toEqual(0);
+    expect(grid.count(0)).toEqual(20 * 20);
+    expect(grid[10][10]).toEqual(0);
+  });
+
+  test("spawn map - blocks effects", () => {
+    feat = GW.make.tileEvent({ tile: "WALL", spread: 100, decrement: 100 })!;
+
+    // ok
+    Map.tileEvent.computeSpawnMap(feat, grid, ctx);
+    expect(grid.count(1)).toEqual(1);
+    expect(grid.count(2)).toEqual(4);
+    expect(grid[10][10]).toEqual(1);
+    expect(grid[9][10]).toEqual(2);
+    expect(grid[11][10]).toEqual(2);
+    expect(grid[10][9]).toEqual(2);
+    expect(grid[10][11]).toEqual(2);
+
+    // blocks effects
+    const tile = Map.tile.make({
+      id: "TEST",
+      ch: "!",
+      fg: "green",
+      flags: "L_BLOCKS_EFFECTS",
+    });
+
+    map.setTile(10, 9, tile);
+    map.setTile(9, 10, tile);
+
+    expect(
+      map.hasLayerFlag(10, 9, Map.layer.Flags.L_BLOCKS_EFFECTS)
+    ).toBeTruthy();
+    expect(
+      map.hasLayerFlag(9, 10, Map.layer.Flags.L_BLOCKS_EFFECTS)
+    ).toBeTruthy();
+
+    Map.tileEvent.computeSpawnMap(feat, grid, ctx);
+    expect(grid.count(1)).toEqual(1);
+    expect(grid.count(2)).toEqual(2);
+    expect(grid[10][10]).toEqual(1);
+    expect(grid[9][10]).toEqual(0);
+    expect(grid[11][10]).toEqual(2);
+    expect(grid[10][9]).toEqual(0);
+    expect(grid[10][11]).toEqual(2);
+  });
+
+  test("spawn map - invalid matchTile", () => {
+    feat = GW.make.tileEvent({
+      tile: "WALL",
+      spread: 100,
+      decrement: 100,
+      matchTile: "INVALID",
+    })!;
+    expect(() => Map.tileEvent.computeSpawnMap(feat, grid, ctx)).toThrow();
+  });
+
   // { spread: 50 }
   test("{ spread: 50 }", () => {
     GW.random.seed(12345);
@@ -265,6 +382,23 @@ describe("tileEvent", () => {
     // grid.dump();
     expect(grid.count((v) => !!v)).toEqual(137);
     grid.forCircle(10, 10, 6, (v) => expect(v).toEqual(1));
+  });
+
+  // DFF_SPREAD_CIRCLE - big spread
+  test("{ spread: 150, decrement: 50, spread circle }", () => {
+    GW.random.seed(1234567);
+    feat = GW.make.tileEvent({
+      tile: "WALL",
+      spread: 150,
+      decrement: 50,
+      flags: "DFF_SPREAD_CIRCLE",
+    })!;
+
+    expect(feat.flags).toEqual(Map.tileEvent.Flags.DFF_SPREAD_CIRCLE);
+    Map.tileEvent.computeSpawnMap(feat, grid, ctx);
+    // grid.dump();
+    expect(grid.count((v) => !!v)).toEqual(37);
+    grid.forCircle(10, 10, 3, (v) => expect(v).toEqual(1));
   });
 
   test.todo("Add some walls and test that circle does not pass through them.");
@@ -330,6 +464,52 @@ describe("tileEvent", () => {
     map.forRect(5, 5, 3, 3, (cell) => {
       expect(cell.hasTile("WALL")).toBeTruthy();
       // expect(cell.mechFlags & Map.cell.MechFlags.EVENT_FIRED_THIS_TURN).toBeTruthy();
+    });
+  });
+
+  test("spawnTiles - gas adds volume", async () => {
+    grid.fillRect(5, 5, 3, 3, 1);
+    Map.tile.install("RED_GAS", {
+      bg: "red",
+      depth: "GAS",
+    });
+    const feat = GW.make.tileEvent({ tile: "RED_GAS", volume: 10 });
+
+    map.forRect(5, 5, 3, 3, (cell) =>
+      expect(cell.hasTile("RED_GAS")).toBeFalsy()
+    );
+    await Map.tileEvent.spawnTiles(feat, grid, { map }, Map.tiles.RED_GAS);
+    map.forRect(5, 5, 3, 3, (cell) => {
+      expect(cell.hasTile("RED_GAS")).toBeTruthy();
+      expect(cell.gasVolume).toEqual(10);
+    });
+    await Map.tileEvent.spawnTiles(feat, grid, { map }, Map.tiles.RED_GAS);
+    map.forRect(5, 5, 3, 3, (cell) => {
+      expect(cell.hasTile("RED_GAS")).toBeTruthy();
+      expect(cell.gasVolume).toEqual(20);
+    });
+  });
+
+  test("spawnTiles - liquid adds volume", async () => {
+    grid.fillRect(5, 5, 3, 3, 1);
+    Map.tile.install("RED_LIQUID", {
+      bg: "red",
+      depth: "LIQUID",
+    });
+    const feat = GW.make.tileEvent({ tile: "RED_LIQUID", volume: 10 });
+
+    map.forRect(5, 5, 3, 3, (cell) =>
+      expect(cell.hasTile("RED_LIQUID")).toBeFalsy()
+    );
+    await Map.tileEvent.spawnTiles(feat, grid, { map }, Map.tiles.RED_LIQUID);
+    map.forRect(5, 5, 3, 3, (cell) => {
+      expect(cell.hasTile("RED_LIQUID")).toBeTruthy();
+      expect(cell.liquidVolume).toEqual(10);
+    });
+    await Map.tileEvent.spawnTiles(feat, grid, { map }, Map.tiles.RED_LIQUID);
+    map.forRect(5, 5, 3, 3, (cell) => {
+      expect(cell.hasTile("RED_LIQUID")).toBeTruthy();
+      expect(cell.liquidVolume).toEqual(20);
     });
   });
 
@@ -717,5 +897,102 @@ describe("tileEvent", () => {
     expect(item.forbidsCell).toHaveBeenCalled();
     expect(item).not.toBeAtXY(ctx.x, ctx.y);
     expect(cell.item).toBeNull();
+  });
+
+  test("item", async () => {
+    GW.make.item = jest.fn().mockImplementation(UTILS.makeItem);
+    const feat = GW.make.tileEvent({ item: "TACO" })!;
+
+    const cell = map.cell(5, 5);
+    expect(cell.item).toBeNull();
+
+    await Map.tileEvent.spawn(feat, { map, x: 5, y: 5 });
+    expect(cell.item).not.toBeNull();
+  });
+
+  test("item - superpriority + already there", async () => {
+    const item = UTILS.makeItem();
+
+    GW.make.item = jest.fn().mockImplementation(UTILS.makeItem);
+    const feat = GW.make.tileEvent({
+      item: "TACO",
+      flags: "DFF_SUPERPRIORITY",
+    })!;
+
+    map.addItem(5, 5, item);
+    const cell = map.cell(5, 5);
+    expect(cell.item).toBe(item);
+
+    await Map.tileEvent.spawn(feat, { map, x: 5, y: 5 });
+    expect(cell.item).not.toBe(item);
+  });
+
+  test("item - invalid", async () => {
+    GW.make.item = jest.fn().mockReturnValue(null);
+    const feat = GW.make.tileEvent({ item: "TACO" })!;
+
+    const cell = map.cell(5, 5);
+    expect(cell.item).toBeNull();
+
+    await expect(
+      Map.tileEvent.spawn(feat, { map, x: 5, y: 5 })
+    ).rejects.toThrow();
+  });
+
+  test("emit", async () => {
+    const te = Map.tileEvent.install("TEST", {
+      emit: "TACO",
+    });
+
+    const fn = jest.fn();
+    GW.events.on("TACO", fn);
+
+    await Map.tileEvent.spawn(te, { map, x: 5, y: 5 });
+    expect(fn).toHaveBeenCalled();
+  });
+
+  test("gameHasEnded", async () => {
+    const te = Map.tileEvent.install("TEST", {
+      emit: "TACO",
+      next: "INVALID", // Not called
+    });
+
+    const fn = jest.fn().mockImplementation(() => {
+      GW.data.gameHasEnded = true;
+    });
+    GW.events.on("TACO", fn);
+
+    await Map.tileEvent.spawn(te, { map, x: 5, y: 5 });
+    expect(fn).toHaveBeenCalled();
+  });
+
+  test("DFF_SUBSEQ_ALWAYS", async () => {
+    Map.tileEvent.install("WALLS", {
+      tile: "WALL",
+    });
+
+    const te2 = Map.tileEvent.install("TACO", {
+      flags: "DFF_SUBSEQ_ALWAYS",
+      next: "WALLS",
+    });
+
+    await Map.tileEvent.spawn(te2, { map, x: 10, y: 10 });
+
+    expect(map.cell(10, 10).hasTile("WALL")).toBeTruthy();
+  });
+
+  test("DFF_SUBSEQ_ALWAYS | DFF_SUBSEQ_EVERYWHERE", async () => {
+    Map.tileEvent.install("WALLS", {
+      tile: "WALL",
+    });
+
+    const te2 = Map.tileEvent.install("TACO", {
+      flags: "DFF_SUBSEQ_ALWAYS, DFF_SUBSEQ_EVERYWHERE",
+      next: "WALLS",
+    });
+
+    await Map.tileEvent.spawn(te2, { map, x: 10, y: 10 });
+
+    expect(map.cell(10, 10).hasTile("WALL")).toBeTruthy();
   });
 });

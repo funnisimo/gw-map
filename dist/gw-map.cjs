@@ -789,12 +789,7 @@ async function spawn(activation, ctx = {}) {
                     continue;
                 const cell = map.cell(i, j);
                 if (cell.actor || cell.item) {
-                    for (let t of cell.tiles()) {
-                        await t.applyInstantEffects(map, i, j, cell);
-                        if (GW.data.gameHasEnded) {
-                            return true;
-                        }
-                    }
+                    await cell.activate("enter", { map, x: i, y: j, cell });
                 }
             }
         }
@@ -885,6 +880,8 @@ function cellIsOk(feat, x, y, ctx = {}) {
     }
     else if (feat.flags & Activation.DFF_NO_TOUCH_WALLS) {
         let ok = true;
+        if (cell.isWall())
+            return false; // or on wall
         map.eachNeighbor(x, y, (c) => {
             if (c.isWall()) {
                 ok = false;
@@ -899,8 +896,9 @@ function cellIsOk(feat, x, y, ctx = {}) {
         return false;
     if (cell.hasLayerFlag(Layer.L_BLOCKS_EFFECTS) &&
         !feat.matchTile &&
-        (ctx.x != x || ctx.y != y))
+        (ctx.x != x || ctx.y != y)) {
         return false;
+    }
     return true;
 }
 function computeSpawnMap(feat, spawnMap, ctx = {}) {
@@ -920,6 +918,7 @@ function computeSpawnMap(feat, spawnMap, ctx = {}) {
         }
         feat.matchTile = tile$1.id;
     }
+    spawnMap.fill(0);
     spawnMap[x][y] = t = 1; // incremented before anything else happens
     let radius = feat.radius || 0;
     if (feat.flags & Activation.DFF_SPREAD_CIRCLE) {
@@ -1021,7 +1020,7 @@ async function spawnTiles(feat, spawnMap, ctx, tile, item) {
                 continue;
             if (tile) {
                 if (cell.tile(tile.depth) === tile) {
-                    // If the new cell does not already contains the fill terrain,
+                    // If the new cell already contains the fill terrain,
                     if (tile.depth == Depth.GAS) {
                         spawnMap[i][j] = 1;
                         cell.gasVolume += volume;

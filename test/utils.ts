@@ -70,5 +70,6 @@ export function makeItem() {
     isDetected: jest.fn().mockReturnValue(false),
     forbidsCell: jest.fn().mockReturnValue(false),
     clone: jest.fn().mockImplementation(makeItem),
+    delete: jest.fn(),
   } as unknown) as Types.ItemType;
 }
