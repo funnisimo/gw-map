@@ -173,7 +173,7 @@ describe("Map", () => {
       invalidateCostMap: jest.fn(),
     });
 
-    const map: Map.map.Map = GW.make.map(10, 10, "FLOOR");
+    const map: Map.map.Map = GW.make.map(10, 10, { tile: "FLOOR", fov: true });
     map.eachCell((c) => expect(c.flags & Map.cell.Flags.REVEALED).toBeFalsy());
     map.markRevealed(3, 3);
     expect(map.cell(3, 3).flags & Map.cell.Flags.REVEALED).toBeTruthy();
@@ -248,20 +248,16 @@ describe("Map", () => {
     const map: Map.map.Map = GW.make.map(10, 10, "FLOOR");
 
     expect(map.flags).toEqual(
-      Map.map.Flags.MAP_STABLE_LIGHTS |
-        Map.map.Flags.MAP_STABLE_GLOW_LIGHTS |
-        Map.map.Flags.MAP_FOV_CHANGED
+      Map.map.Flags.MAP_STABLE_LIGHTS | Map.map.Flags.MAP_STABLE_GLOW_LIGHTS
     );
 
     map.clearFlag(Map.map.Flags.MAP_STABLE_LIGHTS);
     expect(map.flags).toEqual(
-      Map.map.Flags.MAP_STABLE_GLOW_LIGHTS |
-        Map.map.Flags.MAP_FOV_CHANGED |
-        Map.map.Flags.MAP_CHANGED
+      Map.map.Flags.MAP_STABLE_GLOW_LIGHTS | Map.map.Flags.MAP_CHANGED
     );
 
     // cannot undo changed b/c clearing flags sets changed!  must do 'changed = false'
-    map.clearFlags(Map.map.Flags.MAP_FOV_CHANGED | Map.map.Flags.MAP_CHANGED);
+    map.clearFlags(Map.map.Flags.MAP_CHANGED);
     expect(map.flags).toEqual(
       Map.map.Flags.MAP_STABLE_GLOW_LIGHTS | Map.map.Flags.MAP_CHANGED
     );

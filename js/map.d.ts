@@ -39,6 +39,9 @@ export interface DisruptsOptions {
     gridOffsetY: number;
     bounds: Types.Bounds | null;
 }
+export interface MapFovInfo extends Utils.XY {
+    lastRadius: number;
+}
 export declare class Map implements Types.MapType {
     protected _width: number;
     protected _height: number;
@@ -51,7 +54,7 @@ export declare class Map implements Types.MapType {
     ambientLight: Color.Color;
     lights: LightInfo | null;
     id: string;
-    events: any;
+    fov: Utils.XY | null;
     constructor(w: number, h: number, opts?: any);
     get width(): number;
     get height(): number;
@@ -82,6 +85,7 @@ export declare class Map implements Types.MapType {
     isVisible(x: number, y: number): number;
     isAnyKindOfVisible(x: number, y: number): number;
     isOrWasAnyKindOfVisible(x: number, y: number): number;
+    isRevealed(x: number, y: number): boolean;
     get anyLightChanged(): boolean;
     set anyLightChanged(v: boolean);
     get ambientLightChanged(): boolean;
@@ -158,7 +162,7 @@ export declare class Map implements Types.MapType {
 export declare function make(w: number, h: number, floor: string, wall: string): Map;
 export declare function make(w: number, h: number, floor: string): Map;
 export declare function make(w: number, h: number, opts?: any): Map;
-export declare function from(prefab: string | string[], charToTile: Record<string, Cell.TileBase | null>): Map;
+export declare function from(prefab: string | string[], charToTile: Record<string, Cell.TileBase | null>, opts?: any): Map;
 export declare function getCellAppearance(map: Map, x: number, y: number, dest: Canvas.Mixer): void;
 export declare function addText(map: Map, x: number, y: number, text: string, fg: Color.ColorBase | null, bg: Color.ColorBase | null, layer?: TileLayer): void;
 export declare function updateGas(map: Map): void;

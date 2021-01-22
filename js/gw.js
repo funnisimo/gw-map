@@ -10,6 +10,8 @@ import * as tileEvent_1 from "./tileEvent";
 export { tileEvent_1 as tileEvent };
 import * as map_1 from "./map";
 export { map_1 as map };
+import * as visibility_1 from "./visibility";
+export { visibility_1 as visibility };
 import "./tiles";
 export { tiles } from "./tile";
 export { lights } from "./light";

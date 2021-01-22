@@ -324,6 +324,13 @@ export class Cell {
         }
         return best;
     }
+    tileWithLayerFlag(layerFlag) {
+        for (let tile of this.tiles()) {
+            if (tile.flags.layer & layerFlag)
+                return tile;
+        }
+        return null;
+    }
     tileWithFlag(tileFlag) {
         for (let tile of this.tiles()) {
             if (tile.flags.tile & tileFlag)

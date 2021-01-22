@@ -28,6 +28,7 @@ import {
 } from "./flags";
 import * as Light from "./light";
 import * as Layer from "./layer";
+import * as Visibility from "./visibility";
 
 export { Flags };
 
@@ -93,6 +94,10 @@ export interface DisruptsOptions {
   bounds: Types.Bounds | null;
 }
 
+export interface MapFovInfo extends Utils.XY {
+  lastRadius: number;
+}
+
 export class Map implements Types.MapType {
   protected _width: number;
   protected _height: number;
@@ -105,7 +110,7 @@ export class Map implements Types.MapType {
   public ambientLight: Color.Color;
   public lights: LightInfo | null = null;
   public id: string;
-  public events: any = {};
+  public fov: Utils.XY | null = null;
 
   constructor(w: number, h: number, opts: any = {}) {
     this._width = w;
@@ -125,7 +130,11 @@ export class Map implements Types.MapType {
     this.ambientLight = Color.make(ambient);
     this.lights = null;
     this.id = opts.id;
-    this.events = opts.events || {};
+    if (this.config.fov) {
+      this.flags |= Flags.MAP_CALC_FOV;
+      this.fov = { x: -1, y: -1 };
+    }
+    Visibility.initMap(this);
   }
 
   get width() {
@@ -273,6 +282,9 @@ export class Map implements Types.MapType {
   }
   isOrWasAnyKindOfVisible(x: number, y: number) {
     return this.cell(x, y).isOrWasAnyKindOfVisible();
+  }
+  isRevealed(x: number, y: number) {
+    return this.cell(x, y).isRevealed();
   }
 
   get anyLightChanged() {
@@ -1127,8 +1139,14 @@ export function make(w: number, h: number, opts: any = {}, wall?: string) {
     }
   }
   const map = new Map(w, h, opts);
-  const floor = opts.tile || opts.floor || opts.floorTile;
-  const boundary = opts.boundary || opts.wall || opts.wallTile;
+  let floor = opts.tile || opts.floor || opts.floorTile;
+  if (floor === true) {
+    floor = "FLOOR";
+  }
+  let boundary = opts.boundary || opts.wall || opts.wallTile;
+  if (boundary === true) {
+    boundary = "WALL";
+  }
   if (floor) {
     map.fill(floor, boundary);
   }
@@ -1142,14 +1160,15 @@ Make.map = make;
 
 export function from(
   prefab: string | string[],
-  charToTile: Record<string, Cell.TileBase | null>
+  charToTile: Record<string, Cell.TileBase | null>,
+  opts: any = {}
 ) {
   if (!Array.isArray(prefab)) {
     prefab = prefab.split("\n");
   }
   const height = prefab.length;
   const width = prefab.reduce((len, line) => Math.max(len, line.length), 0);
-  const map = make(width, height);
+  const map = make(width, height, opts);
 
   prefab.forEach((line, y) => {
     for (let x = 0; x < width; ++x) {

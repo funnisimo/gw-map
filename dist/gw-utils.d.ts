@@ -1,4 +1,4 @@
-import { color, grid, types, canvas, buffer, utils, range, flag } from 'gw-utils';
+import { color, grid, types, canvas, utils, buffer, range, flag } from 'gw-utils';
 
 declare enum Depth {
     ALL_LAYERS = -1,
@@ -25,6 +25,7 @@ declare enum Layer {
     L_BLOCKS_ACTORS,
     L_BLOCKS_EFFECTS,
     L_BLOCKS_DIAGONAL,
+    L_INTERRUPT_WHEN_SEEN,
     L_BLOCKED_BY_STAIRS,
     L_BLOCKS_SCENT,
     L_DIVIDES_LEVEL,
@@ -150,6 +151,7 @@ declare enum Cell {
     ANY_KIND_OF_VISIBLE,
     HAS_ACTOR,
     IS_WAS_ANY_KIND_OF_VISIBLE,
+    WAS_ANY_KIND_OF_VISIBLE,
     CELL_DEFAULT
 }
 declare enum CellMech {
@@ -176,6 +178,7 @@ declare enum Map {
     MAP_SAW_WELCOME,
     MAP_NO_LIQUID,
     MAP_NO_GAS,
+    MAP_CALC_FOV,
     MAP_FOV_CHANGED,
     MAP_DEFAULT
 }
@@ -422,8 +425,9 @@ declare class Cell$1 implements types.CellType {
     hasMechFlag(flag: CellMech, limitToPlayerKnowledge?: boolean): boolean;
     hasTile(tile: string | Tile$1): boolean;
     topmostTile(skipGas?: boolean): Tile$1;
-    tileWithFlag(tileFlag: number): LayerTile;
-    tileWithMechFlag(mechFlag: number): LayerTile;
+    tileWithLayerFlag(layerFlag: number): Tile$1 | null;
+    tileWithFlag(tileFlag: number): Tile$1 | null;
+    tileWithMechFlag(mechFlag: number): Tile$1 | null;
     tileDesc(): string | null;
     tileFlavor(): string | null;
     getName(opts?: {}): string;
@@ -510,6 +514,9 @@ interface DisruptsOptions {
     gridOffsetY: number;
     bounds: types.Bounds | null;
 }
+interface MapFovInfo extends utils.XY {
+    lastRadius: number;
+}
 declare class Map$1 implements types.MapType {
     protected _width: number;
     protected _height: number;
@@ -522,7 +529,7 @@ declare class Map$1 implements types.MapType {
     ambientLight: color.Color;
     lights: LightInfo | null;
     id: string;
-    events: any;
+    fov: utils.XY | null;
     constructor(w: number, h: number, opts?: any);
     get width(): number;
     get height(): number;
@@ -553,6 +560,7 @@ declare class Map$1 implements types.MapType {
     isVisible(x: number, y: number): number;
     isAnyKindOfVisible(x: number, y: number): number;
     isOrWasAnyKindOfVisible(x: number, y: number): number;
+    isRevealed(x: number, y: number): boolean;
     get anyLightChanged(): boolean;
     set anyLightChanged(v: boolean);
     get ambientLightChanged(): boolean;
@@ -629,7 +637,7 @@ declare class Map$1 implements types.MapType {
 declare function make$3(w: number, h: number, floor: string, wall: string): Map$1;
 declare function make$3(w: number, h: number, floor: string): Map$1;
 declare function make$3(w: number, h: number, opts?: any): Map$1;
-declare function from(prefab: string | string[], charToTile: Record<string, TileBase | null>): Map$1;
+declare function from(prefab: string | string[], charToTile: Record<string, TileBase | null>, opts?: any): Map$1;
 declare function getCellAppearance(map: Map$1, x: number, y: number, dest: canvas.Mixer): void;
 declare function addText(map: Map$1, x: number, y: number, text: string, fg: color.ColorBase | null, bg: color.ColorBase | null, layer?: Depth): void;
 declare function updateGas(map: Map$1): void;
@@ -642,6 +650,7 @@ type map_d_MapCostFn = MapCostFn;
 type map_d_MapMatchOptions = MapMatchOptions;
 type map_d_MapLightFn = MapLightFn;
 type map_d_DisruptsOptions = DisruptsOptions;
+type map_d_MapFovInfo = MapFovInfo;
 declare const map_d_from: typeof from;
 declare const map_d_getCellAppearance: typeof getCellAppearance;
 declare const map_d_addText: typeof addText;
@@ -657,6 +666,7 @@ declare namespace map_d {
     map_d_MapMatchOptions as MapMatchOptions,
     map_d_MapLightFn as MapLightFn,
     map_d_DisruptsOptions as DisruptsOptions,
+    map_d_MapFovInfo as MapFovInfo,
     Map$1 as Map,
     make$3 as make,
     map_d_from as from,
@@ -759,6 +769,7 @@ declare class Layer$1 implements types.LayerType {
     light: Light | null;
     flags: types.LayerFlags;
     constructor(config: Partial<LayerConfig>);
+    hasLayerFlag(flag: number): boolean;
 }
 declare function make$5(config: Partial<LayerConfig>): Layer$1;
 
@@ -775,4 +786,16 @@ declare namespace layer_d {
   };
 }
 
-export { cell_d as cell, layer_d as layer, light_d as light, lights, map_d as map, tile_d as tile, tileEvent_d as tileEvent, tiles };
+declare function initMap(map: Map$1): void;
+declare function update(map: Map$1, x: number, y: number, maxRadius: number): boolean;
+
+declare const visibility_d_initMap: typeof initMap;
+declare const visibility_d_update: typeof update;
+declare namespace visibility_d {
+  export {
+    visibility_d_initMap as initMap,
+    visibility_d_update as update,
+  };
+}
+
+export { cell_d as cell, layer_d as layer, light_d as light, lights, map_d as map, tile_d as tile, tileEvent_d as tileEvent, tiles, visibility_d as visibility };

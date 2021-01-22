@@ -27,6 +27,7 @@ export var Layer;
     Layer[Layer["L_BLOCKS_ACTORS"] = Fl(11)] = "L_BLOCKS_ACTORS";
     Layer[Layer["L_BLOCKS_EFFECTS"] = Fl(9)] = "L_BLOCKS_EFFECTS";
     Layer[Layer["L_BLOCKS_DIAGONAL"] = Fl(10)] = "L_BLOCKS_DIAGONAL";
+    Layer[Layer["L_INTERRUPT_WHEN_SEEN"] = Fl(11)] = "L_INTERRUPT_WHEN_SEEN";
     Layer[Layer["L_BLOCKED_BY_STAIRS"] = Layer.L_BLOCKS_ITEMS |
         Layer.L_BLOCKS_SURFACE |
         Layer.L_BLOCKS_GAS |
@@ -231,6 +232,9 @@ export var Cell;
         Cell.WAS_CLAIRVOYANT_VISIBLE |
         Cell.TELEPATHIC_VISIBLE |
         Cell.WAS_TELEPATHIC_VISIBLE] = "IS_WAS_ANY_KIND_OF_VISIBLE";
+    Cell[Cell["WAS_ANY_KIND_OF_VISIBLE"] = Cell.WAS_VISIBLE |
+        Cell.WAS_CLAIRVOYANT_VISIBLE |
+        Cell.WAS_TELEPATHIC_VISIBLE] = "WAS_ANY_KIND_OF_VISIBLE";
     Cell[Cell["CELL_DEFAULT"] = Cell.VISIBLE | Cell.IN_FOV | Cell.NEEDS_REDRAW | Cell.CELL_CHANGED] = "CELL_DEFAULT";
 })(Cell || (Cell = {}));
 ///////////////////////////////////////////////////////
@@ -269,6 +273,7 @@ export var Map;
     Map[Map["MAP_SAW_WELCOME"] = Fl(4)] = "MAP_SAW_WELCOME";
     Map[Map["MAP_NO_LIQUID"] = Fl(5)] = "MAP_NO_LIQUID";
     Map[Map["MAP_NO_GAS"] = Fl(6)] = "MAP_NO_GAS";
-    Map[Map["MAP_FOV_CHANGED"] = Fl(7)] = "MAP_FOV_CHANGED";
-    Map[Map["MAP_DEFAULT"] = Map.MAP_STABLE_LIGHTS | Map.MAP_STABLE_GLOW_LIGHTS | Map.MAP_FOV_CHANGED] = "MAP_DEFAULT";
+    Map[Map["MAP_CALC_FOV"] = Fl(7)] = "MAP_CALC_FOV";
+    Map[Map["MAP_FOV_CHANGED"] = Fl(8)] = "MAP_FOV_CHANGED";
+    Map[Map["MAP_DEFAULT"] = Map.MAP_STABLE_LIGHTS | Map.MAP_STABLE_GLOW_LIGHTS] = "MAP_DEFAULT";
 })(Map || (Map = {}));

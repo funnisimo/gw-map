@@ -23,6 +23,7 @@ export declare enum Layer {
     L_BLOCKS_ACTORS,
     L_BLOCKS_EFFECTS,
     L_BLOCKS_DIAGONAL,
+    L_INTERRUPT_WHEN_SEEN,
     L_BLOCKED_BY_STAIRS,
     L_BLOCKS_SCENT,
     L_DIVIDES_LEVEL,
@@ -148,6 +149,7 @@ export declare enum Cell {
     ANY_KIND_OF_VISIBLE,
     HAS_ACTOR,
     IS_WAS_ANY_KIND_OF_VISIBLE,
+    WAS_ANY_KIND_OF_VISIBLE,
     CELL_DEFAULT
 }
 export declare enum CellMech {
@@ -174,6 +176,7 @@ export declare enum Map {
     MAP_SAW_WELCOME,
     MAP_NO_LIQUID,
     MAP_NO_GAS,
+    MAP_CALC_FOV,
     MAP_FOV_CHANGED,
     MAP_DEFAULT
 }

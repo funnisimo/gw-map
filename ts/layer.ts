@@ -31,6 +31,10 @@ export class Layer implements GW.types.LayerType {
     // @ts-ignore
     this.flags.layer = GW.flag.from(Flags, config.layerFlags, config.flags, 0);
   }
+
+  hasLayerFlag(flag: number): boolean {
+    return (this.flags.layer & flag) > 0;
+  }
 }
 
 export function make(config: Partial<LayerConfig>) {

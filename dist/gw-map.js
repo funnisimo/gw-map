@@ -32,6 +32,7 @@
         Layer[Layer["L_BLOCKS_ACTORS"] = Fl(11)] = "L_BLOCKS_ACTORS";
         Layer[Layer["L_BLOCKS_EFFECTS"] = Fl(9)] = "L_BLOCKS_EFFECTS";
         Layer[Layer["L_BLOCKS_DIAGONAL"] = Fl(10)] = "L_BLOCKS_DIAGONAL";
+        Layer[Layer["L_INTERRUPT_WHEN_SEEN"] = Fl(11)] = "L_INTERRUPT_WHEN_SEEN";
         Layer[Layer["L_BLOCKED_BY_STAIRS"] = Layer.L_BLOCKS_ITEMS |
             Layer.L_BLOCKS_SURFACE |
             Layer.L_BLOCKS_GAS |
@@ -236,6 +237,9 @@
             Cell.WAS_CLAIRVOYANT_VISIBLE |
             Cell.TELEPATHIC_VISIBLE |
             Cell.WAS_TELEPATHIC_VISIBLE] = "IS_WAS_ANY_KIND_OF_VISIBLE";
+        Cell[Cell["WAS_ANY_KIND_OF_VISIBLE"] = Cell.WAS_VISIBLE |
+            Cell.WAS_CLAIRVOYANT_VISIBLE |
+            Cell.WAS_TELEPATHIC_VISIBLE] = "WAS_ANY_KIND_OF_VISIBLE";
         Cell[Cell["CELL_DEFAULT"] = Cell.VISIBLE | Cell.IN_FOV | Cell.NEEDS_REDRAW | Cell.CELL_CHANGED] = "CELL_DEFAULT";
     })(Cell || (Cell = {}));
     ///////////////////////////////////////////////////////
@@ -274,8 +278,9 @@
         Map[Map["MAP_SAW_WELCOME"] = Fl(4)] = "MAP_SAW_WELCOME";
         Map[Map["MAP_NO_LIQUID"] = Fl(5)] = "MAP_NO_LIQUID";
         Map[Map["MAP_NO_GAS"] = Fl(6)] = "MAP_NO_GAS";
-        Map[Map["MAP_FOV_CHANGED"] = Fl(7)] = "MAP_FOV_CHANGED";
-        Map[Map["MAP_DEFAULT"] = Map.MAP_STABLE_LIGHTS | Map.MAP_STABLE_GLOW_LIGHTS | Map.MAP_FOV_CHANGED] = "MAP_DEFAULT";
+        Map[Map["MAP_CALC_FOV"] = Fl(7)] = "MAP_CALC_FOV";
+        Map[Map["MAP_FOV_CHANGED"] = Fl(8)] = "MAP_FOV_CHANGED";
+        Map[Map["MAP_DEFAULT"] = Map.MAP_STABLE_LIGHTS | Map.MAP_STABLE_GLOW_LIGHTS] = "MAP_DEFAULT";
     })(Map || (Map = {}));
 
     // const LIGHT_SMOOTHING_THRESHOLD = 150;       // light components higher than this magnitude will be toned down a little
@@ -587,6 +592,9 @@
                     : config.depth) || 0;
             // @ts-ignore
             this.flags.layer = GW.flag.from(Layer, config.layerFlags, config.flags, 0);
+        }
+        hasLayerFlag(flag) {
+            return (this.flags.layer & flag) > 0;
         }
     }
     function make$1(config) {
@@ -1670,6 +1678,13 @@
             }
             return best;
         }
+        tileWithLayerFlag(layerFlag) {
+            for (let tile of this.tiles()) {
+                if (tile.flags.layer & layerFlag)
+                    return tile;
+            }
+            return null;
+        }
         tileWithFlag(tileFlag) {
             for (let tile of this.tiles()) {
                 if (tile.flags.tile & tileFlag)
@@ -2089,6 +2104,204 @@
         getAppearance: getAppearance
     };
 
+    function demoteCellVisibility(cell) {
+        cell.flags &= ~(Cell.WAS_ANY_KIND_OF_VISIBLE | Cell.IN_FOV);
+        if (cell.flags & Cell.VISIBLE) {
+            cell.flags &= ~Cell.VISIBLE;
+            cell.flags |= Cell.WAS_VISIBLE;
+        }
+        if (cell.flags & Cell.CLAIRVOYANT_VISIBLE) {
+            cell.flags &= ~Cell.CLAIRVOYANT_VISIBLE;
+            cell.flags |= Cell.WAS_CLAIRVOYANT_VISIBLE;
+        }
+        if (cell.flags & Cell.TELEPATHIC_VISIBLE) {
+            cell.flags &= ~Cell.TELEPATHIC_VISIBLE;
+            cell.flags |= Cell.WAS_TELEPATHIC_VISIBLE;
+        }
+    }
+    function _updateCellVisibility(cell, i, j, map) {
+        const isVisible = cell.flags & Cell.VISIBLE;
+        const wasVisible = cell.flags & Cell.WAS_VISIBLE;
+        if (isVisible && wasVisible) {
+            if (cell.lightChanged) {
+                map.redrawCell(cell);
+            }
+        }
+        else if (isVisible && !wasVisible) {
+            // if the cell became visible this move
+            if (!(cell.flags & Cell.REVEALED) && GW.data.automationActive) {
+                if (cell.item) {
+                    const theItem = cell.item;
+                    if (theItem.hasLayerFlag(Layer.L_INTERRUPT_WHEN_SEEN)) {
+                        GW.message.add("§you§ §see§ ΩitemMessageColorΩ§item§∆.", {
+                            item: theItem,
+                            actor: GW.data.player,
+                        });
+                    }
+                }
+                if (!(cell.flags & Cell.MAGIC_MAPPED) &&
+                    cell.hasLayerFlag(Layer.L_INTERRUPT_WHEN_SEEN)) {
+                    const tile = cell.tileWithLayerFlag(Layer.L_INTERRUPT_WHEN_SEEN);
+                    if (tile) {
+                        GW.message.add("§you§ §see§ ΩbackgroundMessageColorΩ§item§∆.", {
+                            actor: GW.data.player,
+                            item: tile.name,
+                        });
+                    }
+                }
+            }
+            map.markRevealed(i, j);
+            map.redrawCell(cell);
+        }
+        else if (!isVisible && wasVisible) {
+            // if the cell ceased being visible this move
+            cell.storeMemory();
+            map.redrawCell(cell);
+        }
+        return isVisible;
+    }
+    function _updateCellClairyvoyance(cell, _i, _j, map) {
+        const isClairy = cell.flags & Cell.CLAIRVOYANT_VISIBLE;
+        const wasClairy = cell.flags & Cell.WAS_CLAIRVOYANT_VISIBLE;
+        if (isClairy && wasClairy) {
+            if (cell.lightChanged) {
+                map.redrawCell(cell);
+            }
+        }
+        else if (!isClairy && wasClairy) {
+            // ceased being clairvoyantly visible
+            cell.storeMemory();
+            map.redrawCell(cell);
+        }
+        else if (!wasClairy && isClairy) {
+            // became clairvoyantly visible
+            cell.flags &= ~Cell.STABLE_MEMORY;
+            map.redrawCell(cell);
+        }
+        return isClairy;
+    }
+    function _updateCellTelepathy(cell, _i, _j, map) {
+        const isTele = cell.flags & Cell.TELEPATHIC_VISIBLE;
+        const wasTele = cell.flags & Cell.WAS_TELEPATHIC_VISIBLE;
+        if (isTele && wasTele) {
+            if (cell.lightChanged) {
+                map.redrawCell(cell);
+            }
+        }
+        else if (!isTele && wasTele) {
+            // ceased being telepathically visible
+            cell.storeMemory();
+            map.redrawCell(cell);
+        }
+        else if (!wasTele && isTele) {
+            // became telepathically visible
+            if (!(cell.flags & Cell.REVEALED) &&
+                !cell.hasTileFlag(Tile.T_PATHING_BLOCKER)) {
+                GW.data.xpxpThisTurn++;
+            }
+            cell.flags &= ~Cell.STABLE_MEMORY;
+            map.redrawCell(cell);
+        }
+        return isTele;
+    }
+    function _updateCellDetect(cell, _i, _j, map) {
+        const isMonst = cell.flags & Cell.MONSTER_DETECTED;
+        const wasMonst = cell.flags & Cell.WAS_MONSTER_DETECTED;
+        if (isMonst && wasMonst) {
+            if (cell.lightChanged) {
+                map.redrawCell(cell);
+            }
+        }
+        else if (!isMonst && wasMonst) {
+            // ceased being detected visible
+            cell.flags &= ~Cell.STABLE_MEMORY;
+            map.redrawCell(cell);
+            cell.storeMemory();
+        }
+        else if (!wasMonst && isMonst) {
+            // became detected visible
+            cell.flags &= ~Cell.STABLE_MEMORY;
+            map.redrawCell(cell);
+            cell.storeMemory();
+        }
+        return isMonst;
+    }
+    function promoteCellVisibility(cell, i, j, map) {
+        if (cell.flags & Cell.IN_FOV &&
+            map.hasVisibleLight(i, j) &&
+            !(cell.flags & Cell.CLAIRVOYANT_DARKENED)) {
+            cell.flags |= Cell.VISIBLE;
+        }
+        if (_updateCellVisibility(cell, i, j, map))
+            return;
+        if (_updateCellClairyvoyance(cell, i, j, map))
+            return;
+        if (_updateCellTelepathy(cell, i, j, map))
+            return;
+        if (_updateCellDetect(cell, i, j, map))
+            return;
+    }
+    function initMap(map$1) {
+        if (!(map$1.flags & Map.MAP_CALC_FOV)) {
+            map$1.forEach((cell) => (cell.flags |= Cell.REVEALED));
+            return;
+        }
+        map$1.clearFlags(0, Cell.IS_WAS_ANY_KIND_OF_VISIBLE);
+    }
+    function update(map$1, x, y, maxRadius) {
+        if (!(map$1.flags & Map.MAP_CALC_FOV) || !map$1.fov)
+            return false;
+        if (x == map$1.fov.x && y == map$1.fov.y) {
+            if (!(map$1.flags & Map.MAP_FOV_CHANGED))
+                return false;
+        }
+        map$1.flags &= ~Map.MAP_FOV_CHANGED;
+        map$1.fov.x = x;
+        map$1.fov.y = y;
+        map$1.forEach(demoteCellVisibility);
+        // Calculate player's field of view (distinct from what is visible, as lighting hasn't been done yet).
+        const grid = GW.grid.alloc(map$1.width, map$1.height, 0);
+        map$1.calcFov(grid, x, y, maxRadius);
+        grid.forEach((v, i, j) => {
+            if (v) {
+                map$1.setCellFlags(i, j, Cell.IN_FOV);
+            }
+        });
+        GW.grid.free(grid);
+        map$1.setCellFlags(x, y, Cell.IN_FOV | Cell.VISIBLE);
+        // if (PLAYER.bonus.clairvoyance < 0) {
+        //   discoverCell(PLAYER.xLoc, PLAYER.yLoc);
+        // }
+        //
+        // if (PLAYER.bonus.clairvoyance != 0) {
+        // 	updateClairvoyance();
+        // }
+        //
+        // updateTelepathy();
+        // updateMonsterDetection();
+        // updateLighting();
+        map$1.forEach(promoteCellVisibility);
+        // if (PLAYER.status.hallucinating > 0) {
+        // 	for (theItem of DUNGEON.items) {
+        // 		if ((pmap[theItem.xLoc][theItem.yLoc].flags & DISCOVERED) && refreshDisplay) {
+        // 			refreshDungeonCell(theItem.xLoc, theItem.yLoc);
+        // 		}
+        // 	}
+        // 	for (monst of DUNGEON.monsters) {
+        // 		if ((pmap[monst.xLoc][monst.yLoc].flags & DISCOVERED) && refreshDisplay) {
+        // 			refreshDungeonCell(monst.xLoc, monst.yLoc);
+        // 		}
+        // 	}
+        // }
+        return true;
+    }
+
+    var visibility = {
+        __proto__: null,
+        initMap: initMap,
+        update: update
+    };
+
     GW.utils.setDefaults(GW.config, {
         "map.deepestLevel": 99,
     });
@@ -2100,7 +2313,7 @@
             this._items = null;
             this.flags = 0;
             this.lights = null;
-            this.events = {};
+            this.fov = null;
             this._width = w;
             this._height = h;
             this.cells = GW.grid.make(w, h, () => new Cell$1());
@@ -2114,7 +2327,11 @@
             this.ambientLight = GW.color.make(ambient);
             this.lights = null;
             this.id = opts.id;
-            this.events = opts.events || {};
+            if (this.config.fov) {
+                this.flags |= Map.MAP_CALC_FOV;
+                this.fov = { x: -1, y: -1 };
+            }
+            initMap(this);
         }
         get width() {
             return this._width;
@@ -2245,6 +2462,9 @@
         }
         isOrWasAnyKindOfVisible(x, y) {
             return this.cell(x, y).isOrWasAnyKindOfVisible();
+        }
+        isRevealed(x, y) {
+            return this.cell(x, y).isRevealed();
         }
         get anyLightChanged() {
             return (this.flags & Map.MAP_STABLE_LIGHTS) == 0;
@@ -2939,8 +3159,14 @@
             }
         }
         const map = new Map$1(w, h, opts);
-        const floor = opts.tile || opts.floor || opts.floorTile;
-        const boundary = opts.boundary || opts.wall || opts.wallTile;
+        let floor = opts.tile || opts.floor || opts.floorTile;
+        if (floor === true) {
+            floor = "FLOOR";
+        }
+        let boundary = opts.boundary || opts.wall || opts.wallTile;
+        if (boundary === true) {
+            boundary = "WALL";
+        }
         if (floor) {
             map.fill(floor, boundary);
         }
@@ -2950,13 +3176,13 @@
         return map;
     }
     GW.make.map = make$5;
-    function from$1(prefab, charToTile) {
+    function from$1(prefab, charToTile, opts = {}) {
         if (!Array.isArray(prefab)) {
             prefab = prefab.split("\n");
         }
         const height = prefab.length;
         const width = prefab.reduce((len, line) => Math.max(len, line.length), 0);
-        const map = make$5(width, height);
+        const map = make$5(width, height, opts);
         prefab.forEach((line, y) => {
             for (let x = 0; x < width; ++x) {
                 const ch = line[x] || ".";
@@ -3287,6 +3513,7 @@
     exports.tile = tile;
     exports.tileEvent = tileEvent;
     exports.tiles = tiles;
+    exports.visibility = visibility;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 

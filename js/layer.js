@@ -18,6 +18,9 @@ export class Layer {
         // @ts-ignore
         this.flags.layer = GW.flag.from(Flags, config.layerFlags, config.flags, 0);
     }
+    hasLayerFlag(flag) {
+        return (this.flags.layer & flag) > 0;
+    }
 }
 export function make(config) {
     return new Layer(config);

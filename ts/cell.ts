@@ -395,6 +395,13 @@ export class Cell implements Types.CellType {
     return best;
   }
 
+  tileWithLayerFlag(layerFlag: number) {
+    for (let tile of this.tiles()) {
+      if (tile.flags.layer & layerFlag) return tile;
+    }
+    return null;
+  }
+
   tileWithFlag(tileFlag: number) {
     for (let tile of this.tiles()) {
       if (tile.flags.tile & tileFlag) return tile;

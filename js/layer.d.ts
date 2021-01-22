@@ -17,5 +17,6 @@ export declare class Layer implements GW.types.LayerType {
     light: Light.Light | null;
     flags: GW.types.LayerFlags;
     constructor(config: Partial<LayerConfig>);
+    hasLayerFlag(flag: number): boolean;
 }
 export declare function make(config: Partial<LayerConfig>): Layer;

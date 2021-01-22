@@ -3,6 +3,7 @@ import * as Cell from "./cell";
 import { Map as Flags, Cell as CellFlags, Tile as TileFlags, CellMech as CellMechFlags, TileMech as TileMechFlags, Depth as TileLayer, Layer as LayerFlags, } from "./flags";
 import * as Light from "./light";
 import * as Layer from "./layer";
+import * as Visibility from "./visibility";
 export { Flags };
 Utils.setDefaults(CONFIG, {
     "map.deepestLevel": 99,
@@ -15,7 +16,7 @@ export class Map {
         this._items = null;
         this.flags = 0;
         this.lights = null;
-        this.events = {};
+        this.fov = null;
         this._width = w;
         this._height = h;
         this.cells = Grid.make(w, h, () => new Cell.Cell());
@@ -29,7 +30,11 @@ export class Map {
         this.ambientLight = Color.make(ambient);
         this.lights = null;
         this.id = opts.id;
-        this.events = opts.events || {};
+        if (this.config.fov) {
+            this.flags |= Flags.MAP_CALC_FOV;
+            this.fov = { x: -1, y: -1 };
+        }
+        Visibility.initMap(this);
     }
     get width() {
         return this._width;
@@ -160,6 +165,9 @@ export class Map {
     }
     isOrWasAnyKindOfVisible(x, y) {
         return this.cell(x, y).isOrWasAnyKindOfVisible();
+    }
+    isRevealed(x, y) {
+        return this.cell(x, y).isRevealed();
     }
     get anyLightChanged() {
         return (this.flags & Flags.MAP_STABLE_LIGHTS) == 0;
@@ -854,8 +862,14 @@ export function make(w, h, opts = {}, wall) {
         }
     }
     const map = new Map(w, h, opts);
-    const floor = opts.tile || opts.floor || opts.floorTile;
-    const boundary = opts.boundary || opts.wall || opts.wallTile;
+    let floor = opts.tile || opts.floor || opts.floorTile;
+    if (floor === true) {
+        floor = "FLOOR";
+    }
+    let boundary = opts.boundary || opts.wall || opts.wallTile;
+    if (boundary === true) {
+        boundary = "WALL";
+    }
     if (floor) {
         map.fill(floor, boundary);
     }
@@ -865,13 +879,13 @@ export function make(w, h, opts = {}, wall) {
     return map;
 }
 Make.map = make;
-export function from(prefab, charToTile) {
+export function from(prefab, charToTile, opts = {}) {
     if (!Array.isArray(prefab)) {
         prefab = prefab.split("\n");
     }
     const height = prefab.length;
     const width = prefab.reduce((len, line) => Math.max(len, line.length), 0);
-    const map = make(width, height);
+    const map = make(width, height, opts);
     prefab.forEach((line, y) => {
         for (let x = 0; x < width; ++x) {
             const ch = line[x] || ".";
