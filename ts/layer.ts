@@ -7,7 +7,7 @@ export { Flags, Depth };
 export interface LayerConfig extends GW.canvas.SpriteConfig {
   priority: number;
   depth: Depth | keyof typeof Depth;
-  light: Light.LightBase;
+  light: Light.LightBase | null;
   layerFlags?: GW.flag.FlagBase;
   flags?: GW.flag.FlagBase;
   sprite?: GW.canvas.SpriteConfig;

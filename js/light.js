@@ -206,11 +206,11 @@ export function restoreGlowLights(map) {
 export function updateLighting(map) {
     // Copy Light over oldLight
     recordOldLights(map);
-    if (!map.lightChanged)
+    if (!map.anyLightChanged)
         return false;
     // and then zero out Light.
     zeroOutLights(map);
-    if (!map.glowLightChanged) {
+    if (!map.staticLightChanged) {
         restoreGlowLights(map);
     }
     else {
@@ -223,7 +223,7 @@ export function updateLighting(map) {
             }
         });
         recordGlowLights(map);
-        map.glowLightChanged = false;
+        map.staticLightChanged = false;
     }
     // Cycle through monsters and paint their lights:
     map.eachDynamicLight((light, x, y) => {
@@ -253,7 +253,7 @@ export function updateLighting(map) {
             PLAYERS_LIGHT.paint(map, PLAYER.x, PLAYER.y, true, true);
         }
     }
-    map.lightChanged = false;
+    map.anyLightChanged = false;
     // if (PLAYER.status.invisible) {
     //     PLAYER.info.foreColor = playerInvisibleColor;
     // } else if (playerInDarkness()) {

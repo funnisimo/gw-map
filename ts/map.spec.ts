@@ -76,7 +76,7 @@ describe("Map", () => {
 
   test("make - ambient light", () => {
     const a = GW.make.map(10, 10, "FLOOR");
-    expect(a.ambientLight).toBeNull();
+    expect(a.ambientLight).toEqual(GW.colors.white);
 
     const b = GW.make.map(10, 10, { tile: "FLOOR", light: 0xfff });
     expect(b.ambientLight).toEqual(GW.colors.white);
@@ -615,13 +615,13 @@ describe("Map", () => {
     const player = UTILS.makePlayer();
     expect(player.isPlayer()).toBeTruthy();
     const map: Map.map.Map = GW.make.map(10, 10, "FLOOR");
-    map.lightChanged = false;
+    map.anyLightChanged = false;
 
     map.addActor(3, 3, player);
     expect(map.actorAt(3, 3)).toBe(player);
     expect(map.hasCellFlag(3, 3, Map.cell.Flags.HAS_PLAYER)).toBeTruthy();
     expect(map.flags & Map.map.Flags.MAP_FOV_CHANGED).toBeTruthy();
-    expect(map.lightChanged).toBeFalsy();
+    expect(map.anyLightChanged).toBeFalsy();
     expect(map.cell(3, 3).needsRedraw).toBeTruthy();
 
     const other = UTILS.makeActor();
@@ -637,19 +637,19 @@ describe("Map", () => {
     expect(map.flags & Map.map.Flags.MAP_FOV_CHANGED).toBeTruthy();
 
     map.addActor(3, 3, other);
-    expect(map.lightChanged).toBeTruthy();
+    expect(map.anyLightChanged).toBeTruthy();
     expect(map.actorAt(3, 3)).toBe(other);
     expect(map.moveActor(3, 3, player)).toBeFalsy();
     expect(map.actorAt(3, 3)).toBe(other);
     expect(map.actorAt(4, 4)).toBe(player);
 
-    map.lightChanged = false;
+    map.anyLightChanged = false;
     map.moveActor(5, 5, other);
-    expect(map.lightChanged).toBeTruthy();
+    expect(map.anyLightChanged).toBeTruthy();
 
-    map.lightChanged = false;
+    map.anyLightChanged = false;
     map.removeActor(other);
-    expect(map.lightChanged).toBeTruthy();
+    expect(map.anyLightChanged).toBeTruthy();
 
     expect(map.removeActor(other)).toBeFalsy();
 
@@ -676,12 +676,12 @@ describe("Map", () => {
   test("Item", () => {
     const item = UTILS.makeItem();
     const map: Map.map.Map = GW.make.map(10, 10, "FLOOR");
-    map.lightChanged = false;
+    map.anyLightChanged = false;
 
     map.addItem(3, 3, item);
     expect(map.itemAt(3, 3)).toBe(item);
     expect(map.hasCellFlag(3, 3, Map.cell.Flags.HAS_ITEM)).toBeTruthy();
-    expect(map.lightChanged).toBeFalsy();
+    expect(map.anyLightChanged).toBeFalsy();
     expect(map.cell(3, 3).needsRedraw).toBeTruthy();
 
     const other = UTILS.makeItem();
@@ -693,14 +693,14 @@ describe("Map", () => {
     expect(map.itemAt(3, 3)).toBe(item);
 
     map.addItem(5, 5, other);
-    expect(map.lightChanged).toBeTruthy();
+    expect(map.anyLightChanged).toBeTruthy();
     expect(map.hasCellFlag(5, 5, Map.cell.Flags.ITEM_DETECTED)).toBeTruthy();
     expect(map.itemAt(5, 5)).toBe(other);
 
-    map.lightChanged = false;
+    map.anyLightChanged = false;
     map.removeItem(other);
     expect(map.hasCellFlag(5, 5, Map.cell.Flags.ITEM_DETECTED)).toBeFalsy();
-    expect(map.lightChanged).toBeTruthy();
+    expect(map.anyLightChanged).toBeTruthy();
     expect(map.itemAt(5, 5)).toBeNull();
 
     expect(map.removeItem(other)).toBeFalsy();

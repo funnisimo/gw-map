@@ -9,6 +9,9 @@ document.addEventListener("click", function() {
 	if (CURRENT_EXAMPLE) { CURRENT_EXAMPLE.close(); }
 }, false);
 
+const _st = setTimeout;
+const _si = setInterval;
+
 
 class Example {
 	constructor(node) {
@@ -24,6 +27,7 @@ class Example {
 		this._result = $("<code></code>").addClass("result javascript language-javascript");
 		this._time = $("<div></div>").addClass('time');
 
+		this._timers = [];
 		this._useCode(node.textContent);
 	}
 
@@ -35,6 +39,7 @@ class Example {
 	open() {
 		CURRENT_EXAMPLE = this;
 
+		this.stop();
 		const height = this._source.height();
 		const width  = this._source.width();
 		const text = this._source.text();
@@ -50,6 +55,11 @@ class Example {
 		CURRENT_EXAMPLE = null;
 		const code = this._ta.val();
 		this._useCode(code);
+	}
+
+	stop() {
+		this._timers.forEach( (t) => clearTimeout(t) );
+		this._timers = [];
 	}
 
 	/**
@@ -101,6 +111,19 @@ class Example {
 	}
 
 	_eval(code, SHOW) {
+		const timers = this._timers;
+		const setTimeout = (...args) => {
+			const r = _st(...args);
+			timers.push(r);
+			return r;
+		}
+
+		const setInterval = (...args) => {
+			const r = _si(...args);
+			timers.push(r);
+			return r;
+		}
+
 		try {
 		    eval(code);
 		} catch (e) {
@@ -112,6 +135,7 @@ class Example {
 
 
 var Manual = {
+	_examples: [],
 	_hash: "",
 	_hashChange: function(e) {
 		var hash = location.hash || "intro";
@@ -145,11 +169,14 @@ var Manual = {
 		document.body.scrollTop = 0;
 		document.documentElement.scrollTop = 0;
 
+		this._examples.forEach( (e) => e.stop() );
+
 		let html = converter.makeHtml(data)
 		$("#content").html(html);
 
+		const examples = this._examples = [];
 		$("#content pre code.js").each( function(i) {
-			new Example(this);
+			examples.push(new Example(this));
 		});
 	},
 

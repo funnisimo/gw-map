@@ -19,6 +19,7 @@ export declare class CellMemory {
     clear(): void;
     copy(other: CellMemory): void;
 }
+export declare type TileBase = Tile | string;
 interface LayerItem {
     layer: Types.LayerType;
     next: LayerItem | null;
@@ -102,7 +103,7 @@ export declare class Cell implements Types.CellType {
     hasGas(limitToPlayerKnowledge?: boolean): boolean;
     markRevealed(): boolean;
     obstructsLayer(depth: Depth): boolean;
-    setTile(tileId?: Tile | string | null, volume?: number, map?: Map.Map): true | void;
+    setTile(tileId?: TileBase | null, volume?: number, map?: Map.Map): true | void;
     clearLayer(depth: Depth): void;
     clearLayersExcept(except?: Depth, ground?: string | null): void;
     clearLayersWithFlags(tileFlags: number, tileMechFlags?: number): void;

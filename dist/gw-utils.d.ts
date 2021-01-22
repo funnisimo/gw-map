@@ -1,4 +1,4 @@
-import { color, grid, types, canvas, utils, range, flag } from 'gw-utils';
+import { color, grid, types, canvas, buffer, utils, range, flag } from 'gw-utils';
 
 declare enum Depth {
     ALL_LAYERS = -1,
@@ -247,7 +247,6 @@ interface NameConfig {
     article?: boolean | string;
     color?: boolean | string | color.ColorBase;
 }
-declare type TileBase = TileConfig | string;
 interface FullTileConfig extends LayerConfig {
     Extends: string | Tile$1;
     flags: number | string | any[];
@@ -259,6 +258,7 @@ interface FullTileConfig extends LayerConfig {
     name: string;
     article: string;
     id: string;
+    ground: string;
     dissipate: number;
 }
 declare type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>;
@@ -273,6 +273,7 @@ declare class Tile$1 extends Layer$1 implements types.TileType {
     article: string | null;
     id: string;
     dissipate: number;
+    defaultGround: string | null;
     /**
      * Creates a new Tile object.
      * @param {Object} [config={}] - The configuration of the Tile
@@ -324,7 +325,6 @@ declare function install$1(config: TileConfig): Tile$1;
 declare function installAll$1(config: Record<string, Partial<TileConfig>>): void;
 
 type tile_d_NameConfig = NameConfig;
-type tile_d_TileBase = TileBase;
 type tile_d_FullTileConfig = FullTileConfig;
 type tile_d_TileConfig = TileConfig;
 declare const tile_d_tiles: typeof tiles;
@@ -333,7 +333,6 @@ declare namespace tile_d {
     Tile as Flags,
     TileMech as MechFlags,
     tile_d_NameConfig as NameConfig,
-    tile_d_TileBase as TileBase,
     tile_d_FullTileConfig as FullTileConfig,
     tile_d_TileConfig as TileConfig,
     Tile$1 as Tile,
@@ -359,6 +358,7 @@ declare class CellMemory {
     clear(): void;
     copy(other: CellMemory): void;
 }
+declare type TileBase = Tile$1 | string;
 interface LayerItem {
     layer: types.LayerType;
     next: LayerItem | null;
@@ -442,7 +442,7 @@ declare class Cell$1 implements types.CellType {
     hasGas(limitToPlayerKnowledge?: boolean): boolean;
     markRevealed(): boolean;
     obstructsLayer(depth: Depth): boolean;
-    setTile(tileId?: Tile$1 | string | null, volume?: number, map?: Map$1): true | void;
+    setTile(tileId?: TileBase | null, volume?: number, map?: Map$1): true | void;
     clearLayer(depth: Depth): void;
     clearLayersExcept(except?: Depth, ground?: string | null): void;
     clearLayersWithFlags(tileFlags: number, tileMechFlags?: number): void;
@@ -461,18 +461,29 @@ declare function getAppearance(cell: Cell$1, dest: canvas.Mixer): boolean;
 
 type cell_d_CellMemory = CellMemory;
 declare const cell_d_CellMemory: typeof CellMemory;
+type cell_d_TileBase = TileBase;
 declare const cell_d_getAppearance: typeof getAppearance;
 declare namespace cell_d {
   export {
     Cell as Flags,
     CellMech as MechFlags,
     cell_d_CellMemory as CellMemory,
+    cell_d_TileBase as TileBase,
     Cell$1 as Cell,
     make$2 as make,
     cell_d_getAppearance as getAppearance,
   };
 }
 
+interface MapDrawOptions {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    mapOffsetX: number;
+    mapOffsetY: number;
+    force: boolean;
+}
 declare type MapEachFn = (cell: Cell$1, x: number, y: number, map: Map$1) => void;
 declare type MapMatchFn = (cell: Cell$1, x: number, y: number, map: Map$1) => boolean;
 declare type MapCostFn = (cell: Cell$1, x: number, y: number, map: Map$1) => number;
@@ -508,7 +519,7 @@ declare class Map$1 implements types.MapType {
     protected _actors: any | null;
     protected _items: any | null;
     flags: number;
-    ambientLight: color.Color | null;
+    ambientLight: color.Color;
     lights: LightInfo | null;
     id: string;
     events: any;
@@ -536,16 +547,18 @@ declare class Map$1 implements types.MapType {
     redrawCell(cell: Cell$1): void;
     redrawXY(x: number, y: number): void;
     redrawAll(): void;
-    drawInto(canvas: canvas.Canvas, _opts?: any): void;
+    drawInto(canvas: canvas.Canvas | buffer.DataBuffer, opts?: Partial<MapDrawOptions> | boolean): void;
     revealAll(): void;
     markRevealed(x: number, y: number): void;
     isVisible(x: number, y: number): number;
     isAnyKindOfVisible(x: number, y: number): number;
     isOrWasAnyKindOfVisible(x: number, y: number): number;
-    get lightChanged(): boolean;
-    set lightChanged(v: boolean);
-    get glowLightChanged(): boolean;
-    set glowLightChanged(v: boolean);
+    get anyLightChanged(): boolean;
+    set anyLightChanged(v: boolean);
+    get ambientLightChanged(): boolean;
+    set ambientLightChanged(v: boolean);
+    get staticLightChanged(): boolean;
+    set staticLightChanged(v: boolean);
     setFlag(flag: number): void;
     setFlags(mapFlag?: number, cellFlag?: number, cellMechFlag?: number): void;
     clearFlag(flag: number): void;
@@ -573,7 +586,7 @@ declare class Map$1 implements types.MapType {
     canBeWalked(x: number, y: number, limitToPlayerKnowledge?: boolean): boolean;
     topmostTile(x: number, y: number, skipGas?: boolean): Tile$1;
     tileFlavor(x: number, y: number): string | null;
-    setTile(x: number, y: number, tileId: Tile$1 | string | null, volume?: number): true | void;
+    setTile(x: number, y: number, tileId: TileBase | null, volume?: number): true | void;
     clearCell(x: number, y: number): void;
     clearCellLayersWithFlags(x: number, y: number, tileFlags: Tile, tileMechFlags?: TileMech): void;
     clearCellLayers(x: number, y: number, nullLiquid?: boolean, nullSurface?: boolean, nullGas?: boolean): void;
@@ -616,17 +629,20 @@ declare class Map$1 implements types.MapType {
 declare function make$3(w: number, h: number, floor: string, wall: string): Map$1;
 declare function make$3(w: number, h: number, floor: string): Map$1;
 declare function make$3(w: number, h: number, opts?: any): Map$1;
+declare function from(prefab: string | string[], charToTile: Record<string, TileBase | null>): Map$1;
 declare function getCellAppearance(map: Map$1, x: number, y: number, dest: canvas.Mixer): void;
 declare function addText(map: Map$1, x: number, y: number, text: string, fg: color.ColorBase | null, bg: color.ColorBase | null, layer?: Depth): void;
 declare function updateGas(map: Map$1): void;
 declare function updateLiquid(map: Map$1): void;
 
+type map_d_MapDrawOptions = MapDrawOptions;
 type map_d_MapEachFn = MapEachFn;
 type map_d_MapMatchFn = MapMatchFn;
 type map_d_MapCostFn = MapCostFn;
 type map_d_MapMatchOptions = MapMatchOptions;
 type map_d_MapLightFn = MapLightFn;
 type map_d_DisruptsOptions = DisruptsOptions;
+declare const map_d_from: typeof from;
 declare const map_d_getCellAppearance: typeof getCellAppearance;
 declare const map_d_addText: typeof addText;
 declare const map_d_updateGas: typeof updateGas;
@@ -634,6 +650,7 @@ declare const map_d_updateLiquid: typeof updateLiquid;
 declare namespace map_d {
   export {
     Map as Flags,
+    map_d_MapDrawOptions as MapDrawOptions,
     map_d_MapEachFn as MapEachFn,
     map_d_MapMatchFn as MapMatchFn,
     map_d_MapCostFn as MapCostFn,
@@ -642,6 +659,7 @@ declare namespace map_d {
     map_d_DisruptsOptions as DisruptsOptions,
     Map$1 as Map,
     make$3 as make,
+    map_d_from as from,
     map_d_getCellAppearance as getCellAppearance,
     map_d_addText as addText,
     map_d_updateGas as updateGas,
@@ -674,7 +692,7 @@ declare type LightBase = LightConfig | string | any[];
 declare function make$4(color: color.ColorBase, radius: range.RangeBase, fadeTo?: number, pass?: boolean): Light;
 declare function make$4(light: LightBase): Light;
 declare const lights: Record<string, Light>;
-declare function from(light: LightBase): Light;
+declare function from$1(light: LightBase): Light;
 declare function install$2(id: string, color: color.ColorBase, radius: range.RangeBase, fadeTo?: number, pass?: boolean): Light;
 declare function install$2(id: string, base: LightBase): Light;
 declare function install$2(id: string, config: LightConfig): Light;
@@ -695,7 +713,6 @@ declare const light_d_intensity: typeof intensity;
 type light_d_LightConfig = LightConfig;
 type light_d_LightBase = LightBase;
 declare const light_d_lights: typeof lights;
-declare const light_d_from: typeof from;
 type light_d_LightData = LightData;
 type light_d_LightDataGrid = LightDataGrid;
 declare const light_d_recordOldLights: typeof recordOldLights;
@@ -713,7 +730,7 @@ declare namespace light_d {
     light_d_LightBase as LightBase,
     make$4 as make,
     light_d_lights as lights,
-    light_d_from as from,
+    from$1 as from,
     install$2 as install,
     installAll$2 as installAll,
     light_d_LightData as LightData,
@@ -730,7 +747,7 @@ declare namespace light_d {
 interface LayerConfig extends canvas.SpriteConfig {
     priority: number;
     depth: Depth | keyof typeof Depth;
-    light: LightBase;
+    light: LightBase | null;
     layerFlags?: flag.FlagBase;
     flags?: flag.FlagBase;
     sprite?: canvas.SpriteConfig;

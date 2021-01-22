@@ -132,6 +132,18 @@ describe("Tile", () => {
     // expect(glassWall.getName()).toEqual('Glass Wall');
   });
 
+  test("extend with light", () => {
+    const tw = Map.tile.install("TORCH_WALL", {
+      Extends: "WALL",
+      light: { color: "yellow", radius: 5, fadeTo: 50 },
+    });
+
+    expect(tw.light).not.toBeNull();
+    expect(tw.light!.color).toEqual(COLORS.yellow);
+    expect(tw.light!.radius.value()).toEqual(5);
+    expect(tw.light!.fadeTo).toEqual(50);
+  });
+
   test("can add multiple from an object", () => {
     Map.tile.installAll({
       WALL: {

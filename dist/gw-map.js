@@ -484,11 +484,11 @@
     function updateLighting(map) {
         // Copy Light over oldLight
         recordOldLights(map);
-        if (!map.lightChanged)
+        if (!map.anyLightChanged)
             return false;
         // and then zero out Light.
         zeroOutLights(map);
-        if (!map.glowLightChanged) {
+        if (!map.staticLightChanged) {
             restoreGlowLights(map);
         }
         else {
@@ -501,7 +501,7 @@
                 }
             });
             recordGlowLights(map);
-            map.glowLightChanged = false;
+            map.staticLightChanged = false;
         }
         // Cycle through monsters and paint their lights:
         map.eachDynamicLight((light, x, y) => {
@@ -531,7 +531,7 @@
                 PLAYERS_LIGHT.paint(map, PLAYER.x, PLAYER.y, true, true);
             }
         }
-        map.lightChanged = false;
+        map.anyLightChanged = false;
         // if (PLAYER.status.invisible) {
         //     PLAYER.info.foreColor = playerInvisibleColor;
         // } else if (playerInDarkness()) {
@@ -1181,6 +1181,7 @@
                 config.depth = GW.utils.first(config.depth, base.depth);
                 config.priority = GW.utils.first(config.priority, base.priority);
                 config.opacity = GW.utils.first(config.opacity, base.sprite.opacity);
+                config.light = GW.utils.first(config.light, base.light);
                 return config;
             })());
             this.flags = { layer: 0, tile: 0, tileMech: 0 };
@@ -1189,9 +1190,10 @@
             this.desc = null;
             this.article = null;
             this.dissipate = 2000; // 20 * 100 = 20%
+            this.defaultGround = null;
             let base = config.Extends;
             if (base) {
-                GW.utils.assignOmitting(["sprite", "depth", "priority", "activates", "flags"], this, base);
+                GW.utils.assignOmitting(["sprite", "depth", "priority", "activates", "flags", "light"], this, base);
                 if (base.activates) {
                     Object.assign(this.activates, base.activates);
                 }
@@ -1213,9 +1215,14 @@
                 "depth",
                 "priority",
                 "flags",
+                "ground",
+                "light",
             ], this, config);
             this.name = config.name || (base ? base.name : config.id);
             this.id = config.id;
+            if (config.ground) {
+                this.defaultGround = config.ground;
+            }
             // @ts-ignore
             this.flags.tile = GW.flag.from(Tile, this.flags.tile, config.flags);
             // @ts-ignore
@@ -1303,7 +1310,7 @@
         let config = args[2];
         if (arguments.length == 1) {
             config = args[0];
-            config.Extends = config.Extends || null;
+            base = config.Extends || null;
             id = config.id;
         }
         else if (arguments.length == 2) {
@@ -1527,7 +1534,7 @@
         }
         set lightChanged(v) {
             if (v) {
-                this.flags |= Cell.LIGHT_CHANGED;
+                this.flags |= Cell.LIGHT_CHANGED | Cell.NEEDS_REDRAW;
             }
             else {
                 this.flags &= ~Cell.LIGHT_CHANGED;
@@ -1793,6 +1800,9 @@
             if (!tile) {
                 return GW.utils.ERROR("Unknown tile - " + tileId);
             }
+            if (tile.depth > 0 && !this._tiles[0]) {
+                this.setTile(tile.defaultGround || tiles.FLOOR, 0, map); // TODO - do not use FLOOR?  Does map have the tile to use?
+            }
             const oldTile = this._tiles[tile.depth] || tiles.NULL;
             const oldTileId = oldTile === tiles.NULL ? null : oldTile.id;
             if (oldTile.blocksPathing() != tile.blocksPathing()) {
@@ -1823,11 +1833,8 @@
                 if (map)
                     map.clearFlag(Map.MAP_NO_GAS);
             }
-            if (tile.depth > 0 && !this._tiles[0]) {
-                this._tiles[0] = tiles.FLOOR; // TODO - Not good
-            }
             // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
-            this.flags |= Cell.CELL_CHANGED;
+            this.flags |= Cell.CELL_CHANGED | Cell.NEEDS_REDRAW;
             if (map && oldTile.light !== tile.light) {
                 map.clearFlag(Map.MAP_STABLE_GLOW_LIGHTS | Map.MAP_STABLE_LIGHTS);
             }
@@ -2092,7 +2099,6 @@
             this._actors = null;
             this._items = null;
             this.flags = 0;
-            this.ambientLight = null;
             this.lights = null;
             this.events = {};
             this._width = w;
@@ -2104,11 +2110,8 @@
             this._actors = null;
             this._items = null;
             this.flags = GW.flag.from(Map, Map.MAP_DEFAULT, opts.flags);
-            this.ambientLight = null;
-            const ambient = opts.ambient || opts.ambientLight || opts.light;
-            if (ambient) {
-                this.ambientLight = GW.color.make(ambient);
-            }
+            const ambient = opts.ambient || opts.ambientLight || opts.light || "white";
+            this.ambientLight = GW.color.make(ambient);
             this.lights = null;
             this.id = opts.id;
             this.events = opts.events || {};
@@ -2201,13 +2204,20 @@
             });
             this.changed = true;
         }
-        drawInto(canvas, _opts = {}) {
+        drawInto(canvas, opts = {}) {
+            updateLighting(this);
+            if (typeof opts === "boolean")
+                opts = { force: opts };
             const mixer = new GW.canvas.Mixer();
             for (let x = 0; x < canvas.width; ++x) {
                 for (let y = 0; y < canvas.height; ++y) {
-                    getCellAppearance(this, x, y, mixer);
-                    const glyph = typeof mixer.ch === 'number' ? mixer.ch : canvas.toGlyph(mixer.ch);
-                    canvas.draw(x, y, glyph, mixer.fg.toInt(), mixer.bg.toInt());
+                    const cell = this.cell(x, y);
+                    if (cell.needsRedraw || opts.force) {
+                        getCellAppearance(this, x, y, mixer);
+                        const glyph = typeof mixer.ch === "number" ? mixer.ch : canvas.toGlyph(mixer.ch);
+                        canvas.draw(x, y, glyph, mixer.fg.toInt(), mixer.bg.toInt());
+                        cell.needsRedraw = false;
+                    }
                 }
             }
         }
@@ -2236,10 +2246,10 @@
         isOrWasAnyKindOfVisible(x, y) {
             return this.cell(x, y).isOrWasAnyKindOfVisible();
         }
-        get lightChanged() {
+        get anyLightChanged() {
             return (this.flags & Map.MAP_STABLE_LIGHTS) == 0;
         }
-        set lightChanged(v) {
+        set anyLightChanged(v) {
             if (v) {
                 this.flags &= ~Map.MAP_STABLE_LIGHTS;
             }
@@ -2247,10 +2257,16 @@
                 this.flags |= Map.MAP_STABLE_LIGHTS;
             }
         }
-        get glowLightChanged() {
+        get ambientLightChanged() {
+            return this.staticLightChanged;
+        }
+        set ambientLightChanged(v) {
+            this.staticLightChanged = v;
+        }
+        get staticLightChanged() {
             return (this.flags & Map.MAP_STABLE_GLOW_LIGHTS) == 0;
         }
-        set glowLightChanged(v) {
+        set staticLightChanged(v) {
             if (v) {
                 this.flags &= ~(Map.MAP_STABLE_GLOW_LIGHTS | Map.MAP_STABLE_LIGHTS);
             }
@@ -2539,7 +2555,7 @@
         addStaticLight(x, y, light) {
             const info = { x, y, light, next: this.lights };
             this.lights = info;
-            this.glowLightChanged = true;
+            this.staticLightChanged = true;
             return info;
         }
         removeStaticLight(x, y, light) {
@@ -2551,7 +2567,7 @@
                     return false;
                 return !light || light === info.light;
             }
-            this.glowLightChanged = true;
+            this.staticLightChanged = true;
             while (prev && matches(prev)) {
                 prev = this.lights = prev.next;
             }
@@ -2641,7 +2657,7 @@
             // 	cell.flags |= CellFlags.MONSTER_DETECTED;
             // }
             if (theActor.light) {
-                this.lightChanged = true;
+                this.anyLightChanged = true;
             }
             // If the player moves or an actor that blocks vision and the cell is visible...
             // -- we need to update the FOV
@@ -2673,7 +2689,7 @@
                 return false;
             }
             if (actor.light) {
-                this.lightChanged = true;
+                this.anyLightChanged = true;
             }
             return true;
         }
@@ -2685,7 +2701,7 @@
                 cell.actor = null;
                 GW.utils.removeFromChain(this, "actors", actor);
                 if (actor.light) {
-                    this.lightChanged = true;
+                    this.anyLightChanged = true;
                 }
                 // If the player moves or an actor that blocks vision and the cell is visible...
                 // -- we need to update the FOV
@@ -2748,7 +2764,7 @@
             theItem.next = this._items;
             this._items = theItem;
             if (theItem.light) {
-                this.lightChanged = true;
+                this.anyLightChanged = true;
             }
             this.redrawCell(cell);
             if (theItem.isDetected() || GW.config.D_ITEM_OMNISCIENCE) {
@@ -2777,7 +2793,7 @@
             cell.item = null;
             GW.utils.removeFromChain(this, "items", theItem);
             if (theItem.light) {
-                this.lightChanged = true;
+                this.anyLightChanged = true;
             }
             cell.flags &= ~(Cell.HAS_ITEM | Cell.ITEM_DETECTED);
             this.redrawCell(cell);
@@ -2934,6 +2950,22 @@
         return map;
     }
     GW.make.map = make$5;
+    function from$1(prefab, charToTile) {
+        if (!Array.isArray(prefab)) {
+            prefab = prefab.split("\n");
+        }
+        const height = prefab.length;
+        const width = prefab.reduce((len, line) => Math.max(len, line.length), 0);
+        const map = make$5(width, height);
+        prefab.forEach((line, y) => {
+            for (let x = 0; x < width; ++x) {
+                const ch = line[x] || ".";
+                const tile = charToTile[ch] || "FLOOR";
+                map.setTile(x, y, tile);
+            }
+        });
+        return map;
+    }
     if (!GW.colors.cursor) {
         GW.color.install("cursor", GW.colors.yellow);
     }
@@ -3142,6 +3174,7 @@
         get Flags () { return Map; },
         Map: Map$1,
         make: make$5,
+        from: from$1,
         getCellAppearance: getCellAppearance,
         addText: addText,
         updateGas: updateGas,
@@ -3198,14 +3231,6 @@
             close: { tile: "DOOR", flags: "DFF_SUPERPRIORITY, DFF_ONLY_IF_EMPTY" },
         },
     });
-    install$2("BRIDGE", {
-        ch: "=",
-        fg: [100, 40, 40],
-        priority: 40,
-        depth: "SURFACE",
-        flags: "T_BRIDGE, TM_VISUALLY_DISTINCT",
-        article: "a",
-    });
     install$2("UP_STAIRS", {
         ch: "<",
         fg: [100, 50, 50],
@@ -3243,6 +3268,15 @@
         flags: "T_DEEP_WATER",
         name: "deep water",
         article: "the",
+    });
+    install$2("BRIDGE", {
+        ch: "=",
+        fg: [100, 40, 40],
+        priority: 40,
+        depth: "SURFACE",
+        flags: "T_BRIDGE, TM_VISUALLY_DISTINCT",
+        article: "a",
+        ground: "LAKE",
     });
 
     exports.cell = cell;

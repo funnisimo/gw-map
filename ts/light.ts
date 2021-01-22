@@ -315,12 +315,12 @@ export function updateLighting(map: Map.Map) {
   // Copy Light over oldLight
   recordOldLights(map);
 
-  if (!map.lightChanged) return false;
+  if (!map.anyLightChanged) return false;
 
   // and then zero out Light.
   zeroOutLights(map);
 
-  if (!map.glowLightChanged) {
+  if (!map.staticLightChanged) {
     restoreGlowLights(map);
   } else {
     // GW.debug.log('painting glow lights.');
@@ -333,7 +333,7 @@ export function updateLighting(map: Map.Map) {
     });
 
     recordGlowLights(map);
-    map.glowLightChanged = false;
+    map.staticLightChanged = false;
   }
 
   // Cycle through monsters and paint their lights:
@@ -368,7 +368,7 @@ export function updateLighting(map: Map.Map) {
     }
   }
 
-  map.lightChanged = false;
+  map.anyLightChanged = false;
 
   // if (PLAYER.status.invisible) {
   //     PLAYER.info.foreColor = playerInvisibleColor;

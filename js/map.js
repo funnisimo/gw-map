@@ -1,6 +1,7 @@
 import { utils as Utils, random, grid as Grid, fov as Fov, flag as Flag, path as Path, color as Color, colors as COLORS, canvas as Canvas, config as CONFIG, data as DATA, make as Make, } from "gw-utils";
 import * as Cell from "./cell";
 import { Map as Flags, Cell as CellFlags, Tile as TileFlags, CellMech as CellMechFlags, TileMech as TileMechFlags, Depth as TileLayer, Layer as LayerFlags, } from "./flags";
+import * as Light from "./light";
 import * as Layer from "./layer";
 export { Flags };
 Utils.setDefaults(CONFIG, {
@@ -13,7 +14,6 @@ export class Map {
         this._actors = null;
         this._items = null;
         this.flags = 0;
-        this.ambientLight = null;
         this.lights = null;
         this.events = {};
         this._width = w;
@@ -25,11 +25,8 @@ export class Map {
         this._actors = null;
         this._items = null;
         this.flags = Flag.from(Flags, Flags.MAP_DEFAULT, opts.flags);
-        this.ambientLight = null;
-        const ambient = opts.ambient || opts.ambientLight || opts.light;
-        if (ambient) {
-            this.ambientLight = Color.make(ambient);
-        }
+        const ambient = opts.ambient || opts.ambientLight || opts.light || "white";
+        this.ambientLight = Color.make(ambient);
         this.lights = null;
         this.id = opts.id;
         this.events = opts.events || {};
@@ -122,13 +119,20 @@ export class Map {
         });
         this.changed = true;
     }
-    drawInto(canvas, _opts = {}) {
+    drawInto(canvas, opts = {}) {
+        Light.updateLighting(this);
+        if (typeof opts === "boolean")
+            opts = { force: opts };
         const mixer = new Canvas.Mixer();
         for (let x = 0; x < canvas.width; ++x) {
             for (let y = 0; y < canvas.height; ++y) {
-                getCellAppearance(this, x, y, mixer);
-                const glyph = typeof mixer.ch === 'number' ? mixer.ch : canvas.toGlyph(mixer.ch);
-                canvas.draw(x, y, glyph, mixer.fg.toInt(), mixer.bg.toInt());
+                const cell = this.cell(x, y);
+                if (cell.needsRedraw || opts.force) {
+                    getCellAppearance(this, x, y, mixer);
+                    const glyph = typeof mixer.ch === "number" ? mixer.ch : canvas.toGlyph(mixer.ch);
+                    canvas.draw(x, y, glyph, mixer.fg.toInt(), mixer.bg.toInt());
+                    cell.needsRedraw = false;
+                }
             }
         }
     }
@@ -157,10 +161,10 @@ export class Map {
     isOrWasAnyKindOfVisible(x, y) {
         return this.cell(x, y).isOrWasAnyKindOfVisible();
     }
-    get lightChanged() {
+    get anyLightChanged() {
         return (this.flags & Flags.MAP_STABLE_LIGHTS) == 0;
     }
-    set lightChanged(v) {
+    set anyLightChanged(v) {
         if (v) {
             this.flags &= ~Flags.MAP_STABLE_LIGHTS;
         }
@@ -168,10 +172,16 @@ export class Map {
             this.flags |= Flags.MAP_STABLE_LIGHTS;
         }
     }
-    get glowLightChanged() {
+    get ambientLightChanged() {
+        return this.staticLightChanged;
+    }
+    set ambientLightChanged(v) {
+        this.staticLightChanged = v;
+    }
+    get staticLightChanged() {
         return (this.flags & Flags.MAP_STABLE_GLOW_LIGHTS) == 0;
     }
-    set glowLightChanged(v) {
+    set staticLightChanged(v) {
         if (v) {
             this.flags &= ~(Flags.MAP_STABLE_GLOW_LIGHTS | Flags.MAP_STABLE_LIGHTS);
         }
@@ -460,7 +470,7 @@ export class Map {
     addStaticLight(x, y, light) {
         const info = { x, y, light, next: this.lights };
         this.lights = info;
-        this.glowLightChanged = true;
+        this.staticLightChanged = true;
         return info;
     }
     removeStaticLight(x, y, light) {
@@ -472,7 +482,7 @@ export class Map {
                 return false;
             return !light || light === info.light;
         }
-        this.glowLightChanged = true;
+        this.staticLightChanged = true;
         while (prev && matches(prev)) {
             prev = this.lights = prev.next;
         }
@@ -562,7 +572,7 @@ export class Map {
         // 	cell.flags |= CellFlags.MONSTER_DETECTED;
         // }
         if (theActor.light) {
-            this.lightChanged = true;
+            this.anyLightChanged = true;
         }
         // If the player moves or an actor that blocks vision and the cell is visible...
         // -- we need to update the FOV
@@ -594,7 +604,7 @@ export class Map {
             return false;
         }
         if (actor.light) {
-            this.lightChanged = true;
+            this.anyLightChanged = true;
         }
         return true;
     }
@@ -606,7 +616,7 @@ export class Map {
             cell.actor = null;
             Utils.removeFromChain(this, "actors", actor);
             if (actor.light) {
-                this.lightChanged = true;
+                this.anyLightChanged = true;
             }
             // If the player moves or an actor that blocks vision and the cell is visible...
             // -- we need to update the FOV
@@ -669,7 +679,7 @@ export class Map {
         theItem.next = this._items;
         this._items = theItem;
         if (theItem.light) {
-            this.lightChanged = true;
+            this.anyLightChanged = true;
         }
         this.redrawCell(cell);
         if (theItem.isDetected() || CONFIG.D_ITEM_OMNISCIENCE) {
@@ -698,7 +708,7 @@ export class Map {
         cell.item = null;
         Utils.removeFromChain(this, "items", theItem);
         if (theItem.light) {
-            this.lightChanged = true;
+            this.anyLightChanged = true;
         }
         cell.flags &= ~(CellFlags.HAS_ITEM | CellFlags.ITEM_DETECTED);
         this.redrawCell(cell);
@@ -855,6 +865,22 @@ export function make(w, h, opts = {}, wall) {
     return map;
 }
 Make.map = make;
+export function from(prefab, charToTile) {
+    if (!Array.isArray(prefab)) {
+        prefab = prefab.split("\n");
+    }
+    const height = prefab.length;
+    const width = prefab.reduce((len, line) => Math.max(len, line.length), 0);
+    const map = make(width, height);
+    prefab.forEach((line, y) => {
+        for (let x = 0; x < width; ++x) {
+            const ch = line[x] || ".";
+            const tile = charToTile[ch] || "FLOOR";
+            map.setTile(x, y, tile);
+        }
+    });
+    return map;
+}
 if (!COLORS.cursor) {
     Color.install("cursor", COLORS.yellow);
 }

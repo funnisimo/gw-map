@@ -49,14 +49,6 @@ Tile.install("DOOR_OPEN_ALWAYS", "DOOR_OPEN", {
         close: { tile: "DOOR", flags: "DFF_SUPERPRIORITY, DFF_ONLY_IF_EMPTY" },
     },
 });
-Tile.install("BRIDGE", {
-    ch: "=",
-    fg: [100, 40, 40],
-    priority: 40,
-    depth: "SURFACE",
-    flags: "T_BRIDGE, TM_VISUALLY_DISTINCT",
-    article: "a",
-});
 Tile.install("UP_STAIRS", {
     ch: "<",
     fg: [100, 50, 50],
@@ -94,4 +86,13 @@ Tile.install("LAKE", {
     flags: "T_DEEP_WATER",
     name: "deep water",
     article: "the",
+});
+Tile.install("BRIDGE", {
+    ch: "=",
+    fg: [100, 40, 40],
+    priority: 40,
+    depth: "SURFACE",
+    flags: "T_BRIDGE, TM_VISUALLY_DISTINCT",
+    article: "a",
+    ground: "LAKE",
 });

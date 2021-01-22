@@ -30,6 +30,7 @@ export class Tile extends Layer.Layer {
             config.depth = Utils.first(config.depth, base.depth);
             config.priority = Utils.first(config.priority, base.priority);
             config.opacity = Utils.first(config.opacity, base.sprite.opacity);
+            config.light = Utils.first(config.light, base.light);
             return config;
         })());
         this.flags = { layer: 0, tile: 0, tileMech: 0 };
@@ -38,9 +39,10 @@ export class Tile extends Layer.Layer {
         this.desc = null;
         this.article = null;
         this.dissipate = 2000; // 20 * 100 = 20%
+        this.defaultGround = null;
         let base = config.Extends;
         if (base) {
-            Utils.assignOmitting(["sprite", "depth", "priority", "activates", "flags"], this, base);
+            Utils.assignOmitting(["sprite", "depth", "priority", "activates", "flags", "light"], this, base);
             if (base.activates) {
                 Object.assign(this.activates, base.activates);
             }
@@ -62,9 +64,14 @@ export class Tile extends Layer.Layer {
             "depth",
             "priority",
             "flags",
+            "ground",
+            "light",
         ], this, config);
         this.name = config.name || (base ? base.name : config.id);
         this.id = config.id;
+        if (config.ground) {
+            this.defaultGround = config.ground;
+        }
         // @ts-ignore
         this.flags.tile = Flag.from(Flags, this.flags.tile, config.flags);
         // @ts-ignore
@@ -152,7 +159,7 @@ export function install(...args) {
     let config = args[2];
     if (arguments.length == 1) {
         config = args[0];
-        config.Extends = config.Extends || null;
+        base = config.Extends || null;
         id = config.id;
     }
     else if (arguments.length == 2) {

@@ -336,7 +336,7 @@ describe("Cell", () => {
   test("hasTile", () => {
     const cell = GW.make.cell("BRIDGE");
     expect(cell.hasTile("WALL")).toBeFalsy();
-    expect(cell.hasTile("FLOOR")).toBeTruthy();
+    expect(cell.hasTile("LAKE")).toBeTruthy();
     expect(cell.hasTile(Map.tiles.BRIDGE)).toBeTruthy();
   });
 
@@ -722,11 +722,17 @@ describe("Cell", () => {
 
   test("setTile(null) - can clear tile", () => {
     const c = GW.make.cell();
+    expect(c.ground).toBeNull();
+    c.needsRedraw = false;
+
     c.setTile("FLOOR");
     expect(c.ground).toEqual("FLOOR");
+    expect(c.needsRedraw).toBeTruthy();
+    c.needsRedraw = false;
 
     c.setTile(null);
     expect(c.ground).toEqual(null);
+    expect(c.needsRedraw).toBeTruthy();
   });
 
   test("setTile(BRIDGE) will also set ground if null", () => {
@@ -736,7 +742,7 @@ describe("Cell", () => {
     expect(cell.surface).toBeNull();
 
     cell.setTile("BRIDGE");
-    expect(cell.ground).toEqual("FLOOR");
+    expect(cell.ground).toEqual("LAKE");
     expect(cell.surface).toEqual("BRIDGE");
     expect(cell.isClear()).toBeFalsy();
   });

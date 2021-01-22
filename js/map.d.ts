@@ -1,9 +1,18 @@
-import { utils as Utils, grid as Grid, color as Color, canvas as Canvas, types as Types } from "gw-utils";
+import { utils as Utils, grid as Grid, color as Color, canvas as Canvas, types as Types, buffer as Buffer } from "gw-utils";
 import * as Cell from "./cell";
 import * as Tile from "./tile";
 import { Map as Flags, Cell as CellFlags, Tile as TileFlags, CellMech as CellMechFlags, TileMech as TileMechFlags, Depth as TileLayer, Layer as LayerFlags } from "./flags";
-import { Light } from "./light";
+import * as Light from "./light";
 export { Flags };
+export interface MapDrawOptions {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    mapOffsetX: number;
+    mapOffsetY: number;
+    force: boolean;
+}
 export declare type MapEachFn = (cell: Cell.Cell, x: number, y: number, map: Map) => void;
 export declare type MapMatchFn = (cell: Cell.Cell, x: number, y: number, map: Map) => boolean;
 export declare type MapCostFn = (cell: Cell.Cell, x: number, y: number, map: Map) => number;
@@ -39,7 +48,7 @@ export declare class Map implements Types.MapType {
     protected _actors: any | null;
     protected _items: any | null;
     flags: number;
-    ambientLight: Color.Color | null;
+    ambientLight: Color.Color;
     lights: LightInfo | null;
     id: string;
     events: any;
@@ -67,16 +76,18 @@ export declare class Map implements Types.MapType {
     redrawCell(cell: Cell.Cell): void;
     redrawXY(x: number, y: number): void;
     redrawAll(): void;
-    drawInto(canvas: Canvas.Canvas, _opts?: any): void;
+    drawInto(canvas: Canvas.Canvas | Buffer.DataBuffer, opts?: Partial<MapDrawOptions> | boolean): void;
     revealAll(): void;
     markRevealed(x: number, y: number): void;
     isVisible(x: number, y: number): number;
     isAnyKindOfVisible(x: number, y: number): number;
     isOrWasAnyKindOfVisible(x: number, y: number): number;
-    get lightChanged(): boolean;
-    set lightChanged(v: boolean);
-    get glowLightChanged(): boolean;
-    set glowLightChanged(v: boolean);
+    get anyLightChanged(): boolean;
+    set anyLightChanged(v: boolean);
+    get ambientLightChanged(): boolean;
+    set ambientLightChanged(v: boolean);
+    get staticLightChanged(): boolean;
+    set staticLightChanged(v: boolean);
     setFlag(flag: number): void;
     setFlags(mapFlag?: number, cellFlag?: number, cellMechFlag?: number): void;
     clearFlag(flag: number): void;
@@ -104,7 +115,7 @@ export declare class Map implements Types.MapType {
     canBeWalked(x: number, y: number, limitToPlayerKnowledge?: boolean): boolean;
     topmostTile(x: number, y: number, skipGas?: boolean): Tile.Tile;
     tileFlavor(x: number, y: number): string | null;
-    setTile(x: number, y: number, tileId: Tile.Tile | string | null, volume?: number): true | void;
+    setTile(x: number, y: number, tileId: Cell.TileBase | null, volume?: number): true | void;
     clearCell(x: number, y: number): void;
     clearCellLayersWithFlags(x: number, y: number, tileFlags: TileFlags, tileMechFlags?: TileMechFlags): void;
     clearCellLayers(x: number, y: number, nullLiquid?: boolean, nullSurface?: boolean, nullGas?: boolean): void;
@@ -119,8 +130,8 @@ export declare class Map implements Types.MapType {
     randomMatchingLoc(opts: Partial<MapMatchOptions>): Utils.Loc;
     randomMatchingLoc(match: MapMatchFn): Utils.Loc;
     hasVisibleLight(x: number, y: number): boolean;
-    addStaticLight(x: number, y: number, light: Light): LightInfo;
-    removeStaticLight(x: number, y: number, light?: Light): void;
+    addStaticLight(x: number, y: number, light: Light.Light): LightInfo;
+    removeStaticLight(x: number, y: number, light?: Light.Light): void;
     eachStaticLight(fn: MapLightFn): void;
     eachDynamicLight(fn: MapLightFn): void;
     addFx(x: number, y: number, anim: Types.FxType): boolean;
@@ -147,6 +158,7 @@ export declare class Map implements Types.MapType {
 export declare function make(w: number, h: number, floor: string, wall: string): Map;
 export declare function make(w: number, h: number, floor: string): Map;
 export declare function make(w: number, h: number, opts?: any): Map;
+export declare function from(prefab: string | string[], charToTile: Record<string, Cell.TileBase | null>): Map;
 export declare function getCellAppearance(map: Map, x: number, y: number, dest: Canvas.Mixer): void;
 export declare function addText(map: Map, x: number, y: number, text: string, fg: Color.ColorBase | null, bg: Color.ColorBase | null, layer?: TileLayer): void;
 export declare function updateGas(map: Map): void;

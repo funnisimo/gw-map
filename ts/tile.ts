@@ -17,7 +17,7 @@ export interface NameConfig {
   color?: boolean | string | Color.ColorBase;
 }
 
-export type TileBase = TileConfig | string;
+// export type TileBase = TileConfig | string;
 
 export interface FullTileConfig extends Layer.LayerConfig {
   Extends: string | Tile;
@@ -33,6 +33,7 @@ export interface FullTileConfig extends Layer.LayerConfig {
   name: string;
   article: string;
   id: string;
+  ground: string;
 
   dissipate: number; // 20 * 100 = 20%
 }
@@ -54,6 +55,7 @@ export class Tile extends Layer.Layer implements Types.TileType {
   public id: string;
 
   public dissipate = 2000; // 20 * 100 = 20%
+  public defaultGround: string | null = null;
 
   /**
    * Creates a new Tile object.
@@ -82,14 +84,14 @@ export class Tile extends Layer.Layer implements Types.TileType {
         config.depth = Utils.first(config.depth, base.depth);
         config.priority = Utils.first(config.priority, base.priority);
         config.opacity = Utils.first(config.opacity, base.sprite.opacity);
-
+        config.light = Utils.first(config.light, base.light);
         return config;
       })()
     );
     let base: Tile = config.Extends as Tile;
     if (base) {
       Utils.assignOmitting(
-        ["sprite", "depth", "priority", "activates", "flags"],
+        ["sprite", "depth", "priority", "activates", "flags", "light"],
         this,
         base
       );
@@ -115,12 +117,17 @@ export class Tile extends Layer.Layer implements Types.TileType {
         "depth",
         "priority",
         "flags",
+        "ground",
+        "light",
       ],
       this,
       config
     );
     this.name = config.name || (base ? base.name : config.id);
     this.id = config.id;
+    if (config.ground) {
+      this.defaultGround = config.ground;
+    }
 
     // @ts-ignore
     this.flags.tile = Flag.from(Flags, this.flags.tile, config.flags);
@@ -270,7 +277,7 @@ export function install(...args: any[]) {
 
   if (arguments.length == 1) {
     config = args[0];
-    config.Extends = config.Extends || null;
+    base = config.Extends || null;
     id = config.id;
   } else if (arguments.length == 2) {
     config = base;

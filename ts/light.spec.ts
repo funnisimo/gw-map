@@ -151,7 +151,7 @@ describe("light", () => {
     });
 
     test("will return to default from stable glow lights", () => {
-      map.flags &= ~Map.map.Flags.MAP_STABLE_LIGHTS;
+      map.anyLightChanged = true;
       expect(map.flags & Map.map.Flags.MAP_STABLE_GLOW_LIGHTS).toBeTruthy();
       Map.light.updateLighting(map);
 
@@ -167,10 +167,10 @@ describe("light", () => {
     });
 
     test("will set ambient light", () => {
-      expect(map.ambientLight).toBeNull();
+      expect(map.ambientLight).toEqual(GW.colors.white);
 
       map.ambientLight = GW.colors.blue;
-      map.flags &= ~Map.map.Flags.MAP_STABLE_LIGHTS;
+      map.anyLightChanged = true;
 
       // stable glow lights will keep ambient light change from taking hold
       expect(map.flags & Map.map.Flags.MAP_STABLE_GLOW_LIGHTS).toBeTruthy();
@@ -180,9 +180,7 @@ describe("light", () => {
         expect(cell.light).toEqual([100, 100, 100]);
       });
 
-      map.flags &= ~(
-        Map.map.Flags.MAP_STABLE_LIGHTS | Map.map.Flags.MAP_STABLE_GLOW_LIGHTS
-      );
+      map.ambientLightChanged = true;
       Map.light.updateLighting(map);
 
       map.eachCell((cell) => {
@@ -198,11 +196,12 @@ describe("light", () => {
         flags: "T_OBSTRUCTS_EVERYTHING",
       });
 
+      map.ambientLight = GW.colors.black;
+
       expect(map.flags & Map.map.Flags.MAP_STABLE_LIGHTS).toBeTruthy();
       expect(map.flags & Map.map.Flags.MAP_STABLE_GLOW_LIGHTS).toBeTruthy();
       map.setTile(10, 10, "WALL_TORCH");
 
-      expect(map.ambientLight).toBeNull();
       expect(map.flags & Map.map.Flags.MAP_STABLE_LIGHTS).toBeFalsy();
       expect(map.flags & Map.map.Flags.MAP_STABLE_GLOW_LIGHTS).toBeFalsy();
 

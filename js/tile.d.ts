@@ -7,7 +7,6 @@ export interface NameConfig {
     article?: boolean | string;
     color?: boolean | string | Color.ColorBase;
 }
-export declare type TileBase = TileConfig | string;
 export interface FullTileConfig extends Layer.LayerConfig {
     Extends: string | Tile;
     flags: number | string | any[];
@@ -19,6 +18,7 @@ export interface FullTileConfig extends Layer.LayerConfig {
     name: string;
     article: string;
     id: string;
+    ground: string;
     dissipate: number;
 }
 declare type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>;
@@ -33,6 +33,7 @@ export declare class Tile extends Layer.Layer implements Types.TileType {
     article: string | null;
     id: string;
     dissipate: number;
+    defaultGround: string | null;
     /**
      * Creates a new Tile object.
      * @param {Object} [config={}] - The configuration of the Tile

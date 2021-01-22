@@ -188,7 +188,7 @@ export class Cell {
     }
     set lightChanged(v) {
         if (v) {
-            this.flags |= Flags.LIGHT_CHANGED;
+            this.flags |= Flags.LIGHT_CHANGED | Flags.NEEDS_REDRAW;
         }
         else {
             this.flags &= ~Flags.LIGHT_CHANGED;
@@ -454,6 +454,9 @@ export class Cell {
         if (!tile) {
             return Utils.ERROR("Unknown tile - " + tileId);
         }
+        if (tile.depth > 0 && !this._tiles[0]) {
+            this.setTile(tile.defaultGround || TILES.FLOOR, 0, map); // TODO - do not use FLOOR?  Does map have the tile to use?
+        }
         const oldTile = this._tiles[tile.depth] || TILES.NULL;
         const oldTileId = oldTile === TILES.NULL ? null : oldTile.id;
         if (oldTile.blocksPathing() != tile.blocksPathing()) {
@@ -484,11 +487,8 @@ export class Cell {
             if (map)
                 map.clearFlag(MapFlags.MAP_NO_GAS);
         }
-        if (tile.depth > 0 && !this._tiles[0]) {
-            this._tiles[0] = TILES.FLOOR; // TODO - Not good
-        }
         // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
-        this.flags |= Flags.CELL_CHANGED;
+        this.flags |= Flags.CELL_CHANGED | Flags.NEEDS_REDRAW;
         if (map && oldTile.light !== tile.light) {
             map.clearFlag(MapFlags.MAP_STABLE_GLOW_LIGHTS | MapFlags.MAP_STABLE_LIGHTS);
         }
