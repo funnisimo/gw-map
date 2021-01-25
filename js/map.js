@@ -1,6 +1,6 @@
 import { utils as Utils, random, grid as Grid, fov as Fov, flag as Flag, path as Path, color as Color, colors as COLORS, canvas as Canvas, config as CONFIG, data as DATA, make as Make, } from "gw-utils";
 import * as Cell from "./cell";
-import { Map as Flags, Cell as CellFlags, Tile as TileFlags, CellMech as CellMechFlags, TileMech as TileMechFlags, Depth as TileLayer, Layer as LayerFlags, } from "./flags";
+import { Map as Flags, Cell as CellFlags, Tile as TileFlags, CellMech as CellMechFlags, Depth as TileLayer, Layer as LayerFlags, } from "./flags";
 import * as Light from "./light";
 import * as Layer from "./entity";
 import * as Visibility from "./visibility";
@@ -257,6 +257,9 @@ export class Map {
     }
     tileMechFlags(x, y, limitToPlayerKnowledge = false) {
         return this.cells[x][y].tileMechFlags(limitToPlayerKnowledge);
+    }
+    tileWithLayerFlag(x, y, mechFlag = 0) {
+        return this.cells[x][y].tileWithLayerFlag(mechFlag);
     }
     tileWithFlag(x, y, flag = 0) {
         return this.cells[x][y].tileWithFlag(flag);
@@ -585,7 +588,7 @@ export class Map {
         cell.actor = theActor; // adjusts the layer
         theActor.next = this._actors;
         this._actors = theActor;
-        const flag = theActor === DATA.player ? CellFlags.HAS_PLAYER : CellFlags.HAS_MONSTER;
+        const flag = theActor === DATA.player ? CellFlags.HAS_PLAYER : CellFlags.HAS_ANY_ACTOR;
         cell.flags |= flag;
         // if (theActor.flags & Flags.Actor.MK_DETECTED)
         // {
@@ -850,6 +853,10 @@ export class Map {
         }
     }
     // TICK
+    async activateCell(x, y, event) {
+        const cell = this.cell(x, y);
+        return await cell.activate(event, { map: this, x, y, cell });
+    }
     async tick() {
         // map.debug("tick");
         this.resetCellEvents();
@@ -955,7 +962,7 @@ export function getCellAppearance(map, x, y, dest) {
     let needDistinctness = false;
     if (cell.flags & (CellFlags.IS_CURSOR | CellFlags.IS_IN_PATH)) {
         const highlight = cell.flags & CellFlags.IS_CURSOR ? COLORS.cursor : COLORS.path;
-        if (cell.hasTileMechFlag(TileMechFlags.TM_INVERT_WHEN_HIGHLIGHTED)) {
+        if (cell.hasLayerFlag(LayerFlags.L_INVERT_WHEN_HIGHLIGHTED)) {
             Color.swap(dest.fg, dest.bg);
         }
         else {

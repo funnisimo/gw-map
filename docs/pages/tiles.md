@@ -102,10 +102,10 @@ const charToTile = {
 
 const prefab = [
   "##########",
-  '#....T"..#',
+  '#....."..#',
   '##.."T"..#',
-  '#..."."..#',
-  "##+####+##",
+  '#..."T"..#',
+  "#...~~..##",
   '#.."~~~".#',
   "#...==...#",
   '#."~~~"..#',
@@ -130,3 +130,65 @@ canvas.onmousemove = (e) => {
   map.drawInto(canvas);
 };
 ```
+
+Now, lets make our world a little more interactive. Tiles can respond to events. They do this by having effects that will handle the events. Lets make a super simple effect of trampling our grass.
+
+In this example, we are going to have a field of grass, as you move the mouse around, you will trample the grass and it will grow back randomly over time.
+
+We are going to start using the LOOP object in this example. This is a convenience method for examples that handles some of the underlying GW.io.Loop mechanics.
+
+```js
+GW.tile.install("GRASS", {
+  layer: "SURFACE",
+  ch: '"',
+  fg: "green",
+  priority: 25,
+  activates: {
+    enter: "GRASS_TRAMPLED",
+  },
+});
+
+GW.tile.install("GRASS_TRAMPLED", {
+  layer: "SURFACE",
+  ch: "'",
+  fg: "dark_green",
+  priority: 50,
+  activates: {
+    tick: {
+      chance: 10 * 100, // 10% of the time...
+      tile: "GRASS", // replace this tile with GRASS
+      flags: "DFF_SUPERPRIORITY", // allows GRASS tile to overwrite this tile even though our priority is higher
+    },
+  },
+});
+
+const map = GW.make.map(20, 20, {
+  tile: "GRASS",
+  wall: "WALL",
+});
+const loop = GW.make.loop();
+const canvas = GW.canvas.withFont({
+  font: "monospace",
+  width: map.width,
+  height: map.height,
+  io: LOOP,
+});
+map.drawInto(canvas);
+SHOW(canvas.node);
+
+LOOP.run(
+  {
+    mousemove: async (e) => {
+      await map.activateCell(e.x, e.y, "enter");
+      map.drawInto(canvas);
+    },
+    tick: async (e) => {
+      await map.tick();
+      map.drawInto(canvas);
+    },
+  },
+  500
+);
+```
+
+In this example, we see 2 difference events: enter and tick. There are others and we will talk about them in the events part of the documentation. Right now, lets keep focusing on some other things we can do with tiles and events.

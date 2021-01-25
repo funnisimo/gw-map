@@ -84,7 +84,7 @@ export class Light implements Types.LightType {
       x,
       y,
       outerRadius,
-      this.passThroughActors ? 0 : Flags.Cell.HAS_ACTOR,
+      this.passThroughActors ? 0 : Flags.Cell.HAS_ANY_ACTOR,
       Flags.Layer.L_BLOCKS_VISION
     );
 

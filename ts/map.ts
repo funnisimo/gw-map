@@ -386,6 +386,9 @@ export class Map implements Types.MapType {
     return this.cells[x][y].tileMechFlags(limitToPlayerKnowledge);
   }
 
+  tileWithLayerFlag(x: number, y: number, mechFlag = 0) {
+    return this.cells[x][y].tileWithLayerFlag(mechFlag);
+  }
   tileWithFlag(x: number, y: number, flag = 0) {
     return this.cells[x][y].tileWithFlag(flag);
   }
@@ -807,7 +810,7 @@ export class Map implements Types.MapType {
     this._actors = theActor;
 
     const flag =
-      theActor === DATA.player ? CellFlags.HAS_PLAYER : CellFlags.HAS_MONSTER;
+      theActor === DATA.player ? CellFlags.HAS_PLAYER : CellFlags.HAS_ANY_ACTOR;
     cell.flags |= flag;
     // if (theActor.flags & Flags.Actor.MK_DETECTED)
     // {
@@ -1117,6 +1120,11 @@ export class Map implements Types.MapType {
 
   // TICK
 
+  async activateCell(x: number, y: number, event: string) {
+    const cell = this.cell(x, y);
+    return await cell.activate(event, { map: this, x, y, cell });
+  }
+
   async tick() {
     // map.debug("tick");
     this.resetCellEvents();
@@ -1250,7 +1258,7 @@ export function getCellAppearance(
   if (cell.flags & (CellFlags.IS_CURSOR | CellFlags.IS_IN_PATH)) {
     const highlight =
       cell.flags & CellFlags.IS_CURSOR ? COLORS.cursor : COLORS.path;
-    if (cell.hasTileMechFlag(TileMechFlags.TM_INVERT_WHEN_HIGHLIGHTED)) {
+    if (cell.hasLayerFlag(LayerFlags.L_INVERT_WHEN_HIGHLIGHTED)) {
       Color.swap(dest.fg, dest.bg);
     } else {
       // if (!GAME.trueColorMode || !dest.needDistinctness) {

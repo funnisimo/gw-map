@@ -103,6 +103,7 @@ export declare class Map implements Types.MapType {
     layerFlags(x: number, y: number, limitToPlayerKnowledge?: boolean): number;
     tileFlags(x: number, y: number, limitToPlayerKnowledge?: boolean): number;
     tileMechFlags(x: number, y: number, limitToPlayerKnowledge?: boolean): number;
+    tileWithLayerFlag(x: number, y: number, mechFlag?: number): Tile.Tile | null;
     tileWithFlag(x: number, y: number, flag?: number): Tile.Tile | null;
     tileWithMechFlag(x: number, y: number, mechFlag?: number): Tile.Tile | null;
     hasKnownTileFlag(x: number, y: number, flagMask?: number): number;
@@ -157,6 +158,7 @@ export declare class Map implements Types.MapType {
     losFromTo(a: Utils.XY, b: Utils.XY): boolean;
     storeMemory(x: number, y: number): void;
     storeMemories(): void;
+    activateCell(x: number, y: number, event: string): Promise<boolean>;
     tick(): Promise<void>;
     resetCellEvents(): void;
 }

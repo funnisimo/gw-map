@@ -15,7 +15,7 @@
         "test": "jest",
         "coverage": "jest --coverage",
         "test-debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
-        "version": "node -e 'const v = require(\"./package.json\").version; console.log(v);' >> docs/VERSION"
+        "version": "node -e 'const v = require(\"./package.json\").version; console.log(v);' > docs/VERSION"
     },
     "repository": {
         "type": "git",

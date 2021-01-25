@@ -25,7 +25,7 @@ Tile.install("DOOR", {
   bg: [30, 60, 60],
   priority: 30,
   flags:
-    "T_IS_DOOR, L_BLOCKS_EFFECTS, L_BLOCKS_ITEMS, L_BLOCKS_VISION, TM_VISUALLY_DISTINCT",
+    "T_IS_DOOR, L_BLOCKS_EFFECTS, L_BLOCKS_ITEMS, L_BLOCKS_VISION, L_VISUALLY_DISTINCT",
   article: "a",
   activates: {
     enter: { tile: "DOOR_OPEN" },
@@ -62,7 +62,7 @@ Tile.install("UP_STAIRS", {
   bg: [40, 20, 20],
   priority: 200,
   flags:
-    "T_UP_STAIRS, L_BLOCKED_BY_STAIRS, TM_VISUALLY_DISTINCT, TM_LIST_IN_SIDEBAR",
+    "T_UP_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR",
   name: "upward staircase",
   article: "an",
 });
@@ -72,7 +72,7 @@ Tile.install("DOWN_STAIRS", {
   bg: [40, 20, 20],
   priority: 200,
   flags:
-    "T_DOWN_STAIRS, L_BLOCKED_BY_STAIRS, TM_VISUALLY_DISTINCT, TM_LIST_IN_SIDEBAR",
+    "T_DOWN_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR",
   name: "downward staircase",
   article: "a",
 });
@@ -104,7 +104,7 @@ Tile.install("BRIDGE", {
   fg: [100, 40, 40],
   priority: 40,
   layer: "SURFACE",
-  flags: "T_BRIDGE, TM_VISUALLY_DISTINCT",
+  flags: "T_BRIDGE, L_VISUALLY_DISTINCT",
   article: "a",
   ground: "LAKE",
 });

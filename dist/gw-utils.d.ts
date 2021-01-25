@@ -13,7 +13,6 @@ declare enum Depth {
     UI = 8
 }
 declare enum Layer {
-    L_DYNAMIC,
     L_SUPERPRIORITY,
     L_SECRETLY_PASSABLE,
     L_BLOCKS_MOVE,
@@ -26,6 +25,10 @@ declare enum Layer {
     L_BLOCKS_EFFECTS,
     L_BLOCKS_DIAGONAL,
     L_INTERRUPT_WHEN_SEEN,
+    L_LIST_IN_SIDEBAR,
+    L_VISUALLY_DISTINCT,
+    L_BRIGHT_MEMORY,
+    L_INVERT_WHEN_HIGHLIGHTED,
     L_BLOCKED_BY_STAIRS,
     L_BLOCKS_SCENT,
     L_DIVIDES_LEVEL,
@@ -65,23 +68,26 @@ declare enum Activation {
     DFF_NULLIFY_CELL
 }
 declare enum Tile {
-    T_LIQUID,
-    T_SURFACE,
-    T_GAS,
     T_BRIDGE,
     T_AUTO_DESCENT,
     T_LAVA,
     T_DEEP_WATER,
-    T_SPONTANEOUSLY_IGNITES,
     T_IS_FLAMMABLE,
+    T_SPONTANEOUSLY_IGNITES,
     T_IS_FIRE,
-    T_ENTANGLES,
+    T_EXTINGUISHES_FIRE,
+    T_IS_SECRET,
     T_IS_TRAP,
     T_SACRED,
     T_UP_STAIRS,
     T_DOWN_STAIRS,
     T_PORTAL,
     T_IS_DOOR,
+    T_ALLOWS_SUBMERGING,
+    T_ENTANGLES,
+    T_REFLECTS,
+    T_STAND_IN_TILE,
+    T_CONNECTS_LEVEL,
     T_HAS_STAIRS,
     T_OBSTRUCTS_SCENT,
     T_PATHING_BLOCKER,
@@ -93,63 +99,46 @@ declare enum Tile {
     T_IS_DEEP_LIQUID
 }
 declare enum TileMech {
-    TM_IS_SECRET,
-    TM_PROMOTES_WITH_KEY,
-    TM_PROMOTES_WITHOUT_KEY,
-    TM_PROMOTES_ON_STEP,
-    TM_PROMOTES_ON_ITEM_REMOVE,
-    TM_PROMOTES_ON_PLAYER_ENTRY,
-    TM_PROMOTES_ON_SACRIFICE_ENTRY,
-    TM_PROMOTES_ON_ELECTRICITY,
-    TM_ALLOWS_SUBMERGING,
     TM_IS_WIRED,
     TM_IS_CIRCUIT_BREAKER,
-    TM_EXTINGUISHES_FIRE,
     TM_VANISHES_UPON_PROMOTION,
-    TM_REFLECTS_BOLTS,
-    TM_STAND_IN_TILE,
-    TM_LIST_IN_SIDEBAR,
-    TM_VISUALLY_DISTINCT,
-    TM_BRIGHT_MEMORY,
     TM_EXPLOSIVE_PROMOTE,
-    TM_CONNECTS_LEVEL,
-    TM_INTERRUPT_EXPLORATION_WHEN_SEEN,
-    TM_INVERT_WHEN_HIGHLIGHTED,
-    TM_SWAP_ENCHANTS_ACTIVATION,
-    TM_PROMOTES
+    TM_SWAP_ENCHANTS_ACTIVATION
 }
 declare enum Cell {
-    REVEALED,
     VISIBLE,
     WAS_VISIBLE,
-    IN_FOV,
-    HAS_PLAYER,
-    HAS_MONSTER,
-    HAS_DORMANT_MONSTER,
-    HAS_ITEM,
-    HAS_STAIRS,
-    NEEDS_REDRAW,
-    CELL_CHANGED,
-    IS_IN_PATH,
-    IS_CURSOR,
-    MAGIC_MAPPED,
-    ITEM_DETECTED,
-    STABLE_MEMORY,
     CLAIRVOYANT_VISIBLE,
     WAS_CLAIRVOYANT_VISIBLE,
-    CLAIRVOYANT_DARKENED,
-    IMPREGNABLE,
     TELEPATHIC_VISIBLE,
     WAS_TELEPATHIC_VISIBLE,
+    ITEM_DETECTED,
+    WAS_ITEM_DETECTED,
     MONSTER_DETECTED,
     WAS_MONSTER_DETECTED,
+    REVEALED,
+    MAGIC_MAPPED,
+    IN_FOV,
+    WAS_IN_FOV,
+    NEEDS_REDRAW,
+    CELL_CHANGED,
+    HAS_SURFACE,
+    HAS_LIQUID,
+    HAS_GAS,
+    HAS_PLAYER,
+    HAS_ACTOR,
+    HAS_DORMANT_MONSTER,
+    HAS_ITEM,
+    IS_IN_PATH,
+    IS_CURSOR,
+    STABLE_MEMORY,
     LIGHT_CHANGED,
     CELL_LIT,
     IS_IN_SHADOW,
     CELL_DARK,
     PERMANENT_CELL_FLAGS,
     ANY_KIND_OF_VISIBLE,
-    HAS_ACTOR,
+    HAS_ANY_ACTOR,
     IS_WAS_ANY_KIND_OF_VISIBLE,
     WAS_ANY_KIND_OF_VISIBLE,
     CELL_DEFAULT
@@ -167,6 +156,8 @@ declare enum CellMech {
     IS_IN_ROOM_MACHINE,
     IS_IN_AREA_MACHINE,
     IS_POWERED,
+    IMPREGNABLE,
+    DARKENED,
     IS_IN_MACHINE,
     PERMANENT_MECH_FLAGS
 }
@@ -425,9 +416,9 @@ declare class Cell$1 implements types.CellType {
     hasMechFlag(flag: CellMech, limitToPlayerKnowledge?: boolean): boolean;
     hasTile(tile: string | Tile$1): boolean;
     topmostTile(skipGas?: boolean): Tile$1;
-    tileWithLayerFlag(layerFlag: number): LayerTile;
-    tileWithFlag(tileFlag: number): LayerTile;
-    tileWithMechFlag(mechFlag: number): LayerTile;
+    tileWithLayerFlag(layerFlag: number): Tile$1 | null;
+    tileWithFlag(tileFlag: number): Tile$1 | null;
+    tileWithMechFlag(mechFlag: number): Tile$1 | null;
     tileDesc(): string | null;
     tileFlavor(): string | null;
     getName(opts?: {}): string;
@@ -578,6 +569,7 @@ declare class Map$1 implements types.MapType {
     layerFlags(x: number, y: number, limitToPlayerKnowledge?: boolean): number;
     tileFlags(x: number, y: number, limitToPlayerKnowledge?: boolean): number;
     tileMechFlags(x: number, y: number, limitToPlayerKnowledge?: boolean): number;
+    tileWithLayerFlag(x: number, y: number, mechFlag?: number): Tile$1 | null;
     tileWithFlag(x: number, y: number, flag?: number): Tile$1 | null;
     tileWithMechFlag(x: number, y: number, mechFlag?: number): Tile$1 | null;
     hasKnownTileFlag(x: number, y: number, flagMask?: number): number;
@@ -632,6 +624,7 @@ declare class Map$1 implements types.MapType {
     losFromTo(a: utils.XY, b: utils.XY): boolean;
     storeMemory(x: number, y: number): void;
     storeMemories(): void;
+    activateCell(x: number, y: number, event: string): Promise<boolean>;
     tick(): Promise<void>;
     resetCellEvents(): void;
 }

@@ -160,7 +160,7 @@ function promoteCellVisibility(
   if (
     cell.flags & Flags.Cell.IN_FOV &&
     map.hasVisibleLight(i, j) &&
-    !(cell.flags & Flags.Cell.CLAIRVOYANT_DARKENED)
+    !(cell.mechFlags & Flags.CellMech.DARKENED)
   ) {
     cell.flags |= Flags.Cell.VISIBLE;
   }

@@ -16,7 +16,7 @@ var Depth;
 const Fl = flag.fl;
 var Layer;
 (function (Layer) {
-    Layer[Layer["L_DYNAMIC"] = Fl(0)] = "L_DYNAMIC";
+    // L_DYNAMIC = Fl(0), // for movable things like actors or items
     Layer[Layer["L_SUPERPRIORITY"] = Fl(1)] = "L_SUPERPRIORITY";
     Layer[Layer["L_SECRETLY_PASSABLE"] = Fl(2)] = "L_SECRETLY_PASSABLE";
     Layer[Layer["L_BLOCKS_MOVE"] = Fl(3)] = "L_BLOCKS_MOVE";
@@ -29,6 +29,10 @@ var Layer;
     Layer[Layer["L_BLOCKS_EFFECTS"] = Fl(9)] = "L_BLOCKS_EFFECTS";
     Layer[Layer["L_BLOCKS_DIAGONAL"] = Fl(10)] = "L_BLOCKS_DIAGONAL";
     Layer[Layer["L_INTERRUPT_WHEN_SEEN"] = Fl(11)] = "L_INTERRUPT_WHEN_SEEN";
+    Layer[Layer["L_LIST_IN_SIDEBAR"] = Fl(12)] = "L_LIST_IN_SIDEBAR";
+    Layer[Layer["L_VISUALLY_DISTINCT"] = Fl(13)] = "L_VISUALLY_DISTINCT";
+    Layer[Layer["L_BRIGHT_MEMORY"] = Fl(14)] = "L_BRIGHT_MEMORY";
+    Layer[Layer["L_INVERT_WHEN_HIGHLIGHTED"] = Fl(15)] = "L_INVERT_WHEN_HIGHLIGHTED";
     Layer[Layer["L_BLOCKED_BY_STAIRS"] = Layer.L_BLOCKS_ITEMS |
         Layer.L_BLOCKS_SURFACE |
         Layer.L_BLOCKS_GAS |
@@ -89,30 +93,26 @@ var Activation;
 // TILE
 var Tile;
 (function (Tile) {
-    Tile[Tile["T_LIQUID"] = Fl(0)] = "T_LIQUID";
-    Tile[Tile["T_SURFACE"] = Fl(1)] = "T_SURFACE";
-    Tile[Tile["T_GAS"] = Fl(2)] = "T_GAS";
-    Tile[Tile["T_BRIDGE"] = Fl(11)] = "T_BRIDGE";
-    Tile[Tile["T_AUTO_DESCENT"] = Fl(12)] = "T_AUTO_DESCENT";
-    Tile[Tile["T_LAVA"] = Fl(13)] = "T_LAVA";
-    Tile[Tile["T_DEEP_WATER"] = Fl(14)] = "T_DEEP_WATER";
-    Tile[Tile["T_SPONTANEOUSLY_IGNITES"] = Fl(15)] = "T_SPONTANEOUSLY_IGNITES";
-    Tile[Tile["T_IS_FLAMMABLE"] = Fl(16)] = "T_IS_FLAMMABLE";
-    Tile[Tile["T_IS_FIRE"] = Fl(17)] = "T_IS_FIRE";
-    Tile[Tile["T_ENTANGLES"] = Fl(18)] = "T_ENTANGLES";
-    // T_CAUSES_POISON = Fl(18), // any non-levitating creature gets 10 poison
-    // T_CAUSES_DAMAGE = Fl(19), // anything on the tile takes max(1-2, 10%) damage per turn
-    // T_CAUSES_NAUSEA = Fl(20), // any creature on the tile becomes nauseous
-    // T_CAUSES_PARALYSIS = Fl(21), // anything caught on this tile is paralyzed
-    // T_CAUSES_CONFUSION = Fl(22), // causes creatures on this tile to become confused
-    // T_CAUSES_HEALING = Fl(23), // heals 20% max HP per turn for any player or non-inanimate monsters
-    Tile[Tile["T_IS_TRAP"] = Fl(24)] = "T_IS_TRAP";
-    // T_CAUSES_EXPLOSIVE_DAMAGE = Fl(25), // is an explosion; deals higher of 15-20 or 50% damage instantly, but not again for five turns
-    Tile[Tile["T_SACRED"] = Fl(26)] = "T_SACRED";
-    Tile[Tile["T_UP_STAIRS"] = Fl(27)] = "T_UP_STAIRS";
-    Tile[Tile["T_DOWN_STAIRS"] = Fl(28)] = "T_DOWN_STAIRS";
-    Tile[Tile["T_PORTAL"] = Fl(29)] = "T_PORTAL";
-    Tile[Tile["T_IS_DOOR"] = Fl(30)] = "T_IS_DOOR";
+    Tile[Tile["T_BRIDGE"] = Fl(0)] = "T_BRIDGE";
+    Tile[Tile["T_AUTO_DESCENT"] = Fl(1)] = "T_AUTO_DESCENT";
+    Tile[Tile["T_LAVA"] = Fl(2)] = "T_LAVA";
+    Tile[Tile["T_DEEP_WATER"] = Fl(3)] = "T_DEEP_WATER";
+    Tile[Tile["T_IS_FLAMMABLE"] = Fl(4)] = "T_IS_FLAMMABLE";
+    Tile[Tile["T_SPONTANEOUSLY_IGNITES"] = Fl(5)] = "T_SPONTANEOUSLY_IGNITES";
+    Tile[Tile["T_IS_FIRE"] = Fl(6)] = "T_IS_FIRE";
+    Tile[Tile["T_EXTINGUISHES_FIRE"] = Fl(7)] = "T_EXTINGUISHES_FIRE";
+    Tile[Tile["T_IS_SECRET"] = Fl(8)] = "T_IS_SECRET";
+    Tile[Tile["T_IS_TRAP"] = Fl(9)] = "T_IS_TRAP";
+    Tile[Tile["T_SACRED"] = Fl(10)] = "T_SACRED";
+    Tile[Tile["T_UP_STAIRS"] = Fl(11)] = "T_UP_STAIRS";
+    Tile[Tile["T_DOWN_STAIRS"] = Fl(12)] = "T_DOWN_STAIRS";
+    Tile[Tile["T_PORTAL"] = Fl(13)] = "T_PORTAL";
+    Tile[Tile["T_IS_DOOR"] = Fl(14)] = "T_IS_DOOR";
+    Tile[Tile["T_ALLOWS_SUBMERGING"] = Fl(15)] = "T_ALLOWS_SUBMERGING";
+    Tile[Tile["T_ENTANGLES"] = Fl(16)] = "T_ENTANGLES";
+    Tile[Tile["T_REFLECTS"] = Fl(17)] = "T_REFLECTS";
+    Tile[Tile["T_STAND_IN_TILE"] = Fl(18)] = "T_STAND_IN_TILE";
+    Tile[Tile["T_CONNECTS_LEVEL"] = Fl(19)] = "T_CONNECTS_LEVEL";
     Tile[Tile["T_HAS_STAIRS"] = Tile.T_UP_STAIRS | Tile.T_DOWN_STAIRS | Tile.T_PORTAL] = "T_HAS_STAIRS";
     Tile[Tile["T_OBSTRUCTS_SCENT"] = Tile.T_AUTO_DESCENT |
         Tile.T_LAVA |
@@ -154,79 +154,76 @@ var Tile;
 // TILE MECH
 var TileMech;
 (function (TileMech) {
-    TileMech[TileMech["TM_IS_SECRET"] = Fl(0)] = "TM_IS_SECRET";
-    TileMech[TileMech["TM_PROMOTES_WITH_KEY"] = Fl(1)] = "TM_PROMOTES_WITH_KEY";
-    TileMech[TileMech["TM_PROMOTES_WITHOUT_KEY"] = Fl(2)] = "TM_PROMOTES_WITHOUT_KEY";
-    TileMech[TileMech["TM_PROMOTES_ON_STEP"] = Fl(3)] = "TM_PROMOTES_ON_STEP";
-    TileMech[TileMech["TM_PROMOTES_ON_ITEM_REMOVE"] = Fl(4)] = "TM_PROMOTES_ON_ITEM_REMOVE";
-    TileMech[TileMech["TM_PROMOTES_ON_PLAYER_ENTRY"] = Fl(5)] = "TM_PROMOTES_ON_PLAYER_ENTRY";
-    TileMech[TileMech["TM_PROMOTES_ON_SACRIFICE_ENTRY"] = Fl(6)] = "TM_PROMOTES_ON_SACRIFICE_ENTRY";
-    TileMech[TileMech["TM_PROMOTES_ON_ELECTRICITY"] = Fl(7)] = "TM_PROMOTES_ON_ELECTRICITY";
-    TileMech[TileMech["TM_ALLOWS_SUBMERGING"] = Fl(8)] = "TM_ALLOWS_SUBMERGING";
+    // TM_PROMOTES_WITH_KEY = Fl(1), // promotes if the key is present on the tile (in your pack, carried by monster, or lying on the ground)
+    // TM_PROMOTES_WITHOUT_KEY = Fl(2), // promotes if the key is NOT present on the tile (in your pack, carried by monster, or lying on the ground)
+    // TM_PROMOTES_ON_STEP = Fl(3), // promotes when a creature, player or item is on the tile (whether or not levitating)
+    // TM_PROMOTES_ON_ITEM_REMOVE = Fl(4), // promotes when an item is lifted from the tile (primarily for altars)
+    // TM_PROMOTES_ON_PLAYER_ENTRY = Fl(5), // promotes when the player enters the tile (whether or not levitating)
+    // TM_PROMOTES_ON_SACRIFICE_ENTRY = Fl(6), // promotes when the sacrifice target enters the tile (whether or not levitating)
+    // TM_PROMOTES_ON_ELECTRICITY = Fl(7), // promotes when hit by a lightning bolt
+    // T_CAUSES_POISON = Fl(18), // any non-levitating creature gets 10 poison
+    // T_CAUSES_DAMAGE = Fl(19), // anything on the tile takes max(1-2, 10%) damage per turn
+    // T_CAUSES_NAUSEA = Fl(20), // any creature on the tile becomes nauseous
+    // T_CAUSES_PARALYSIS = Fl(21), // anything caught on this tile is paralyzed
+    // T_CAUSES_CONFUSION = Fl(22), // causes creatures on this tile to become confused
+    // T_CAUSES_HEALING = Fl(23), // heals 20% max HP per turn for any player or non-inanimate monsters
+    // T_CAUSES_EXPLOSIVE_DAMAGE = Fl(25), // is an explosion; deals higher of 15-20 or 50% damage instantly, but not again for five turns
     TileMech[TileMech["TM_IS_WIRED"] = Fl(9)] = "TM_IS_WIRED";
     TileMech[TileMech["TM_IS_CIRCUIT_BREAKER"] = Fl(10)] = "TM_IS_CIRCUIT_BREAKER";
-    TileMech[TileMech["TM_EXTINGUISHES_FIRE"] = Fl(14)] = "TM_EXTINGUISHES_FIRE";
     TileMech[TileMech["TM_VANISHES_UPON_PROMOTION"] = Fl(15)] = "TM_VANISHES_UPON_PROMOTION";
-    TileMech[TileMech["TM_REFLECTS_BOLTS"] = Fl(16)] = "TM_REFLECTS_BOLTS";
-    TileMech[TileMech["TM_STAND_IN_TILE"] = Fl(17)] = "TM_STAND_IN_TILE";
-    TileMech[TileMech["TM_LIST_IN_SIDEBAR"] = Fl(18)] = "TM_LIST_IN_SIDEBAR";
-    TileMech[TileMech["TM_VISUALLY_DISTINCT"] = Fl(19)] = "TM_VISUALLY_DISTINCT";
-    TileMech[TileMech["TM_BRIGHT_MEMORY"] = Fl(20)] = "TM_BRIGHT_MEMORY";
     TileMech[TileMech["TM_EXPLOSIVE_PROMOTE"] = Fl(21)] = "TM_EXPLOSIVE_PROMOTE";
-    TileMech[TileMech["TM_CONNECTS_LEVEL"] = Fl(22)] = "TM_CONNECTS_LEVEL";
-    TileMech[TileMech["TM_INTERRUPT_EXPLORATION_WHEN_SEEN"] = Fl(23)] = "TM_INTERRUPT_EXPLORATION_WHEN_SEEN";
-    TileMech[TileMech["TM_INVERT_WHEN_HIGHLIGHTED"] = Fl(24)] = "TM_INVERT_WHEN_HIGHLIGHTED";
     TileMech[TileMech["TM_SWAP_ENCHANTS_ACTIVATION"] = Fl(25)] = "TM_SWAP_ENCHANTS_ACTIVATION";
-    TileMech[TileMech["TM_PROMOTES"] = TileMech.TM_PROMOTES_WITH_KEY |
-        TileMech.TM_PROMOTES_WITHOUT_KEY |
-        TileMech.TM_PROMOTES_ON_STEP |
-        TileMech.TM_PROMOTES_ON_ITEM_REMOVE |
-        TileMech.TM_PROMOTES_ON_SACRIFICE_ENTRY |
-        TileMech.TM_PROMOTES_ON_ELECTRICITY |
-        TileMech.TM_PROMOTES_ON_PLAYER_ENTRY] = "TM_PROMOTES";
+    // TM_PROMOTES = TM_PROMOTES_WITH_KEY |
+    //   TM_PROMOTES_WITHOUT_KEY |
+    //   TM_PROMOTES_ON_STEP |
+    //   TM_PROMOTES_ON_ITEM_REMOVE |
+    //   TM_PROMOTES_ON_SACRIFICE_ENTRY |
+    //   TM_PROMOTES_ON_ELECTRICITY |
+    //   TM_PROMOTES_ON_PLAYER_ENTRY,
 })(TileMech || (TileMech = {}));
 ///////////////////////////////////////////////////////
 // CELL
 var Cell;
 (function (Cell) {
-    Cell[Cell["REVEALED"] = Fl(0)] = "REVEALED";
-    Cell[Cell["VISIBLE"] = Fl(1)] = "VISIBLE";
-    Cell[Cell["WAS_VISIBLE"] = Fl(2)] = "WAS_VISIBLE";
-    Cell[Cell["IN_FOV"] = Fl(3)] = "IN_FOV";
-    Cell[Cell["HAS_PLAYER"] = Fl(4)] = "HAS_PLAYER";
-    Cell[Cell["HAS_MONSTER"] = Fl(5)] = "HAS_MONSTER";
-    Cell[Cell["HAS_DORMANT_MONSTER"] = Fl(6)] = "HAS_DORMANT_MONSTER";
-    Cell[Cell["HAS_ITEM"] = Fl(7)] = "HAS_ITEM";
-    Cell[Cell["HAS_STAIRS"] = Fl(8)] = "HAS_STAIRS";
-    Cell[Cell["NEEDS_REDRAW"] = Fl(9)] = "NEEDS_REDRAW";
-    Cell[Cell["CELL_CHANGED"] = Fl(10)] = "CELL_CHANGED";
-    Cell[Cell["IS_IN_PATH"] = Fl(12)] = "IS_IN_PATH";
-    Cell[Cell["IS_CURSOR"] = Fl(13)] = "IS_CURSOR";
-    Cell[Cell["MAGIC_MAPPED"] = Fl(14)] = "MAGIC_MAPPED";
-    Cell[Cell["ITEM_DETECTED"] = Fl(15)] = "ITEM_DETECTED";
-    Cell[Cell["STABLE_MEMORY"] = Fl(16)] = "STABLE_MEMORY";
-    Cell[Cell["CLAIRVOYANT_VISIBLE"] = Fl(17)] = "CLAIRVOYANT_VISIBLE";
-    Cell[Cell["WAS_CLAIRVOYANT_VISIBLE"] = Fl(18)] = "WAS_CLAIRVOYANT_VISIBLE";
-    Cell[Cell["CLAIRVOYANT_DARKENED"] = Fl(19)] = "CLAIRVOYANT_DARKENED";
-    Cell[Cell["IMPREGNABLE"] = Fl(20)] = "IMPREGNABLE";
-    Cell[Cell["TELEPATHIC_VISIBLE"] = Fl(22)] = "TELEPATHIC_VISIBLE";
-    Cell[Cell["WAS_TELEPATHIC_VISIBLE"] = Fl(23)] = "WAS_TELEPATHIC_VISIBLE";
-    Cell[Cell["MONSTER_DETECTED"] = Fl(24)] = "MONSTER_DETECTED";
-    Cell[Cell["WAS_MONSTER_DETECTED"] = Fl(25)] = "WAS_MONSTER_DETECTED";
-    Cell[Cell["LIGHT_CHANGED"] = Fl(27)] = "LIGHT_CHANGED";
-    Cell[Cell["CELL_LIT"] = Fl(28)] = "CELL_LIT";
-    Cell[Cell["IS_IN_SHADOW"] = Fl(29)] = "IS_IN_SHADOW";
-    Cell[Cell["CELL_DARK"] = Fl(30)] = "CELL_DARK";
+    Cell[Cell["VISIBLE"] = Fl(0)] = "VISIBLE";
+    Cell[Cell["WAS_VISIBLE"] = Fl(1)] = "WAS_VISIBLE";
+    Cell[Cell["CLAIRVOYANT_VISIBLE"] = Fl(2)] = "CLAIRVOYANT_VISIBLE";
+    Cell[Cell["WAS_CLAIRVOYANT_VISIBLE"] = Fl(3)] = "WAS_CLAIRVOYANT_VISIBLE";
+    Cell[Cell["TELEPATHIC_VISIBLE"] = Fl(4)] = "TELEPATHIC_VISIBLE";
+    Cell[Cell["WAS_TELEPATHIC_VISIBLE"] = Fl(5)] = "WAS_TELEPATHIC_VISIBLE";
+    Cell[Cell["ITEM_DETECTED"] = Fl(6)] = "ITEM_DETECTED";
+    Cell[Cell["WAS_ITEM_DETECTED"] = Fl(7)] = "WAS_ITEM_DETECTED";
+    Cell[Cell["MONSTER_DETECTED"] = Fl(8)] = "MONSTER_DETECTED";
+    Cell[Cell["WAS_MONSTER_DETECTED"] = Fl(9)] = "WAS_MONSTER_DETECTED";
+    Cell[Cell["REVEALED"] = Fl(10)] = "REVEALED";
+    Cell[Cell["MAGIC_MAPPED"] = Fl(11)] = "MAGIC_MAPPED";
+    Cell[Cell["IN_FOV"] = Fl(12)] = "IN_FOV";
+    Cell[Cell["WAS_IN_FOV"] = Fl(13)] = "WAS_IN_FOV";
+    Cell[Cell["NEEDS_REDRAW"] = Fl(14)] = "NEEDS_REDRAW";
+    Cell[Cell["CELL_CHANGED"] = Fl(15)] = "CELL_CHANGED";
+    // These are to help memory
+    Cell[Cell["HAS_SURFACE"] = Fl(16)] = "HAS_SURFACE";
+    Cell[Cell["HAS_LIQUID"] = Fl(17)] = "HAS_LIQUID";
+    Cell[Cell["HAS_GAS"] = Fl(18)] = "HAS_GAS";
+    Cell[Cell["HAS_PLAYER"] = Fl(19)] = "HAS_PLAYER";
+    Cell[Cell["HAS_ACTOR"] = Fl(20)] = "HAS_ACTOR";
+    Cell[Cell["HAS_DORMANT_MONSTER"] = Fl(21)] = "HAS_DORMANT_MONSTER";
+    Cell[Cell["HAS_ITEM"] = Fl(22)] = "HAS_ITEM";
+    Cell[Cell["IS_IN_PATH"] = Fl(23)] = "IS_IN_PATH";
+    Cell[Cell["IS_CURSOR"] = Fl(24)] = "IS_CURSOR";
+    Cell[Cell["STABLE_MEMORY"] = Fl(25)] = "STABLE_MEMORY";
+    Cell[Cell["LIGHT_CHANGED"] = Fl(26)] = "LIGHT_CHANGED";
+    Cell[Cell["CELL_LIT"] = Fl(27)] = "CELL_LIT";
+    Cell[Cell["IS_IN_SHADOW"] = Fl(28)] = "IS_IN_SHADOW";
+    Cell[Cell["CELL_DARK"] = Fl(29)] = "CELL_DARK";
     Cell[Cell["PERMANENT_CELL_FLAGS"] = Cell.REVEALED |
         Cell.MAGIC_MAPPED |
         Cell.ITEM_DETECTED |
         Cell.HAS_ITEM |
         Cell.HAS_DORMANT_MONSTER |
-        Cell.HAS_STAIRS |
-        Cell.STABLE_MEMORY |
-        Cell.IMPREGNABLE] = "PERMANENT_CELL_FLAGS";
+        Cell.STABLE_MEMORY] = "PERMANENT_CELL_FLAGS";
     Cell[Cell["ANY_KIND_OF_VISIBLE"] = Cell.VISIBLE | Cell.CLAIRVOYANT_VISIBLE | Cell.TELEPATHIC_VISIBLE] = "ANY_KIND_OF_VISIBLE";
-    Cell[Cell["HAS_ACTOR"] = Cell.HAS_PLAYER | Cell.HAS_MONSTER] = "HAS_ACTOR";
+    Cell[Cell["HAS_ANY_ACTOR"] = Cell.HAS_PLAYER | Cell.HAS_ACTOR] = "HAS_ANY_ACTOR";
     Cell[Cell["IS_WAS_ANY_KIND_OF_VISIBLE"] = Cell.VISIBLE |
         Cell.WAS_VISIBLE |
         Cell.CLAIRVOYANT_VISIBLE |
@@ -254,6 +251,8 @@ var CellMech;
     CellMech[CellMech["IS_IN_ROOM_MACHINE"] = Fl(13)] = "IS_IN_ROOM_MACHINE";
     CellMech[CellMech["IS_IN_AREA_MACHINE"] = Fl(14)] = "IS_IN_AREA_MACHINE";
     CellMech[CellMech["IS_POWERED"] = Fl(15)] = "IS_POWERED";
+    CellMech[CellMech["IMPREGNABLE"] = Fl(20)] = "IMPREGNABLE";
+    CellMech[CellMech["DARKENED"] = Fl(19)] = "DARKENED";
     CellMech[CellMech["IS_IN_MACHINE"] = CellMech.IS_IN_ROOM_MACHINE | CellMech.IS_IN_AREA_MACHINE] = "IS_IN_MACHINE";
     CellMech[CellMech["PERMANENT_MECH_FLAGS"] = CellMech.SEARCHED_FROM_HERE |
         CellMech.PRESSURE_PLATE_DEPRESSED |
@@ -261,7 +260,8 @@ var CellMech;
         CellMech.IS_IN_LOOP |
         CellMech.IS_CHOKEPOINT |
         CellMech.IS_GATE_SITE |
-        CellMech.IS_IN_MACHINE] = "PERMANENT_MECH_FLAGS";
+        CellMech.IS_IN_MACHINE |
+        CellMech.IMPREGNABLE] = "PERMANENT_MECH_FLAGS";
 })(CellMech || (CellMech = {}));
 ///////////////////////////////////////////////////////
 // MAP
@@ -320,7 +320,7 @@ class Light {
             intensity(LIGHT_COMPONENTS) > config.INTENSITY_DARK;
         const fadeToPercent = this.fadeTo;
         const grid$1 = grid.alloc(map.width, map.height, 0);
-        map.calcFov(grid$1, x, y, outerRadius, this.passThroughActors ? 0 : Cell.HAS_ACTOR, Layer.L_BLOCKS_VISION);
+        map.calcFov(grid$1, x, y, outerRadius, this.passThroughActors ? 0 : Cell.HAS_ANY_ACTOR, Layer.L_BLOCKS_VISION);
         let overlappedFieldOfView = false;
         grid$1.forCircle(x, y, outerRadius, (v, i, j) => {
             if (!v)
@@ -1510,7 +1510,7 @@ class Cell$1 {
         return (this.flags & flag) > 0;
     }
     listInSidebar() {
-        return this.hasTileMechFlag(TileMech.TM_LIST_IN_SIDEBAR, true);
+        return this.hasLayerFlag(Layer.L_LIST_IN_SIDEBAR, true);
     }
     get needsRedraw() {
         return (this.flags & Cell.NEEDS_REDRAW) > 0;
@@ -1779,10 +1779,11 @@ class Cell$1 {
     // TODO - Should this look at the tiles instead of the flags?
     // What if a gas tile is not set with T_GAS?
     // Should we force T_GAS if layer === GAS when creating a tile?
+    // Should these be cell flags - indicating we have this layer
     hasGas(limitToPlayerKnowledge = false) {
         const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
-        let tileFlags = useMemory ? this.memory.tileFlags : this.tileFlags();
-        return !!(tileFlags & Tile.T_GAS);
+        let cellFlags = useMemory ? this.memory.cellFlags : this.flags;
+        return !!(cellFlags & Cell.HAS_GAS);
     }
     markRevealed() {
         this.flags &= ~Cell.STABLE_MEMORY;
@@ -1833,16 +1834,28 @@ class Cell$1 {
         this._tiles[tile.layer] = tileId === null ? null : tile;
         if (tileId !== null)
             this.addLayer(tile);
+        let layerFlag = 0;
         if (tile.layer == Depth.LIQUID) {
+            layerFlag = Cell.HAS_LIQUID;
             this.liquidVolume =
                 volume + (tileId == oldTileId ? this.liquidVolume : 0);
             if (map)
                 map.clearFlag(Map.MAP_NO_LIQUID);
         }
         else if (tile.layer == Depth.GAS) {
+            layerFlag = Cell.HAS_GAS;
             this.gasVolume = volume + (tileId == oldTileId ? this.gasVolume : 0);
             if (map)
                 map.clearFlag(Map.MAP_NO_GAS);
+        }
+        else if (tile.layer === Depth.SURFACE) {
+            layerFlag = Cell.HAS_SURFACE;
+        }
+        if (tileId) {
+            this.flags |= layerFlag;
+        }
+        else {
+            this.flags &= ~layerFlag;
         }
         // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
         this.flags |= Cell.CELL_CHANGED | Cell.NEEDS_REDRAW;
@@ -1862,12 +1875,19 @@ class Cell$1 {
             this.removeLayer(current);
         }
         this._tiles[depth] = null;
+        let layerFlag = 0;
         if (depth == Depth.LIQUID) {
+            layerFlag = Cell.HAS_LIQUID;
             this.liquidVolume = 0;
         }
         else if (depth == Depth.GAS) {
+            layerFlag = Cell.HAS_GAS;
             this.gasVolume = 0;
         }
+        else if (depth == Depth.SURFACE) {
+            layerFlag = Cell.HAS_SURFACE;
+        }
+        this.flags &= ~layerFlag;
     }
     clearLayersExcept(except = Depth.GROUND, ground) {
         const floorTile = ground ? tiles[ground] : this.groundTile;
@@ -1968,11 +1988,11 @@ class Cell$1 {
         }
         this._actor = actor;
         if (actor) {
-            this.flags |= Cell.HAS_ACTOR;
+            this.flags |= Cell.HAS_ANY_ACTOR;
             this.addLayer(actor);
         }
         else {
-            this.flags &= ~Cell.HAS_ACTOR;
+            this.flags &= ~Cell.HAS_ANY_ACTOR;
         }
     }
     addLayer(layer) {
@@ -2066,7 +2086,7 @@ make$6.cell = make$4;
 function getAppearance(cell, dest) {
     const memory = cell.memory.mixer;
     memory.blackOut();
-    let needDistinctness = cell.tileMechFlags() & TileMech.TM_VISUALLY_DISTINCT;
+    let needDistinctness = cell.layerFlags() & Layer.L_VISUALLY_DISTINCT;
     let current = cell.layers;
     while (current) {
         const layer = current.layer;
@@ -2225,7 +2245,7 @@ function _updateCellDetect(cell, _i, _j, map) {
 function promoteCellVisibility(cell, i, j, map) {
     if (cell.flags & Cell.IN_FOV &&
         map.hasVisibleLight(i, j) &&
-        !(cell.flags & Cell.CLAIRVOYANT_DARKENED)) {
+        !(cell.mechFlags & CellMech.DARKENED)) {
         cell.flags |= Cell.VISIBLE;
     }
     if (_updateCellVisibility(cell, i, j, map))
@@ -2550,6 +2570,9 @@ class Map$1 {
     }
     tileMechFlags(x, y, limitToPlayerKnowledge = false) {
         return this.cells[x][y].tileMechFlags(limitToPlayerKnowledge);
+    }
+    tileWithLayerFlag(x, y, mechFlag = 0) {
+        return this.cells[x][y].tileWithLayerFlag(mechFlag);
     }
     tileWithFlag(x, y, flag = 0) {
         return this.cells[x][y].tileWithFlag(flag);
@@ -2878,7 +2901,7 @@ class Map$1 {
         cell.actor = theActor; // adjusts the layer
         theActor.next = this._actors;
         this._actors = theActor;
-        const flag = theActor === data.player ? Cell.HAS_PLAYER : Cell.HAS_MONSTER;
+        const flag = theActor === data.player ? Cell.HAS_PLAYER : Cell.HAS_ANY_ACTOR;
         cell.flags |= flag;
         // if (theActor.flags & Flags.Actor.MK_DETECTED)
         // {
@@ -3143,6 +3166,10 @@ class Map$1 {
         }
     }
     // TICK
+    async activateCell(x, y, event) {
+        const cell = this.cell(x, y);
+        return await cell.activate(event, { map: this, x, y, cell });
+    }
     async tick() {
         // map.debug("tick");
         this.resetCellEvents();
@@ -3246,7 +3273,7 @@ function getCellAppearance(map, x, y, dest) {
     let needDistinctness = false;
     if (cell$1.flags & (Cell.IS_CURSOR | Cell.IS_IN_PATH)) {
         const highlight = cell$1.flags & Cell.IS_CURSOR ? colors.cursor : colors.path;
-        if (cell$1.hasTileMechFlag(TileMech.TM_INVERT_WHEN_HIGHLIGHTED)) {
+        if (cell$1.hasLayerFlag(Layer.L_INVERT_WHEN_HIGHLIGHTED)) {
             color.swap(dest.fg, dest.bg);
         }
         else {
@@ -3452,7 +3479,7 @@ install$2("DOOR", {
     fg: [100, 40, 40],
     bg: [30, 60, 60],
     priority: 30,
-    flags: "T_IS_DOOR, L_BLOCKS_EFFECTS, L_BLOCKS_ITEMS, L_BLOCKS_VISION, TM_VISUALLY_DISTINCT",
+    flags: "T_IS_DOOR, L_BLOCKS_EFFECTS, L_BLOCKS_ITEMS, L_BLOCKS_VISION, L_VISUALLY_DISTINCT",
     article: "a",
     activates: {
         enter: { tile: "DOOR_OPEN" },
@@ -3485,7 +3512,7 @@ install$2("UP_STAIRS", {
     fg: [100, 50, 50],
     bg: [40, 20, 20],
     priority: 200,
-    flags: "T_UP_STAIRS, L_BLOCKED_BY_STAIRS, TM_VISUALLY_DISTINCT, TM_LIST_IN_SIDEBAR",
+    flags: "T_UP_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR",
     name: "upward staircase",
     article: "an",
 });
@@ -3494,7 +3521,7 @@ install$2("DOWN_STAIRS", {
     fg: [100, 50, 50],
     bg: [40, 20, 20],
     priority: 200,
-    flags: "T_DOWN_STAIRS, L_BLOCKED_BY_STAIRS, TM_VISUALLY_DISTINCT, TM_LIST_IN_SIDEBAR",
+    flags: "T_DOWN_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR",
     name: "downward staircase",
     article: "a",
 });
@@ -3523,7 +3550,7 @@ install$2("BRIDGE", {
     fg: [100, 40, 40],
     priority: 40,
     layer: "SURFACE",
-    flags: "T_BRIDGE, TM_VISUALLY_DISTINCT",
+    flags: "T_BRIDGE, L_VISUALLY_DISTINCT",
     article: "a",
     ground: "LAKE",
 });

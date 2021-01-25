@@ -203,7 +203,7 @@ export class Cell implements Types.CellType {
     return (this.flags & flag) > 0;
   }
   listInSidebar(): boolean {
-    return this.hasTileMechFlag(TileMechFlags.TM_LIST_IN_SIDEBAR, true);
+    return this.hasLayerFlag(LayerFlags.L_LIST_IN_SIDEBAR, true);
   }
 
   get needsRedraw() {
@@ -513,10 +513,11 @@ export class Cell implements Types.CellType {
   // TODO - Should this look at the tiles instead of the flags?
   // What if a gas tile is not set with T_GAS?
   // Should we force T_GAS if layer === GAS when creating a tile?
+  // Should these be cell flags - indicating we have this layer
   hasGas(limitToPlayerKnowledge = false): boolean {
     const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
-    let tileFlags = useMemory ? this.memory.tileFlags : this.tileFlags();
-    return !!(tileFlags & TileFlags.T_GAS);
+    let cellFlags = useMemory ? this.memory.cellFlags : this.flags;
+    return !!(cellFlags & Flags.HAS_GAS);
   }
 
   markRevealed() {
@@ -578,13 +579,24 @@ export class Cell implements Types.CellType {
     this._tiles[tile.layer] = tileId === null ? null : tile;
     if (tileId !== null) this.addLayer(tile);
 
+    let layerFlag = 0;
     if (tile.layer == Depth.LIQUID) {
+      layerFlag = Flags.HAS_LIQUID;
       this.liquidVolume =
         volume + (tileId == oldTileId ? this.liquidVolume : 0);
       if (map) map.clearFlag(MapFlags.MAP_NO_LIQUID);
     } else if (tile.layer == Depth.GAS) {
+      layerFlag = Flags.HAS_GAS;
       this.gasVolume = volume + (tileId == oldTileId ? this.gasVolume : 0);
       if (map) map.clearFlag(MapFlags.MAP_NO_GAS);
+    } else if (tile.layer === Depth.SURFACE) {
+      layerFlag = Flags.HAS_SURFACE;
+    }
+
+    if (tileId) {
+      this.flags |= layerFlag;
+    } else {
+      this.flags &= ~layerFlag;
     }
 
     // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
@@ -608,11 +620,17 @@ export class Cell implements Types.CellType {
       this.removeLayer(current);
     }
     this._tiles[depth] = null;
+    let layerFlag = 0;
     if (depth == Depth.LIQUID) {
+      layerFlag = Flags.HAS_LIQUID;
       this.liquidVolume = 0;
     } else if (depth == Depth.GAS) {
+      layerFlag = Flags.HAS_GAS;
       this.gasVolume = 0;
+    } else if (depth == Depth.SURFACE) {
+      layerFlag = Flags.HAS_SURFACE;
     }
+    this.flags &= ~layerFlag;
   }
 
   clearLayersExcept(except: Depth = Depth.GROUND, ground?: string | null) {
@@ -720,10 +738,10 @@ export class Cell implements Types.CellType {
     }
     this._actor = actor;
     if (actor) {
-      this.flags |= Flags.HAS_ACTOR;
+      this.flags |= Flags.HAS_ANY_ACTOR;
       this.addLayer(actor);
     } else {
-      this.flags &= ~Flags.HAS_ACTOR;
+      this.flags &= ~Flags.HAS_ANY_ACTOR;
     }
   }
 
@@ -833,8 +851,7 @@ export function getAppearance(cell: Cell, dest: Canvas.Mixer) {
   const memory = cell.memory.mixer;
   memory.blackOut();
 
-  let needDistinctness =
-    cell.tileMechFlags() & TileMechFlags.TM_VISUALLY_DISTINCT;
+  let needDistinctness = cell.layerFlags() & LayerFlags.L_VISUALLY_DISTINCT;
 
   let current = cell.layers;
   while (current) {

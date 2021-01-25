@@ -41,7 +41,7 @@ export class Light {
             intensity(LIGHT_COMPONENTS) > config.INTENSITY_DARK;
         const fadeToPercent = this.fadeTo;
         const grid = Grid.alloc(map.width, map.height, 0);
-        map.calcFov(grid, x, y, outerRadius, this.passThroughActors ? 0 : Flags.Cell.HAS_ACTOR, Flags.Layer.L_BLOCKS_VISION);
+        map.calcFov(grid, x, y, outerRadius, this.passThroughActors ? 0 : Flags.Cell.HAS_ANY_ACTOR, Flags.Layer.L_BLOCKS_VISION);
         let overlappedFieldOfView = false;
         grid.forCircle(x, y, outerRadius, (v, i, j) => {
             if (!v)

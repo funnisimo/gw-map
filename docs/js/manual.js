@@ -28,6 +28,8 @@ class Example {
 		this._time = $("<div></div>").addClass('time');
 
 		this._timers = [];
+		this._loop = GW.make.loop();
+
 		this._useCode(node.textContent);
 	}
 
@@ -60,6 +62,7 @@ class Example {
 	stop() {
 		this._timers.forEach( (t) => clearTimeout(t) );
 		this._timers = [];
+		this._loop.stop();
 	}
 
 	/**
@@ -124,6 +127,8 @@ class Example {
 			return r;
 		}
 
+		const LOOP = this._loop;
+
 		try {
 		    eval(code);
 		} catch (e) {
@@ -185,8 +190,8 @@ var Manual = {
 		$("#year").html(year);
 
 		$.get("VERSION", function(data, status) {
-			if (status != 200) { return; }
-			$("h1").html("<span>v" + data.trim() + "</span>");
+			if (status != "success") { return; }
+			$("#version").html(data.trim());
 		});
 
 		window.onhashchange = this._hashChange.bind(this);

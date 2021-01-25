@@ -137,9 +137,9 @@ describe("Map", () => {
       map.hasLayerFlag(3, 3, Map.layer.Flags.L_BLOCKS_SURFACE)
     ).toBeTruthy();
     expect(map.hasTileFlag(3, 3, Map.tile.Flags.T_HAS_STAIRS)).toBeTruthy();
-    expect(
-      map.hasTileMechFlag(3, 3, Map.tile.MechFlags.TM_LIST_IN_SIDEBAR)
-    ).toBeTruthy();
+    // expect(
+    //   map.hasTileMechFlag(3, 3, Map.tile.MechFlags.TM_LIST_IN_SIDEBAR)
+    // ).toBeTruthy();
   });
 
   test("redrawCell", () => {
@@ -300,20 +300,18 @@ describe("Map", () => {
     const map: Map.map.Map = GW.make.map(3, 3, "FLOOR");
     map.setTile(1, 1, "UP_STAIRS");
     map.storeMemories();
-    expect(map.layerFlags(1, 1)).toEqual(Map.layer.Flags.L_BLOCKED_BY_STAIRS);
+    expect(map.layerFlags(1, 1)).toEqual(
+      Map.layer.Flags.L_BLOCKED_BY_STAIRS |
+        Map.layer.Flags.L_LIST_IN_SIDEBAR |
+        Map.layer.Flags.L_VISUALLY_DISTINCT
+    );
     expect(map.layerFlags(1, 1, true)).toEqual(
-      Map.layer.Flags.L_BLOCKED_BY_STAIRS
+      Map.layer.Flags.L_BLOCKED_BY_STAIRS |
+        Map.layer.Flags.L_LIST_IN_SIDEBAR |
+        Map.layer.Flags.L_VISUALLY_DISTINCT
     );
     expect(map.tileFlags(1, 1)).toEqual(Map.tile.Flags.T_UP_STAIRS);
     expect(map.tileFlags(1, 1, true)).toEqual(Map.tile.Flags.T_UP_STAIRS);
-    expect(map.tileMechFlags(1, 1)).toEqual(
-      Map.tile.MechFlags.TM_LIST_IN_SIDEBAR |
-        Map.tile.MechFlags.TM_VISUALLY_DISTINCT
-    );
-    expect(map.tileMechFlags(1, 1, true)).toEqual(
-      Map.tile.MechFlags.TM_LIST_IN_SIDEBAR |
-        Map.tile.MechFlags.TM_VISUALLY_DISTINCT
-    );
 
     expect(map.tileWithFlag(1, 1, Map.tile.Flags.T_UP_STAIRS)).toBe(
       Map.tiles.UP_STAIRS
@@ -321,10 +319,10 @@ describe("Map", () => {
     expect(map.tileWithFlag(1, 1, Map.tile.Flags.T_BRIDGE)).toBeNull();
 
     expect(
-      map.tileWithMechFlag(1, 1, Map.tile.MechFlags.TM_VISUALLY_DISTINCT)
+      map.tileWithLayerFlag(1, 1, Map.layer.Flags.L_VISUALLY_DISTINCT)
     ).toBe(Map.tiles.UP_STAIRS);
     expect(
-      map.tileWithMechFlag(1, 1, Map.tile.MechFlags.TM_ALLOWS_SUBMERGING)
+      map.tileWithLayerFlag(1, 1, Map.layer.Flags.L_BRIGHT_MEMORY)
     ).toBeNull();
 
     expect(map.hasKnownTileFlag(1, 1, Map.tile.Flags.T_UP_STAIRS)).toBeTruthy();
@@ -629,7 +627,7 @@ describe("Map", () => {
     map.clearFlag(Map.map.Flags.MAP_FOV_CHANGED);
     map.moveActor(4, 4, player);
     expect(map.actorAt(3, 3)).toBeNull();
-    expect(map.hasCellFlag(3, 3, Map.cell.Flags.HAS_ACTOR)).toBeFalsy();
+    expect(map.hasCellFlag(3, 3, Map.cell.Flags.HAS_ANY_ACTOR)).toBeFalsy();
     expect(map.flags & Map.map.Flags.MAP_FOV_CHANGED).toBeTruthy();
 
     map.addActor(3, 3, other);
@@ -651,7 +649,7 @@ describe("Map", () => {
 
     map.removeActor(player);
     expect(map.actorAt(4, 4)).toBeNull();
-    expect(map.hasCellFlag(4, 4, Map.cell.Flags.HAS_ACTOR)).toBeFalsy();
+    expect(map.hasCellFlag(4, 4, Map.cell.Flags.HAS_ANY_ACTOR)).toBeFalsy();
     expect(map.flags & Map.map.Flags.MAP_FOV_CHANGED).toBeTruthy();
 
     // @ts-ignore
@@ -926,7 +924,7 @@ describe("Map", () => {
     const tile: Map.tile.Tile = GW.make.tile({
       id: "INVERT",
       name: "invert",
-      flags: "TM_INVERT_WHEN_HIGHLIGHTED",
+      flags: "L_INVERT_WHEN_HIGHLIGHTED",
       fg: "blue",
       bg: "red",
       ch: "!",
