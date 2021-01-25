@@ -3,7 +3,12 @@
 By default every cell on a map is visible. That will remain true until you start to manage the visibility. Here is how it is done. Move the mouse around the map to change the FOV starting point.
 
 ```js
-const map = GW.make.map(20, 20, { fov: true, tile: "FLOOR", wall: "WALL" });
+const map = GW.make.map(20, 20, {
+  fov: true,
+  tile: "FLOOR",
+  wall: "WALL",
+  revealed: true,
+});
 const canvas = GW.canvas.withFont({
   font: "monospace",
   width: map.width,

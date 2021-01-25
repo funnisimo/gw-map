@@ -204,10 +204,10 @@ export function restoreGlowLights(map) {
     });
 }
 export function updateLighting(map) {
-    // Copy Light over oldLight
-    recordOldLights(map);
     if (!map.anyLightChanged)
         return false;
+    // Copy Light over oldLight
+    recordOldLights(map);
     // and then zero out Light.
     zeroOutLights(map);
     if (!map.staticLightChanged) {

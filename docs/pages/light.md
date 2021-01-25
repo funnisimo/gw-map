@@ -89,14 +89,16 @@ GW.tile.install("TORCH_WALL", "WALL", {
   light: GW.make.light({ color: "yellow", radius: 5, fadeTo: 50 }),
 });
 
-const map = GW.make.map(20, 20, "FLOOR", "WALL");
+const map = GW.make.map(20, 20, {
+  tile: "FLOOR",
+  wall: "WALL",
+  ambient: [25, 25, 25],
+});
 const canvas = GW.canvas.withFont({
   font: "monospace",
   width: map.width,
   height: map.height,
 });
-map.ambientLight.assign(25, 25, 25);
-map.ambientLightChanged = true;
 map.drawInto(canvas);
 SHOW(canvas.node);
 

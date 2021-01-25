@@ -4,30 +4,30 @@ import * as Light from "./light";
 
 export { Flags, Depth };
 
-export interface LayerConfig extends GW.canvas.SpriteConfig {
+export interface EntityConfig extends GW.canvas.SpriteConfig {
   priority: number;
-  depth: Depth | keyof typeof Depth;
+  layer: Depth | keyof typeof Depth;
   light: Light.LightBase | null;
   layerFlags?: GW.flag.FlagBase;
   flags?: GW.flag.FlagBase;
   sprite?: GW.canvas.SpriteConfig;
 }
 
-export class Layer implements GW.types.LayerType {
+export class Entity implements GW.types.EntityType {
   sprite: GW.types.SpriteType;
   priority = 50;
-  depth = 0;
+  layer = 0;
   light: Light.Light | null = null;
   flags: GW.types.LayerFlags = { layer: 0 };
 
-  constructor(config: Partial<LayerConfig>) {
+  constructor(config: Partial<EntityConfig>) {
     this.sprite = GW.make.sprite(config.sprite || config);
     this.light = config.light ? Light.make(config.light) : null;
     this.priority = GW.utils.first(config.priority, 50);
-    this.depth =
-      (config.depth && typeof config.depth !== "number"
-        ? Depth[config.depth]
-        : config.depth) || 0;
+    this.layer =
+      (config.layer && typeof config.layer !== "number"
+        ? Depth[config.layer]
+        : config.layer) || 0;
     // @ts-ignore
     this.flags.layer = GW.flag.from(Flags, config.layerFlags, config.flags, 0);
   }
@@ -37,8 +37,8 @@ export class Layer implements GW.types.LayerType {
   }
 }
 
-export function make(config: Partial<LayerConfig>) {
-  return new Layer(config);
+export function make(config: Partial<EntityConfig>) {
+  return new Entity(config);
 }
 
 GW.make.layer = make;

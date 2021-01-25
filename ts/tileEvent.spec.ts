@@ -471,7 +471,7 @@ describe("tileEvent", () => {
     grid.fillRect(5, 5, 3, 3, 1);
     Map.tile.install("RED_GAS", {
       bg: "red",
-      depth: "GAS",
+      layer: "GAS",
     });
     const feat = GW.make.tileEvent({ tile: "RED_GAS", volume: 10 });
 
@@ -494,7 +494,7 @@ describe("tileEvent", () => {
     grid.fillRect(5, 5, 3, 3, 1);
     Map.tile.install("RED_LIQUID", {
       bg: "red",
-      depth: "LIQUID",
+      layer: "LIQUID",
     });
     const feat = GW.make.tileEvent({ tile: "RED_LIQUID", volume: 10 });
 
@@ -795,7 +795,7 @@ describe("tileEvent", () => {
       name: "red liquid",
       article: "some",
       bg: "red",
-      depth: "LIQUID",
+      layer: "LIQUID",
     });
 
     const feat = GW.make.tileEvent({ tile: "RED_LIQUID", volume: 50 })!;
@@ -812,7 +812,7 @@ describe("tileEvent", () => {
       name: "red liquid",
       article: "some",
       bg: "red",
-      depth: "LIQUID",
+      layer: "LIQUID",
       activates: {
         fire: { fn },
       },
@@ -830,7 +830,7 @@ describe("tileEvent", () => {
       name: "red liquid",
       article: "some",
       bg: "red",
-      depth: "LIQUID",
+      layer: "LIQUID",
       activates: {
         fire: { flags: "DFF_EVACUATE_CREATURES" },
       },
@@ -870,7 +870,7 @@ describe("tileEvent", () => {
       name: "red liquid",
       article: "some",
       bg: "red",
-      depth: "LIQUID",
+      layer: "LIQUID",
       activates: {
         fire: { flags: "DFF_EVACUATE_ITEMS" },
       },

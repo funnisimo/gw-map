@@ -2,7 +2,7 @@ import { color as Color, canvas as Canvas, utils as Utils, config as CONFIG, dat
 import { Tile, tiles as TILES } from "./tile";
 import * as Activation from "./tileEvent";
 import * as Light from "./light";
-import * as Layer from "./layer";
+import * as Layer from "./entity";
 import { Cell as Flags, CellMech as MechFlags, TileMech as TileMechFlags, Tile as TileFlags, Map as MapFlags, Layer as LayerFlags, Depth, } from "./flags";
 export { Flags, MechFlags };
 // TODO - Move to gw-ui
@@ -461,10 +461,10 @@ export class Cell {
         if (!tile) {
             return Utils.ERROR("Unknown tile - " + tileId);
         }
-        if (tile.depth > 0 && !this._tiles[0]) {
+        if (tile.layer > 0 && !this._tiles[0]) {
             this.setTile(tile.defaultGround || TILES.FLOOR, 0, map); // TODO - do not use FLOOR?  Does map have the tile to use?
         }
-        const oldTile = this._tiles[tile.depth] || TILES.NULL;
+        const oldTile = this._tiles[tile.layer] || TILES.NULL;
         const oldTileId = oldTile === TILES.NULL ? null : oldTile.id;
         if (oldTile.blocksPathing() != tile.blocksPathing()) {
             DATA.staleLoopMap = true;
@@ -480,16 +480,16 @@ export class Cell {
         }
         if (oldTileId !== null)
             this.removeLayer(oldTile);
-        this._tiles[tile.depth] = tileId === null ? null : tile;
+        this._tiles[tile.layer] = tileId === null ? null : tile;
         if (tileId !== null)
             this.addLayer(tile);
-        if (tile.depth == Depth.LIQUID) {
+        if (tile.layer == Depth.LIQUID) {
             this.liquidVolume =
                 volume + (tileId == oldTileId ? this.liquidVolume : 0);
             if (map)
                 map.clearFlag(MapFlags.MAP_NO_LIQUID);
         }
-        else if (tile.depth == Depth.GAS) {
+        else if (tile.layer == Depth.GAS) {
             this.gasVolume = volume + (tileId == oldTileId ? this.gasVolume : 0);
             if (map)
                 map.clearFlag(MapFlags.MAP_NO_GAS);
@@ -635,8 +635,8 @@ export class Cell {
         this.flags |= Flags.CELL_CHANGED;
         let current = this.layers;
         if (!current ||
-            current.layer.depth > layer.depth ||
-            (current.layer.depth == layer.depth &&
+            current.layer.layer > layer.layer ||
+            (current.layer.layer == layer.layer &&
                 current.layer.priority > layer.priority)) {
             this.layers = {
                 layer,
@@ -645,8 +645,8 @@ export class Cell {
             return;
         }
         while (current.next &&
-            (current.layer.depth < layer.depth ||
-                (current.layer.depth == layer.depth &&
+            (current.layer.layer < layer.layer ||
+                (current.layer.layer == layer.layer &&
                     current.layer.priority <= layer.priority))) {
             current = current.next;
         }
@@ -724,10 +724,10 @@ export function getAppearance(cell, dest) {
     while (current) {
         const layer = current.layer;
         let alpha = layer.sprite.opacity || 100;
-        if (layer.depth == Depth.LIQUID) {
+        if (layer.layer == Depth.LIQUID) {
             alpha = Utils.clamp(cell.liquidVolume || 0, 20, 100);
         }
-        else if (layer.depth == Depth.GAS) {
+        else if (layer.layer == Depth.GAS) {
             alpha = Utils.clamp(cell.gasVolume || 0, 20, 100);
         }
         memory.drawSprite(layer.sprite, alpha);

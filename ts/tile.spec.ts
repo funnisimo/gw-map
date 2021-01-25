@@ -42,7 +42,7 @@ describe("Tile", () => {
       fg: COLORS.light_gray,
       bg: COLORS.dark_gray,
     });
-    expect(tile.depth).toEqual(Map.layer.Depth.GROUND);
+    expect(tile.layer).toEqual(Map.layer.Depth.GROUND);
     expect(tile.activates).toEqual({});
     expect(tile.priority).toEqual(90);
     expect(tile.name).toEqual("Stone Wall");
@@ -184,10 +184,10 @@ describe("Tile", () => {
       fg: "dark_red",
       bg: "dark_teal",
       priority: 10,
-      depth: "SURFACE",
+      layer: "SURFACE",
     });
 
-    expect(carpet.depth).toEqual(Map.layer.Depth.SURFACE);
+    expect(carpet.layer).toEqual(Map.layer.Depth.SURFACE);
   });
 
   test("can use objects for activations", async () => {
@@ -198,7 +198,7 @@ describe("Tile", () => {
       activates: {
         tick: { chance: 0, log: "testing" },
       },
-      depth: "SURFACE",
+      layer: "SURFACE",
     });
 
     expect(Map.tiles.CARPET).toBe(carpet);

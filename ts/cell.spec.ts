@@ -18,14 +18,14 @@ describe("Cell", () => {
       article: "some",
       bg: "red",
       flags: "TM_EXTINGUISHES_FIRE, T_DEEP_WATER",
-      depth: "LIQUID",
+      layer: "LIQUID",
     });
     Map.tile.install("BLUE_LIQUID", {
       name: "blue liquid",
       article: "some",
       bg: "blue",
       flags: "TM_STAND_IN_TILE",
-      depth: "LIQUID",
+      layer: "LIQUID",
     });
     Map.tile.install("RED_GAS", {
       name: "red gas",
@@ -33,14 +33,14 @@ describe("Cell", () => {
       bg: "red",
       flags:
         "T_SPONTANEOUSLY_IGNITES, T_IS_FLAMMABLE, T_CAUSES_EXPLOSIVE_DAMAGE, T_GAS",
-      depth: "GAS",
+      layer: "GAS",
     });
     Map.tile.install("BLUE_GAS", {
       name: "blue gas",
       article: "some",
       bg: "blue",
       flags: "T_IS_FLAMMABLE, T_GAS",
-      depth: "GAS",
+      layer: "GAS",
     });
     Map.tile.install({
       id: "ENTER",
@@ -856,25 +856,25 @@ describe("Cell", () => {
   test("will keep layers in sorted order by layer, priority increasing", () => {
     const c = GW.make.cell();
 
-    c.addLayer({ sprite: GW.make.sprite("@"), depth: 6 });
+    c.addLayer({ sprite: GW.make.sprite("@"), layer: 6 });
     expect(c.layers).toMatchObject({
       layer: {
-        depth: 6,
+        layer: 6,
         sprite: { ch: "@", fg: GW.colors.white, bg: -1 },
       },
       next: null,
     });
 
-    c.addLayer({ sprite: GW.make.sprite("i"), depth: 4 });
+    c.addLayer({ sprite: GW.make.sprite("i"), layer: 4 });
     expect(c.layers).toMatchObject({
       layer: {
-        depth: 4,
+        layer: 4,
         sprite: { ch: "i", fg: GW.colors.white, bg: -1 },
       },
     });
     expect(c.layers!.next).toMatchObject({
       layer: {
-        depth: 6,
+        layer: 6,
         sprite: { ch: "@", fg: GW.colors.white, bg: -1 },
       },
       next: null,
@@ -888,8 +888,8 @@ describe("Cell", () => {
     const a = GW.canvas.makeSprite("@", "white", "blue");
     const b = GW.canvas.makeSprite(null, null, "red");
 
-    c.addLayer({ sprite: a, depth: Map.layer.Depth.FX });
-    c.addLayer({ sprite: b, depth: Map.layer.Depth.UI, priority: 100 });
+    c.addLayer({ sprite: a, layer: Map.layer.Depth.FX });
+    c.addLayer({ sprite: b, layer: Map.layer.Depth.UI, priority: 100 });
 
     expect(c.layers).not.toBeNull();
     expect(c.layers!.layer.sprite).toBe(Map.tiles.FLOOR.sprite);
@@ -912,12 +912,12 @@ describe("Cell", () => {
       ch: "@",
       fg: "white",
       bg: "blue",
-      depth: Map.layer.Depth.FX,
+      layer: Map.layer.Depth.FX,
     });
     const b = GW.make.layer({
       bg: "red",
       opacity: 50,
-      depth: Map.layer.Depth.UI,
+      layer: Map.layer.Depth.UI,
       priority: 100,
     });
     expect(b.sprite.opacity).toEqual(50);
@@ -1041,7 +1041,7 @@ describe("Cell", () => {
     expect(app.fg).toEqual([80, 80, 80, 0, 0, 0, 0]);
 
     expect(Map.tiles.RED_LIQUID).toBeObject();
-    expect(Map.tiles.RED_LIQUID.depth).toEqual(Map.layer.Depth.LIQUID);
+    expect(Map.tiles.RED_LIQUID.layer).toEqual(Map.layer.Depth.LIQUID);
 
     c.setTile("RED_LIQUID", 100);
     expect(c.liquid).toEqual("RED_LIQUID");
@@ -1149,26 +1149,26 @@ describe("Cell", () => {
   test("layers", () => {
     const cell = GW.make.cell("FLOOR");
     const mixer = new GW.make.mixer();
-    const a = GW.make.layer({ depth: Map.layer.Depth.FX, bg: "blue", _n: "a" });
+    const a = GW.make.layer({ layer: Map.layer.Depth.FX, bg: "blue", _n: "a" });
     const b = GW.make.layer({
-      depth: Map.layer.Depth.UI,
+      layer: Map.layer.Depth.UI,
       ch: "!",
       fg: "green",
       _n: "b",
     });
     const c = GW.make.layer({
-      depth: Map.layer.Depth.GROUND,
+      layer: Map.layer.Depth.GROUND,
       ch: null,
       fg: "red",
       _n: "c",
     });
     const d = GW.make.layer({
-      depth: Map.layer.Depth.UI,
+      layer: Map.layer.Depth.UI,
       bg: "yellow",
       _n: "d",
     });
     const e = GW.make.layer({
-      depth: Map.layer.Depth.FX,
+      layer: Map.layer.Depth.FX,
       bg: "orange",
       _n: "e",
     });
@@ -1219,8 +1219,8 @@ describe("Cell", () => {
     expect(mixer.fg).toBakeFrom(FLOOR.fg);
     expect(mixer.bg).toBakeFrom(FLOOR.bg);
 
-    cell.addLayer(b); // { sprite: b, depth: Map.layer.Depth.FX });
-    cell.addLayer(a); // { sprite: a, depth: Map.layer.Depth.UI });
+    cell.addLayer(b); // { sprite: b, layer: Map.layer.Depth.FX });
+    cell.addLayer(a); // { sprite: a, layer: Map.layer.Depth.UI });
     Map.cell.getAppearance(cell, mixer);
     expect(mixer.ch).toEqual(b.sprite.ch);
     expect(mixer.fg).toBakeFrom(GW.colors.green);

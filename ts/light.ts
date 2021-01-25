@@ -312,10 +312,9 @@ export function restoreGlowLights(map: Map.Map) {
 }
 
 export function updateLighting(map: Map.Map) {
+  if (!map.anyLightChanged) return false;
   // Copy Light over oldLight
   recordOldLights(map);
-
-  if (!map.anyLightChanged) return false;
 
   // and then zero out Light.
   zeroOutLights(map);

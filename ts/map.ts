@@ -27,7 +27,7 @@ import {
   Layer as LayerFlags,
 } from "./flags";
 import * as Light from "./light";
-import * as Layer from "./layer";
+import * as Layer from "./entity";
 import * as Visibility from "./visibility";
 
 export { Flags };
@@ -128,12 +128,16 @@ export class Map implements Types.MapType {
     this.flags = Flag.from(Flags, Flags.MAP_DEFAULT, opts.flags);
     const ambient = opts.ambient || opts.ambientLight || opts.light || "white";
     this.ambientLight = Color.make(ambient);
+    if (opts.ambient || opts.ambientLight || opts.light) {
+      this.ambientLightChanged = true;
+    }
     this.lights = null;
     this.id = opts.id;
     if (this.config.fov) {
       this.flags |= Flags.MAP_CALC_FOV;
       this.fov = { x: -1, y: -1 };
     }
+    Light.updateLighting(this); // to set the ambient light
     Visibility.initMap(this);
   }
 
@@ -271,6 +275,14 @@ export class Map implements Types.MapType {
     if (!this.cell(x, y).markRevealed()) return;
     if (DATA.player) {
       DATA.player.invalidateCostMap();
+    }
+  }
+
+  makeVisible(v = true) {
+    if (v) {
+      this.setFlags(0, Cell.Flags.VISIBLE);
+    } else {
+      this.clearFlags(0, Cell.Flags.ANY_KIND_OF_VISIBLE);
     }
   }
 
@@ -1095,10 +1107,10 @@ export class Map implements Types.MapType {
       for (y = 0; y < this.height; ++y) {
         const cell = this.cell(x, y);
         if (cell.flags & CellFlags.ANY_KIND_OF_VISIBLE) {
-          this.storeMemory(x, y);
+          cell.storeMemory();
         }
-        cell.flags &= CellFlags.PERMANENT_CELL_FLAGS;
-        cell.mechFlags &= CellMechFlags.PERMANENT_MECH_FLAGS;
+        // cell.flags &= CellFlags.PERMANENT_CELL_FLAGS;
+        // cell.mechFlags &= CellMechFlags.PERMANENT_MECH_FLAGS;
       }
     }
   }
@@ -1150,6 +1162,15 @@ export function make(w: number, h: number, opts: any = {}, wall?: string) {
   if (floor) {
     map.fill(floor, boundary);
   }
+
+  if (opts.visible || opts.revealed) {
+    map.makeVisible();
+    map.revealAll();
+  }
+  if (opts.revealed && !opts.visible) {
+    map.makeVisible(false);
+  }
+
   if (!DATA.map) {
     DATA.map = map;
   }
@@ -1178,6 +1199,14 @@ export function from(
     }
   });
 
+  // redo this because we changed the tiles
+  if (opts.visible || opts.revealed) {
+    map.makeVisible();
+    map.revealAll();
+  }
+  if (opts.revealed && !opts.visible) {
+    map.makeVisible(false);
+  }
   return map;
 }
 
@@ -1253,7 +1282,7 @@ export function addText(
       ch,
       fg,
       bg,
-      depth: layer || TileLayer.GROUND,
+      layer: layer || TileLayer.GROUND,
       priority: 200,
     }); // on top of ground tiles
     const cell = map.cell(x++, y);

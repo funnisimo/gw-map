@@ -1,13 +1,13 @@
 import { color as Color, types as Types } from "gw-utils";
 import { Tile as Flags, TileMech as MechFlags } from "./flags";
 import * as TileEvent from "./tileEvent";
-import * as Layer from "./layer";
+import * as Layer from "./entity";
 export { Flags, MechFlags };
 export interface NameConfig {
     article?: boolean | string;
     color?: boolean | string | Color.ColorBase;
 }
-export interface FullTileConfig extends Layer.LayerConfig {
+export interface FullTileConfig extends Layer.EntityConfig {
     Extends: string | Tile;
     flags: number | string | any[];
     mechFlags: number | string | any[];
@@ -24,7 +24,7 @@ export interface FullTileConfig extends Layer.LayerConfig {
 declare type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>;
 export declare type TileConfig = AtLeast<FullTileConfig, "id">;
 /** Tile Class */
-export declare class Tile extends Layer.Layer implements Types.TileType {
+export declare class Tile extends Layer.Entity implements Types.TileType {
     name: string;
     flags: Types.TileFlags;
     activates: Record<string, TileEvent.TileEvent>;

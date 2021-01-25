@@ -10,7 +10,7 @@ export interface EntityConfig extends GW.canvas.SpriteConfig {
     flags?: GW.flag.FlagBase;
     sprite?: GW.canvas.SpriteConfig;
 }
-export declare class Entity implements GW.types.LayerType {
+export declare class Entity implements GW.types.EntityType {
     sprite: GW.types.SpriteType;
     priority: number;
     layer: number;

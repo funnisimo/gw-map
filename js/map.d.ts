@@ -82,6 +82,7 @@ export declare class Map implements Types.MapType {
     drawInto(canvas: Canvas.Canvas | Buffer.DataBuffer, opts?: Partial<MapDrawOptions> | boolean): void;
     revealAll(): void;
     markRevealed(x: number, y: number): void;
+    makeVisible(v?: boolean): void;
     isVisible(x: number, y: number): number;
     isAnyKindOfVisible(x: number, y: number): number;
     isOrWasAnyKindOfVisible(x: number, y: number): number;

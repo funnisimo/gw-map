@@ -487,10 +487,10 @@
         });
     }
     function updateLighting(map) {
-        // Copy Light over oldLight
-        recordOldLights(map);
         if (!map.anyLightChanged)
             return false;
+        // Copy Light over oldLight
+        recordOldLights(map);
         // and then zero out Light.
         zeroOutLights(map);
         if (!map.staticLightChanged) {
@@ -577,19 +577,19 @@
         playerInDarkness: playerInDarkness
     };
 
-    class Layer$1 {
+    class Entity {
         constructor(config) {
             this.priority = 50;
-            this.depth = 0;
+            this.layer = 0;
             this.light = null;
             this.flags = { layer: 0 };
             this.sprite = GW.make.sprite(config.sprite || config);
             this.light = config.light ? make(config.light) : null;
             this.priority = GW.utils.first(config.priority, 50);
-            this.depth =
-                (config.depth && typeof config.depth !== "number"
-                    ? Depth[config.depth]
-                    : config.depth) || 0;
+            this.layer =
+                (config.layer && typeof config.layer !== "number"
+                    ? Depth[config.layer]
+                    : config.layer) || 0;
             // @ts-ignore
             this.flags.layer = GW.flag.from(Layer, config.layerFlags, config.flags, 0);
         }
@@ -598,15 +598,15 @@
         }
     }
     function make$1(config) {
-        return new Layer$1(config);
+        return new Entity(config);
     }
     GW.make.layer = make$1;
 
-    var Layer$2 = {
+    var Layer$1 = {
         __proto__: null,
         get Flags () { return Layer; },
         get Depth () { return Depth; },
-        Layer: Layer$1,
+        Entity: Entity,
         make: make$1
     };
 
@@ -1027,19 +1027,19 @@
                 if (cell.mechFlags & CellMech.EVENT_PROTECTED)
                     continue;
                 if (tile) {
-                    if (cell.tile(tile.depth) === tile) {
+                    if (cell.tile(tile.layer) === tile) {
                         // If the new cell already contains the fill terrain,
-                        if (tile.depth == Depth.GAS) {
+                        if (tile.layer == Depth.GAS) {
                             spawnMap[i][j] = 1;
                             cell.gasVolume += volume;
                         }
-                        else if (tile.depth == Depth.LIQUID) {
+                        else if (tile.layer == Depth.LIQUID) {
                             spawnMap[i][j] = 1;
                             cell.liquidVolume += volume;
                         }
                     }
-                    else if ((superpriority || cell.tile(tile.depth).priority < tile.priority) && // If the terrain in the layer to be overwritten has a higher priority number (unless superpriority),
-                        !cell.obstructsLayer(tile.depth) && // If we will be painting into the surface layer when that cell forbids it,
+                    else if ((superpriority || cell.tile(tile.layer).priority < tile.priority) && // If the terrain in the layer to be overwritten has a higher priority number (unless superpriority),
+                        !cell.obstructsLayer(tile.layer) && // If we will be painting into the surface layer when that cell forbids it,
                         (!cell.item || !(feat.flags & Activation.DFF_BLOCKED_BY_ITEMS)) &&
                         (!cell.actor || !(feat.flags & Activation.DFF_BLOCKED_BY_ACTORS)) &&
                         (!blockedByOtherLayers || cell.topmostTile().priority < tile.priority)) {
@@ -1163,7 +1163,7 @@
     };
 
     /** Tile Class */
-    class Tile$1 extends Layer$1 {
+    class Tile$1 extends Entity {
         /**
          * Creates a new Tile object.
          * @param {Object} [config={}] - The configuration of the Tile
@@ -1186,7 +1186,7 @@
                 config.ch = GW.utils.first(config.ch, base.sprite.ch, -1);
                 config.fg = GW.utils.first(config.fg, base.sprite.fg, -1);
                 config.bg = GW.utils.first(config.bg, base.sprite.bg, -1);
-                config.depth = GW.utils.first(config.depth, base.depth);
+                config.layer = GW.utils.first(config.layer, base.layer);
                 config.priority = GW.utils.first(config.priority, base.priority);
                 config.opacity = GW.utils.first(config.opacity, base.sprite.opacity);
                 config.light = GW.utils.first(config.light, base.light);
@@ -1220,7 +1220,7 @@
                 "bg",
                 "opacity",
                 "light",
-                "depth",
+                "layer",
                 "priority",
                 "flags",
                 "ground",
@@ -1815,10 +1815,10 @@
             if (!tile) {
                 return GW.utils.ERROR("Unknown tile - " + tileId);
             }
-            if (tile.depth > 0 && !this._tiles[0]) {
+            if (tile.layer > 0 && !this._tiles[0]) {
                 this.setTile(tile.defaultGround || tiles.FLOOR, 0, map); // TODO - do not use FLOOR?  Does map have the tile to use?
             }
-            const oldTile = this._tiles[tile.depth] || tiles.NULL;
+            const oldTile = this._tiles[tile.layer] || tiles.NULL;
             const oldTileId = oldTile === tiles.NULL ? null : oldTile.id;
             if (oldTile.blocksPathing() != tile.blocksPathing()) {
                 GW.data.staleLoopMap = true;
@@ -1834,16 +1834,16 @@
             }
             if (oldTileId !== null)
                 this.removeLayer(oldTile);
-            this._tiles[tile.depth] = tileId === null ? null : tile;
+            this._tiles[tile.layer] = tileId === null ? null : tile;
             if (tileId !== null)
                 this.addLayer(tile);
-            if (tile.depth == Depth.LIQUID) {
+            if (tile.layer == Depth.LIQUID) {
                 this.liquidVolume =
                     volume + (tileId == oldTileId ? this.liquidVolume : 0);
                 if (map)
                     map.clearFlag(Map.MAP_NO_LIQUID);
             }
-            else if (tile.depth == Depth.GAS) {
+            else if (tile.layer == Depth.GAS) {
                 this.gasVolume = volume + (tileId == oldTileId ? this.gasVolume : 0);
                 if (map)
                     map.clearFlag(Map.MAP_NO_GAS);
@@ -1858,7 +1858,7 @@
         clearLayer(depth) {
             // @ts-ignore
             if (typeof depth === "string")
-                depth = Layer$2[depth];
+                depth = Layer$1[depth];
             const current = this._tiles[depth];
             if (current) {
                 // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
@@ -1986,8 +1986,8 @@
             this.flags |= Cell.CELL_CHANGED;
             let current = this.layers;
             if (!current ||
-                current.layer.depth > layer.depth ||
-                (current.layer.depth == layer.depth &&
+                current.layer.layer > layer.layer ||
+                (current.layer.layer == layer.layer &&
                     current.layer.priority > layer.priority)) {
                 this.layers = {
                     layer,
@@ -1996,8 +1996,8 @@
                 return;
             }
             while (current.next &&
-                (current.layer.depth < layer.depth ||
-                    (current.layer.depth == layer.depth &&
+                (current.layer.layer < layer.layer ||
+                    (current.layer.layer == layer.layer &&
                         current.layer.priority <= layer.priority))) {
                 current = current.next;
             }
@@ -2075,10 +2075,10 @@
         while (current) {
             const layer = current.layer;
             let alpha = layer.sprite.opacity || 100;
-            if (layer.depth == Depth.LIQUID) {
+            if (layer.layer == Depth.LIQUID) {
                 alpha = GW.utils.clamp(cell.liquidVolume || 0, 20, 100);
             }
-            else if (layer.depth == Depth.GAS) {
+            else if (layer.layer == Depth.GAS) {
                 alpha = GW.utils.clamp(cell.gasVolume || 0, 20, 100);
             }
             memory.drawSprite(layer.sprite, alpha);
@@ -2325,12 +2325,16 @@
             this.flags = GW.flag.from(Map, Map.MAP_DEFAULT, opts.flags);
             const ambient = opts.ambient || opts.ambientLight || opts.light || "white";
             this.ambientLight = GW.color.make(ambient);
+            if (opts.ambient || opts.ambientLight || opts.light) {
+                this.ambientLightChanged = true;
+            }
             this.lights = null;
             this.id = opts.id;
             if (this.config.fov) {
                 this.flags |= Map.MAP_CALC_FOV;
                 this.fov = { x: -1, y: -1 };
             }
+            updateLighting(this); // to set the ambient light
             initMap(this);
         }
         get width() {
@@ -2452,6 +2456,14 @@
                 return;
             if (GW.data.player) {
                 GW.data.player.invalidateCostMap();
+            }
+        }
+        makeVisible(v = true) {
+            if (v) {
+                this.setFlags(0, Cell.VISIBLE);
+            }
+            else {
+                this.clearFlags(0, Cell.ANY_KIND_OF_VISIBLE);
             }
         }
         isVisible(x, y) {
@@ -3127,10 +3139,10 @@
                 for (y = 0; y < this.height; ++y) {
                     const cell = this.cell(x, y);
                     if (cell.flags & Cell.ANY_KIND_OF_VISIBLE) {
-                        this.storeMemory(x, y);
+                        cell.storeMemory();
                     }
-                    cell.flags &= Cell.PERMANENT_CELL_FLAGS;
-                    cell.mechFlags &= CellMech.PERMANENT_MECH_FLAGS;
+                    // cell.flags &= CellFlags.PERMANENT_CELL_FLAGS;
+                    // cell.mechFlags &= CellMechFlags.PERMANENT_MECH_FLAGS;
                 }
             }
         }
@@ -3170,6 +3182,13 @@
         if (floor) {
             map.fill(floor, boundary);
         }
+        if (opts.visible || opts.revealed) {
+            map.makeVisible();
+            map.revealAll();
+        }
+        if (opts.revealed && !opts.visible) {
+            map.makeVisible(false);
+        }
         if (!GW.data.map) {
             GW.data.map = map;
         }
@@ -3190,6 +3209,14 @@
                 map.setTile(x, y, tile);
             }
         });
+        // redo this because we changed the tiles
+        if (opts.visible || opts.revealed) {
+            map.makeVisible();
+            map.revealAll();
+        }
+        if (opts.revealed && !opts.visible) {
+            map.makeVisible(false);
+        }
         return map;
     }
     if (!GW.colors.cursor) {
@@ -3245,7 +3272,7 @@
                 ch,
                 fg,
                 bg,
-                depth: layer || Depth.GROUND,
+                layer: layer || Depth.GROUND,
                 priority: 200,
             }); // on top of ground tiles
             const cell = map.cell(x++, y);
@@ -3412,7 +3439,7 @@
         ch: "\u2205",
         fg: "white",
         bg: "black",
-        flags: "T_OBSTRUCTS_PASSABILITY",
+        flags: "L_BLOCKS_MOVE",
         name: "eerie nothingness",
         article: "an",
         priority: 0,
@@ -3499,14 +3526,14 @@
         ch: "=",
         fg: [100, 40, 40],
         priority: 40,
-        depth: "SURFACE",
+        layer: "SURFACE",
         flags: "T_BRIDGE, TM_VISUALLY_DISTINCT",
         article: "a",
         ground: "LAKE",
     });
 
     exports.cell = cell;
-    exports.layer = Layer$2;
+    exports.layer = Layer$1;
     exports.light = light;
     exports.lights = lights;
     exports.map = map;

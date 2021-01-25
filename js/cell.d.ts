@@ -1,7 +1,7 @@
 import { color as Color, canvas as Canvas, types as Types } from "gw-utils";
 import { Tile } from "./tile";
 import * as Map from "./map";
-import * as Layer from "./layer";
+import * as Layer from "./entity";
 import { Cell as Flags, CellMech as MechFlags, TileMech as TileMechFlags, Tile as TileFlags, Layer as LayerFlags, Depth } from "./flags";
 export { Flags, MechFlags };
 export declare class CellMemory {
@@ -21,7 +21,7 @@ export declare class CellMemory {
 }
 export declare type TileBase = Tile | string;
 interface LayerItem {
-    layer: Types.LayerType;
+    layer: Types.EntityType;
     next: LayerItem | null;
 }
 declare type LayerTile = Tile | null;
@@ -83,9 +83,9 @@ export declare class Cell implements Types.CellType {
     hasMechFlag(flag: MechFlags, limitToPlayerKnowledge?: boolean): boolean;
     hasTile(tile: string | Tile): boolean;
     topmostTile(skipGas?: boolean): Tile;
-    tileWithLayerFlag(layerFlag: number): Tile | null;
-    tileWithFlag(tileFlag: number): Tile | null;
-    tileWithMechFlag(mechFlag: number): Tile | null;
+    tileWithLayerFlag(layerFlag: number): LayerTile;
+    tileWithFlag(tileFlag: number): LayerTile;
+    tileWithMechFlag(mechFlag: number): LayerTile;
     tileDesc(): string | null;
     tileFlavor(): string | null;
     getName(opts?: {}): string;
@@ -114,8 +114,8 @@ export declare class Cell implements Types.CellType {
     set item(item: Types.ItemType | null);
     get actor(): Types.ActorType | null;
     set actor(actor: Types.ActorType | null);
-    addLayer(layer: Types.LayerType): void;
-    removeLayer(layer: Types.LayerType): boolean;
+    addLayer(layer: Types.EntityType): void;
+    removeLayer(layer: Types.EntityType): boolean;
     storeMemory(): void;
 }
 export declare function make(tile?: string): Cell;

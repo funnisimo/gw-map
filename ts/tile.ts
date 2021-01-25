@@ -8,7 +8,7 @@ import {
 
 import { Tile as Flags, TileMech as MechFlags } from "./flags";
 import * as TileEvent from "./tileEvent";
-import * as Layer from "./layer";
+import * as Layer from "./entity";
 
 export { Flags, MechFlags };
 
@@ -19,7 +19,7 @@ export interface NameConfig {
 
 // export type TileBase = TileConfig | string;
 
-export interface FullTileConfig extends Layer.LayerConfig {
+export interface FullTileConfig extends Layer.EntityConfig {
   Extends: string | Tile;
 
   flags: number | string | any[];
@@ -43,7 +43,7 @@ declare type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>;
 export type TileConfig = AtLeast<FullTileConfig, "id">;
 
 /** Tile Class */
-export class Tile extends Layer.Layer implements Types.TileType {
+export class Tile extends Layer.Entity implements Types.TileType {
   public name: string;
   public flags: Types.TileFlags = { layer: 0, tile: 0, tileMech: 0 };
 
@@ -81,7 +81,7 @@ export class Tile extends Layer.Layer implements Types.TileType {
         config.ch = Utils.first(config.ch, base.sprite.ch, -1);
         config.fg = Utils.first(config.fg, base.sprite.fg, -1);
         config.bg = Utils.first(config.bg, base.sprite.bg, -1);
-        config.depth = Utils.first(config.depth, base.depth);
+        config.layer = Utils.first(config.layer, base.layer);
         config.priority = Utils.first(config.priority, base.priority);
         config.opacity = Utils.first(config.opacity, base.sprite.opacity);
         config.light = Utils.first(config.light, base.light);
@@ -114,7 +114,7 @@ export class Tile extends Layer.Layer implements Types.TileType {
         "bg",
         "opacity",
         "light",
-        "depth",
+        "layer",
         "priority",
         "flags",
         "ground",

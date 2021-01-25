@@ -960,7 +960,7 @@ describe("Map", () => {
     beforeAll(() => {
       Map.tile.install("RED_LIQUID", {
         name: "red liquid",
-        depth: "LIQUID",
+        layer: "LIQUID",
       });
     });
 
@@ -1075,7 +1075,7 @@ describe("Map", () => {
         const liquid = new Map.tile.Tile({
           id: "RED_LIQUID",
           name: "red liquid",
-          depth: "LIQUID",
+          layer: "LIQUID",
           dissipate: dissipate * 100,
         });
 
@@ -1136,7 +1136,7 @@ describe("Map", () => {
     beforeAll(() => {
       const gas = Map.tile.install("RED_GAS", {
         name: "red gas",
-        depth: "GAS",
+        layer: "GAS",
       });
 
       expect(gas.dissipate).toEqual(20 * 100);
@@ -1213,7 +1213,7 @@ describe("Map", () => {
     const gas = new Map.tile.Tile({
       id: "RED_GAS",
       name: "red gas",
-      depth: "GAS",
+      layer: "GAS",
     });
 
     expect(gas.dissipate).toEqual(20 * 100);
@@ -1317,7 +1317,7 @@ describe("Map", () => {
       const gas = new Map.tile.Tile({
         id: "RED_GAS",
         name: "red gas",
-        depth: "GAS",
+        layer: "GAS",
         dissipate: dissipate * 100,
       });
 

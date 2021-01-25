@@ -12,7 +12,7 @@ import { Tile, tiles as TILES } from "./tile";
 import * as Map from "./map";
 import * as Activation from "./tileEvent";
 import * as Light from "./light";
-import * as Layer from "./layer";
+import * as Layer from "./entity";
 import {
   Cell as Flags,
   CellMech as MechFlags,
@@ -67,7 +67,7 @@ export class CellMemory {
 export type TileBase = Tile | string;
 
 interface LayerItem {
-  layer: Types.LayerType;
+  layer: Types.EntityType;
   next: LayerItem | null;
 }
 
@@ -550,11 +550,11 @@ export class Cell implements Types.CellType {
       return Utils.ERROR("Unknown tile - " + tileId);
     }
 
-    if (tile.depth > 0 && !this._tiles[0]) {
+    if (tile.layer > 0 && !this._tiles[0]) {
       this.setTile(tile.defaultGround || TILES.FLOOR, 0, map); // TODO - do not use FLOOR?  Does map have the tile to use?
     }
 
-    const oldTile = this._tiles[tile.depth] || TILES.NULL;
+    const oldTile = this._tiles[tile.layer] || TILES.NULL;
     const oldTileId = oldTile === TILES.NULL ? null : oldTile.id;
 
     if (oldTile.blocksPathing() != tile.blocksPathing()) {
@@ -575,14 +575,14 @@ export class Cell implements Types.CellType {
     }
 
     if (oldTileId !== null) this.removeLayer(oldTile);
-    this._tiles[tile.depth] = tileId === null ? null : tile;
+    this._tiles[tile.layer] = tileId === null ? null : tile;
     if (tileId !== null) this.addLayer(tile);
 
-    if (tile.depth == Depth.LIQUID) {
+    if (tile.layer == Depth.LIQUID) {
       this.liquidVolume =
         volume + (tileId == oldTileId ? this.liquidVolume : 0);
       if (map) map.clearFlag(MapFlags.MAP_NO_LIQUID);
-    } else if (tile.depth == Depth.GAS) {
+    } else if (tile.layer == Depth.GAS) {
       this.gasVolume = volume + (tileId == oldTileId ? this.gasVolume : 0);
       if (map) map.clearFlag(MapFlags.MAP_NO_GAS);
     }
@@ -727,7 +727,7 @@ export class Cell implements Types.CellType {
     }
   }
 
-  addLayer(layer: Types.LayerType) {
+  addLayer(layer: Types.EntityType) {
     if (!layer) return;
 
     // this.flags |= Flags.NEEDS_REDRAW;
@@ -736,8 +736,8 @@ export class Cell implements Types.CellType {
 
     if (
       !current ||
-      current.layer.depth > layer.depth ||
-      (current.layer.depth == layer.depth &&
+      current.layer.layer > layer.layer ||
+      (current.layer.layer == layer.layer &&
         current.layer.priority > layer.priority)
     ) {
       this.layers = {
@@ -749,8 +749,8 @@ export class Cell implements Types.CellType {
 
     while (
       current.next &&
-      (current.layer.depth < layer.depth ||
-        (current.layer.depth == layer.depth &&
+      (current.layer.layer < layer.layer ||
+        (current.layer.layer == layer.layer &&
           current.layer.priority <= layer.priority))
     ) {
       current = current.next;
@@ -763,7 +763,7 @@ export class Cell implements Types.CellType {
     current.next = item;
   }
 
-  removeLayer(layer: Types.LayerType) {
+  removeLayer(layer: Types.EntityType) {
     if (!layer) return false;
     if (!this.layers) return false;
 
@@ -840,9 +840,9 @@ export function getAppearance(cell: Cell, dest: Canvas.Mixer) {
   while (current) {
     const layer = current.layer;
     let alpha = layer.sprite.opacity || 100;
-    if (layer.depth == Depth.LIQUID) {
+    if (layer.layer == Depth.LIQUID) {
       alpha = Utils.clamp(cell.liquidVolume || 0, 20, 100);
-    } else if (layer.depth == Depth.GAS) {
+    } else if (layer.layer == Depth.GAS) {
       alpha = Utils.clamp(cell.gasVolume || 0, 20, 100);
     }
     memory.drawSprite(layer.sprite, alpha);

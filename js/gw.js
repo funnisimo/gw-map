@@ -1,4 +1,4 @@
-import * as layer_1 from "./layer";
+import * as layer_1 from "./entity";
 export { layer_1 as layer };
 import * as tile_1 from "./tile";
 export { tile_1 as tile };

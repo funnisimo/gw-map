@@ -483,10 +483,10 @@ function restoreGlowLights(map) {
     });
 }
 function updateLighting(map) {
-    // Copy Light over oldLight
-    recordOldLights(map);
     if (!map.anyLightChanged)
         return false;
+    // Copy Light over oldLight
+    recordOldLights(map);
     // and then zero out Light.
     zeroOutLights(map);
     if (!map.staticLightChanged) {
@@ -573,19 +573,19 @@ var light = {
     playerInDarkness: playerInDarkness
 };
 
-class Layer$1 {
+class Entity {
     constructor(config) {
         this.priority = 50;
-        this.depth = 0;
+        this.layer = 0;
         this.light = null;
         this.flags = { layer: 0 };
         this.sprite = make$6.sprite(config.sprite || config);
         this.light = config.light ? make(config.light) : null;
         this.priority = utils.first(config.priority, 50);
-        this.depth =
-            (config.depth && typeof config.depth !== "number"
-                ? Depth[config.depth]
-                : config.depth) || 0;
+        this.layer =
+            (config.layer && typeof config.layer !== "number"
+                ? Depth[config.layer]
+                : config.layer) || 0;
         // @ts-ignore
         this.flags.layer = flag.from(Layer, config.layerFlags, config.flags, 0);
     }
@@ -594,15 +594,15 @@ class Layer$1 {
     }
 }
 function make$1(config) {
-    return new Layer$1(config);
+    return new Entity(config);
 }
 make$6.layer = make$1;
 
-var Layer$2 = {
+var Layer$1 = {
     __proto__: null,
     get Flags () { return Layer; },
     get Depth () { return Depth; },
-    Layer: Layer$1,
+    Entity: Entity,
     make: make$1
 };
 
@@ -1023,19 +1023,19 @@ async function spawnTiles(feat, spawnMap, ctx, tile, item) {
             if (cell.mechFlags & CellMech.EVENT_PROTECTED)
                 continue;
             if (tile) {
-                if (cell.tile(tile.depth) === tile) {
+                if (cell.tile(tile.layer) === tile) {
                     // If the new cell already contains the fill terrain,
-                    if (tile.depth == Depth.GAS) {
+                    if (tile.layer == Depth.GAS) {
                         spawnMap[i][j] = 1;
                         cell.gasVolume += volume;
                     }
-                    else if (tile.depth == Depth.LIQUID) {
+                    else if (tile.layer == Depth.LIQUID) {
                         spawnMap[i][j] = 1;
                         cell.liquidVolume += volume;
                     }
                 }
-                else if ((superpriority || cell.tile(tile.depth).priority < tile.priority) && // If the terrain in the layer to be overwritten has a higher priority number (unless superpriority),
-                    !cell.obstructsLayer(tile.depth) && // If we will be painting into the surface layer when that cell forbids it,
+                else if ((superpriority || cell.tile(tile.layer).priority < tile.priority) && // If the terrain in the layer to be overwritten has a higher priority number (unless superpriority),
+                    !cell.obstructsLayer(tile.layer) && // If we will be painting into the surface layer when that cell forbids it,
                     (!cell.item || !(feat.flags & Activation.DFF_BLOCKED_BY_ITEMS)) &&
                     (!cell.actor || !(feat.flags & Activation.DFF_BLOCKED_BY_ACTORS)) &&
                     (!blockedByOtherLayers || cell.topmostTile().priority < tile.priority)) {
@@ -1159,7 +1159,7 @@ var tileEvent = {
 };
 
 /** Tile Class */
-class Tile$1 extends Layer$1 {
+class Tile$1 extends Entity {
     /**
      * Creates a new Tile object.
      * @param {Object} [config={}] - The configuration of the Tile
@@ -1182,7 +1182,7 @@ class Tile$1 extends Layer$1 {
             config.ch = utils.first(config.ch, base.sprite.ch, -1);
             config.fg = utils.first(config.fg, base.sprite.fg, -1);
             config.bg = utils.first(config.bg, base.sprite.bg, -1);
-            config.depth = utils.first(config.depth, base.depth);
+            config.layer = utils.first(config.layer, base.layer);
             config.priority = utils.first(config.priority, base.priority);
             config.opacity = utils.first(config.opacity, base.sprite.opacity);
             config.light = utils.first(config.light, base.light);
@@ -1216,7 +1216,7 @@ class Tile$1 extends Layer$1 {
             "bg",
             "opacity",
             "light",
-            "depth",
+            "layer",
             "priority",
             "flags",
             "ground",
@@ -1811,10 +1811,10 @@ class Cell$1 {
         if (!tile) {
             return utils.ERROR("Unknown tile - " + tileId);
         }
-        if (tile.depth > 0 && !this._tiles[0]) {
+        if (tile.layer > 0 && !this._tiles[0]) {
             this.setTile(tile.defaultGround || tiles.FLOOR, 0, map); // TODO - do not use FLOOR?  Does map have the tile to use?
         }
-        const oldTile = this._tiles[tile.depth] || tiles.NULL;
+        const oldTile = this._tiles[tile.layer] || tiles.NULL;
         const oldTileId = oldTile === tiles.NULL ? null : oldTile.id;
         if (oldTile.blocksPathing() != tile.blocksPathing()) {
             data.staleLoopMap = true;
@@ -1830,16 +1830,16 @@ class Cell$1 {
         }
         if (oldTileId !== null)
             this.removeLayer(oldTile);
-        this._tiles[tile.depth] = tileId === null ? null : tile;
+        this._tiles[tile.layer] = tileId === null ? null : tile;
         if (tileId !== null)
             this.addLayer(tile);
-        if (tile.depth == Depth.LIQUID) {
+        if (tile.layer == Depth.LIQUID) {
             this.liquidVolume =
                 volume + (tileId == oldTileId ? this.liquidVolume : 0);
             if (map)
                 map.clearFlag(Map.MAP_NO_LIQUID);
         }
-        else if (tile.depth == Depth.GAS) {
+        else if (tile.layer == Depth.GAS) {
             this.gasVolume = volume + (tileId == oldTileId ? this.gasVolume : 0);
             if (map)
                 map.clearFlag(Map.MAP_NO_GAS);
@@ -1854,7 +1854,7 @@ class Cell$1 {
     clearLayer(depth) {
         // @ts-ignore
         if (typeof depth === "string")
-            depth = Layer$2[depth];
+            depth = Layer$1[depth];
         const current = this._tiles[depth];
         if (current) {
             // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
@@ -1982,8 +1982,8 @@ class Cell$1 {
         this.flags |= Cell.CELL_CHANGED;
         let current = this.layers;
         if (!current ||
-            current.layer.depth > layer.depth ||
-            (current.layer.depth == layer.depth &&
+            current.layer.layer > layer.layer ||
+            (current.layer.layer == layer.layer &&
                 current.layer.priority > layer.priority)) {
             this.layers = {
                 layer,
@@ -1992,8 +1992,8 @@ class Cell$1 {
             return;
         }
         while (current.next &&
-            (current.layer.depth < layer.depth ||
-                (current.layer.depth == layer.depth &&
+            (current.layer.layer < layer.layer ||
+                (current.layer.layer == layer.layer &&
                     current.layer.priority <= layer.priority))) {
             current = current.next;
         }
@@ -2071,10 +2071,10 @@ function getAppearance(cell, dest) {
     while (current) {
         const layer = current.layer;
         let alpha = layer.sprite.opacity || 100;
-        if (layer.depth == Depth.LIQUID) {
+        if (layer.layer == Depth.LIQUID) {
             alpha = utils.clamp(cell.liquidVolume || 0, 20, 100);
         }
-        else if (layer.depth == Depth.GAS) {
+        else if (layer.layer == Depth.GAS) {
             alpha = utils.clamp(cell.gasVolume || 0, 20, 100);
         }
         memory.drawSprite(layer.sprite, alpha);
@@ -2321,12 +2321,16 @@ class Map$1 {
         this.flags = flag.from(Map, Map.MAP_DEFAULT, opts.flags);
         const ambient = opts.ambient || opts.ambientLight || opts.light || "white";
         this.ambientLight = color.make(ambient);
+        if (opts.ambient || opts.ambientLight || opts.light) {
+            this.ambientLightChanged = true;
+        }
         this.lights = null;
         this.id = opts.id;
         if (this.config.fov) {
             this.flags |= Map.MAP_CALC_FOV;
             this.fov = { x: -1, y: -1 };
         }
+        updateLighting(this); // to set the ambient light
         initMap(this);
     }
     get width() {
@@ -2448,6 +2452,14 @@ class Map$1 {
             return;
         if (data.player) {
             data.player.invalidateCostMap();
+        }
+    }
+    makeVisible(v = true) {
+        if (v) {
+            this.setFlags(0, Cell.VISIBLE);
+        }
+        else {
+            this.clearFlags(0, Cell.ANY_KIND_OF_VISIBLE);
         }
     }
     isVisible(x, y) {
@@ -3123,10 +3135,10 @@ class Map$1 {
             for (y = 0; y < this.height; ++y) {
                 const cell = this.cell(x, y);
                 if (cell.flags & Cell.ANY_KIND_OF_VISIBLE) {
-                    this.storeMemory(x, y);
+                    cell.storeMemory();
                 }
-                cell.flags &= Cell.PERMANENT_CELL_FLAGS;
-                cell.mechFlags &= CellMech.PERMANENT_MECH_FLAGS;
+                // cell.flags &= CellFlags.PERMANENT_CELL_FLAGS;
+                // cell.mechFlags &= CellMechFlags.PERMANENT_MECH_FLAGS;
             }
         }
     }
@@ -3166,6 +3178,13 @@ function make$5(w, h, opts = {}, wall) {
     if (floor) {
         map.fill(floor, boundary);
     }
+    if (opts.visible || opts.revealed) {
+        map.makeVisible();
+        map.revealAll();
+    }
+    if (opts.revealed && !opts.visible) {
+        map.makeVisible(false);
+    }
     if (!data.map) {
         data.map = map;
     }
@@ -3186,6 +3205,14 @@ function from$1(prefab, charToTile, opts = {}) {
             map.setTile(x, y, tile);
         }
     });
+    // redo this because we changed the tiles
+    if (opts.visible || opts.revealed) {
+        map.makeVisible();
+        map.revealAll();
+    }
+    if (opts.revealed && !opts.visible) {
+        map.makeVisible(false);
+    }
     return map;
 }
 if (!colors.cursor) {
@@ -3241,7 +3268,7 @@ function addText(map, x, y, text, fg, bg, layer) {
             ch,
             fg,
             bg,
-            depth: layer || Depth.GROUND,
+            layer: layer || Depth.GROUND,
             priority: 200,
         }); // on top of ground tiles
         const cell = map.cell(x++, y);
@@ -3408,7 +3435,7 @@ install$2("NULL", {
     ch: "\u2205",
     fg: "white",
     bg: "black",
-    flags: "T_OBSTRUCTS_PASSABILITY",
+    flags: "L_BLOCKS_MOVE",
     name: "eerie nothingness",
     article: "an",
     priority: 0,
@@ -3495,10 +3522,10 @@ install$2("BRIDGE", {
     ch: "=",
     fg: [100, 40, 40],
     priority: 40,
-    depth: "SURFACE",
+    layer: "SURFACE",
     flags: "T_BRIDGE, TM_VISUALLY_DISTINCT",
     article: "a",
     ground: "LAKE",
 });
 
-export { cell, Layer$2 as layer, light, lights, map, tile, tileEvent, tiles, visibility };
+export { cell, Layer$1 as layer, light, lights, map, tile, tileEvent, tiles, visibility };

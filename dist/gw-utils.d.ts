@@ -250,7 +250,7 @@ interface NameConfig {
     article?: boolean | string;
     color?: boolean | string | color.ColorBase;
 }
-interface FullTileConfig extends LayerConfig {
+interface FullTileConfig extends EntityConfig {
     Extends: string | Tile$1;
     flags: number | string | any[];
     mechFlags: number | string | any[];
@@ -267,7 +267,7 @@ interface FullTileConfig extends LayerConfig {
 declare type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>;
 declare type TileConfig = AtLeast<FullTileConfig, "id">;
 /** Tile Class */
-declare class Tile$1 extends Layer$1 implements types.TileType {
+declare class Tile$1 extends Entity implements types.TileType {
     name: string;
     flags: types.TileFlags;
     activates: Record<string, TileEvent>;
@@ -363,7 +363,7 @@ declare class CellMemory {
 }
 declare type TileBase = Tile$1 | string;
 interface LayerItem {
-    layer: types.LayerType;
+    layer: types.EntityType;
     next: LayerItem | null;
 }
 declare type LayerTile = Tile$1 | null;
@@ -425,9 +425,9 @@ declare class Cell$1 implements types.CellType {
     hasMechFlag(flag: CellMech, limitToPlayerKnowledge?: boolean): boolean;
     hasTile(tile: string | Tile$1): boolean;
     topmostTile(skipGas?: boolean): Tile$1;
-    tileWithLayerFlag(layerFlag: number): Tile$1 | null;
-    tileWithFlag(tileFlag: number): Tile$1 | null;
-    tileWithMechFlag(mechFlag: number): Tile$1 | null;
+    tileWithLayerFlag(layerFlag: number): LayerTile;
+    tileWithFlag(tileFlag: number): LayerTile;
+    tileWithMechFlag(mechFlag: number): LayerTile;
     tileDesc(): string | null;
     tileFlavor(): string | null;
     getName(opts?: {}): string;
@@ -456,8 +456,8 @@ declare class Cell$1 implements types.CellType {
     set item(item: types.ItemType | null);
     get actor(): types.ActorType | null;
     set actor(actor: types.ActorType | null);
-    addLayer(layer: types.LayerType): void;
-    removeLayer(layer: types.LayerType): boolean;
+    addLayer(layer: types.EntityType): void;
+    removeLayer(layer: types.EntityType): boolean;
     storeMemory(): void;
 }
 declare function make$2(tile?: string): Cell$1;
@@ -557,6 +557,7 @@ declare class Map$1 implements types.MapType {
     drawInto(canvas: canvas.Canvas | buffer.DataBuffer, opts?: Partial<MapDrawOptions> | boolean): void;
     revealAll(): void;
     markRevealed(x: number, y: number): void;
+    makeVisible(v?: boolean): void;
     isVisible(x: number, y: number): number;
     isAnyKindOfVisible(x: number, y: number): number;
     isOrWasAnyKindOfVisible(x: number, y: number): number;
@@ -754,34 +755,36 @@ declare namespace light_d {
   };
 }
 
-interface LayerConfig extends canvas.SpriteConfig {
+interface EntityConfig extends canvas.SpriteConfig {
     priority: number;
-    depth: Depth | keyof typeof Depth;
+    layer: Depth | keyof typeof Depth;
     light: LightBase | null;
     layerFlags?: flag.FlagBase;
     flags?: flag.FlagBase;
     sprite?: canvas.SpriteConfig;
 }
-declare class Layer$1 implements types.LayerType {
+declare class Entity implements types.EntityType {
     sprite: types.SpriteType;
     priority: number;
-    depth: number;
+    layer: number;
     light: Light | null;
     flags: types.LayerFlags;
-    constructor(config: Partial<LayerConfig>);
+    constructor(config: Partial<EntityConfig>);
     hasLayerFlag(flag: number): boolean;
 }
-declare function make$5(config: Partial<LayerConfig>): Layer$1;
+declare function make$5(config: Partial<EntityConfig>): Entity;
 
-type layer_d_Depth = Depth;
-declare const layer_d_Depth: typeof Depth;
-type layer_d_LayerConfig = LayerConfig;
-declare namespace layer_d {
+type entity_d_Depth = Depth;
+declare const entity_d_Depth: typeof Depth;
+type entity_d_EntityConfig = EntityConfig;
+type entity_d_Entity = Entity;
+declare const entity_d_Entity: typeof Entity;
+declare namespace entity_d {
   export {
     Layer as Flags,
-    layer_d_Depth as Depth,
-    layer_d_LayerConfig as LayerConfig,
-    Layer$1 as Layer,
+    entity_d_Depth as Depth,
+    entity_d_EntityConfig as EntityConfig,
+    entity_d_Entity as Entity,
     make$5 as make,
   };
 }
@@ -798,4 +801,4 @@ declare namespace visibility_d {
   };
 }
 
-export { cell_d as cell, layer_d as layer, light_d as light, lights, map_d as map, tile_d as tile, tileEvent_d as tileEvent, tiles, visibility_d as visibility };
+export { cell_d as cell, entity_d as layer, light_d as light, lights, map_d as map, tile_d as tile, tileEvent_d as tileEvent, tiles, visibility_d as visibility };

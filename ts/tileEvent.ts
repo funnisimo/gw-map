@@ -541,18 +541,18 @@ export async function spawnTiles(
       if (cell.mechFlags & CellMechFlags.EVENT_PROTECTED) continue;
 
       if (tile) {
-        if (cell.tile(tile.depth) === tile) {
+        if (cell.tile(tile.layer) === tile) {
           // If the new cell already contains the fill terrain,
-          if (tile.depth == Depth.GAS) {
+          if (tile.layer == Depth.GAS) {
             spawnMap[i][j] = 1;
             cell.gasVolume += volume;
-          } else if (tile.depth == Depth.LIQUID) {
+          } else if (tile.layer == Depth.LIQUID) {
             spawnMap[i][j] = 1;
             cell.liquidVolume += volume;
           }
         } else if (
-          (superpriority || cell.tile(tile.depth).priority < tile.priority) && // If the terrain in the layer to be overwritten has a higher priority number (unless superpriority),
-          !cell.obstructsLayer(tile.depth) && // If we will be painting into the surface layer when that cell forbids it,
+          (superpriority || cell.tile(tile.layer).priority < tile.priority) && // If the terrain in the layer to be overwritten has a higher priority number (unless superpriority),
+          !cell.obstructsLayer(tile.layer) && // If we will be painting into the surface layer when that cell forbids it,
           (!cell.item || !(feat.flags & Flags.DFF_BLOCKED_BY_ITEMS)) &&
           (!cell.actor || !(feat.flags & Flags.DFF_BLOCKED_BY_ACTORS)) &&
           (!blockedByOtherLayers || cell.topmostTile().priority < tile.priority)

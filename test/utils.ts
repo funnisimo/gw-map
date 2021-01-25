@@ -47,7 +47,7 @@ export function makeActor() {
   return ({
     rememberedInCell: null,
     sprite: { ch: "@", fg: COLORS.blue, bg: -1 },
-    depth: Depth.ACTOR,
+    layer: Depth.ACTOR,
     priority: 50,
     isPlayer: jest.fn().mockReturnValue(false),
     delete: jest.fn(),
@@ -67,6 +67,7 @@ export function makeItem() {
   return ({
     quantity: 1,
     sprite: { ch: "!", fg: "white" },
+    layer: Depth.ITEM,
     isDetected: jest.fn().mockReturnValue(false),
     forbidsCell: jest.fn().mockReturnValue(false),
     clone: jest.fn().mockImplementation(makeItem),
