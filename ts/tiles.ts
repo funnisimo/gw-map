@@ -42,7 +42,11 @@ Tile.install("DOOR_OPEN", "DOOR", {
   name: "open door",
   article: "an",
   activates: {
-    tick: { tile: "DOOR", flags: "DFF_SUPERPRIORITY, DFF_ONLY_IF_EMPTY" },
+    tick: {
+      chance: 100 * 100, // 100%
+      tile: "DOOR",
+      flags: "DFF_SUPERPRIORITY, DFF_ONLY_IF_EMPTY",
+    },
     enter: null,
     open: null,
     close: { tile: "DOOR", flags: "DFF_SUPERPRIORITY, DFF_ONLY_IF_EMPTY" },

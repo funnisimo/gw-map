@@ -1,14 +1,14 @@
-import * as GW from "gw-utils";
-import { Layer as Flags, Depth } from "./flags";
-import * as Light from "./light";
+import * as GW from 'gw-utils';
+import { Layer as Flags, Depth } from './flags';
+import * as Light from './light';
 export { Flags, Depth };
-export interface EntityConfig extends GW.canvas.SpriteConfig {
+export interface EntityConfig extends GW.sprite.SpriteConfig {
     priority: number;
     layer: Depth | keyof typeof Depth;
     light: Light.LightBase | null;
     layerFlags?: GW.flag.FlagBase;
     flags?: GW.flag.FlagBase;
-    sprite?: GW.canvas.SpriteConfig;
+    sprite?: GW.sprite.SpriteConfig;
 }
 export declare class Entity implements GW.types.EntityType {
     sprite: GW.types.SpriteType;

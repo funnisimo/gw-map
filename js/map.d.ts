@@ -1,8 +1,8 @@
-import { utils as Utils, grid as Grid, color as Color, canvas as Canvas, types as Types, buffer as Buffer } from "gw-utils";
-import * as Cell from "./cell";
-import * as Tile from "./tile";
-import { Map as Flags, Cell as CellFlags, Tile as TileFlags, CellMech as CellMechFlags, TileMech as TileMechFlags, Depth as TileLayer, Layer as LayerFlags } from "./flags";
-import * as Light from "./light";
+import { utils as Utils, grid as Grid, color as Color, canvas as Canvas, types as Types, sprite as Sprite } from 'gw-utils';
+import * as Cell from './cell';
+import * as Tile from './tile';
+import { Map as Flags, Cell as CellFlags, Tile as TileFlags, CellMech as CellMechFlags, TileMech as TileMechFlags, Depth as TileLayer, Layer as LayerFlags } from './flags';
+import * as Light from './light';
 export { Flags };
 export interface MapDrawOptions {
     x: number;
@@ -66,6 +66,7 @@ export declare class Map implements Types.MapType {
     forEach(fn: MapEachFn): void;
     forRect(x: number, y: number, w: number, h: number, fn: MapEachFn): void;
     eachNeighbor(x: number, y: number, fn: MapEachFn, only4dirs?: boolean): void;
+    randomEach(fn: MapEachFn): void;
     count(fn: MapMatchFn): number;
     hasXY(x: number, y: number): boolean;
     isBoundaryXY(x: number, y: number): boolean;
@@ -79,7 +80,7 @@ export declare class Map implements Types.MapType {
     redrawCell(cell: Cell.Cell): void;
     redrawXY(x: number, y: number): void;
     redrawAll(): void;
-    drawInto(canvas: Canvas.Canvas | Buffer.DataBuffer, opts?: Partial<MapDrawOptions> | boolean): void;
+    drawInto(canvas: Canvas.Canvas | Canvas.DataBuffer, opts?: Partial<MapDrawOptions> | boolean): void;
     revealAll(): void;
     markRevealed(x: number, y: number): void;
     makeVisible(v?: boolean): void;
@@ -166,7 +167,7 @@ export declare function make(w: number, h: number, floor: string, wall: string):
 export declare function make(w: number, h: number, floor: string): Map;
 export declare function make(w: number, h: number, opts?: any): Map;
 export declare function from(prefab: string | string[], charToTile: Record<string, Cell.TileBase | null>, opts?: any): Map;
-export declare function getCellAppearance(map: Map, x: number, y: number, dest: Canvas.Mixer): void;
+export declare function getCellAppearance(map: Map, x: number, y: number, dest: Sprite.Mixer): void;
 export declare function addText(map: Map, x: number, y: number, text: string, fg: Color.ColorBase | null, bg: Color.ColorBase | null, layer?: TileLayer): void;
 export declare function updateGas(map: Map): void;
 export declare function updateLiquid(map: Map): void;

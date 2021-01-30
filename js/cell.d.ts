@@ -1,11 +1,11 @@
-import { color as Color, canvas as Canvas, types as Types } from "gw-utils";
-import { Tile } from "./tile";
-import * as Map from "./map";
-import * as Layer from "./entity";
-import { Cell as Flags, CellMech as MechFlags, TileMech as TileMechFlags, Tile as TileFlags, Layer as LayerFlags, Depth } from "./flags";
+import { color as Color, sprite as Sprite, types as Types } from 'gw-utils';
+import { Tile } from './tile';
+import * as Map from './map';
+import * as Layer from './entity';
+import { Cell as Flags, CellMech as MechFlags, TileMech as TileMechFlags, Tile as TileFlags, Layer as LayerFlags, Depth } from './flags';
 export { Flags, MechFlags };
 export declare class CellMemory {
-    mixer: Canvas.Mixer;
+    mixer: Sprite.Mixer;
     item: Types.ItemType | null;
     itemQuantity: number;
     actor: Types.ActorType | null;
@@ -119,4 +119,4 @@ export declare class Cell implements Types.CellType {
     storeMemory(): void;
 }
 export declare function make(tile?: string): Cell;
-export declare function getAppearance(cell: Cell, dest: Canvas.Mixer): boolean;
+export declare function getAppearance(cell: Cell, dest: Sprite.Mixer): boolean;

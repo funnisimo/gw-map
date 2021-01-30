@@ -1,4 +1,4 @@
-import { color, grid, types, canvas, utils, buffer, range, flag } from 'gw-utils';
+import { color, grid, types, sprite, utils, canvas, range, flag } from 'gw-utils';
 
 declare enum Depth {
     ALL_LAYERS = -1,
@@ -338,7 +338,7 @@ declare namespace tile_d {
 }
 
 declare class CellMemory {
-    mixer: canvas.Mixer;
+    mixer: sprite.Mixer;
     item: types.ItemType | null;
     itemQuantity: number;
     actor: types.ActorType | null;
@@ -452,7 +452,7 @@ declare class Cell$1 implements types.CellType {
     storeMemory(): void;
 }
 declare function make$2(tile?: string): Cell$1;
-declare function getAppearance(cell: Cell$1, dest: canvas.Mixer): boolean;
+declare function getAppearance(cell: Cell$1, dest: sprite.Mixer): boolean;
 
 type cell_d_CellMemory = CellMemory;
 declare const cell_d_CellMemory: typeof CellMemory;
@@ -532,6 +532,7 @@ declare class Map$1 implements types.MapType {
     forEach(fn: MapEachFn): void;
     forRect(x: number, y: number, w: number, h: number, fn: MapEachFn): void;
     eachNeighbor(x: number, y: number, fn: MapEachFn, only4dirs?: boolean): void;
+    randomEach(fn: MapEachFn): void;
     count(fn: MapMatchFn): number;
     hasXY(x: number, y: number): boolean;
     isBoundaryXY(x: number, y: number): boolean;
@@ -545,7 +546,7 @@ declare class Map$1 implements types.MapType {
     redrawCell(cell: Cell$1): void;
     redrawXY(x: number, y: number): void;
     redrawAll(): void;
-    drawInto(canvas: canvas.Canvas | buffer.DataBuffer, opts?: Partial<MapDrawOptions> | boolean): void;
+    drawInto(canvas: canvas.Canvas | canvas.DataBuffer, opts?: Partial<MapDrawOptions> | boolean): void;
     revealAll(): void;
     markRevealed(x: number, y: number): void;
     makeVisible(v?: boolean): void;
@@ -632,7 +633,7 @@ declare function make$3(w: number, h: number, floor: string, wall: string): Map$
 declare function make$3(w: number, h: number, floor: string): Map$1;
 declare function make$3(w: number, h: number, opts?: any): Map$1;
 declare function from(prefab: string | string[], charToTile: Record<string, TileBase | null>, opts?: any): Map$1;
-declare function getCellAppearance(map: Map$1, x: number, y: number, dest: canvas.Mixer): void;
+declare function getCellAppearance(map: Map$1, x: number, y: number, dest: sprite.Mixer): void;
 declare function addText(map: Map$1, x: number, y: number, text: string, fg: color.ColorBase | null, bg: color.ColorBase | null, layer?: Depth): void;
 declare function updateGas(map: Map$1): void;
 declare function updateLiquid(map: Map$1): void;
@@ -748,13 +749,13 @@ declare namespace light_d {
   };
 }
 
-interface EntityConfig extends canvas.SpriteConfig {
+interface EntityConfig extends sprite.SpriteConfig {
     priority: number;
     layer: Depth | keyof typeof Depth;
     light: LightBase | null;
     layerFlags?: flag.FlagBase;
     flags?: flag.FlagBase;
-    sprite?: canvas.SpriteConfig;
+    sprite?: sprite.SpriteConfig;
 }
 declare class Entity implements types.EntityType {
     sprite: types.SpriteType;

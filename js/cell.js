@@ -1,16 +1,16 @@
-import { color as Color, canvas as Canvas, utils as Utils, config as CONFIG, data as DATA, random, make as Make, } from "gw-utils";
-import { Tile, tiles as TILES } from "./tile";
-import * as Activation from "./tileEvent";
-import * as Light from "./light";
-import * as Layer from "./entity";
-import { Cell as Flags, CellMech as MechFlags, Tile as TileFlags, Map as MapFlags, Layer as LayerFlags, Depth, } from "./flags";
+import { color as Color, sprite as Sprite, utils as Utils, config as CONFIG, data as DATA, random, make as Make, } from 'gw-utils';
+import { Tile, tiles as TILES } from './tile';
+import * as Activation from './tileEvent';
+import * as Light from './light';
+import * as Layer from './entity';
+import { Cell as Flags, CellMech as MechFlags, Tile as TileFlags, Map as MapFlags, Layer as LayerFlags, Depth, } from './flags';
 export { Flags, MechFlags };
 // TODO - Move to gw-ui
-Color.install("cursorColor", 25, 100, 150);
+Color.install('cursorColor', 25, 100, 150);
 CONFIG.cursorPathIntensity = 50;
 export class CellMemory {
     constructor() {
-        this.mixer = new Canvas.Mixer();
+        this.mixer = new Sprite.Mixer();
         this.item = null;
         this.itemQuantity = 0;
         this.actor = null;
@@ -149,7 +149,8 @@ export class Cell {
         return this.flags & Flags.VISIBLE;
     }
     isAnyKindOfVisible() {
-        return (this.flags & Flags.ANY_KIND_OF_VISIBLE /* || CONFIG.playbackOmniscience */);
+        return (this.flags &
+            Flags.ANY_KIND_OF_VISIBLE /* || CONFIG.playbackOmniscience */);
     }
     isOrWasAnyKindOfVisible() {
         return (this.flags &
@@ -443,7 +444,8 @@ export class Cell {
         return !this.isWall();
     }
     obstructsLayer(depth) {
-        return (depth === Depth.SURFACE && this.hasLayerFlag(LayerFlags.L_BLOCKS_SURFACE));
+        return (depth === Depth.SURFACE &&
+            this.hasLayerFlag(LayerFlags.L_BLOCKS_SURFACE));
     }
     setTile(tileId = null, volume = 0, map) {
         map = map || DATA.map;
@@ -452,7 +454,7 @@ export class Cell {
             tile = TILES.NULL;
             tileId = null;
         }
-        else if (typeof tileId === "string") {
+        else if (typeof tileId === 'string') {
             tile = TILES[tileId];
         }
         else if (tileId instanceof Tile) {
@@ -460,7 +462,7 @@ export class Cell {
             tileId = tile.id;
         }
         if (!tile) {
-            return Utils.ERROR("Unknown tile - " + tileId);
+            return Utils.ERROR('Unknown tile - ' + tileId);
         }
         if (tile.layer > 0 && !this._tiles[0]) {
             this.setTile(tile.defaultGround || TILES.FLOOR, 0, map); // TODO - do not use FLOOR?  Does map have the tile to use?
@@ -476,7 +478,9 @@ export class Cell {
         }
         const blocksVision = tile.flags.layer & LayerFlags.L_BLOCKS_VISION;
         const oldBlocksVision = oldTile.flags.layer & LayerFlags.L_BLOCKS_VISION;
-        if (map && this.isAnyKindOfVisible() && blocksVision != oldBlocksVision) {
+        if (map &&
+            this.isAnyKindOfVisible() &&
+            blocksVision != oldBlocksVision) {
             map.setFlag(MapFlags.MAP_FOV_CHANGED);
         }
         if (oldTileId !== null)
@@ -494,7 +498,8 @@ export class Cell {
         }
         else if (tile.layer == Depth.GAS) {
             layerFlag = Flags.HAS_GAS;
-            this.gasVolume = volume + (tileId == oldTileId ? this.gasVolume : 0);
+            this.gasVolume =
+                volume + (tileId == oldTileId ? this.gasVolume : 0);
             if (map)
                 map.clearFlag(MapFlags.MAP_NO_GAS);
         }
@@ -516,7 +521,7 @@ export class Cell {
     }
     clearLayer(depth) {
         // @ts-ignore
-        if (typeof depth === "string")
+        if (typeof depth === 'string')
             depth = Layer[depth];
         const current = this._tiles[depth];
         if (current) {
@@ -719,7 +724,8 @@ export class Cell {
         memory.actor = this.actor;
         getAppearance(this, memory.mixer);
         if (this.actor && this.isOrWasAnyKindOfVisible()) {
-            if (this.actor.rememberedInCell && this.actor.rememberedInCell !== this) {
+            if (this.actor.rememberedInCell &&
+                this.actor.rememberedInCell !== this) {
                 // console.log("remembered in cell change");
                 this.actor.rememberedInCell.storeMemory();
                 this.actor.rememberedInCell.flags |= Flags.NEEDS_REDRAW;
@@ -745,10 +751,10 @@ export function getAppearance(cell, dest) {
         const layer = current.layer;
         let alpha = layer.sprite.opacity || 100;
         if (layer.layer == Depth.LIQUID) {
-            alpha = Utils.clamp(cell.liquidVolume || 0, 20, 100);
+            alpha = Utils.clamp(cell.liquidVolume * 34, 20, 100);
         }
         else if (layer.layer == Depth.GAS) {
-            alpha = Utils.clamp(cell.gasVolume || 0, 20, 100);
+            alpha = Utils.clamp(cell.gasVolume * 34, 20, 100);
         }
         memory.drawSprite(layer.sprite, alpha);
         current = current.next;

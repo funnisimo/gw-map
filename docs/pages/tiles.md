@@ -191,4 +191,70 @@ LOOP.run(
 );
 ```
 
-In this example, we see 2 difference events: enter and tick. There are others and we will talk about them in the events part of the documentation. Right now, lets keep focusing on some other things we can do with tiles and events.
+In this example, we see 2 difference events: enter and tick. There are others (actually as many as you want) and we will talk about them later. Right now, lets keep focusing on some other things we can do with tiles and events.
+
+For now, lets combine some of what we have done so far and review doors. Doors by default are handled by two tiles - DOOR and DOOR_OPEN. As you would expect DOOR is a closed door and it blocks vision (and gas, etc...). But, when an actor enters the door, it is replaced with DOOR_OPEN which does not block vision (or gas, etc...). When you exit the DOOR_OPEN, it will revert to a DOOR - thus simulating closing a door.
+
+If you do not want this auto-opening feature of doors, then you can just create your own DOOR variant that does not have the **enter** event. Then you can have a command that the player uses to open doors. There is already an included door that does not auto-close for this use case - DOOR_OPEN_ALWAYS. It just does not close on exit/tick.
+
+Here is a map with a couple of doors. The FOV is calculated from the **X** tile and you can see it change as you mouseover the doors to open them. There will be some odd behavior in this example because we do not have an actual actor to hold the door open. So it will close whenever the **tick** event fires instead of staying open if the mouse is still over it.
+
+```js
+GW.tile.install("CENTER", {
+  layer: "SURFACE",
+  ch: "X",
+  fg: "green",
+});
+
+const charToTile = {
+  X: "CENTER",
+  ".": "FLOOR",
+  "#": "WALL",
+  "+": "DOOR",
+  "~": "LAKE",
+  "=": "BRIDGE",
+};
+
+const prefab = [
+  "###########",
+  "#.........#",
+  "#.........#",
+  "#..#+#+#..#",
+  "#..+...#..#",
+  "#..#.X.+..#",
+  "#..+...#..#",
+  "#..##+##..#",
+  "#.........#",
+  "#.........#",
+  "###########",
+];
+
+const map = GW.map.from(prefab, charToTile, { fov: true });
+const canvas = GW.canvas.withFont({
+  font: "monospace",
+  width: map.width,
+  height: map.height,
+  io: LOOP,
+});
+GW.visibility.update(map, 5, 5, 10);
+map.drawInto(canvas);
+SHOW(canvas.node);
+
+LOOP.run(
+  {
+    mousemove: async (e) => {
+      await map.activateCell(e.x, e.y, "enter");
+      GW.visibility.update(map, 5, 5, 10);
+      map.drawInto(canvas);
+    },
+    tick: async (e) => {
+      await map.tick();
+      GW.visibility.update(map, 5, 5, 10);
+      map.drawInto(canvas);
+    },
+  },
+  500
+);
+```
+
+Now that we have some of the basics of tile events and replacements, lets move on to liquid and gas tiles.

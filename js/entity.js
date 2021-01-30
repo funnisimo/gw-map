@@ -1,6 +1,6 @@
-import * as GW from "gw-utils";
-import { Layer as Flags, Depth } from "./flags";
-import * as Light from "./light";
+import * as GW from 'gw-utils';
+import { Layer as Flags, Depth } from './flags';
+import * as Light from './light';
 export { Flags, Depth };
 export class Entity {
     constructor(config) {
@@ -12,7 +12,7 @@ export class Entity {
         this.light = config.light ? Light.make(config.light) : null;
         this.priority = GW.utils.first(config.priority, 50);
         this.layer =
-            (config.layer && typeof config.layer !== "number"
+            (config.layer && typeof config.layer !== 'number'
                 ? Depth[config.layer]
                 : config.layer) || 0;
         // @ts-ignore

@@ -587,7 +587,7 @@
             this.light = config.light ? make(config.light) : null;
             this.priority = GW.utils.first(config.priority, 50);
             this.layer =
-                (config.layer && typeof config.layer !== "number"
+                (config.layer && typeof config.layer !== 'number'
                     ? Depth[config.layer]
                     : config.layer) || 0;
             // @ts-ignore
@@ -1360,11 +1360,11 @@
     };
 
     // TODO - Move to gw-ui
-    GW.color.install("cursorColor", 25, 100, 150);
+    GW.color.install('cursorColor', 25, 100, 150);
     GW.config.cursorPathIntensity = 50;
     class CellMemory {
         constructor() {
-            this.mixer = new GW.canvas.Mixer();
+            this.mixer = new GW.sprite.Mixer();
             this.item = null;
             this.itemQuantity = 0;
             this.actor = null;
@@ -1503,7 +1503,8 @@
             return this.flags & Cell.VISIBLE;
         }
         isAnyKindOfVisible() {
-            return (this.flags & Cell.ANY_KIND_OF_VISIBLE /* || CONFIG.playbackOmniscience */);
+            return (this.flags &
+                Cell.ANY_KIND_OF_VISIBLE /* || CONFIG.playbackOmniscience */);
         }
         isOrWasAnyKindOfVisible() {
             return (this.flags &
@@ -1797,7 +1798,8 @@
             return !this.isWall();
         }
         obstructsLayer(depth) {
-            return (depth === Depth.SURFACE && this.hasLayerFlag(Layer.L_BLOCKS_SURFACE));
+            return (depth === Depth.SURFACE &&
+                this.hasLayerFlag(Layer.L_BLOCKS_SURFACE));
         }
         setTile(tileId = null, volume = 0, map) {
             map = map || GW.data.map;
@@ -1806,7 +1808,7 @@
                 tile = tiles.NULL;
                 tileId = null;
             }
-            else if (typeof tileId === "string") {
+            else if (typeof tileId === 'string') {
                 tile = tiles[tileId];
             }
             else if (tileId instanceof Tile$1) {
@@ -1814,7 +1816,7 @@
                 tileId = tile.id;
             }
             if (!tile) {
-                return GW.utils.ERROR("Unknown tile - " + tileId);
+                return GW.utils.ERROR('Unknown tile - ' + tileId);
             }
             if (tile.layer > 0 && !this._tiles[0]) {
                 this.setTile(tile.defaultGround || tiles.FLOOR, 0, map); // TODO - do not use FLOOR?  Does map have the tile to use?
@@ -1830,7 +1832,9 @@
             }
             const blocksVision = tile.flags.layer & Layer.L_BLOCKS_VISION;
             const oldBlocksVision = oldTile.flags.layer & Layer.L_BLOCKS_VISION;
-            if (map && this.isAnyKindOfVisible() && blocksVision != oldBlocksVision) {
+            if (map &&
+                this.isAnyKindOfVisible() &&
+                blocksVision != oldBlocksVision) {
                 map.setFlag(Map.MAP_FOV_CHANGED);
             }
             if (oldTileId !== null)
@@ -1848,7 +1852,8 @@
             }
             else if (tile.layer == Depth.GAS) {
                 layerFlag = Cell.HAS_GAS;
-                this.gasVolume = volume + (tileId == oldTileId ? this.gasVolume : 0);
+                this.gasVolume =
+                    volume + (tileId == oldTileId ? this.gasVolume : 0);
                 if (map)
                     map.clearFlag(Map.MAP_NO_GAS);
             }
@@ -1870,7 +1875,7 @@
         }
         clearLayer(depth) {
             // @ts-ignore
-            if (typeof depth === "string")
+            if (typeof depth === 'string')
                 depth = Layer$1[depth];
             const current = this._tiles[depth];
             if (current) {
@@ -2070,7 +2075,8 @@
             memory.actor = this.actor;
             getAppearance(this, memory.mixer);
             if (this.actor && this.isOrWasAnyKindOfVisible()) {
-                if (this.actor.rememberedInCell && this.actor.rememberedInCell !== this) {
+                if (this.actor.rememberedInCell &&
+                    this.actor.rememberedInCell !== this) {
                     // console.log("remembered in cell change");
                     this.actor.rememberedInCell.storeMemory();
                     this.actor.rememberedInCell.flags |= Cell.NEEDS_REDRAW;
@@ -2096,10 +2102,10 @@
             const layer = current.layer;
             let alpha = layer.sprite.opacity || 100;
             if (layer.layer == Depth.LIQUID) {
-                alpha = GW.utils.clamp(cell.liquidVolume || 0, 20, 100);
+                alpha = GW.utils.clamp(cell.liquidVolume * 34, 20, 100);
             }
             else if (layer.layer == Depth.GAS) {
-                alpha = GW.utils.clamp(cell.gasVolume || 0, 20, 100);
+                alpha = GW.utils.clamp(cell.gasVolume * 34, 20, 100);
             }
             memory.drawSprite(layer.sprite, alpha);
             current = current.next;
@@ -2323,7 +2329,7 @@
     };
 
     GW.utils.setDefaults(GW.config, {
-        "map.deepestLevel": 99,
+        'map.deepestLevel': 99,
     });
     class Map$1 {
         constructor(w, h, opts = {}) {
@@ -2343,7 +2349,7 @@
             this._actors = null;
             this._items = null;
             this.flags = GW.flag.from(Map, Map.MAP_DEFAULT, opts.flags);
-            const ambient = opts.ambient || opts.ambientLight || opts.light || "white";
+            const ambient = opts.ambient || opts.ambientLight || opts.light || 'white';
             this.ambientLight = GW.color.make(ambient);
             if (opts.ambient || opts.ambientLight || opts.light) {
                 this.ambientLightChanged = true;
@@ -2385,6 +2391,9 @@
         }
         eachNeighbor(x, y, fn, only4dirs = false) {
             this.cells.eachNeighbor(x, y, (c, i, j) => fn(c, i, j, this), only4dirs);
+        }
+        randomEach(fn) {
+            this.cells.randomEach((c, i, j) => fn(c, i, j, this));
         }
         count(fn) {
             let count = 0;
@@ -2447,15 +2456,17 @@
         }
         drawInto(canvas, opts = {}) {
             updateLighting(this);
-            if (typeof opts === "boolean")
+            if (typeof opts === 'boolean')
                 opts = { force: opts };
-            const mixer = new GW.canvas.Mixer();
+            const mixer = new GW.sprite.Mixer();
             for (let x = 0; x < canvas.width; ++x) {
                 for (let y = 0; y < canvas.height; ++y) {
                     const cell = this.cell(x, y);
                     if (cell.needsRedraw || opts.force) {
                         getCellAppearance(this, x, y, mixer);
-                        const glyph = typeof mixer.ch === "number" ? mixer.ch : canvas.toGlyph(mixer.ch);
+                        const glyph = typeof mixer.ch === 'number'
+                            ? mixer.ch
+                            : canvas.toGlyph(mixer.ch);
                         canvas.draw(x, y, glyph, mixer.fg.toInt(), mixer.bg.toInt());
                         cell.needsRedraw = false;
                     }
@@ -2693,7 +2704,8 @@
         }
         fillCostGrid(costGrid, costFn) {
             costFn =
-                costFn || ((c) => (c.isWalkableNow() ? 1 : GW.path.OBSTRUCTION));
+                costFn ||
+                    ((c) => (c.isWalkableNow() ? 1 : GW.path.OBSTRUCTION));
             this.cells.forEach((cell, i, j) => {
                 if (cell.isClear()) {
                     costGrid[i][j] = GW.path.OBSTRUCTION;
@@ -2721,7 +2733,7 @@
             let matcher = args[0];
             let opts = args[1] || {};
             const arg = args[0];
-            if (typeof arg !== "function") {
+            if (typeof arg !== 'function') {
                 opts = arg || args[1];
                 matcher = opts.match || GW.utils.TRUE;
             }
@@ -2765,7 +2777,7 @@
             let x;
             let y;
             let cell;
-            if (typeof opts === "function") {
+            if (typeof opts === 'function') {
                 opts = { match: opts };
             }
             const sequence = GW.random.sequence(this.width * this.height);
@@ -2789,7 +2801,8 @@
                     (!forbidLiquid || !cell.liquid) &&
                     (!forbidCellFlags || !(cell.flags & forbidCellFlags)) &&
                     (!forbidTileFlags || !cell.hasTileFlag(forbidTileFlags)) &&
-                    (!forbidTileMechFlags || !cell.hasTileMechFlag(forbidTileMechFlags)) &&
+                    (!forbidTileMechFlags ||
+                        !cell.hasTileMechFlag(forbidTileMechFlags)) &&
                     (hallwaysAllowed || this.walkableArcCount(x, y) < 2) &&
                     matcher(cell, x, y, this)) {
                     success = true;
@@ -2905,7 +2918,9 @@
             cell.actor = theActor; // adjusts the layer
             theActor.next = this._actors;
             this._actors = theActor;
-            const flag = theActor === GW.data.player ? Cell.HAS_PLAYER : Cell.HAS_ANY_ACTOR;
+            const flag = theActor === GW.data.player
+                ? Cell.HAS_PLAYER
+                : Cell.HAS_ANY_ACTOR;
             cell.flags |= flag;
             // if (theActor.flags & Flags.Actor.MK_DETECTED)
             // {
@@ -2954,7 +2969,7 @@
             const cell = this.cell(actor.x, actor.y);
             if (cell.actor === actor) {
                 cell.actor = null;
-                GW.utils.removeFromChain(this, "actors", actor);
+                GW.utils.removeFromChain(this, 'actors', actor);
                 if (actor.light) {
                     this.anyLightChanged = true;
                 }
@@ -3046,7 +3061,7 @@
             if (cell.item !== theItem)
                 return false;
             cell.item = null;
-            GW.utils.removeFromChain(this, "items", theItem);
+            GW.utils.removeFromChain(this, 'items', theItem);
             if (theItem.light) {
                 this.anyLightChanged = true;
             }
@@ -3180,18 +3195,25 @@
             for (let x = 0; x < this.width; ++x) {
                 for (let y = 0; y < this.height; ++y) {
                     const cell = this.cells[x][y];
-                    await cell.activate("tick", { map: this, x, y, cell, safe: true });
+                    await cell.activate('tick', {
+                        map: this,
+                        x,
+                        y,
+                        cell,
+                        safe: true,
+                    });
                 }
             }
             updateLiquid(this);
             updateGas(this);
         }
         resetCellEvents() {
-            this.forEach((c) => (c.mechFlags &= ~(CellMech.EVENT_FIRED_THIS_TURN | CellMech.EVENT_PROTECTED)));
+            this.forEach((c) => (c.mechFlags &= ~(CellMech.EVENT_FIRED_THIS_TURN |
+                CellMech.EVENT_PROTECTED)));
         }
     }
     function make$5(w, h, opts = {}, wall) {
-        if (typeof opts === "string") {
+        if (typeof opts === 'string') {
             opts = { tile: opts };
             if (wall) {
                 opts.wall = wall;
@@ -3200,11 +3222,11 @@
         const map = new Map$1(w, h, opts);
         let floor = opts.tile || opts.floor || opts.floorTile;
         if (floor === true) {
-            floor = "FLOOR";
+            floor = 'FLOOR';
         }
         let boundary = opts.boundary || opts.wall || opts.wallTile;
         if (boundary === true) {
-            boundary = "WALL";
+            boundary = 'WALL';
         }
         if (floor) {
             map.fill(floor, boundary);
@@ -3224,15 +3246,15 @@
     GW.make.map = make$5;
     function from$1(prefab, charToTile, opts = {}) {
         if (!Array.isArray(prefab)) {
-            prefab = prefab.split("\n");
+            prefab = prefab.split('\n');
         }
         const height = prefab.length;
         const width = prefab.reduce((len, line) => Math.max(len, line.length), 0);
         const map = make$5(width, height, opts);
         prefab.forEach((line, y) => {
             for (let x = 0; x < width; ++x) {
-                const ch = line[x] || ".";
-                const tile = charToTile[ch] || "FLOOR";
+                const ch = line[x] || '.';
+                const tile = charToTile[ch] || 'FLOOR';
                 map.setTile(x, y, tile);
             }
         });
@@ -3247,10 +3269,10 @@
         return map;
     }
     if (!GW.colors.cursor) {
-        GW.color.install("cursor", GW.colors.yellow);
+        GW.color.install('cursor', GW.colors.yellow);
     }
     if (!GW.colors.path) {
-        GW.color.install("path", GW.colors.gold);
+        GW.color.install('path', GW.colors.gold);
     }
     function getCellAppearance(map, x, y, dest) {
         dest.blackOut();
@@ -3310,55 +3332,92 @@
         if (map.flags & Map.MAP_NO_GAS)
             return;
         const newVolume = GW.grid.alloc(map.width, map.height);
+        let hasGas = false;
+        let needsAjustment = false;
         map.forEach((c, x, y) => {
-            if (c.hasLayerFlag(Layer.L_BLOCKS_GAS))
-                return;
-            let gas = c.gasTile;
-            let highest = c.gasVolume;
-            let sum = c.gasVolume || 0;
-            let count = 1;
-            map.eachNeighbor(x, y, (n, _i, _j) => {
-                if (n.hasLayerFlag(Layer.L_BLOCKS_GAS))
-                    return;
-                ++count;
-                sum += n.gasVolume;
-                if (n.gasVolume > highest) {
-                    gas = n.gasTile;
-                    highest = n.gasVolume;
+            let volume = c.gasVolume;
+            const gas = c.gasTile;
+            let highVol = volume;
+            let highTile = gas;
+            map.eachNeighbor(x, y, (n) => {
+                if (n.gasVolume > highVol) {
+                    highVol = n.gasVolume;
+                    highTile = n.gasTile;
                 }
             });
-            if (sum <= 0)
+            if (highTile !== gas) {
+                c.setTile(highTile, 0, map);
+            }
+            if (!volume)
                 return;
-            const newVol = Math.floor(sum / count);
-            if (c.gasTile != gas) {
-                c.setTile(gas, 0, map); // volume = 0 to start, will change later
-            }
-            newVolume[x][y] += newVol;
-            const rem = sum - count * Math.floor(sum / count);
-            if (rem && GW.random.number(count) < rem) {
-                newVolume[x][y] += 1;
-            }
-            // disperses
-            if (newVolume[x][y] > 0 && gas.dissipate) {
+            if (gas.dissipate) {
                 if (gas.dissipate > 10000) {
-                    newVolume[x][y] -= Math.floor(gas.dissipate / 10000);
+                    volume -= Math.floor(gas.dissipate / 10000);
                     if (GW.random.chance(gas.dissipate % 10000, 10000)) {
-                        newVolume[x][y] -= 1;
+                        volume -= 1;
                     }
                 }
                 else if (GW.random.chance(gas.dissipate, 10000)) {
-                    newVolume[x][y] -= 1;
-                    // console.log("dissipate", reduce, x, y, newVolume[x][y]);
+                    volume -= 1;
+                }
+            }
+            if (volume > 0) {
+                newVolume[x][y] = volume;
+                hasGas = true;
+                if (volume > 1) {
+                    needsAjustment = true;
                 }
             }
         });
-        // newVolume.dump();
-        let hasGas = false;
+        if (hasGas) {
+            if (needsAjustment) {
+                const dirs = GW.random.sequence(4).map((i) => GW.utils.DIRS[i]);
+                const grid = GW.grid.alloc(map.width, map.height);
+                // push out from my square
+                newVolume.forEach((v, x, y) => {
+                    if (!v)
+                        return;
+                    let adj = v;
+                    if (v > 1) {
+                        let count = 1;
+                        newVolume.eachNeighbor(x, y, () => {
+                            ++count;
+                        }, true); // only 4 dirs
+                        let avg = Math.floor(v / count);
+                        let rem = v - avg * count;
+                        grid[x][y] += avg;
+                        if (rem > 0) {
+                            grid[x][y] += 1;
+                            rem -= 1;
+                        }
+                        for (let i = 0; i < dirs.length; ++i) {
+                            const dir = dirs[i];
+                            const x2 = x + dir[0];
+                            const y2 = y + dir[1];
+                            if (grid.hasXY(x2, y2)) {
+                                adj = avg;
+                                if (rem > 0) {
+                                    --rem;
+                                    ++adj;
+                                }
+                                grid[x2][y2] += adj;
+                            }
+                        }
+                    }
+                    else {
+                        grid[x][y] += v;
+                    }
+                });
+                newVolume.copy(grid);
+                GW.grid.free(grid);
+                // newVolume.dump();
+            }
+        }
         newVolume.forEach((v, i, j) => {
             const cell = map.cell(i, j);
             if (v > 0) {
                 hasGas = true;
-                if (cell.gas && cell.gasVolume !== v) {
+                if (cell.gasVolume !== v) {
                     cell.gasVolume = v;
                     map.redrawCell(cell);
                 }
@@ -3381,64 +3440,82 @@
         if (map.flags & Map.MAP_NO_LIQUID)
             return;
         const newVolume = GW.grid.alloc(map.width, map.height);
+        let hasLiquid = false;
+        let needsAjustment = false;
         map.forEach((c, x, y) => {
-            if (c.hasLayerFlag(Layer.L_BLOCKS_LIQUID))
+            let volume = c.liquidVolume;
+            if (!volume)
                 return;
-            let liquid = c.liquidTile;
-            let highest = c.liquidVolume;
-            let sum = c.liquidVolume || 0;
-            let count = 1;
-            map.eachNeighbor(x, y, (n, _i, _j) => {
-                if (n.hasLayerFlag(Layer.L_BLOCKS_LIQUID))
-                    return;
-                ++count;
-                sum += n.liquidVolume;
-                if (n.liquidVolume > highest) {
-                    liquid = n.liquidTile;
-                    highest = n.liquidVolume;
-                }
-            });
-            if (sum <= 0)
-                return;
-            const newVol = Math.floor(sum / count);
-            if (c.liquidTile != liquid) {
-                c.setTile(liquid, 0, map); // volume = 0 to start, will change later
-            }
-            newVolume[x][y] += newVol;
-            const rem = sum - count * Math.floor(sum / count);
-            if (rem && GW.random.number(count) < rem) {
-                newVolume[x][y] += 1;
-            }
-            // disperses
-            if (newVolume[x][y] > 0 && liquid.dissipate) {
+            const liquid = c.liquidTile;
+            if (liquid.dissipate) {
                 if (liquid.dissipate > 10000) {
-                    newVolume[x][y] -= Math.floor(liquid.dissipate / 10000);
+                    volume -= Math.floor(liquid.dissipate / 10000);
                     if (GW.random.chance(liquid.dissipate % 10000, 10000)) {
-                        newVolume[x][y] -= 1;
+                        volume -= 1;
                     }
                 }
                 else if (GW.random.chance(liquid.dissipate, 10000)) {
-                    newVolume[x][y] -= 1;
-                    // console.log("dissipate", reduce, x, y, newVolume[x][y]);
+                    volume -= 1;
                 }
+            }
+            if (volume > 0) {
+                newVolume[x][y] = volume;
+                hasLiquid = true;
+                if (volume > 1) {
+                    needsAjustment = true;
+                }
+            }
+            else {
+                c.clearLayer(Depth.LIQUID);
+                map.redrawCell(c);
             }
         });
         // newVolume.dump();
-        let hasLiquid = false;
-        newVolume.forEach((v, i, j) => {
-            const cell = map.cell(i, j);
-            if (v > 0) {
-                hasLiquid = true;
-                if (cell.liquid && cell.liquidVolume !== v) {
-                    cell.liquidVolume = v;
+        if (hasLiquid) {
+            if (needsAjustment) {
+                map.randomEach((c, x, y) => {
+                    if (c.hasLayerFlag(Layer.L_BLOCKS_LIQUID))
+                        return;
+                    let highVol = 0;
+                    let highX = -1;
+                    let highY = -1;
+                    let highTile = null;
+                    let myVol = newVolume[x][y];
+                    map.eachNeighbor(x, y, (n, i, j) => {
+                        if (newVolume[i][j] <= myVol)
+                            return;
+                        if (newVolume[i][j] <= highVol)
+                            return;
+                        highVol = newVolume[i][j];
+                        highX = i;
+                        highY = j;
+                        highTile = n.liquidTile;
+                    });
+                    if (highVol > 1) {
+                        // myVol < highVol
+                        map.setTile(x, y, highTile, 0); // place tile with 0 volume - will force liquid to be same as highest volume liquid neighbor
+                        const amt = Math.floor((highVol - myVol) / 9) + 1;
+                        newVolume[x][y] += amt;
+                        newVolume[highX][highY] -= amt;
+                    }
+                });
+            }
+            // newVolume.dump();
+            newVolume.forEach((v, i, j) => {
+                const cell = map.cell(i, j);
+                if (v > 0) {
+                    // hasLiquid = true;
+                    if (cell.liquid && cell.liquidVolume !== v) {
+                        cell.liquidVolume = v;
+                        map.redrawCell(cell);
+                    }
+                }
+                else if (cell.liquidVolume) {
+                    cell.clearLayer(Depth.LIQUID);
                     map.redrawCell(cell);
                 }
-            }
-            else if (cell.liquid) {
-                cell.clearLayer(Depth.LIQUID);
-                map.redrawCell(cell);
-            }
-        });
+            });
+        }
         if (hasLiquid) {
             map.flags &= ~Map.MAP_NO_LIQUID;
         }
@@ -3499,7 +3576,11 @@
         name: "open door",
         article: "an",
         activates: {
-            tick: { tile: "DOOR", flags: "DFF_SUPERPRIORITY, DFF_ONLY_IF_EMPTY" },
+            tick: {
+                chance: 100 * 100,
+                tile: "DOOR",
+                flags: "DFF_SUPERPRIORITY, DFF_ONLY_IF_EMPTY",
+            },
             enter: null,
             open: null,
             close: { tile: "DOOR", flags: "DFF_SUPERPRIORITY, DFF_ONLY_IF_EMPTY" },

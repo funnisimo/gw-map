@@ -1,12 +1,12 @@
-import { utils as Utils, random, grid as Grid, fov as Fov, flag as Flag, path as Path, color as Color, colors as COLORS, canvas as Canvas, config as CONFIG, data as DATA, make as Make, } from "gw-utils";
-import * as Cell from "./cell";
-import { Map as Flags, Cell as CellFlags, Tile as TileFlags, CellMech as CellMechFlags, Depth as TileLayer, Layer as LayerFlags, } from "./flags";
-import * as Light from "./light";
-import * as Layer from "./entity";
-import * as Visibility from "./visibility";
+import { utils as Utils, random, grid as Grid, fov as Fov, flag as Flag, path as Path, color as Color, colors as COLORS, config as CONFIG, data as DATA, make as Make, sprite as Sprite, } from 'gw-utils';
+import * as Cell from './cell';
+import { Map as Flags, Cell as CellFlags, Tile as TileFlags, CellMech as CellMechFlags, Depth as TileLayer, Layer as LayerFlags, } from './flags';
+import * as Light from './light';
+import * as Layer from './entity';
+import * as Visibility from './visibility';
 export { Flags };
 Utils.setDefaults(CONFIG, {
-    "map.deepestLevel": 99,
+    'map.deepestLevel': 99,
 });
 export class Map {
     constructor(w, h, opts = {}) {
@@ -26,7 +26,7 @@ export class Map {
         this._actors = null;
         this._items = null;
         this.flags = Flag.from(Flags, Flags.MAP_DEFAULT, opts.flags);
-        const ambient = opts.ambient || opts.ambientLight || opts.light || "white";
+        const ambient = opts.ambient || opts.ambientLight || opts.light || 'white';
         this.ambientLight = Color.make(ambient);
         if (opts.ambient || opts.ambientLight || opts.light) {
             this.ambientLightChanged = true;
@@ -68,6 +68,9 @@ export class Map {
     }
     eachNeighbor(x, y, fn, only4dirs = false) {
         this.cells.eachNeighbor(x, y, (c, i, j) => fn(c, i, j, this), only4dirs);
+    }
+    randomEach(fn) {
+        this.cells.randomEach((c, i, j) => fn(c, i, j, this));
     }
     count(fn) {
         let count = 0;
@@ -130,15 +133,17 @@ export class Map {
     }
     drawInto(canvas, opts = {}) {
         Light.updateLighting(this);
-        if (typeof opts === "boolean")
+        if (typeof opts === 'boolean')
             opts = { force: opts };
-        const mixer = new Canvas.Mixer();
+        const mixer = new Sprite.Mixer();
         for (let x = 0; x < canvas.width; ++x) {
             for (let y = 0; y < canvas.height; ++y) {
                 const cell = this.cell(x, y);
                 if (cell.needsRedraw || opts.force) {
                     getCellAppearance(this, x, y, mixer);
-                    const glyph = typeof mixer.ch === "number" ? mixer.ch : canvas.toGlyph(mixer.ch);
+                    const glyph = typeof mixer.ch === 'number'
+                        ? mixer.ch
+                        : canvas.toGlyph(mixer.ch);
                     canvas.draw(x, y, glyph, mixer.fg.toInt(), mixer.bg.toInt());
                     cell.needsRedraw = false;
                 }
@@ -376,7 +381,8 @@ export class Map {
     }
     fillCostGrid(costGrid, costFn) {
         costFn =
-            costFn || ((c) => (c.isWalkableNow() ? 1 : Path.OBSTRUCTION));
+            costFn ||
+                ((c) => (c.isWalkableNow() ? 1 : Path.OBSTRUCTION));
         this.cells.forEach((cell, i, j) => {
             if (cell.isClear()) {
                 costGrid[i][j] = Path.OBSTRUCTION;
@@ -404,7 +410,7 @@ export class Map {
         let matcher = args[0];
         let opts = args[1] || {};
         const arg = args[0];
-        if (typeof arg !== "function") {
+        if (typeof arg !== 'function') {
             opts = arg || args[1];
             matcher = opts.match || Utils.TRUE;
         }
@@ -448,7 +454,7 @@ export class Map {
         let x;
         let y;
         let cell;
-        if (typeof opts === "function") {
+        if (typeof opts === 'function') {
             opts = { match: opts };
         }
         const sequence = random.sequence(this.width * this.height);
@@ -472,7 +478,8 @@ export class Map {
                 (!forbidLiquid || !cell.liquid) &&
                 (!forbidCellFlags || !(cell.flags & forbidCellFlags)) &&
                 (!forbidTileFlags || !cell.hasTileFlag(forbidTileFlags)) &&
-                (!forbidTileMechFlags || !cell.hasTileMechFlag(forbidTileMechFlags)) &&
+                (!forbidTileMechFlags ||
+                    !cell.hasTileMechFlag(forbidTileMechFlags)) &&
                 (hallwaysAllowed || this.walkableArcCount(x, y) < 2) &&
                 matcher(cell, x, y, this)) {
                 success = true;
@@ -588,7 +595,9 @@ export class Map {
         cell.actor = theActor; // adjusts the layer
         theActor.next = this._actors;
         this._actors = theActor;
-        const flag = theActor === DATA.player ? CellFlags.HAS_PLAYER : CellFlags.HAS_ANY_ACTOR;
+        const flag = theActor === DATA.player
+            ? CellFlags.HAS_PLAYER
+            : CellFlags.HAS_ANY_ACTOR;
         cell.flags |= flag;
         // if (theActor.flags & Flags.Actor.MK_DETECTED)
         // {
@@ -637,7 +646,7 @@ export class Map {
         const cell = this.cell(actor.x, actor.y);
         if (cell.actor === actor) {
             cell.actor = null;
-            Utils.removeFromChain(this, "actors", actor);
+            Utils.removeFromChain(this, 'actors', actor);
             if (actor.light) {
                 this.anyLightChanged = true;
             }
@@ -729,7 +738,7 @@ export class Map {
         if (cell.item !== theItem)
             return false;
         cell.item = null;
-        Utils.removeFromChain(this, "items", theItem);
+        Utils.removeFromChain(this, 'items', theItem);
         if (theItem.light) {
             this.anyLightChanged = true;
         }
@@ -863,18 +872,25 @@ export class Map {
         for (let x = 0; x < this.width; ++x) {
             for (let y = 0; y < this.height; ++y) {
                 const cell = this.cells[x][y];
-                await cell.activate("tick", { map: this, x, y, cell, safe: true });
+                await cell.activate('tick', {
+                    map: this,
+                    x,
+                    y,
+                    cell,
+                    safe: true,
+                });
             }
         }
         updateLiquid(this);
         updateGas(this);
     }
     resetCellEvents() {
-        this.forEach((c) => (c.mechFlags &= ~(CellMechFlags.EVENT_FIRED_THIS_TURN | CellMechFlags.EVENT_PROTECTED)));
+        this.forEach((c) => (c.mechFlags &= ~(CellMechFlags.EVENT_FIRED_THIS_TURN |
+            CellMechFlags.EVENT_PROTECTED)));
     }
 }
 export function make(w, h, opts = {}, wall) {
-    if (typeof opts === "string") {
+    if (typeof opts === 'string') {
         opts = { tile: opts };
         if (wall) {
             opts.wall = wall;
@@ -883,11 +899,11 @@ export function make(w, h, opts = {}, wall) {
     const map = new Map(w, h, opts);
     let floor = opts.tile || opts.floor || opts.floorTile;
     if (floor === true) {
-        floor = "FLOOR";
+        floor = 'FLOOR';
     }
     let boundary = opts.boundary || opts.wall || opts.wallTile;
     if (boundary === true) {
-        boundary = "WALL";
+        boundary = 'WALL';
     }
     if (floor) {
         map.fill(floor, boundary);
@@ -907,15 +923,15 @@ export function make(w, h, opts = {}, wall) {
 Make.map = make;
 export function from(prefab, charToTile, opts = {}) {
     if (!Array.isArray(prefab)) {
-        prefab = prefab.split("\n");
+        prefab = prefab.split('\n');
     }
     const height = prefab.length;
     const width = prefab.reduce((len, line) => Math.max(len, line.length), 0);
     const map = make(width, height, opts);
     prefab.forEach((line, y) => {
         for (let x = 0; x < width; ++x) {
-            const ch = line[x] || ".";
-            const tile = charToTile[ch] || "FLOOR";
+            const ch = line[x] || '.';
+            const tile = charToTile[ch] || 'FLOOR';
             map.setTile(x, y, tile);
         }
     });
@@ -930,10 +946,10 @@ export function from(prefab, charToTile, opts = {}) {
     return map;
 }
 if (!COLORS.cursor) {
-    Color.install("cursor", COLORS.yellow);
+    Color.install('cursor', COLORS.yellow);
 }
 if (!COLORS.path) {
-    Color.install("path", COLORS.gold);
+    Color.install('path', COLORS.gold);
 }
 export function getCellAppearance(map, x, y, dest) {
     dest.blackOut();
@@ -995,55 +1011,92 @@ export function updateGas(map) {
     if (map.flags & Flags.MAP_NO_GAS)
         return;
     const newVolume = Grid.alloc(map.width, map.height);
+    let hasGas = false;
+    let needsAjustment = false;
     map.forEach((c, x, y) => {
-        if (c.hasLayerFlag(LayerFlags.L_BLOCKS_GAS))
-            return;
-        let gas = c.gasTile;
-        let highest = c.gasVolume;
-        let sum = c.gasVolume || 0;
-        let count = 1;
-        map.eachNeighbor(x, y, (n, _i, _j) => {
-            if (n.hasLayerFlag(LayerFlags.L_BLOCKS_GAS))
-                return;
-            ++count;
-            sum += n.gasVolume;
-            if (n.gasVolume > highest) {
-                gas = n.gasTile;
-                highest = n.gasVolume;
+        let volume = c.gasVolume;
+        const gas = c.gasTile;
+        let highVol = volume;
+        let highTile = gas;
+        map.eachNeighbor(x, y, (n) => {
+            if (n.gasVolume > highVol) {
+                highVol = n.gasVolume;
+                highTile = n.gasTile;
             }
         });
-        if (sum <= 0)
+        if (highTile !== gas) {
+            c.setTile(highTile, 0, map);
+        }
+        if (!volume)
             return;
-        const newVol = Math.floor(sum / count);
-        if (c.gasTile != gas) {
-            c.setTile(gas, 0, map); // volume = 0 to start, will change later
-        }
-        newVolume[x][y] += newVol;
-        const rem = sum - count * Math.floor(sum / count);
-        if (rem && random.number(count) < rem) {
-            newVolume[x][y] += 1;
-        }
-        // disperses
-        if (newVolume[x][y] > 0 && gas.dissipate) {
+        if (gas.dissipate) {
             if (gas.dissipate > 10000) {
-                newVolume[x][y] -= Math.floor(gas.dissipate / 10000);
+                volume -= Math.floor(gas.dissipate / 10000);
                 if (random.chance(gas.dissipate % 10000, 10000)) {
-                    newVolume[x][y] -= 1;
+                    volume -= 1;
                 }
             }
             else if (random.chance(gas.dissipate, 10000)) {
-                newVolume[x][y] -= 1;
-                // console.log("dissipate", reduce, x, y, newVolume[x][y]);
+                volume -= 1;
+            }
+        }
+        if (volume > 0) {
+            newVolume[x][y] = volume;
+            hasGas = true;
+            if (volume > 1) {
+                needsAjustment = true;
             }
         }
     });
-    // newVolume.dump();
-    let hasGas = false;
+    if (hasGas) {
+        if (needsAjustment) {
+            const dirs = random.sequence(4).map((i) => Utils.DIRS[i]);
+            const grid = Grid.alloc(map.width, map.height);
+            // push out from my square
+            newVolume.forEach((v, x, y) => {
+                if (!v)
+                    return;
+                let adj = v;
+                if (v > 1) {
+                    let count = 1;
+                    newVolume.eachNeighbor(x, y, () => {
+                        ++count;
+                    }, true); // only 4 dirs
+                    let avg = Math.floor(v / count);
+                    let rem = v - avg * count;
+                    grid[x][y] += avg;
+                    if (rem > 0) {
+                        grid[x][y] += 1;
+                        rem -= 1;
+                    }
+                    for (let i = 0; i < dirs.length; ++i) {
+                        const dir = dirs[i];
+                        const x2 = x + dir[0];
+                        const y2 = y + dir[1];
+                        if (grid.hasXY(x2, y2)) {
+                            adj = avg;
+                            if (rem > 0) {
+                                --rem;
+                                ++adj;
+                            }
+                            grid[x2][y2] += adj;
+                        }
+                    }
+                }
+                else {
+                    grid[x][y] += v;
+                }
+            });
+            newVolume.copy(grid);
+            Grid.free(grid);
+            // newVolume.dump();
+        }
+    }
     newVolume.forEach((v, i, j) => {
         const cell = map.cell(i, j);
         if (v > 0) {
             hasGas = true;
-            if (cell.gas && cell.gasVolume !== v) {
+            if (cell.gasVolume !== v) {
                 cell.gasVolume = v;
                 map.redrawCell(cell);
             }
@@ -1066,64 +1119,82 @@ export function updateLiquid(map) {
     if (map.flags & Flags.MAP_NO_LIQUID)
         return;
     const newVolume = Grid.alloc(map.width, map.height);
+    let hasLiquid = false;
+    let needsAjustment = false;
     map.forEach((c, x, y) => {
-        if (c.hasLayerFlag(LayerFlags.L_BLOCKS_LIQUID))
+        let volume = c.liquidVolume;
+        if (!volume)
             return;
-        let liquid = c.liquidTile;
-        let highest = c.liquidVolume;
-        let sum = c.liquidVolume || 0;
-        let count = 1;
-        map.eachNeighbor(x, y, (n, _i, _j) => {
-            if (n.hasLayerFlag(LayerFlags.L_BLOCKS_LIQUID))
-                return;
-            ++count;
-            sum += n.liquidVolume;
-            if (n.liquidVolume > highest) {
-                liquid = n.liquidTile;
-                highest = n.liquidVolume;
-            }
-        });
-        if (sum <= 0)
-            return;
-        const newVol = Math.floor(sum / count);
-        if (c.liquidTile != liquid) {
-            c.setTile(liquid, 0, map); // volume = 0 to start, will change later
-        }
-        newVolume[x][y] += newVol;
-        const rem = sum - count * Math.floor(sum / count);
-        if (rem && random.number(count) < rem) {
-            newVolume[x][y] += 1;
-        }
-        // disperses
-        if (newVolume[x][y] > 0 && liquid.dissipate) {
+        const liquid = c.liquidTile;
+        if (liquid.dissipate) {
             if (liquid.dissipate > 10000) {
-                newVolume[x][y] -= Math.floor(liquid.dissipate / 10000);
+                volume -= Math.floor(liquid.dissipate / 10000);
                 if (random.chance(liquid.dissipate % 10000, 10000)) {
-                    newVolume[x][y] -= 1;
+                    volume -= 1;
                 }
             }
             else if (random.chance(liquid.dissipate, 10000)) {
-                newVolume[x][y] -= 1;
-                // console.log("dissipate", reduce, x, y, newVolume[x][y]);
+                volume -= 1;
             }
+        }
+        if (volume > 0) {
+            newVolume[x][y] = volume;
+            hasLiquid = true;
+            if (volume > 1) {
+                needsAjustment = true;
+            }
+        }
+        else {
+            c.clearLayer(TileLayer.LIQUID);
+            map.redrawCell(c);
         }
     });
     // newVolume.dump();
-    let hasLiquid = false;
-    newVolume.forEach((v, i, j) => {
-        const cell = map.cell(i, j);
-        if (v > 0) {
-            hasLiquid = true;
-            if (cell.liquid && cell.liquidVolume !== v) {
-                cell.liquidVolume = v;
+    if (hasLiquid) {
+        if (needsAjustment) {
+            map.randomEach((c, x, y) => {
+                if (c.hasLayerFlag(Layer.Flags.L_BLOCKS_LIQUID))
+                    return;
+                let highVol = 0;
+                let highX = -1;
+                let highY = -1;
+                let highTile = null;
+                let myVol = newVolume[x][y];
+                map.eachNeighbor(x, y, (n, i, j) => {
+                    if (newVolume[i][j] <= myVol)
+                        return;
+                    if (newVolume[i][j] <= highVol)
+                        return;
+                    highVol = newVolume[i][j];
+                    highX = i;
+                    highY = j;
+                    highTile = n.liquidTile;
+                });
+                if (highVol > 1) {
+                    // myVol < highVol
+                    map.setTile(x, y, highTile, 0); // place tile with 0 volume - will force liquid to be same as highest volume liquid neighbor
+                    const amt = Math.floor((highVol - myVol) / 9) + 1;
+                    newVolume[x][y] += amt;
+                    newVolume[highX][highY] -= amt;
+                }
+            });
+        }
+        // newVolume.dump();
+        newVolume.forEach((v, i, j) => {
+            const cell = map.cell(i, j);
+            if (v > 0) {
+                // hasLiquid = true;
+                if (cell.liquid && cell.liquidVolume !== v) {
+                    cell.liquidVolume = v;
+                    map.redrawCell(cell);
+                }
+            }
+            else if (cell.liquidVolume) {
+                cell.clearLayer(TileLayer.LIQUID);
                 map.redrawCell(cell);
             }
-        }
-        else if (cell.liquid) {
-            cell.clearLayer(TileLayer.LIQUID);
-            map.redrawCell(cell);
-        }
-    });
+        });
+    }
     if (hasLiquid) {
         map.flags &= ~Flags.MAP_NO_LIQUID;
     }
