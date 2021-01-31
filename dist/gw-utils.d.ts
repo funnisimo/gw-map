@@ -400,6 +400,8 @@ declare class Cell$1 implements types.CellType {
     get lightChanged(): boolean;
     set lightChanged(v: boolean);
     tile(layer?: Depth): Tile$1;
+    volume(layer?: Depth): number;
+    setVolume(layer: Depth, volume?: number): void;
     tiles(): Generator<Tile$1>;
     layerFlags(limitToPlayerKnowledge?: boolean): number;
     tileFlags(limitToPlayerKnowledge?: boolean): number;
@@ -416,9 +418,9 @@ declare class Cell$1 implements types.CellType {
     hasMechFlag(flag: CellMech, limitToPlayerKnowledge?: boolean): boolean;
     hasTile(tile: string | Tile$1): boolean;
     topmostTile(skipGas?: boolean): Tile$1;
-    tileWithLayerFlag(layerFlag: number): Tile$1 | null;
-    tileWithFlag(tileFlag: number): Tile$1 | null;
-    tileWithMechFlag(mechFlag: number): Tile$1 | null;
+    tileWithLayerFlag(layerFlag: number): LayerTile;
+    tileWithFlag(tileFlag: number): LayerTile;
+    tileWithMechFlag(mechFlag: number): LayerTile;
     tileDesc(): string | null;
     tileFlavor(): string | null;
     getName(opts?: {}): string;

@@ -67,6 +67,8 @@ export declare class Cell implements Types.CellType {
     get lightChanged(): boolean;
     set lightChanged(v: boolean);
     tile(layer?: Layer.Depth): Tile;
+    volume(layer?: Layer.Depth): number;
+    setVolume(layer: Depth, volume?: number): void;
     tiles(): Generator<Tile>;
     layerFlags(limitToPlayerKnowledge?: boolean): number;
     tileFlags(limitToPlayerKnowledge?: boolean): number;
@@ -83,9 +85,9 @@ export declare class Cell implements Types.CellType {
     hasMechFlag(flag: MechFlags, limitToPlayerKnowledge?: boolean): boolean;
     hasTile(tile: string | Tile): boolean;
     topmostTile(skipGas?: boolean): Tile;
-    tileWithLayerFlag(layerFlag: number): Tile | null;
-    tileWithFlag(tileFlag: number): Tile | null;
-    tileWithMechFlag(mechFlag: number): Tile | null;
+    tileWithLayerFlag(layerFlag: number): LayerTile;
+    tileWithFlag(tileFlag: number): LayerTile;
+    tileWithMechFlag(mechFlag: number): LayerTile;
     tileDesc(): string | null;
     tileFlavor(): string | null;
     getName(opts?: {}): string;

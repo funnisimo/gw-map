@@ -1,5 +1,6 @@
 import { utils as Utils, random, grid as Grid, fov as Fov, flag as Flag, path as Path, color as Color, colors as COLORS, config as CONFIG, data as DATA, make as Make, sprite as Sprite, } from 'gw-utils';
 import * as Cell from './cell';
+import * as Tile from './tile';
 import { Map as Flags, Cell as CellFlags, Tile as TileFlags, CellMech as CellMechFlags, Depth as TileLayer, Layer as LayerFlags, } from './flags';
 import * as Light from './light';
 import * as Layer from './entity';
@@ -1007,106 +1008,126 @@ export function addText(map, x, y, text, fg, bg, layer) {
         cell.addLayer(sprite);
     }
 }
-export function updateGas(map) {
-    if (map.flags & Flags.MAP_NO_GAS)
-        return;
-    const newVolume = Grid.alloc(map.width, map.height);
-    let hasGas = false;
+var CalcType;
+(function (CalcType) {
+    CalcType[CalcType["NONE"] = 0] = "NONE";
+    CalcType[CalcType["UPDATE"] = 1] = "UPDATE";
+    CalcType[CalcType["CALC"] = 2] = "CALC";
+})(CalcType || (CalcType = {}));
+function calcBaseVolume(map, depth, newVolume) {
+    let hasVolume = false;
     let needsAjustment = false;
     map.forEach((c, x, y) => {
-        let volume = c.gasVolume;
-        const gas = c.gasTile;
-        if (!volume)
-            return;
-        if (gas.dissipate) {
-            if (gas.dissipate > 10000) {
-                volume -= Math.floor(gas.dissipate / 10000);
-                if (random.chance(gas.dissipate % 10000, 10000)) {
+        let volume = c.volume(depth);
+        const tile = c.tile(depth);
+        if (volume && tile.dissipate) {
+            if (tile.dissipate > 10000) {
+                volume -= Math.floor(tile.dissipate / 10000);
+                if (random.chance(tile.dissipate % 10000, 10000)) {
                     volume -= 1;
                 }
             }
-            else if (random.chance(gas.dissipate, 10000)) {
+            else if (random.chance(tile.dissipate, 10000)) {
                 volume -= 1;
             }
         }
         if (volume > 0) {
             newVolume[x][y] = volume;
-            hasGas = true;
+            hasVolume = true;
             if (volume > 1) {
                 needsAjustment = true;
             }
         }
-    });
-    if (hasGas) {
-        if (needsAjustment) {
-            const dirs = random.sequence(4).map((i) => Utils.DIRS[i]);
-            const grid = Grid.alloc(map.width, map.height);
-            // push out from my square
-            newVolume.forEach((v, x, y) => {
-                if (!v)
-                    return;
-                let adj = v;
-                if (v > 1) {
-                    let count = 1;
-                    newVolume.eachNeighbor(x, y, () => {
-                        ++count;
-                    }, true); // only 4 dirs
-                    let avg = Math.floor(v / count);
-                    let rem = v - avg * count;
-                    grid[x][y] += avg;
-                    if (rem > 0) {
-                        grid[x][y] += 1;
-                        rem -= 1;
-                    }
-                    for (let i = 0; i < dirs.length; ++i) {
-                        const dir = dirs[i];
-                        const x2 = x + dir[0];
-                        const y2 = y + dir[1];
-                        if (grid.hasXY(x2, y2)) {
-                            adj = avg;
-                            if (rem > 0) {
-                                --rem;
-                                ++adj;
-                            }
-                            grid[x2][y2] += adj;
-                        }
-                    }
-                }
-                else {
-                    grid[x][y] += v;
-                }
-            });
-            newVolume.copy(grid);
-            Grid.free(grid);
-            // newVolume.dump();
+        else if (tile !== Tile.tiles.NULL) {
+            c.clearLayer(depth);
+            map.redrawCell(c);
         }
-    }
+    });
+    if (needsAjustment)
+        return CalcType.CALC;
+    if (hasVolume)
+        return CalcType.UPDATE;
+    return CalcType.NONE;
+}
+function updateVolume(map, depth, newVolume) {
     newVolume.forEach((v, i, j) => {
         const cell = map.cell(i, j);
+        const current = cell.volume(depth);
+        const tile = cell.tile(depth);
         if (v > 0) {
-            hasGas = true;
-            if (cell.gasVolume !== v) {
-                let highVol = cell.gasVolume;
-                let highTile = cell.gasTile;
+            // hasLiquid = true;
+            if (current !== v || !tile) {
+                let highVol = current;
+                let highTile = tile;
                 map.eachNeighbor(i, j, (n) => {
-                    if (n.gasVolume > highVol) {
-                        highVol = n.gasVolume;
-                        highTile = n.gasTile;
+                    if (n.volume(depth) > highVol) {
+                        highVol = n.volume(depth);
+                        highTile = n.tile(depth);
                     }
                 });
-                if (highTile !== cell.gasTile) {
+                if (highTile !== tile) {
                     cell.setTile(highTile, 0, map);
                 }
-                cell.gasVolume = v;
+                cell.setVolume(depth, v);
                 map.redrawCell(cell);
             }
         }
-        else if (cell.gasVolume || cell.gas) {
-            cell.clearLayer(TileLayer.GAS);
+        else if (current || tile !== Tile.tiles.NULL) {
+            cell.clearLayer(depth);
             map.redrawCell(cell);
         }
     });
-    if (hasGas) {
+}
+export function updateGas(map) {
+    if (map.flags & Flags.MAP_NO_GAS)
+        return;
+    const newVolume = Grid.alloc(map.width, map.height);
+    const calc = calcBaseVolume(map, TileLayer.GAS, newVolume);
+    if (calc === CalcType.CALC) {
+        const dirs = random.sequence(4).map((i) => Utils.DIRS[i]);
+        const grid = Grid.alloc(map.width, map.height);
+        // push out from my square
+        newVolume.forEach((v, x, y) => {
+            if (!v)
+                return;
+            let adj = v;
+            if (v > 1) {
+                let count = 1;
+                newVolume.eachNeighbor(x, y, () => {
+                    ++count;
+                }, true); // only 4 dirs
+                let avg = Math.floor(v / count);
+                let rem = v - avg * count;
+                grid[x][y] += avg;
+                if (rem > 0) {
+                    grid[x][y] += 1;
+                    rem -= 1;
+                }
+                for (let i = 0; i < dirs.length; ++i) {
+                    const dir = dirs[i];
+                    const x2 = x + dir[0];
+                    const y2 = y + dir[1];
+                    if (grid.hasXY(x2, y2)) {
+                        adj = avg;
+                        if (rem > 0) {
+                            --rem;
+                            ++adj;
+                        }
+                        grid[x2][y2] += adj;
+                    }
+                }
+            }
+            else {
+                grid[x][y] += v;
+            }
+        });
+        newVolume.copy(grid);
+        Grid.free(grid);
+        // newVolume.dump();
+    }
+    // }
+    if (calc != CalcType.NONE) {
+        updateVolume(map, TileLayer.GAS, newVolume);
         map.flags &= ~Flags.MAP_NO_GAS;
     }
     else {
@@ -1119,92 +1140,40 @@ export function updateLiquid(map) {
     if (map.flags & Flags.MAP_NO_LIQUID)
         return;
     const newVolume = Grid.alloc(map.width, map.height);
-    let hasLiquid = false;
-    let needsAjustment = false;
-    map.forEach((c, x, y) => {
-        let volume = c.liquidVolume;
-        const liquid = c.liquidTile;
-        if (volume && liquid.dissipate) {
-            if (liquid.dissipate > 10000) {
-                volume -= Math.floor(liquid.dissipate / 10000);
-                if (random.chance(liquid.dissipate % 10000, 10000)) {
-                    volume -= 1;
-                }
-            }
-            else if (random.chance(liquid.dissipate, 10000)) {
-                volume -= 1;
-            }
-        }
-        if (volume > 0) {
-            newVolume[x][y] = volume;
-            hasLiquid = true;
-            if (volume > 1) {
-                needsAjustment = true;
-            }
-        }
-        else if (c.liquid) {
-            c.clearLayer(TileLayer.LIQUID);
-            map.redrawCell(c);
-        }
-    });
     // newVolume.dump();
     // map.dump((c) => (c.liquidVolume ? c.liquid || '!' : ' '));
-    if (hasLiquid) {
-        if (needsAjustment) {
-            map.randomEach((c, x, y) => {
-                if (c.hasLayerFlag(Layer.Flags.L_BLOCKS_LIQUID))
+    const calc = calcBaseVolume(map, TileLayer.LIQUID, newVolume);
+    if (calc === CalcType.CALC) {
+        map.randomEach((c, x, y) => {
+            if (c.hasLayerFlag(Layer.Flags.L_BLOCKS_LIQUID))
+                return;
+            let highVol = 0;
+            let highX = -1;
+            let highY = -1;
+            let highTile = c.liquidTile;
+            let myVol = newVolume[x][y];
+            newVolume.eachNeighbor(x, y, (v, i, j) => {
+                if (v <= myVol)
                     return;
-                let highVol = 0;
-                let highX = -1;
-                let highY = -1;
-                let highTile = c.liquidTile;
-                let myVol = newVolume[x][y];
-                newVolume.eachNeighbor(x, y, (v, i, j) => {
-                    if (v <= myVol)
-                        return;
-                    if (v <= highVol)
-                        return;
-                    highVol = v;
-                    highX = i;
-                    highY = j;
-                    highTile = map.cell(i, j).liquidTile;
-                });
-                if (highVol > 1) {
-                    // guaranteed => myVol < highVol
-                    map.setTile(x, y, highTile, 0); // place tile with 0 volume - will force liquid to be same as highest volume liquid neighbor
-                    const amt = Math.floor((highVol - myVol) / 9) + 1;
-                    newVolume[x][y] += amt;
-                    newVolume[highX][highY] -= amt;
-                }
+                if (v <= highVol)
+                    return;
+                highVol = v;
+                highX = i;
+                highY = j;
+                highTile = map.cell(i, j).liquidTile;
             });
-        }
-    }
-    newVolume.forEach((v, i, j) => {
-        const cell = map.cell(i, j);
-        if (v > 0) {
-            // hasLiquid = true;
-            if (cell.liquidVolume !== v || !cell.liquid) {
-                let highVol = cell.liquidVolume;
-                let highTile = cell.liquidTile;
-                map.eachNeighbor(i, j, (n) => {
-                    if (n.liquidVolume > highVol) {
-                        highVol = n.liquidVolume;
-                        highTile = n.liquidTile;
-                    }
-                });
-                if (highTile !== cell.liquidTile) {
-                    cell.setTile(highTile, 0, map);
-                }
-                cell.liquidVolume = v;
-                map.redrawCell(cell);
+            if (highVol > 1) {
+                // guaranteed => myVol < highVol
+                map.setTile(x, y, highTile, 0); // place tile with 0 volume - will force liquid to be same as highest volume liquid neighbor
+                const amt = Math.floor((highVol - myVol) / 9) + 1;
+                newVolume[x][y] += amt;
+                newVolume[highX][highY] -= amt;
             }
-        }
-        else if (cell.liquidVolume || cell.liquid) {
-            cell.clearLayer(TileLayer.LIQUID);
-            map.redrawCell(cell);
-        }
-    });
-    if (hasLiquid) {
+        });
+    }
+    // }
+    if (calc != CalcType.NONE) {
+        updateVolume(map, TileLayer.LIQUID, newVolume);
         map.flags &= ~Flags.MAP_NO_LIQUID;
     }
     else {

@@ -245,6 +245,20 @@ export class Cell implements Types.CellType {
         return this._tiles[layer] || TILES.NULL;
     }
 
+    volume(layer = Depth.GAS) {
+        if (layer === Depth.GAS) return this.gasVolume;
+        if (layer === Depth.LIQUID) return this.liquidVolume;
+        return 0;
+    }
+
+    setVolume(layer: Depth, volume = 0) {
+        if (layer === Depth.GAS) {
+            this.gasVolume = volume;
+        } else if (layer === Depth.LIQUID) {
+            this.liquidVolume = volume;
+        }
+    }
+
     *tiles(): Generator<Tile> {
         for (let tile of this._tiles) {
             if (tile) {
