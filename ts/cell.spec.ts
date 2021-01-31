@@ -914,8 +914,8 @@ describe('Cell', () => {
         const c = GW.make.cell();
         c.setTile('FLOOR');
 
-        const a = GW.sprite.makeSprite('@', 'white', 'blue');
-        const b = GW.sprite.makeSprite(null, null, 'red');
+        const a = GW.sprite.make('@', 'white', 'blue');
+        const b = GW.sprite.make(null, null, 'red');
 
         c.addLayer({ sprite: a, layer: Map.layer.Depth.FX });
         c.addLayer({ sprite: b, layer: Map.layer.Depth.UI, priority: 100 });
@@ -928,7 +928,7 @@ describe('Cell', () => {
         const app = new GW.sprite.Mixer();
         Map.cell.getAppearance(c, app);
 
-        const ex = GW.sprite.makeSprite('@', 'white', 'red');
+        const ex = GW.sprite.make('@', 'white', 'red');
         expect(app).toEqual(ex);
     });
 
@@ -963,7 +963,7 @@ describe('Cell', () => {
         const app = new GW.sprite.Mixer();
         Map.cell.getAppearance(c, app);
 
-        const ex = GW.sprite.makeSprite('@', 'white', [50, 0, 50]);
+        const ex = GW.sprite.make('@', 'white', [50, 0, 50]);
         expect(app.ch).toEqual(ex.ch);
         expect(app.fg).toEqual(ex.fg);
         expect(app.bg).toEqual(ex.bg);
