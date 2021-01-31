@@ -3337,17 +3337,6 @@ function updateGas(map) {
     map.forEach((c, x, y) => {
         let volume = c.gasVolume;
         const gas = c.gasTile;
-        let highVol = volume;
-        let highTile = gas;
-        map.eachNeighbor(x, y, (n) => {
-            if (n.gasVolume > highVol) {
-                highVol = n.gasVolume;
-                highTile = n.gasTile;
-            }
-        });
-        if (highTile !== gas) {
-            c.setTile(highTile, 0, map);
-        }
         if (!volume)
             return;
         if (gas.dissipate) {
@@ -3418,11 +3407,22 @@ function updateGas(map) {
         if (v > 0) {
             hasGas = true;
             if (cell.gasVolume !== v) {
+                let highVol = cell.gasVolume;
+                let highTile = cell.gasTile;
+                map.eachNeighbor(i, j, (n) => {
+                    if (n.gasVolume > highVol) {
+                        highVol = n.gasVolume;
+                        highTile = n.gasTile;
+                    }
+                });
+                if (highTile !== cell.gasTile) {
+                    cell.setTile(highTile, 0, map);
+                }
                 cell.gasVolume = v;
                 map.redrawCell(cell);
             }
         }
-        else if (cell.gas) {
+        else if (cell.gasVolume || cell.gas) {
             cell.clearLayer(Depth.GAS);
             map.redrawCell(cell);
         }
@@ -3444,10 +3444,8 @@ function updateLiquid(map) {
     let needsAjustment = false;
     map.forEach((c, x, y) => {
         let volume = c.liquidVolume;
-        if (!volume)
-            return;
         const liquid = c.liquidTile;
-        if (liquid.dissipate) {
+        if (volume && liquid.dissipate) {
             if (liquid.dissipate > 10000) {
                 volume -= Math.floor(liquid.dissipate / 10000);
                 if (GW.random.chance(liquid.dissipate % 10000, 10000)) {
@@ -3465,12 +3463,13 @@ function updateLiquid(map) {
                 needsAjustment = true;
             }
         }
-        else {
+        else if (c.liquid) {
             c.clearLayer(Depth.LIQUID);
             map.redrawCell(c);
         }
     });
     // newVolume.dump();
+    // map.dump((c) => (c.liquidVolume ? c.liquid || '!' : ' '));
     if (hasLiquid) {
         if (needsAjustment) {
             map.randomEach((c, x, y) => {
@@ -3479,20 +3478,20 @@ function updateLiquid(map) {
                 let highVol = 0;
                 let highX = -1;
                 let highY = -1;
-                let highTile = null;
+                let highTile = c.liquidTile;
                 let myVol = newVolume[x][y];
-                map.eachNeighbor(x, y, (n, i, j) => {
-                    if (newVolume[i][j] <= myVol)
+                newVolume.eachNeighbor(x, y, (v, i, j) => {
+                    if (v <= myVol)
                         return;
-                    if (newVolume[i][j] <= highVol)
+                    if (v <= highVol)
                         return;
-                    highVol = newVolume[i][j];
+                    highVol = v;
                     highX = i;
                     highY = j;
-                    highTile = n.liquidTile;
+                    highTile = map.cell(i, j).liquidTile;
                 });
                 if (highVol > 1) {
-                    // myVol < highVol
+                    // guaranteed => myVol < highVol
                     map.setTile(x, y, highTile, 0); // place tile with 0 volume - will force liquid to be same as highest volume liquid neighbor
                     const amt = Math.floor((highVol - myVol) / 9) + 1;
                     newVolume[x][y] += amt;
@@ -3500,22 +3499,32 @@ function updateLiquid(map) {
                 }
             });
         }
-        // newVolume.dump();
-        newVolume.forEach((v, i, j) => {
-            const cell = map.cell(i, j);
-            if (v > 0) {
-                // hasLiquid = true;
-                if (cell.liquid && cell.liquidVolume !== v) {
-                    cell.liquidVolume = v;
-                    map.redrawCell(cell);
+    }
+    newVolume.forEach((v, i, j) => {
+        const cell = map.cell(i, j);
+        if (v > 0) {
+            // hasLiquid = true;
+            if (cell.liquidVolume !== v || !cell.liquid) {
+                let highVol = cell.liquidVolume;
+                let highTile = cell.liquidTile;
+                map.eachNeighbor(i, j, (n) => {
+                    if (n.liquidVolume > highVol) {
+                        highVol = n.liquidVolume;
+                        highTile = n.liquidTile;
+                    }
+                });
+                if (highTile !== cell.liquidTile) {
+                    cell.setTile(highTile, 0, map);
                 }
-            }
-            else if (cell.liquidVolume) {
-                cell.clearLayer(Depth.LIQUID);
+                cell.liquidVolume = v;
                 map.redrawCell(cell);
             }
-        });
-    }
+        }
+        else if (cell.liquidVolume || cell.liquid) {
+            cell.clearLayer(Depth.LIQUID);
+            map.redrawCell(cell);
+        }
+    });
     if (hasLiquid) {
         map.flags &= ~Map.MAP_NO_LIQUID;
     }

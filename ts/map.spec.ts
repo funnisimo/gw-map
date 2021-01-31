@@ -991,10 +991,12 @@ describe('Map', () => {
         test('liquids can dissipate', async () => {
             GW.random.seed(12345);
             const map = GW.make.map(10, 10);
+            expect(Map.tiles.RED_LIQUID.dissipate).toBeGreaterThan(0);
             map.setTile(5, 5, 'RED_LIQUID', 20);
             const cell = map.cell(5, 5);
             expect(cell.liquidVolume).toEqual(20);
             expect(map.cell(4, 5).liquidVolume).toEqual(0);
+            expect(map.flags & Map.map.Flags.MAP_NO_LIQUID).toBeFalsy();
 
             await map.tick();
             expect(cell.liquidVolume).toEqual(5);
