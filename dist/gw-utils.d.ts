@@ -629,6 +629,8 @@ declare class Map$1 implements types.MapType {
     storeMemories(): void;
     activateCell(x: number, y: number, event: string): Promise<boolean>;
     tick(): Promise<void>;
+    updateLiquid(newVolume: grid.NumGrid): void;
+    updateGas(newVolume: grid.NumGrid): void;
     resetCellEvents(): void;
 }
 declare function make$3(w: number, h: number, floor: string, wall: string): Map$1;
@@ -637,8 +639,6 @@ declare function make$3(w: number, h: number, opts?: any): Map$1;
 declare function from(prefab: string | string[], charToTile: Record<string, TileBase | null>, opts?: any): Map$1;
 declare function getCellAppearance(map: Map$1, x: number, y: number, dest: sprite.Mixer): void;
 declare function addText(map: Map$1, x: number, y: number, text: string, fg: color.ColorBase | null, bg: color.ColorBase | null, layer?: Depth): void;
-declare function updateGas(map: Map$1): void;
-declare function updateLiquid(map: Map$1): void;
 
 type map_d_MapDrawOptions = MapDrawOptions;
 type map_d_MapEachFn = MapEachFn;
@@ -651,8 +651,6 @@ type map_d_MapFovInfo = MapFovInfo;
 declare const map_d_from: typeof from;
 declare const map_d_getCellAppearance: typeof getCellAppearance;
 declare const map_d_addText: typeof addText;
-declare const map_d_updateGas: typeof updateGas;
-declare const map_d_updateLiquid: typeof updateLiquid;
 declare namespace map_d {
   export {
     Map as Flags,
@@ -669,8 +667,6 @@ declare namespace map_d {
     map_d_from as from,
     map_d_getCellAppearance as getCellAppearance,
     map_d_addText as addText,
-    map_d_updateGas as updateGas,
-    map_d_updateLiquid as updateLiquid,
   };
 }
 

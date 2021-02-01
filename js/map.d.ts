@@ -161,6 +161,8 @@ export declare class Map implements Types.MapType {
     storeMemories(): void;
     activateCell(x: number, y: number, event: string): Promise<boolean>;
     tick(): Promise<void>;
+    updateLiquid(newVolume: Grid.NumGrid): void;
+    updateGas(newVolume: Grid.NumGrid): void;
     resetCellEvents(): void;
 }
 export declare function make(w: number, h: number, floor: string, wall: string): Map;
@@ -169,5 +171,3 @@ export declare function make(w: number, h: number, opts?: any): Map;
 export declare function from(prefab: string | string[], charToTile: Record<string, Cell.TileBase | null>, opts?: any): Map;
 export declare function getCellAppearance(map: Map, x: number, y: number, dest: Sprite.Mixer): void;
 export declare function addText(map: Map, x: number, y: number, text: string, fg: Color.ColorBase | null, bg: Color.ColorBase | null, layer?: TileLayer): void;
-export declare function updateGas(map: Map): void;
-export declare function updateLiquid(map: Map): void;

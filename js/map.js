@@ -38,6 +38,12 @@ export class Map {
             this.flags |= Flags.MAP_CALC_FOV;
             this.fov = { x: -1, y: -1 };
         }
+        if (opts.updateLiquid && typeof opts.updateLiquid === 'function') {
+            this.updateLiquid = opts.updateLiquid.bind(this);
+        }
+        if (opts.updateGas && typeof opts.updateGas === 'function') {
+            this.updateGas = opts.updateGas.bind(this);
+        }
         Light.updateLighting(this); // to set the ambient light
         Visibility.initMap(this);
     }
@@ -882,8 +888,109 @@ export class Map {
                 });
             }
         }
-        updateLiquid(this);
-        updateGas(this);
+        if (!(this.flags & Flags.MAP_NO_LIQUID)) {
+            const newVolume = Grid.alloc(this.width, this.height);
+            const calc = calcBaseVolume(this, TileLayer.LIQUID, newVolume);
+            if (calc === CalcType.CALC) {
+                this.updateLiquid(newVolume);
+            }
+            if (calc != CalcType.NONE) {
+                updateVolume(this, TileLayer.LIQUID, newVolume);
+                this.flags &= ~Flags.MAP_NO_LIQUID;
+            }
+            else {
+                this.flags |= Flags.MAP_NO_LIQUID;
+            }
+            this.changed = true;
+            Grid.free(newVolume);
+        }
+        if (!(this.flags & Flags.MAP_NO_GAS)) {
+            const newVolume = Grid.alloc(this.width, this.height);
+            const calc = calcBaseVolume(this, TileLayer.GAS, newVolume);
+            if (calc === CalcType.CALC) {
+                this.updateGas(newVolume);
+            }
+            if (calc != CalcType.NONE) {
+                updateVolume(this, TileLayer.GAS, newVolume);
+                this.flags &= ~Flags.MAP_NO_GAS;
+            }
+            else {
+                this.flags |= Flags.MAP_NO_GAS;
+            }
+            this.changed = true;
+            Grid.free(newVolume);
+        }
+    }
+    updateLiquid(newVolume) {
+        this.randomEach((c, x, y) => {
+            if (c.hasLayerFlag(Layer.Flags.L_BLOCKS_LIQUID))
+                return;
+            let highVol = 0;
+            let highX = -1;
+            let highY = -1;
+            let highTile = c.liquidTile;
+            let myVol = newVolume[x][y];
+            newVolume.eachNeighbor(x, y, (v, i, j) => {
+                if (v <= myVol)
+                    return;
+                if (v <= highVol)
+                    return;
+                highVol = v;
+                highX = i;
+                highY = j;
+                highTile = this.cell(i, j).liquidTile;
+            });
+            if (highVol > 1) {
+                // guaranteed => myVol < highVol
+                this.setTile(x, y, highTile, 0); // place tile with 0 volume - will force liquid to be same as highest volume liquid neighbor
+                const amt = Math.floor((highVol - myVol) / 9) + 1;
+                newVolume[x][y] += amt;
+                newVolume[highX][highY] -= amt;
+            }
+        });
+        // }
+    }
+    updateGas(newVolume) {
+        const dirs = random.sequence(4).map((i) => Utils.DIRS[i]);
+        const grid = Grid.alloc(this.width, this.height);
+        // push out from my square
+        newVolume.forEach((v, x, y) => {
+            if (!v)
+                return;
+            let adj = v;
+            if (v > 1) {
+                let count = 1;
+                newVolume.eachNeighbor(x, y, () => {
+                    ++count;
+                }, true); // only 4 dirs
+                let avg = Math.floor(v / count);
+                let rem = v - avg * count;
+                grid[x][y] += avg;
+                if (rem > 0) {
+                    grid[x][y] += 1;
+                    rem -= 1;
+                }
+                for (let i = 0; i < dirs.length; ++i) {
+                    const dir = dirs[i];
+                    const x2 = x + dir[0];
+                    const y2 = y + dir[1];
+                    if (grid.hasXY(x2, y2)) {
+                        adj = avg;
+                        if (rem > 0) {
+                            --rem;
+                            ++adj;
+                        }
+                        grid[x2][y2] += adj;
+                    }
+                }
+            }
+            else {
+                grid[x][y] += v;
+            }
+        });
+        newVolume.copy(grid);
+        Grid.free(grid);
+        // newVolume.dump();
     }
     resetCellEvents() {
         this.forEach((c) => (c.mechFlags &= ~(CellMechFlags.EVENT_FIRED_THIS_TURN |
@@ -1077,108 +1184,4 @@ function updateVolume(map, depth, newVolume) {
             map.redrawCell(cell);
         }
     });
-}
-export function updateGas(map) {
-    if (map.flags & Flags.MAP_NO_GAS)
-        return;
-    const newVolume = Grid.alloc(map.width, map.height);
-    const calc = calcBaseVolume(map, TileLayer.GAS, newVolume);
-    if (calc === CalcType.CALC) {
-        const dirs = random.sequence(4).map((i) => Utils.DIRS[i]);
-        const grid = Grid.alloc(map.width, map.height);
-        // push out from my square
-        newVolume.forEach((v, x, y) => {
-            if (!v)
-                return;
-            let adj = v;
-            if (v > 1) {
-                let count = 1;
-                newVolume.eachNeighbor(x, y, () => {
-                    ++count;
-                }, true); // only 4 dirs
-                let avg = Math.floor(v / count);
-                let rem = v - avg * count;
-                grid[x][y] += avg;
-                if (rem > 0) {
-                    grid[x][y] += 1;
-                    rem -= 1;
-                }
-                for (let i = 0; i < dirs.length; ++i) {
-                    const dir = dirs[i];
-                    const x2 = x + dir[0];
-                    const y2 = y + dir[1];
-                    if (grid.hasXY(x2, y2)) {
-                        adj = avg;
-                        if (rem > 0) {
-                            --rem;
-                            ++adj;
-                        }
-                        grid[x2][y2] += adj;
-                    }
-                }
-            }
-            else {
-                grid[x][y] += v;
-            }
-        });
-        newVolume.copy(grid);
-        Grid.free(grid);
-        // newVolume.dump();
-    }
-    // }
-    if (calc != CalcType.NONE) {
-        updateVolume(map, TileLayer.GAS, newVolume);
-        map.flags &= ~Flags.MAP_NO_GAS;
-    }
-    else {
-        map.flags |= Flags.MAP_NO_GAS;
-    }
-    map.changed = true;
-    Grid.free(newVolume);
-}
-export function updateLiquid(map) {
-    if (map.flags & Flags.MAP_NO_LIQUID)
-        return;
-    const newVolume = Grid.alloc(map.width, map.height);
-    // newVolume.dump();
-    // map.dump((c) => (c.liquidVolume ? c.liquid || '!' : ' '));
-    const calc = calcBaseVolume(map, TileLayer.LIQUID, newVolume);
-    if (calc === CalcType.CALC) {
-        map.randomEach((c, x, y) => {
-            if (c.hasLayerFlag(Layer.Flags.L_BLOCKS_LIQUID))
-                return;
-            let highVol = 0;
-            let highX = -1;
-            let highY = -1;
-            let highTile = c.liquidTile;
-            let myVol = newVolume[x][y];
-            newVolume.eachNeighbor(x, y, (v, i, j) => {
-                if (v <= myVol)
-                    return;
-                if (v <= highVol)
-                    return;
-                highVol = v;
-                highX = i;
-                highY = j;
-                highTile = map.cell(i, j).liquidTile;
-            });
-            if (highVol > 1) {
-                // guaranteed => myVol < highVol
-                map.setTile(x, y, highTile, 0); // place tile with 0 volume - will force liquid to be same as highest volume liquid neighbor
-                const amt = Math.floor((highVol - myVol) / 9) + 1;
-                newVolume[x][y] += amt;
-                newVolume[highX][highY] -= amt;
-            }
-        });
-    }
-    // }
-    if (calc != CalcType.NONE) {
-        updateVolume(map, TileLayer.LIQUID, newVolume);
-        map.flags &= ~Flags.MAP_NO_LIQUID;
-    }
-    else {
-        map.flags |= Flags.MAP_NO_LIQUID;
-    }
-    map.changed = true;
-    Grid.free(newVolume);
 }
