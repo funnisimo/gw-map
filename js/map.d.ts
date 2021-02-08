@@ -1,7 +1,7 @@
 import { utils as Utils, grid as Grid, color as Color, canvas as Canvas, types as Types, sprite as Sprite } from 'gw-utils';
 import * as Cell from './cell';
 import * as Tile from './tile';
-import { Map as Flags, Cell as CellFlags, Tile as TileFlags, CellMech as CellMechFlags, TileMech as TileMechFlags, Depth as TileLayer, Layer as LayerFlags } from './flags';
+import { Map as Flags, Cell as CellFlags, Tile as TileFlags, CellMech as CellMechFlags, TileMech as TileMechFlags, Layer as TileLayer, Entity as LayerFlags } from './flags';
 import * as Light from './light';
 export { Flags };
 export interface MapDrawOptions {
@@ -13,7 +13,8 @@ export interface MapDrawOptions {
     mapOffsetY: number;
     force: boolean;
 }
-export declare type MapEachFn = (cell: Cell.Cell, x: number, y: number, map: Map) => void;
+export declare type MapEachFn = (cell: Cell.Cell, x: number, y: number, map: Map) => any;
+export declare type AsyncMapEachFn = (cell: Cell.Cell, x: number, y: number, map: Map) => Promise<any>;
 export declare type MapMatchFn = (cell: Cell.Cell, x: number, y: number, map: Map) => boolean;
 export declare type MapCostFn = (cell: Cell.Cell, x: number, y: number, map: Map) => number;
 export interface MapMatchOptions {
@@ -59,13 +60,15 @@ export declare class Map implements Types.MapType {
     get width(): number;
     get height(): number;
     start(): Promise<void>;
-    clear(): void;
+    clear(floorTile?: string | Tile.Tile): void;
     dump(fmt?: (cell: Cell.Cell) => string): void;
     cell(x: number, y: number): Cell.Cell;
     eachCell(fn: MapEachFn): void;
     forEach(fn: MapEachFn): void;
+    forEachAsync(fn: AsyncMapEachFn): Promise<void>;
     forRect(x: number, y: number, w: number, h: number, fn: MapEachFn): void;
     eachNeighbor(x: number, y: number, fn: MapEachFn, only4dirs?: boolean): void;
+    eachNeighborAsync(x: number, y: number, fn: AsyncMapEachFn, only4dirs?: boolean): Promise<void>;
     randomEach(fn: MapEachFn): void;
     count(fn: MapMatchFn): number;
     hasXY(x: number, y: number): boolean;
@@ -84,7 +87,7 @@ export declare class Map implements Types.MapType {
     revealAll(): void;
     markRevealed(x: number, y: number): void;
     makeVisible(v?: boolean): void;
-    isVisible(x: number, y: number): number;
+    isVisible(x: number, y: number): boolean;
     isAnyKindOfVisible(x: number, y: number): number;
     isOrWasAnyKindOfVisible(x: number, y: number): number;
     isRevealed(x: number, y: number): boolean;
@@ -123,9 +126,9 @@ export declare class Map implements Types.MapType {
     topmostTile(x: number, y: number, skipGas?: boolean): Tile.Tile;
     tileFlavor(x: number, y: number): string | null;
     setTile(x: number, y: number, tileId: Cell.TileBase | null, volume?: number): true | void;
+    nullifyCell(x: number, y: number): void;
     clearCell(x: number, y: number): void;
     clearCellLayersWithFlags(x: number, y: number, tileFlags: TileFlags, tileMechFlags?: TileMechFlags): void;
-    clearCellLayers(x: number, y: number, nullLiquid?: boolean, nullSurface?: boolean, nullGas?: boolean): void;
     fill(tileId: string | null, boundaryTile?: string | null): void;
     neighborCount(x: number, y: number, matchFn: MapMatchFn, only4dirs?: boolean): number;
     walkableArcCount(x: number, y: number): number;
@@ -161,6 +164,7 @@ export declare class Map implements Types.MapType {
     storeMemories(): void;
     activateCell(x: number, y: number, event: string): Promise<boolean>;
     tick(): Promise<void>;
+    exposeToFire(x: number, y: number, alwaysIgnite?: boolean): Promise<boolean>;
     updateLiquid(newVolume: Grid.NumGrid): void;
     updateGas(newVolume: Grid.NumGrid): void;
     resetCellEvents(): void;

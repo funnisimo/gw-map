@@ -1,10 +1,11 @@
-import { utils as Utils, random, grid as Grid, fov as Fov, flag as Flag, path as Path, color as Color, colors as COLORS, config as CONFIG, data as DATA, make as Make, sprite as Sprite, } from 'gw-utils';
+import { utils as Utils, random, grid as Grid, fov as Fov, flag as Flag, path as Path, color as Color, colors as COLORS, config as CONFIG, data as DATA, make as Make, sprite as Sprite, effect as EFFECT, } from 'gw-utils';
 import * as Cell from './cell';
 import * as Tile from './tile';
-import { Map as Flags, Cell as CellFlags, Tile as TileFlags, CellMech as CellMechFlags, Depth as TileLayer, Layer as LayerFlags, } from './flags';
+import { Map as Flags, Cell as CellFlags, Tile as TileFlags, CellMech as CellMechFlags, TileMech as TileMechFlags, Layer as TileLayer, Entity as LayerFlags, } from './flags';
 import * as Light from './light';
-import * as Layer from './entity';
+import * as Entity from './entity';
 import * as Visibility from './visibility';
+import * as Effect from './effect';
 export { Flags };
 Utils.setDefaults(CONFIG, {
     'map.deepestLevel': 99,
@@ -54,8 +55,8 @@ export class Map {
         return this._height;
     }
     async start() { }
-    clear() {
-        this.cells.forEach((c) => c.clear());
+    clear(floorTile = 'FLOOR') {
+        this.cells.forEach((c) => c.clear(floorTile));
         this.changed = true;
     }
     dump(fmt) {
@@ -70,11 +71,17 @@ export class Map {
     forEach(fn) {
         this.cells.forEach((c, i, j) => fn(c, i, j, this));
     }
+    async forEachAsync(fn) {
+        return this.cells.forEachAsync((c, i, j) => fn(c, i, j, this));
+    }
     forRect(x, y, w, h, fn) {
         this.cells.forRect(x, y, w, h, (c, i, j) => fn(c, i, j, this));
     }
     eachNeighbor(x, y, fn, only4dirs = false) {
         this.cells.eachNeighbor(x, y, (c, i, j) => fn(c, i, j, this), only4dirs);
+    }
+    eachNeighborAsync(x, y, fn, only4dirs = false) {
+        return this.cells.eachNeighborAsync(x, y, (c, i, j) => fn(c, i, j, this), only4dirs);
     }
     randomEach(fn) {
         this.cells.randomEach((c, i, j) => fn(c, i, j, this));
@@ -334,6 +341,9 @@ export class Map {
     setTile(x, y, tileId, volume = 0) {
         return this.cell(x, y).setTile(tileId, volume, this);
     }
+    nullifyCell(x, y) {
+        this.cell(x, y).nullify();
+    }
     clearCell(x, y) {
         this.cell(x, y).clear();
     }
@@ -341,10 +351,16 @@ export class Map {
         const cell = this.cell(x, y);
         cell.clearLayersWithFlags(tileFlags, tileMechFlags);
     }
-    clearCellLayers(x, y, nullLiquid = true, nullSurface = true, nullGas = true) {
-        this.changed = true;
-        return this.cell(x, y).clearLayers(nullLiquid, nullSurface, nullGas);
-    }
+    // clearCellLayers(
+    //     x: number,
+    //     y: number,
+    //     nullLiquid = true,
+    //     nullSurface = true,
+    //     nullGas = true
+    // ) {
+    //     this.changed = true;
+    //     return this.cell(x, y).clearLayers(nullLiquid, nullSurface, nullGas);
+    // }
     fill(tileId, boundaryTile) {
         let i, j;
         if (boundaryTile === undefined) {
@@ -391,7 +407,7 @@ export class Map {
             costFn ||
                 ((c) => (c.isWalkableNow() ? 1 : Path.OBSTRUCTION));
         this.cells.forEach((cell, i, j) => {
-            if (cell.isClear()) {
+            if (cell.isNull()) {
                 costGrid[i][j] = Path.OBSTRUCTION;
             }
             else {
@@ -777,7 +793,7 @@ export class Map {
                 return; // outside bounds
             const blockingX = i + gridOffsetX;
             const blockingY = j + gridOffsetY;
-            if (cell.isClear()) {
+            if (cell.isNull()) {
                 return; // not walkable
             }
             else if (cell.hasTileFlag(TileFlags.T_HAS_STAIRS)) {
@@ -871,23 +887,30 @@ export class Map {
     // TICK
     async activateCell(x, y, event) {
         const cell = this.cell(x, y);
-        return await cell.activate(event, { map: this, x, y, cell });
+        return await cell.activate(event, this, x, y, { cell });
     }
     async tick() {
-        // map.debug("tick");
-        this.resetCellEvents();
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
-                const cell = this.cells[x][y];
-                await cell.activate('tick', {
-                    map: this,
-                    x,
-                    y,
-                    cell,
-                    safe: true,
-                });
+        await Effect.fireAll(this, 'tick');
+        // Bookkeeping for fire, pressure plates and key-activated tiles.
+        await this.forEachAsync(async (cell, x, y) => {
+            cell.mechFlags &= ~Cell.MechFlags.CAUGHT_FIRE_THIS_TURN;
+            if (!(cell.flags &
+                (CellFlags.HAS_ANY_ACTOR | CellFlags.HAS_ITEM)) &&
+                cell.mechFlags & CellMechFlags.PRESSURE_PLATE_DEPRESSED) {
+                cell.mechFlags &= ~CellMechFlags.PRESSURE_PLATE_DEPRESSED;
             }
-        }
+            if (cell.activatesOn('noKey') && !cell.hasKey()) {
+                await cell.activate('noKey', this, x, y);
+            }
+        });
+        // now spread the fire...
+        await this.forEachAsync(async (cell, x, y) => {
+            if (cell.hasTileFlag(Tile.Flags.T_IS_FIRE) &&
+                !(cell.mechFlags & CellMechFlags.CAUGHT_FIRE_THIS_TURN)) {
+                await this.exposeToFire(x, y, false);
+                await this.eachNeighborAsync(x, y, (_n, i, j) => this.exposeToFire(i, j), true);
+            }
+        });
         if (!(this.flags & Flags.MAP_NO_LIQUID)) {
             const newVolume = Grid.alloc(this.width, this.height);
             const calc = calcBaseVolume(this, TileLayer.LIQUID, newVolume);
@@ -921,9 +944,70 @@ export class Map {
             Grid.free(newVolume);
         }
     }
+    async exposeToFire(x, y, alwaysIgnite = false) {
+        let ignitionChance = 0, bestExtinguishingPriority = 1000, explosiveNeighborCount = 0;
+        let fireIgnited = false, explosivePromotion = false;
+        const cell = this.cell(x, y);
+        if (!cell.hasTileFlag(TileFlags.T_IS_FLAMMABLE)) {
+            return false;
+        }
+        // Pick the extinguishing layer with the best priority.
+        for (let tile of cell.tiles()) {
+            if (tile.flags.tile & TileFlags.T_EXTINGUISHES_FIRE &&
+                tile.priority > bestExtinguishingPriority) {
+                bestExtinguishingPriority = tile.priority;
+            }
+        }
+        // Pick the fire type of the most flammable layer that is either gas or equal-or-better priority than the best extinguishing layer.
+        for (let tile of cell.tiles()) {
+            if (tile.flags.tile & TileFlags.T_IS_FLAMMABLE &&
+                (tile.layer === Entity.Layer.GAS ||
+                    tile.priority >= bestExtinguishingPriority)) {
+                const effect = EFFECT.from(tile.activates.fire);
+                if (effect && effect.chance > ignitionChance) {
+                    ignitionChance = effect.chance;
+                }
+            }
+        }
+        if (alwaysIgnite ||
+            (ignitionChance && random.chance(ignitionChance, 10000))) {
+            // If it ignites...
+            fireIgnited = true;
+            // Count explosive neighbors.
+            if (cell.hasTileMechFlag(TileMechFlags.TM_EXPLOSIVE_PROMOTE)) {
+                this.eachNeighbor(x, y, (n) => {
+                    if (n.hasLayerFlag(Entity.Flags.L_BLOCKS_GAS) ||
+                        n.hasTileFlag(TileFlags.T_IS_FIRE) ||
+                        n.hasTileMechFlag(TileMechFlags.TM_EXPLOSIVE_PROMOTE)) {
+                        ++explosiveNeighborCount;
+                    }
+                });
+                if (explosiveNeighborCount >= 8) {
+                    explosivePromotion = true;
+                }
+            }
+            let event = explosivePromotion ? 'explode' : 'fire';
+            for (let tile of cell.tiles()) {
+                if (tile.flags.tile & TileFlags.T_IS_FLAMMABLE) {
+                    if (tile.layer === Entity.Layer.GAS) {
+                        cell.gasVolume = 0;
+                    }
+                    else if (tile.layer === Entity.Layer.LIQUID) {
+                        cell.liquidVolume = 0;
+                    }
+                    await cell.activate(event, this, x, y, {
+                        force: true,
+                        layer: tile.layer,
+                    });
+                }
+            }
+            this.redrawCell(cell);
+        }
+        return fireIgnited;
+    }
     updateLiquid(newVolume) {
         this.randomEach((c, x, y) => {
-            if (c.hasLayerFlag(Layer.Flags.L_BLOCKS_LIQUID))
+            if (c.hasLayerFlag(Entity.Flags.L_BLOCKS_LIQUID))
                 return;
             let highVol = 0;
             let highX = -1;
@@ -1104,7 +1188,7 @@ export function getCellAppearance(map, x, y, dest) {
 }
 export function addText(map, x, y, text, fg, bg, layer) {
     for (let ch of text) {
-        const sprite = Layer.make({
+        const sprite = Entity.make({
             ch,
             fg,
             bg,

@@ -7,20 +7,19 @@ import {
     types as Types,
     random,
     make as Make,
+    effect as Effect,
 } from 'gw-utils';
 import { Tile, tiles as TILES } from './tile';
 import * as Map from './map';
-import * as Activation from './tileEvent';
 import * as Light from './light';
-import * as Layer from './entity';
 import {
     Cell as Flags,
     CellMech as MechFlags,
     TileMech as TileMechFlags,
     Tile as TileFlags,
     Map as MapFlags,
-    Layer as LayerFlags,
-    Depth,
+    Entity as LayerFlags,
+    Layer,
 } from './flags';
 
 export { Flags, MechFlags };
@@ -98,11 +97,10 @@ export class Cell implements Types.CellType {
         Utils.copyObject(this, other);
     }
 
-    clear() {
+    nullify() {
         for (let i = 0; i < this._tiles.length; ++i) {
             this._tiles[i] = null;
         }
-
         this.layers = null;
         this._actor = null;
         this._item = null;
@@ -120,45 +118,55 @@ export class Cell implements Types.CellType {
         this.glowLight = [100, 100, 100];
     }
 
-    clearLayers(nullLiquid = false, nullSurface = false, nullGas = false) {
-        if (nullLiquid) {
-            this._tiles[1] = null;
-            this.liquidVolume = 0;
+    clear(floorTile: string | Tile = 'FLOOR') {
+        this.nullify();
+        if (typeof floorTile === 'string') {
+            floorTile = TILES[floorTile];
         }
-        if (nullSurface) {
-            this._tiles[2] = null;
+        if (floorTile) {
+            this._tiles[0] = floorTile;
         }
-        if (nullGas) {
-            this._tiles[3] = null;
-            this.gasVolume = 0;
-        }
-        this.flags |= Flags.CELL_CHANGED;
     }
 
+    // clearLayers(nullLiquid = false, nullSurface = false, nullGas = false) {
+    //     if (nullLiquid) {
+    //         this._tiles[1] = null;
+    //         this.liquidVolume = 0;
+    //     }
+    //     if (nullSurface) {
+    //         this._tiles[2] = null;
+    //     }
+    //     if (nullGas) {
+    //         this._tiles[3] = null;
+    //         this.gasVolume = 0;
+    //     }
+    //     this.flags |= Flags.CELL_CHANGED;
+    // }
+
     get ground() {
-        return this._tiles[Depth.GROUND]?.id || null;
+        return this._tiles[Layer.GROUND]?.id || null;
     }
     get liquid() {
-        return this._tiles[Depth.LIQUID]?.id || null;
+        return this._tiles[Layer.LIQUID]?.id || null;
     }
     get surface() {
-        return this._tiles[Depth.SURFACE]?.id || null;
+        return this._tiles[Layer.SURFACE]?.id || null;
     }
     get gas() {
-        return this._tiles[Depth.GAS]?.id || null;
+        return this._tiles[Layer.GAS]?.id || null;
     }
 
     get groundTile(): Tile {
-        return this._tiles[Depth.GROUND] || TILES.NULL;
+        return this._tiles[Layer.GROUND] || TILES.NULL;
     }
     get liquidTile(): Tile {
-        return this._tiles[Depth.LIQUID] || TILES.NULL;
+        return this._tiles[Layer.LIQUID] || TILES.NULL;
     }
     get surfaceTile(): Tile {
-        return this._tiles[Depth.SURFACE] || TILES.NULL;
+        return this._tiles[Layer.SURFACE] || TILES.NULL;
     }
     get gasTile(): Tile {
-        return this._tiles[Depth.GAS] || TILES.NULL;
+        return this._tiles[Layer.GAS] || TILES.NULL;
     }
 
     dump(): string {
@@ -185,7 +193,7 @@ export class Cell implements Types.CellType {
     }
 
     isVisible() {
-        return this.flags & Flags.VISIBLE;
+        return this.flags & Flags.VISIBLE ? true : false;
     }
     isAnyKindOfVisible() {
         return (
@@ -241,20 +249,24 @@ export class Cell implements Types.CellType {
         }
     }
 
-    tile(layer = Depth.GROUND) {
+    tile(layer = Layer.GROUND) {
         return this._tiles[layer] || TILES.NULL;
     }
 
-    volume(layer = Depth.GAS) {
-        if (layer === Depth.GAS) return this.gasVolume;
-        if (layer === Depth.LIQUID) return this.liquidVolume;
+    tileId(layer = Layer.GROUND) {
+        return this._tiles[layer]?.id || null;
+    }
+
+    volume(layer = Layer.GAS) {
+        if (layer === Layer.GAS) return this.gasVolume;
+        if (layer === Layer.LIQUID) return this.liquidVolume;
         return 0;
     }
 
-    setVolume(layer: Depth, volume = 0) {
-        if (layer === Depth.GAS) {
+    setVolume(layer: Layer, volume = 0) {
+        if (layer === Layer.GAS) {
             this.gasVolume = volume;
-        } else if (layer === Depth.LIQUID) {
+        } else if (layer === Layer.LIQUID) {
             this.liquidVolume = volume;
         }
     }
@@ -358,12 +370,12 @@ export class Cell implements Types.CellType {
         return (flag & flags) > 0;
     }
 
-    hasTile(tile: string | Tile) {
+    hasTile(tile: string | Types.TileType) {
         let id: string;
-        if (tile instanceof Tile) {
-            id = tile.id;
-        } else {
+        if (typeof tile === 'string') {
             id = tile;
+        } else {
+            id = tile.id;
         }
         return this._tiles.some((t) => t && t.id === id);
     }
@@ -395,8 +407,8 @@ export class Cell implements Types.CellType {
         let best = TILES.NULL;
         let bestPriority = -10000;
         for (
-            let layer = Depth.GROUND;
-            layer <= (skipGas ? Depth.LIQUID : Depth.GAS);
+            let layer = Layer.GROUND;
+            layer <= (skipGas ? Layer.LIQUID : Layer.GAS);
             ++layer
         ) {
             // @ts-ignore
@@ -443,8 +455,14 @@ export class Cell implements Types.CellType {
         return this.topmostTile().getName(opts);
     }
 
+    isNull(): boolean {
+        return this.ground === null;
+    }
+
     isClear(): boolean {
-        return this.ground == null;
+        return (
+            this.liquid === null && this.gas === null && this.surface === null
+        );
     }
 
     isEmpty(): boolean {
@@ -519,6 +537,11 @@ export class Cell implements Types.CellType {
         return !!(layerFlags & LayerFlags.L_BLOCKS_VISION);
     }
 
+    blocksEffects(): boolean {
+        const layerFlags = this.layerFlags();
+        return !!(layerFlags & LayerFlags.L_BLOCKS_EFFECTS);
+    }
+
     isLiquid(limitToPlayerKnowledge = false): boolean {
         const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
         let tileFlags = useMemory ? this.memory.tileFlags : this.tileFlags();
@@ -535,6 +558,11 @@ export class Cell implements Types.CellType {
         return !!(cellFlags & Flags.HAS_GAS);
     }
 
+    // TODO - Check floor and actor
+    hasKey() {
+        return false;
+    }
+
     markRevealed() {
         this.flags &= ~Flags.STABLE_MEMORY;
         if (this.flags & Flags.REVEALED) return false;
@@ -543,9 +571,9 @@ export class Cell implements Types.CellType {
         return !this.isWall();
     }
 
-    obstructsLayer(depth: Depth) {
+    obstructsLayer(depth: Layer) {
         return (
-            depth === Depth.SURFACE &&
+            depth === Layer.SURFACE &&
             this.hasLayerFlag(LayerFlags.L_BLOCKS_SURFACE)
         );
     }
@@ -601,17 +629,17 @@ export class Cell implements Types.CellType {
         if (tileId !== null) this.addLayer(tile);
 
         let layerFlag = 0;
-        if (tile.layer == Depth.LIQUID) {
+        if (tile.layer == Layer.LIQUID) {
             layerFlag = Flags.HAS_LIQUID;
             this.liquidVolume =
                 volume + (tileId == oldTileId ? this.liquidVolume : 0);
             if (map) map.clearFlag(MapFlags.MAP_NO_LIQUID);
-        } else if (tile.layer == Depth.GAS) {
+        } else if (tile.layer == Layer.GAS) {
             layerFlag = Flags.HAS_GAS;
             this.gasVolume =
                 volume + (tileId == oldTileId ? this.gasVolume : 0);
             if (map) map.clearFlag(MapFlags.MAP_NO_GAS);
-        } else if (tile.layer === Depth.SURFACE) {
+        } else if (tile.layer === Layer.SURFACE) {
             layerFlag = Flags.HAS_SURFACE;
         }
 
@@ -631,7 +659,7 @@ export class Cell implements Types.CellType {
         return true;
     }
 
-    clearLayer(depth: Depth) {
+    clearLayer(depth: Layer) {
         // @ts-ignore
         if (typeof depth === 'string') depth = Layer[depth];
 
@@ -643,23 +671,25 @@ export class Cell implements Types.CellType {
         }
         this._tiles[depth] = null;
         let layerFlag = 0;
-        if (depth == Depth.LIQUID) {
+        if (depth == Layer.LIQUID) {
             layerFlag = Flags.HAS_LIQUID;
             this.liquidVolume = 0;
-        } else if (depth == Depth.GAS) {
+        } else if (depth == Layer.GAS) {
             layerFlag = Flags.HAS_GAS;
             this.gasVolume = 0;
-        } else if (depth == Depth.SURFACE) {
+        } else if (depth == Layer.SURFACE) {
             layerFlag = Flags.HAS_SURFACE;
+        } else if (depth == Layer.GROUND) {
+            this._tiles[Layer.GROUND] = TILES.FLOOR; // TODO - ????!!!
         }
         this.flags &= ~layerFlag;
     }
 
-    clearLayersExcept(except: Depth = Depth.GROUND, ground?: string | null) {
+    clearLayersExcept(except: Layer = Layer.GROUND, ground?: string | null) {
         const floorTile = ground ? TILES[ground] : this.groundTile;
         for (let layer = 0; layer < this._tiles.length; layer++) {
-            if (layer != except && layer != Depth.GAS) {
-                if (layer === Depth.GROUND) {
+            if (layer != except && layer != Layer.GAS) {
+                if (layer === Layer.GROUND) {
                     if (floorTile !== this.groundTile) this.setTile(floorTile);
                 } else {
                     this.clearLayer(layer);
@@ -696,30 +726,68 @@ export class Cell implements Types.CellType {
 
     // EVENTS
 
-    async activate(name: string, ctx: any = {}) {
+    async activate(
+        name: string,
+        map: Map.Map,
+        x: number,
+        y: number,
+        ctx: any = {}
+    ) {
         ctx.cell = this;
         let fired = false;
-        // cell.debug("fire event - %s", name);
-        for (let tile of this.tiles()) {
-            if (!tile.activates) continue;
-            const ev = tile.activates[name];
-            if (ev) {
-                // cell.debug(" - has event");
-                if (ev.chance && !random.chance(ev.chance, 10000)) {
-                    continue;
-                }
 
-                ctx.tile = tile;
-                // cell.debug(" - spawn event @%d,%d - %s", ctx.x, ctx.y, name);
-                fired = (await Activation.spawn(ev, ctx)) || fired;
-                // cell.debug(" - spawned");
-                if (fired) {
-                    break;
+        if (ctx.layer !== undefined) {
+            const tile = this.tile(ctx.layer);
+            if (tile && tile.activates) {
+                const ev = tile.activates[name];
+                let effect: Effect.Effect;
+                if (typeof ev === 'string') {
+                    effect = Effect.effects[ev];
+                } else {
+                    effect = ev;
+                }
+                if (effect) {
+                    // console.log(' - has event');
+                    if (
+                        ctx.force ||
+                        !effect.chance ||
+                        random.chance(effect.chance, 10000)
+                    ) {
+                        ctx.tile = tile;
+                        // console.log(' - spawn event @%d,%d - %s', x, y, name);
+                        fired = await effect.fire(map, x, y, ctx);
+                        // cell.debug(" - spawned");
+                    }
                 }
             }
-        }
-        if (fired) {
-            // this.mechFlags |= MechFlags.EVENT_FIRED_THIS_TURN;
+        } else {
+            // cell.debug("fire event - %s", name);
+            for (let tile of this.tiles()) {
+                if (!tile.activates) continue;
+                const ev = tile.activates[name];
+                let effect: Effect.Effect;
+                if (typeof ev === 'string') {
+                    effect = Effect.effects[ev];
+                } else {
+                    effect = ev;
+                }
+                if (effect) {
+                    // cell.debug(" - has event");
+                    if (
+                        ctx.force ||
+                        !effect.chance ||
+                        random.chance(effect.chance, 10000)
+                    ) {
+                        ctx.tile = tile;
+                        // cell.debug(" - spawn event @%d,%d - %s", ctx.x, ctx.y, name);
+                        fired = (await effect.fire(map, x, y, ctx)) || fired;
+                        // cell.debug(" - spawned");
+                        if (fired) {
+                            break;
+                        }
+                    }
+                }
+            }
         }
         return fired;
     }
@@ -882,9 +950,9 @@ export function getAppearance(cell: Cell, dest: Sprite.Mixer) {
     while (current) {
         const layer = current.layer;
         let alpha = layer.sprite.opacity || 100;
-        if (layer.layer == Depth.LIQUID) {
+        if (layer.layer == Layer.LIQUID) {
             alpha = Utils.clamp(cell.liquidVolume * 34, 20, 100);
-        } else if (layer.layer == Depth.GAS) {
+        } else if (layer.layer == Layer.GAS) {
             alpha = Utils.clamp(cell.gasVolume * 34, 20, 100);
         }
         memory.drawSprite(layer.sprite, alpha);

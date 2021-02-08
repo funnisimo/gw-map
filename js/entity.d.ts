@@ -1,10 +1,10 @@
 import * as GW from 'gw-utils';
-import { Layer as Flags, Depth } from './flags';
+import { Entity as Flags, Layer } from './flags';
 import * as Light from './light';
-export { Flags, Depth };
+export { Flags, Layer };
 export interface EntityConfig extends GW.sprite.SpriteConfig {
     priority: number;
-    layer: Depth | keyof typeof Depth;
+    layer: Layer | keyof typeof Layer;
     light: Light.LightBase | null;
     layerFlags?: GW.flag.FlagBase;
     flags?: GW.flag.FlagBase;

@@ -1,7 +1,6 @@
-import { flag as Flag, utils as Utils, color as Color, make as Make, } from "gw-utils";
-import { Tile as Flags, TileMech as MechFlags } from "./flags";
-import * as TileEvent from "./tileEvent";
-import * as Layer from "./entity";
+import { flag as Flag, utils as Utils, color as Color, make as Make, effect as Effect, } from 'gw-utils';
+import { Tile as Flags, TileMech as MechFlags } from './flags';
+import * as Layer from './entity';
 export { Flags, MechFlags };
 /** Tile Class */
 export class Tile extends Layer.Entity {
@@ -18,10 +17,10 @@ export class Tile extends Layer.Entity {
         super((() => {
             if (!config.Extends)
                 return config;
-            if (typeof config.Extends === "string") {
+            if (typeof config.Extends === 'string') {
                 config.Extends = tiles[config.Extends];
                 if (!config.Extends)
-                    throw new Error("Unknown tile base - " + config.Extends);
+                    throw new Error('Unknown tile base - ' + config.Extends);
             }
             const base = config.Extends;
             config.ch = Utils.first(config.ch, base.sprite.ch, -1);
@@ -42,30 +41,30 @@ export class Tile extends Layer.Entity {
         this.defaultGround = null;
         let base = config.Extends;
         if (base) {
-            Utils.assignOmitting(["sprite", "depth", "priority", "activates", "flags", "light"], this, base);
+            Utils.assignOmitting(['sprite', 'depth', 'priority', 'activates', 'flags', 'light'], this, base);
             if (base.activates) {
                 Object.assign(this.activates, base.activates);
             }
             Object.assign(this.flags, base.flags);
         }
         Utils.assignOmitting([
-            "Extends",
-            "extends",
-            "flags",
-            "layerFlags",
-            "mechFlags",
-            "sprite",
-            "activates",
-            "ch",
-            "fg",
-            "bg",
-            "opacity",
-            "light",
-            "layer",
-            "priority",
-            "flags",
-            "ground",
-            "light",
+            'Extends',
+            'extends',
+            'flags',
+            'layerFlags',
+            'mechFlags',
+            'sprite',
+            'activates',
+            'ch',
+            'fg',
+            'bg',
+            'opacity',
+            'light',
+            'layer',
+            'priority',
+            'flags',
+            'ground',
+            'light',
         ], this, config);
         this.name = config.name || (base ? base.name : config.id);
         this.id = config.id;
@@ -81,7 +80,16 @@ export class Tile extends Layer.Entity {
         if (config.activates) {
             Object.entries(config.activates).forEach(([key, info]) => {
                 if (info) {
-                    const activation = TileEvent.make(info);
+                    if (typeof info === 'string') {
+                        if (tiles[info]) {
+                            info = { tile: info };
+                        }
+                        else {
+                            this.activates[key] = info;
+                            return;
+                        }
+                    }
+                    const activation = Effect.make(info);
                     this.activates[key] = activation;
                 }
                 else {
@@ -118,7 +126,7 @@ export class Tile extends Layer.Entity {
         if (arg === true || arg === false) {
             opts.article = arg;
         }
-        else if (typeof arg === "string") {
+        else if (typeof arg === 'string') {
             opts.article = arg;
         }
         else if (arg) {
@@ -130,16 +138,18 @@ export class Tile extends Layer.Entity {
         if (opts.color) {
             let color = opts.color;
             if (opts.color === true) {
-                color = this.sprite.fg || "white";
+                color = this.sprite.fg || 'white';
             }
-            if (typeof color !== "string") {
+            if (typeof color !== 'string') {
                 color = Color.from(color).toString();
             }
             result = `Ω${color}Ω${this.name}∆`;
         }
         if (opts.article) {
-            let article = typeof opts.article === "string" ? opts.article : this.article || "a";
-            result = article + " " + result;
+            let article = typeof opts.article === 'string'
+                ? opts.article
+                : this.article || 'a';
+            result = article + ' ' + result;
         }
         return result;
     }
@@ -165,8 +175,9 @@ export function install(...args) {
     else if (arguments.length == 2) {
         config = base;
     }
-    if (typeof base === "string") {
-        config.Extends = tiles[base] || Utils.ERROR("Unknown base tile: " + base);
+    if (typeof base === 'string') {
+        config.Extends =
+            tiles[base] || Utils.ERROR('Unknown base tile: ' + base);
     }
     // config.name = config.name || base.name || id.toLowerCase();
     config.id = id;

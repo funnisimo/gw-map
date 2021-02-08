@@ -92,6 +92,11 @@ describe('Map', () => {
         const map = GW.make.map(10, 10, 'FLOOR', 'WALL');
         expect(map.hasTile(3, 3, 'FLOOR')).toBeTruthy();
         map.clear();
+        expect(map.hasTile(3, 3, 'FLOOR')).toBeTruthy();
+        expect(map.changed).toBeTruthy();
+        map.changed = false;
+
+        map.clear('WALL');
         expect(map.hasTile(3, 3, 'FLOOR')).toBeFalsy();
         expect(map.changed).toBeTruthy();
     });
@@ -134,7 +139,7 @@ describe('Map', () => {
         ).toBeTruthy();
 
         expect(
-            map.hasLayerFlag(3, 3, Map.layer.Flags.L_BLOCKS_SURFACE)
+            map.hasLayerFlag(3, 3, Map.entity.Flags.L_BLOCKS_SURFACE)
         ).toBeTruthy();
         expect(map.hasTileFlag(3, 3, Map.tile.Flags.T_HAS_STAIRS)).toBeTruthy();
         // expect(
@@ -310,14 +315,14 @@ describe('Map', () => {
         map.setTile(1, 1, 'UP_STAIRS');
         map.storeMemories();
         expect(map.layerFlags(1, 1)).toEqual(
-            Map.layer.Flags.L_BLOCKED_BY_STAIRS |
-                Map.layer.Flags.L_LIST_IN_SIDEBAR |
-                Map.layer.Flags.L_VISUALLY_DISTINCT
+            Map.entity.Flags.L_BLOCKED_BY_STAIRS |
+                Map.entity.Flags.L_LIST_IN_SIDEBAR |
+                Map.entity.Flags.L_VISUALLY_DISTINCT
         );
         expect(map.layerFlags(1, 1, true)).toEqual(
-            Map.layer.Flags.L_BLOCKED_BY_STAIRS |
-                Map.layer.Flags.L_LIST_IN_SIDEBAR |
-                Map.layer.Flags.L_VISUALLY_DISTINCT
+            Map.entity.Flags.L_BLOCKED_BY_STAIRS |
+                Map.entity.Flags.L_LIST_IN_SIDEBAR |
+                Map.entity.Flags.L_VISUALLY_DISTINCT
         );
         expect(map.tileFlags(1, 1)).toEqual(Map.tile.Flags.T_UP_STAIRS);
         expect(map.tileFlags(1, 1, true)).toEqual(Map.tile.Flags.T_UP_STAIRS);
@@ -328,10 +333,10 @@ describe('Map', () => {
         expect(map.tileWithFlag(1, 1, Map.tile.Flags.T_BRIDGE)).toBeNull();
 
         expect(
-            map.tileWithLayerFlag(1, 1, Map.layer.Flags.L_VISUALLY_DISTINCT)
+            map.tileWithLayerFlag(1, 1, Map.entity.Flags.L_VISUALLY_DISTINCT)
         ).toBe(Map.tiles.UP_STAIRS);
         expect(
-            map.tileWithLayerFlag(1, 1, Map.layer.Flags.L_BRIGHT_MEMORY)
+            map.tileWithLayerFlag(1, 1, Map.entity.Flags.L_BRIGHT_MEMORY)
         ).toBeNull();
 
         expect(
@@ -346,13 +351,13 @@ describe('Map', () => {
         // prettier-ignore
         [null,true,true,false,false,false,false,false,false,false,true,true,true],
         // prettier-ignore
-        ["FLOOR",false,true,false,false,false,false,false,false,false,true,true,true],
+        ["FLOOR",true,true,false,false,false,false,false,false,false,true,true,true],
         // prettier-ignore
-        ["WALL",false,true,true,false,false,false,false,true,true,false,false,false],
+        ["WALL",true,true,true,false,false,false,false,true,true,false,false,false],
         // prettier-ignore
-        ["DOOR",false,true,false,true,false,false,false,false,true,true,true,true],
+        ["DOOR",true,true,false,true,false,false,false,false,true,true,true,true],
         // prettier-ignore
-        ["LAKE",false,true,false,false,false,true,false,true,false,true,false,false],
+        ["LAKE",true,true,false,false,false,true,false,true,false,true,false,false],
     ])(
         'passthroughs - %s',
         // prettier-ignore
@@ -401,19 +406,22 @@ describe('Map', () => {
         const map: Map.map.Map = GW.make.map(3, 3, 'FLOOR');
 
         map.setTile(1, 1, 'UP_STAIRS');
-        expect(map.isClear(1, 1)).toBeFalsy();
+        expect(map.hasTileFlag(1, 1, Map.tile.Flags.T_HAS_STAIRS)).toBeTruthy();
+
+        expect(map.hasTile(1, 1, 'FLOOR')).toBeFalsy();
         map.clearCellLayersWithFlags(1, 1, Map.tile.Flags.T_HAS_STAIRS);
-        expect(map.isClear(1, 1)).toBeTruthy();
+        expect(map.hasTile(1, 1, 'FLOOR')).toBeTruthy();
+        expect(map.hasTile(1, 1, 'UP_STAIRS')).toBeFalsy();
     });
 
-    test('clearCellLayers', () => {
-        const map: Map.map.Map = GW.make.map(3, 3, 'LAKE');
+    // test('clearCellLayers', () => {
+    //     const map: Map.map.Map = GW.make.map(3, 3, 'LAKE');
 
-        map.setTile(1, 1, 'BRIDGE');
-        expect(map.isWalkableNow(1, 1)).toBeTruthy();
-        map.clearCellLayers(1, 1, false, true, false);
-        expect(map.isWalkableNow(1, 1)).toBeFalsy();
-    });
+    //     map.setTile(1, 1, 'BRIDGE');
+    //     expect(map.isWalkableNow(1, 1)).toBeTruthy();
+    //     map.clearCellLayers(1, 1, false, true, false);
+    //     expect(map.isWalkableNow(1, 1)).toBeFalsy();
+    // });
 
     test('neighborCount', () => {
         const map: Map.map.Map = GW.make.map(5, 5, 'FLOOR');
@@ -740,6 +748,7 @@ describe('Map', () => {
             '#': 'WALL',
             '~': 'LAKE',
             '>': 'UP_STAIRS',
+            ' ': 'FLOOR',
         });
 
         const grid = GW.make.grid(5, 5);
@@ -763,7 +772,7 @@ describe('Map', () => {
         // clear cells are not walkable
         grid[3][0] = 1; // separate 1 cell
         expect(map.gridDisruptsWalkability(grid)).toBeTruthy();
-        map.clearCell(4, 0); // clear that cell
+        map.nullifyCell(4, 0); // clear that cell
         expect(map.gridDisruptsWalkability(grid)).toBeFalsy();
         grid.fill(0);
     });
@@ -1175,7 +1184,7 @@ describe('Map', () => {
             expect(cell.gasVolume).toEqual(90);
             expect(cell.hasTile('RED_GAS')).toBeTruthy();
             expect(
-                cell.layerFlags() & Map.layer.Flags.L_BLOCKS_GAS
+                cell.layerFlags() & Map.entity.Flags.L_BLOCKS_GAS
             ).toBeFalsy();
             expect(map.count((cell) => cell.gasVolume !== 0)).toEqual(1);
             map.eachNeighbor(5, 5, (cell) => {

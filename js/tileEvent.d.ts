@@ -1,7 +1,7 @@
-import { grid as Grid, color as Color, types as Types } from "gw-utils";
-import { Activation as Flags } from "./flags";
-import * as Tile from "./tile";
-import * as Map from "./map";
+import { grid as Grid, color as Color, types as Types } from 'gw-utils';
+import { Activation as Flags } from './flags';
+import * as Tile from './tile';
+import * as Map from './map';
 export { Flags };
 export declare class TileEvent {
     tile: string | null;
@@ -31,6 +31,6 @@ export declare function resetAllMessages(): void;
 export declare function spawn(activation: TileEvent | Function | string, ctx?: any): Promise<boolean>;
 export declare function computeSpawnMap(feat: TileEvent, spawnMap: Grid.NumGrid, ctx?: any): void;
 export declare function spawnTiles(feat: TileEvent, spawnMap: Grid.NumGrid, ctx: any, tile?: Tile.Tile | null, item?: Types.ItemType | null): Promise<boolean>;
-export declare function nullifyCells(map: Map.Map, spawnMap: Grid.NumGrid, flags: number): boolean;
+export declare function nullifyCells(map: Map.Map, spawnMap: Grid.NumGrid): boolean;
 export declare function evacuateCreatures(map: Map.Map, blockingMap: Grid.NumGrid): boolean;
 export declare function evacuateItems(map: Map.Map, blockingMap: Grid.NumGrid): boolean;

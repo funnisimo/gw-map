@@ -1,57 +1,57 @@
-import { flag as Flag } from "gw-utils";
-export var Depth;
-(function (Depth) {
-    Depth[Depth["ALL_LAYERS"] = -1] = "ALL_LAYERS";
-    Depth[Depth["GROUND"] = 0] = "GROUND";
-    Depth[Depth["LIQUID"] = 1] = "LIQUID";
-    Depth[Depth["SURFACE"] = 2] = "SURFACE";
-    Depth[Depth["GAS"] = 3] = "GAS";
-    Depth[Depth["ITEM"] = 4] = "ITEM";
-    Depth[Depth["ACTOR"] = 5] = "ACTOR";
-    Depth[Depth["PLAYER"] = 6] = "PLAYER";
-    Depth[Depth["FX"] = 7] = "FX";
-    Depth[Depth["UI"] = 8] = "UI";
-})(Depth || (Depth = {}));
-const Fl = Flag.fl;
+import { flag as Flag } from 'gw-utils';
 export var Layer;
 (function (Layer) {
-    // L_DYNAMIC = Fl(0), // for movable things like actors or items
-    Layer[Layer["L_SUPERPRIORITY"] = Fl(1)] = "L_SUPERPRIORITY";
-    Layer[Layer["L_SECRETLY_PASSABLE"] = Fl(2)] = "L_SECRETLY_PASSABLE";
-    Layer[Layer["L_BLOCKS_MOVE"] = Fl(3)] = "L_BLOCKS_MOVE";
-    Layer[Layer["L_BLOCKS_VISION"] = Fl(4)] = "L_BLOCKS_VISION";
-    Layer[Layer["L_BLOCKS_SURFACE"] = Fl(6)] = "L_BLOCKS_SURFACE";
-    Layer[Layer["L_BLOCKS_LIQUID"] = Fl(8)] = "L_BLOCKS_LIQUID";
-    Layer[Layer["L_BLOCKS_GAS"] = Fl(7)] = "L_BLOCKS_GAS";
-    Layer[Layer["L_BLOCKS_ITEMS"] = Fl(5)] = "L_BLOCKS_ITEMS";
-    Layer[Layer["L_BLOCKS_ACTORS"] = Fl(11)] = "L_BLOCKS_ACTORS";
-    Layer[Layer["L_BLOCKS_EFFECTS"] = Fl(9)] = "L_BLOCKS_EFFECTS";
-    Layer[Layer["L_BLOCKS_DIAGONAL"] = Fl(10)] = "L_BLOCKS_DIAGONAL";
-    Layer[Layer["L_INTERRUPT_WHEN_SEEN"] = Fl(11)] = "L_INTERRUPT_WHEN_SEEN";
-    Layer[Layer["L_LIST_IN_SIDEBAR"] = Fl(12)] = "L_LIST_IN_SIDEBAR";
-    Layer[Layer["L_VISUALLY_DISTINCT"] = Fl(13)] = "L_VISUALLY_DISTINCT";
-    Layer[Layer["L_BRIGHT_MEMORY"] = Fl(14)] = "L_BRIGHT_MEMORY";
-    Layer[Layer["L_INVERT_WHEN_HIGHLIGHTED"] = Fl(15)] = "L_INVERT_WHEN_HIGHLIGHTED";
-    Layer[Layer["L_BLOCKED_BY_STAIRS"] = Layer.L_BLOCKS_ITEMS |
-        Layer.L_BLOCKS_SURFACE |
-        Layer.L_BLOCKS_GAS |
-        Layer.L_BLOCKS_LIQUID |
-        Layer.L_BLOCKS_EFFECTS |
-        Layer.L_BLOCKS_ACTORS] = "L_BLOCKED_BY_STAIRS";
-    Layer[Layer["L_BLOCKS_SCENT"] = Layer.L_BLOCKS_MOVE | Layer.L_BLOCKS_VISION] = "L_BLOCKS_SCENT";
-    Layer[Layer["L_DIVIDES_LEVEL"] = Layer.L_BLOCKS_MOVE] = "L_DIVIDES_LEVEL";
-    Layer[Layer["L_WAYPOINT_BLOCKER"] = Layer.L_BLOCKS_MOVE] = "L_WAYPOINT_BLOCKER";
-    Layer[Layer["L_IS_WALL"] = Layer.L_BLOCKS_MOVE |
-        Layer.L_BLOCKS_VISION |
-        Layer.L_BLOCKS_LIQUID |
-        Layer.L_BLOCKS_GAS |
-        Layer.L_BLOCKS_EFFECTS |
-        Layer.L_BLOCKS_DIAGONAL] = "L_IS_WALL";
-    Layer[Layer["L_BLOCKS_EVERYTHING"] = Layer.L_IS_WALL |
-        Layer.L_BLOCKS_ITEMS |
-        Layer.L_BLOCKS_ACTORS |
-        Layer.L_BLOCKS_SURFACE] = "L_BLOCKS_EVERYTHING";
+    Layer[Layer["ALL_LAYERS"] = -1] = "ALL_LAYERS";
+    Layer[Layer["GROUND"] = 0] = "GROUND";
+    Layer[Layer["LIQUID"] = 1] = "LIQUID";
+    Layer[Layer["SURFACE"] = 2] = "SURFACE";
+    Layer[Layer["GAS"] = 3] = "GAS";
+    Layer[Layer["ITEM"] = 4] = "ITEM";
+    Layer[Layer["ACTOR"] = 5] = "ACTOR";
+    Layer[Layer["PLAYER"] = 6] = "PLAYER";
+    Layer[Layer["FX"] = 7] = "FX";
+    Layer[Layer["UI"] = 8] = "UI";
 })(Layer || (Layer = {}));
+const Fl = Flag.fl;
+export var Entity;
+(function (Entity) {
+    // L_DYNAMIC = Fl(0), // for movable things like actors or items
+    Entity[Entity["L_SUPERPRIORITY"] = Fl(1)] = "L_SUPERPRIORITY";
+    Entity[Entity["L_SECRETLY_PASSABLE"] = Fl(2)] = "L_SECRETLY_PASSABLE";
+    Entity[Entity["L_BLOCKS_MOVE"] = Fl(3)] = "L_BLOCKS_MOVE";
+    Entity[Entity["L_BLOCKS_VISION"] = Fl(4)] = "L_BLOCKS_VISION";
+    Entity[Entity["L_BLOCKS_SURFACE"] = Fl(6)] = "L_BLOCKS_SURFACE";
+    Entity[Entity["L_BLOCKS_LIQUID"] = Fl(8)] = "L_BLOCKS_LIQUID";
+    Entity[Entity["L_BLOCKS_GAS"] = Fl(7)] = "L_BLOCKS_GAS";
+    Entity[Entity["L_BLOCKS_ITEMS"] = Fl(5)] = "L_BLOCKS_ITEMS";
+    Entity[Entity["L_BLOCKS_ACTORS"] = Fl(11)] = "L_BLOCKS_ACTORS";
+    Entity[Entity["L_BLOCKS_EFFECTS"] = Fl(9)] = "L_BLOCKS_EFFECTS";
+    Entity[Entity["L_BLOCKS_DIAGONAL"] = Fl(10)] = "L_BLOCKS_DIAGONAL";
+    Entity[Entity["L_INTERRUPT_WHEN_SEEN"] = Fl(11)] = "L_INTERRUPT_WHEN_SEEN";
+    Entity[Entity["L_LIST_IN_SIDEBAR"] = Fl(12)] = "L_LIST_IN_SIDEBAR";
+    Entity[Entity["L_VISUALLY_DISTINCT"] = Fl(13)] = "L_VISUALLY_DISTINCT";
+    Entity[Entity["L_BRIGHT_MEMORY"] = Fl(14)] = "L_BRIGHT_MEMORY";
+    Entity[Entity["L_INVERT_WHEN_HIGHLIGHTED"] = Fl(15)] = "L_INVERT_WHEN_HIGHLIGHTED";
+    Entity[Entity["L_BLOCKED_BY_STAIRS"] = Entity.L_BLOCKS_ITEMS |
+        Entity.L_BLOCKS_SURFACE |
+        Entity.L_BLOCKS_GAS |
+        Entity.L_BLOCKS_LIQUID |
+        Entity.L_BLOCKS_EFFECTS |
+        Entity.L_BLOCKS_ACTORS] = "L_BLOCKED_BY_STAIRS";
+    Entity[Entity["L_BLOCKS_SCENT"] = Entity.L_BLOCKS_MOVE | Entity.L_BLOCKS_VISION] = "L_BLOCKS_SCENT";
+    Entity[Entity["L_DIVIDES_LEVEL"] = Entity.L_BLOCKS_MOVE] = "L_DIVIDES_LEVEL";
+    Entity[Entity["L_WAYPOINT_BLOCKER"] = Entity.L_BLOCKS_MOVE] = "L_WAYPOINT_BLOCKER";
+    Entity[Entity["L_IS_WALL"] = Entity.L_BLOCKS_MOVE |
+        Entity.L_BLOCKS_VISION |
+        Entity.L_BLOCKS_LIQUID |
+        Entity.L_BLOCKS_GAS |
+        Entity.L_BLOCKS_EFFECTS |
+        Entity.L_BLOCKS_DIAGONAL] = "L_IS_WALL";
+    Entity[Entity["L_BLOCKS_EVERYTHING"] = Entity.L_IS_WALL |
+        Entity.L_BLOCKS_ITEMS |
+        Entity.L_BLOCKS_ACTORS |
+        Entity.L_BLOCKS_SURFACE] = "L_BLOCKS_EVERYTHING";
+})(Entity || (Entity = {}));
 ///////////////////////////////////////////////////////
 // TILE EVENT
 export var Activation;
@@ -60,31 +60,32 @@ export var Activation;
     Activation[Activation["DFF_SUBSEQ_EVERYWHERE"] = Fl(1)] = "DFF_SUBSEQ_EVERYWHERE";
     Activation[Activation["DFF_TREAT_AS_BLOCKING"] = Fl(2)] = "DFF_TREAT_AS_BLOCKING";
     Activation[Activation["DFF_PERMIT_BLOCKING"] = Fl(3)] = "DFF_PERMIT_BLOCKING";
-    Activation[Activation["DFF_ACTIVATE_DORMANT_MONSTER"] = Fl(4)] = "DFF_ACTIVATE_DORMANT_MONSTER";
-    Activation[Activation["DFF_BLOCKED_BY_OTHER_LAYERS"] = Fl(6)] = "DFF_BLOCKED_BY_OTHER_LAYERS";
-    Activation[Activation["DFF_SUPERPRIORITY"] = Fl(7)] = "DFF_SUPERPRIORITY";
-    Activation[Activation["DFF_AGGRAVATES_MONSTERS"] = Fl(8)] = "DFF_AGGRAVATES_MONSTERS";
-    Activation[Activation["DFF_RESURRECT_ALLY"] = Fl(9)] = "DFF_RESURRECT_ALLY";
-    Activation[Activation["DFF_EMIT_EVENT"] = Fl(10)] = "DFF_EMIT_EVENT";
-    Activation[Activation["DFF_NO_REDRAW_CELL"] = Fl(11)] = "DFF_NO_REDRAW_CELL";
-    Activation[Activation["DFF_ABORT_IF_BLOCKS_MAP"] = Fl(12)] = "DFF_ABORT_IF_BLOCKS_MAP";
-    Activation[Activation["DFF_BLOCKED_BY_ITEMS"] = Fl(13)] = "DFF_BLOCKED_BY_ITEMS";
-    Activation[Activation["DFF_BLOCKED_BY_ACTORS"] = Fl(14)] = "DFF_BLOCKED_BY_ACTORS";
-    Activation[Activation["DFF_ALWAYS_FIRE"] = Fl(15)] = "DFF_ALWAYS_FIRE";
-    Activation[Activation["DFF_NO_MARK_FIRED"] = Fl(16)] = "DFF_NO_MARK_FIRED";
+    Activation[Activation["DFF_BLOCKED_BY_OTHER_LAYERS"] = Fl(4)] = "DFF_BLOCKED_BY_OTHER_LAYERS";
+    Activation[Activation["DFF_SUPERPRIORITY"] = Fl(5)] = "DFF_SUPERPRIORITY";
+    Activation[Activation["DFF_NO_REDRAW_CELL"] = Fl(6)] = "DFF_NO_REDRAW_CELL";
+    Activation[Activation["DFF_ABORT_IF_BLOCKS_MAP"] = Fl(7)] = "DFF_ABORT_IF_BLOCKS_MAP";
+    Activation[Activation["DFF_BLOCKED_BY_ITEMS"] = Fl(8)] = "DFF_BLOCKED_BY_ITEMS";
+    Activation[Activation["DFF_BLOCKED_BY_ACTORS"] = Fl(9)] = "DFF_BLOCKED_BY_ACTORS";
+    Activation[Activation["DFF_ALWAYS_FIRE"] = Fl(10)] = "DFF_ALWAYS_FIRE";
+    Activation[Activation["DFF_NO_MARK_FIRED"] = Fl(11)] = "DFF_NO_MARK_FIRED";
     // MUST_REPLACE_LAYER
     // NEEDS_EMPTY_LAYER
-    Activation[Activation["DFF_PROTECTED"] = Fl(19)] = "DFF_PROTECTED";
-    Activation[Activation["DFF_SPREAD_CIRCLE"] = Fl(20)] = "DFF_SPREAD_CIRCLE";
-    Activation[Activation["DFF_SPREAD_LINE"] = Fl(21)] = "DFF_SPREAD_LINE";
-    Activation[Activation["DFF_NULL_SURFACE"] = Fl(22)] = "DFF_NULL_SURFACE";
-    Activation[Activation["DFF_NULL_LIQUID"] = Fl(23)] = "DFF_NULL_LIQUID";
-    Activation[Activation["DFF_NULL_GAS"] = Fl(24)] = "DFF_NULL_GAS";
-    Activation[Activation["DFF_EVACUATE_CREATURES"] = Fl(25)] = "DFF_EVACUATE_CREATURES";
-    Activation[Activation["DFF_EVACUATE_ITEMS"] = Fl(26)] = "DFF_EVACUATE_ITEMS";
-    Activation[Activation["DFF_BUILD_IN_WALLS"] = Fl(27)] = "DFF_BUILD_IN_WALLS";
-    Activation[Activation["DFF_MUST_TOUCH_WALLS"] = Fl(28)] = "DFF_MUST_TOUCH_WALLS";
-    Activation[Activation["DFF_NO_TOUCH_WALLS"] = Fl(29)] = "DFF_NO_TOUCH_WALLS";
+    Activation[Activation["DFF_PROTECTED"] = Fl(12)] = "DFF_PROTECTED";
+    Activation[Activation["DFF_SPREAD_CIRCLE"] = Fl(13)] = "DFF_SPREAD_CIRCLE";
+    Activation[Activation["DFF_SPREAD_LINE"] = Fl(14)] = "DFF_SPREAD_LINE";
+    Activation[Activation["DFF_NULL_SURFACE"] = Fl(15)] = "DFF_NULL_SURFACE";
+    Activation[Activation["DFF_NULL_LIQUID"] = Fl(16)] = "DFF_NULL_LIQUID";
+    Activation[Activation["DFF_NULL_GAS"] = Fl(17)] = "DFF_NULL_GAS";
+    Activation[Activation["DFF_EVACUATE_CREATURES"] = Fl(18)] = "DFF_EVACUATE_CREATURES";
+    Activation[Activation["DFF_EVACUATE_ITEMS"] = Fl(19)] = "DFF_EVACUATE_ITEMS";
+    Activation[Activation["DFF_BUILD_IN_WALLS"] = Fl(20)] = "DFF_BUILD_IN_WALLS";
+    Activation[Activation["DFF_MUST_TOUCH_WALLS"] = Fl(21)] = "DFF_MUST_TOUCH_WALLS";
+    Activation[Activation["DFF_NO_TOUCH_WALLS"] = Fl(22)] = "DFF_NO_TOUCH_WALLS";
+    // These should be effect types
+    Activation[Activation["DFF_ACTIVATE_DORMANT_MONSTER"] = Fl(23)] = "DFF_ACTIVATE_DORMANT_MONSTER";
+    Activation[Activation["DFF_AGGRAVATES_MONSTERS"] = Fl(24)] = "DFF_AGGRAVATES_MONSTERS";
+    Activation[Activation["DFF_RESURRECT_ALLY"] = Fl(25)] = "DFF_RESURRECT_ALLY";
+    Activation[Activation["DFF_EMIT_EVENT"] = Fl(26)] = "DFF_EMIT_EVENT";
     Activation[Activation["DFF_ONLY_IF_EMPTY"] = Activation.DFF_BLOCKED_BY_ITEMS | Activation.DFF_BLOCKED_BY_ACTORS] = "DFF_ONLY_IF_EMPTY";
     Activation[Activation["DFF_NULLIFY_CELL"] = Activation.DFF_NULL_SURFACE | Activation.DFF_NULL_LIQUID | Activation.DFF_NULL_GAS] = "DFF_NULLIFY_CELL";
 })(Activation || (Activation = {}));

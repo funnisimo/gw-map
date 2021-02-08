@@ -1,5 +1,5 @@
-import { utils as Utils, range as Range, grid as Grid, color as Color, types as Types } from "gw-utils";
-import * as Map from "./map";
+import { utils as Utils, range as Range, grid as Grid, color as Color, types as Types } from 'gw-utils';
+import * as Map from './map';
 export declare const config: {
     INTENSITY_DARK: number;
 };

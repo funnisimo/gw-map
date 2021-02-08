@@ -1,7 +1,7 @@
 import * as GW from 'gw-utils';
-import { Layer as Flags, Depth } from './flags';
+import { Entity as Flags, Layer } from './flags';
 import * as Light from './light';
-export { Flags, Depth };
+export { Flags, Layer };
 export class Entity {
     constructor(config) {
         this.priority = 50;
@@ -13,7 +13,7 @@ export class Entity {
         this.priority = GW.utils.first(config.priority, 50);
         this.layer =
             (config.layer && typeof config.layer !== 'number'
-                ? Depth[config.layer]
+                ? Layer[config.layer]
                 : config.layer) || 0;
         // @ts-ignore
         this.flags.layer = GW.flag.from(Flags, config.layerFlags, config.flags, 0);

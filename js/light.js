@@ -1,5 +1,5 @@
-import { utils as Utils, range as Range, grid as Grid, color as Color, data as DATA, config as CONFIG, make as Make, } from "gw-utils";
-import * as Flags from "./flags";
+import { utils as Utils, range as Range, grid as Grid, color as Color, data as DATA, config as CONFIG, make as Make, } from 'gw-utils';
+import * as Flags from './flags';
 // const LIGHT_SMOOTHING_THRESHOLD = 150;       // light components higher than this magnitude will be toned down a little
 export const config = (CONFIG.light = { INTENSITY_DARK: 20 }); // less than 20% for highest color in rgb
 const LIGHT_COMPONENTS = Color.make();
@@ -41,21 +41,23 @@ export class Light {
             intensity(LIGHT_COMPONENTS) > config.INTENSITY_DARK;
         const fadeToPercent = this.fadeTo;
         const grid = Grid.alloc(map.width, map.height, 0);
-        map.calcFov(grid, x, y, outerRadius, this.passThroughActors ? 0 : Flags.Cell.HAS_ANY_ACTOR, Flags.Layer.L_BLOCKS_VISION);
+        map.calcFov(grid, x, y, outerRadius, this.passThroughActors ? 0 : Flags.Cell.HAS_ANY_ACTOR, Flags.Entity.L_BLOCKS_VISION);
         let overlappedFieldOfView = false;
         grid.forCircle(x, y, outerRadius, (v, i, j) => {
             if (!v)
                 return;
             const cell = map.cell(i, j);
             lightMultiplier = Math.floor(100 -
-                (100 - fadeToPercent) * (Utils.distanceBetween(x, y, i, j) / radius));
+                (100 - fadeToPercent) *
+                    (Utils.distanceBetween(x, y, i, j) / radius));
             for (k = 0; k < 3; k++) {
                 cell.light[k] += Math.floor((LIGHT_COMPONENTS[k] * lightMultiplier) / 100);
             }
             if (dispelShadows) {
                 cell.flags &= ~Flags.Cell.IS_IN_SHADOW;
             }
-            if (cell.flags & (Flags.Cell.IN_FOV | Flags.Cell.ANY_KIND_OF_VISIBLE)) {
+            if (cell.flags &
+                (Flags.Cell.IN_FOV | Flags.Cell.ANY_KIND_OF_VISIBLE)) {
                 overlappedFieldOfView = true;
             }
             // console.log(i, j, lightMultiplier, cell.light);
@@ -74,24 +76,24 @@ export function intensity(color) {
 export function make(...args) {
     if (args.length == 1) {
         const config = args[0];
-        if (typeof config === "string") {
+        if (typeof config === 'string') {
             const cached = lights[config];
             if (cached)
                 return cached;
             const [color, radius, fadeTo, pass] = config
                 .split(/[,|]/)
                 .map((t) => t.trim());
-            return new Light(Color.from(color), Range.from(radius || 1), Number.parseInt(fadeTo || "0"), !!pass && pass !== "false");
+            return new Light(Color.from(color), Range.from(radius || 1), Number.parseInt(fadeTo || '0'), !!pass && pass !== 'false');
         }
         else if (Array.isArray(config)) {
             const [color, radius, fadeTo, pass] = config;
             return new Light(color, radius, fadeTo, pass);
         }
         else if (config && config.color) {
-            return new Light(Color.from(config.color), Range.from(config.radius), Number.parseInt(config.fadeTo || "0"), config.pass);
+            return new Light(Color.from(config.color), Range.from(config.radius), Number.parseInt(config.fadeTo || '0'), config.pass);
         }
         else {
-            throw new Error("Unknown Light config - " + config);
+            throw new Error('Unknown Light config - ' + config);
         }
     }
     else {
@@ -103,9 +105,9 @@ Make.light = make;
 export const lights = {};
 export function from(...args) {
     if (args.length != 1)
-        Utils.ERROR("Unknown Light config: " + JSON.stringify(args));
+        Utils.ERROR('Unknown Light config: ' + JSON.stringify(args));
     const arg = args[0];
-    if (typeof arg === "string") {
+    if (typeof arg === 'string') {
         const cached = lights[arg];
         if (cached)
             return cached;

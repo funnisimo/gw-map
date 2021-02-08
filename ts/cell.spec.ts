@@ -181,12 +181,12 @@ describe('Cell', () => {
         const cell = GW.make.cell('WALL');
 
         cell.clearFlags(Map.cell.Flags.ANY_KIND_OF_VISIBLE);
-        expect(cell.layerFlags()).toEqual(Map.layer.Flags.L_BLOCKS_EVERYTHING);
+        expect(cell.layerFlags()).toEqual(Map.entity.Flags.L_BLOCKS_EVERYTHING);
         expect(cell.layerFlags(true)).toEqual(0);
         cell.storeMemory();
-        expect(cell.layerFlags()).toEqual(Map.layer.Flags.L_BLOCKS_EVERYTHING);
+        expect(cell.layerFlags()).toEqual(Map.entity.Flags.L_BLOCKS_EVERYTHING);
         expect(cell.layerFlags(true)).toEqual(
-            Map.layer.Flags.L_BLOCKS_EVERYTHING
+            Map.entity.Flags.L_BLOCKS_EVERYTHING
         );
     });
 
@@ -243,18 +243,19 @@ describe('Cell', () => {
     test('hasLayerFlag + hasAllLayerFlags', () => {
         const cell = GW.make.cell('WALL');
         expect(
-            cell.hasLayerFlag(Map.layer.Flags.L_SECRETLY_PASSABLE)
+            cell.hasLayerFlag(Map.entity.Flags.L_SECRETLY_PASSABLE)
         ).toBeFalsy();
-        expect(cell.hasLayerFlag(Map.layer.Flags.L_BLOCKS_MOVE)).toBeTruthy();
+        expect(cell.hasLayerFlag(Map.entity.Flags.L_BLOCKS_MOVE)).toBeTruthy();
         expect(
             cell.hasAllLayerFlags(
-                Map.layer.Flags.L_SECRETLY_PASSABLE |
-                    Map.layer.Flags.L_BLOCKS_MOVE
+                Map.entity.Flags.L_SECRETLY_PASSABLE |
+                    Map.entity.Flags.L_BLOCKS_MOVE
             )
         ).toBeFalsy();
         expect(
             cell.hasAllLayerFlags(
-                Map.layer.Flags.L_BLOCKS_VISION | Map.layer.Flags.L_BLOCKS_MOVE
+                Map.entity.Flags.L_BLOCKS_VISION |
+                    Map.entity.Flags.L_BLOCKS_MOVE
             )
         ).toBeTruthy();
     });
@@ -632,7 +633,7 @@ describe('Cell', () => {
         });
 
         expect(
-            SECRET_DOOR.flags.layer & Map.layer.Flags.L_SECRETLY_PASSABLE
+            SECRET_DOOR.flags.layer & Map.entity.Flags.L_SECRETLY_PASSABLE
         ).toBeTruthy();
 
         cell.setTile(SECRET_DOOR);
@@ -645,7 +646,7 @@ describe('Cell', () => {
         cell.clearFlags(Map.cell.Flags.ANY_KIND_OF_VISIBLE);
 
         expect(
-            cell.memory.layerFlags & Map.layer.Flags.L_SECRETLY_PASSABLE
+            cell.memory.layerFlags & Map.entity.Flags.L_SECRETLY_PASSABLE
         ).toBeTruthy();
 
         expect(cell.isAnyKindOfVisible()).toBeFalsy();
@@ -659,7 +660,7 @@ describe('Cell', () => {
         expect(cell.blocksPathing(true)).toBeFalsy();
         cell.setTile('WALL');
         expect(
-            Map.tiles.WALL.flags.layer & Map.layer.Flags.L_BLOCKS_MOVE
+            Map.tiles.WALL.flags.layer & Map.entity.Flags.L_BLOCKS_MOVE
         ).toBeTruthy();
         expect(cell.blocksPathing()).toBeTruthy();
         expect(cell.blocksPathing(true)).toBeTruthy();
@@ -917,8 +918,8 @@ describe('Cell', () => {
         const a = GW.sprite.make('@', 'white', 'blue');
         const b = GW.sprite.make(null, null, 'red');
 
-        c.addLayer({ sprite: a, layer: Map.layer.Depth.FX });
-        c.addLayer({ sprite: b, layer: Map.layer.Depth.UI, priority: 100 });
+        c.addLayer({ sprite: a, layer: Map.entity.Layer.FX });
+        c.addLayer({ sprite: b, layer: Map.entity.Layer.UI, priority: 100 });
 
         expect(c.layers).not.toBeNull();
         expect(c.layers!.layer.sprite).toBe(Map.tiles.FLOOR.sprite);
@@ -941,12 +942,12 @@ describe('Cell', () => {
             ch: '@',
             fg: 'white',
             bg: 'blue',
-            layer: Map.layer.Depth.FX,
+            layer: Map.entity.Layer.FX,
         });
         const b = GW.make.layer({
             bg: 'red',
             opacity: 50,
-            layer: Map.layer.Depth.UI,
+            layer: Map.entity.Layer.UI,
             priority: 100,
         });
         expect(b.sprite.opacity).toEqual(50);
@@ -1070,7 +1071,7 @@ describe('Cell', () => {
         expect(app.fg).toEqual([80, 80, 80, 0, 0, 0, 0]);
 
         expect(Map.tiles.RED_LIQUID).toBeObject();
-        expect(Map.tiles.RED_LIQUID.layer).toEqual(Map.layer.Depth.LIQUID);
+        expect(Map.tiles.RED_LIQUID.layer).toEqual(Map.entity.Layer.LIQUID);
 
         c.setTile('RED_LIQUID', 100);
         expect(c.liquid).toEqual('RED_LIQUID');
@@ -1080,7 +1081,7 @@ describe('Cell', () => {
         expect(app.bg).toEqual([100, 0, 0, 0, 0, 0, 0]);
         expect(app.fg).toEqual([80, 80, 80, 0, 0, 0, 0]);
 
-        c.clearLayer(Map.layer.Depth.LIQUID);
+        c.clearLayer(Map.entity.Layer.LIQUID);
         expect(c.liquid).toEqual(null);
         expect(c.liquidVolume).toEqual(0);
         Map.cell.getAppearance(c, app);
@@ -1133,7 +1134,7 @@ describe('Cell', () => {
         expect(c.liquid).toEqual('BLUE_LIQUID');
         expect(c.liquidVolume).toEqual(10);
 
-        c.clearLayer(Map.layer.Depth.LIQUID);
+        c.clearLayer(Map.entity.Layer.LIQUID);
         expect(c.liquid).toEqual(null);
         expect(c.liquidVolume).toEqual(0);
     });
@@ -1170,7 +1171,7 @@ describe('Cell', () => {
         expect(c.gas).toEqual('BLUE_GAS');
         expect(c.gasVolume).toEqual(10);
 
-        c.clearLayer(Map.layer.Depth.GAS);
+        c.clearLayer(Map.entity.Layer.GAS);
         expect(c.gas).toEqual(null);
         expect(c.gasVolume).toEqual(0);
     });
@@ -1179,29 +1180,29 @@ describe('Cell', () => {
         const cell = GW.make.cell('FLOOR');
         const mixer = new GW.make.mixer();
         const a = GW.make.layer({
-            layer: Map.layer.Depth.FX,
+            layer: Map.entity.Layer.FX,
             bg: 'blue',
             _n: 'a',
         });
         const b = GW.make.layer({
-            layer: Map.layer.Depth.UI,
+            layer: Map.entity.Layer.UI,
             ch: '!',
             fg: 'green',
             _n: 'b',
         });
         const c = GW.make.layer({
-            layer: Map.layer.Depth.GROUND,
+            layer: Map.entity.Layer.GROUND,
             ch: null,
             fg: 'red',
             _n: 'c',
         });
         const d = GW.make.layer({
-            layer: Map.layer.Depth.UI,
+            layer: Map.entity.Layer.UI,
             bg: 'yellow',
             _n: 'd',
         });
         const e = GW.make.layer({
-            layer: Map.layer.Depth.FX,
+            layer: Map.entity.Layer.FX,
             bg: 'orange',
             _n: 'e',
         });
@@ -1252,8 +1253,8 @@ describe('Cell', () => {
         expect(mixer.fg).toBakeFrom(FLOOR.fg);
         expect(mixer.bg).toBakeFrom(FLOOR.bg);
 
-        cell.addLayer(b); // { sprite: b, layer: Map.layer.Depth.FX });
-        cell.addLayer(a); // { sprite: a, layer: Map.layer.Depth.UI });
+        cell.addLayer(b); // { sprite: b, layer: Map.entity.Layer.FX });
+        cell.addLayer(a); // { sprite: a, layer: Map.entity.Layer.UI });
         Map.cell.getAppearance(cell, mixer);
         expect(mixer.ch).toEqual(b.sprite.ch);
         expect(mixer.fg).toBakeFrom(GW.colors.green);
@@ -1285,7 +1286,7 @@ describe('Cell', () => {
         expect(cell.ground).toEqual('FLOOR');
         expect(cell.liquid).toEqual('RED_LIQUID');
         expect(cell.liquidVolume).toEqual(100);
-        cell.clearLayer(Map.layer.Depth.LIQUID);
+        cell.clearLayer(Map.entity.Layer.LIQUID);
         expect(cell.ground).toEqual('FLOOR');
         expect(cell.liquid).toBeNull();
         expect(cell.liquidVolume).toEqual(0);
@@ -1293,7 +1294,7 @@ describe('Cell', () => {
         cell.setTile('RED_GAS', 100);
         expect(cell.gas).toEqual('RED_GAS');
         expect(cell.gasVolume).toEqual(100);
-        cell.clearLayer(Map.layer.Depth.GAS);
+        cell.clearLayer(Map.entity.Layer.GAS);
         expect(cell.ground).toEqual('FLOOR');
         expect(cell.gas).toBeNull();
         expect(cell.gasVolume).toEqual(0);
@@ -1324,7 +1325,7 @@ describe('Cell', () => {
         expect(cell.liquidTile).toBe(Map.tiles.RED_LIQUID);
         expect(cell.gasTile).toBe(Map.tiles.RED_GAS);
 
-        cell.clearLayersExcept(Map.layer.Depth.SURFACE, 'FLOOR');
+        cell.clearLayersExcept(Map.entity.Layer.SURFACE, 'FLOOR');
         expect(cell.groundTile).toBe(Map.tiles.FLOOR);
         expect(cell.surfaceTile).toBe(Map.tiles.BRIDGE);
         expect(cell.liquid).toBeNull();

@@ -1,7 +1,6 @@
-import { color as Color, types as Types } from "gw-utils";
-import { Tile as Flags, TileMech as MechFlags } from "./flags";
-import * as TileEvent from "./tileEvent";
-import * as Layer from "./entity";
+import { color as Color, types as Types, effect as Effect } from 'gw-utils';
+import { Tile as Flags, TileMech as MechFlags } from './flags';
+import * as Layer from './entity';
 export { Flags, MechFlags };
 export interface NameConfig {
     article?: boolean | string;
@@ -22,12 +21,12 @@ export interface FullTileConfig extends Layer.EntityConfig {
     dissipate: number;
 }
 declare type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>;
-export declare type TileConfig = AtLeast<FullTileConfig, "id">;
+export declare type TileConfig = AtLeast<FullTileConfig, 'id'>;
 /** Tile Class */
 export declare class Tile extends Layer.Entity implements Types.TileType {
     name: string;
     flags: Types.TileFlags;
-    activates: Record<string, TileEvent.TileEvent>;
+    activates: Record<string, Effect.Effect | string>;
     flavor: string | null;
     desc: string | null;
     article: string | null;

@@ -1,313 +1,322 @@
-import "jest-extended";
-import * as Map from "./gw";
-import { colors as COLORS } from "gw-utils";
+import 'jest-extended';
+import * as Map from './gw';
+import { colors as COLORS } from 'gw-utils';
 
-describe("flags", () => {
-  test("flags", () => {
-    expect(Map.tile.Flags.T_BRIDGE).toBeGreaterThan(0);
+describe('flags', () => {
+    test('flags', () => {
+        expect(Map.tile.Flags.T_BRIDGE).toBeGreaterThan(0);
 
-    const LayerFlags = Map.layer.Flags;
-    let f = LayerFlags.L_BLOCKS_EVERYTHING;
-    expect(f & LayerFlags.L_BLOCKS_VISION).toBeTruthy();
-  });
+        const LayerFlags = Map.entity.Flags;
+        let f = LayerFlags.L_BLOCKS_EVERYTHING;
+        expect(f & LayerFlags.L_BLOCKS_VISION).toBeTruthy();
+    });
 
-  test("mechFlags", () => {
-    const mechFlags = Map.tile.MechFlags;
+    test('mechFlags', () => {
+        const mechFlags = Map.tile.MechFlags;
 
-    expect(mechFlags.TM_EXPLOSIVE_PROMOTE).toBeGreaterThan(0);
-  });
+        expect(mechFlags.TM_EXPLOSIVE_PROMOTE).toBeGreaterThan(0);
+    });
 });
 
-describe("Tile", () => {
-  test("can be created from an object", () => {
-    const tile = new Map.tile.Tile({
-      id: "WALL",
-      name: "Stone Wall",
-      ch: "#",
-      fg: "light_gray",
-      bg: "dark_gray",
-      flags: ["L_BLOCKS_EVERYTHING"],
-      priority: 90,
+describe('Tile', () => {
+    test('can be created from an object', () => {
+        const tile = new Map.tile.Tile({
+            id: 'WALL',
+            name: 'Stone Wall',
+            ch: '#',
+            fg: 'light_gray',
+            bg: 'dark_gray',
+            flags: ['L_BLOCKS_EVERYTHING'],
+            priority: 90,
+        });
+
+        expect(tile).toBeDefined();
+
+        expect(tile.flags.layer).toEqual(Map.entity.Flags.L_BLOCKS_EVERYTHING);
+        expect(tile.flags.tileMech).toEqual(0);
+        expect(tile.sprite).toMatchObject({
+            ch: '#',
+            fg: COLORS.light_gray,
+            bg: COLORS.dark_gray,
+        });
+        expect(tile.layer).toEqual(Map.entity.Layer.GROUND);
+        expect(tile.activates).toEqual({});
+        expect(tile.priority).toEqual(90);
+        expect(tile.name).toEqual('Stone Wall');
+
+        expect(tile.getName()).toEqual('Stone Wall');
+        expect(tile.getName('a')).toEqual('a Stone Wall');
+        expect(tile.getName('the')).toEqual('the Stone Wall');
+        expect(tile.getName(true)).toEqual('a Stone Wall');
+
+        expect(tile.getName({ color: true })).toEqual(
+            'Ωlight_grayΩStone Wall∆'
+        );
+        expect(tile.getName({ color: 0xfff })).toEqual('Ω#fffΩStone Wall∆');
+        expect(tile.getName({ color: 'white' })).toEqual('ΩwhiteΩStone Wall∆');
+        expect(tile.getName({ color: true, article: 'a' })).toEqual(
+            'a Ωlight_grayΩStone Wall∆'
+        );
+        expect(tile.getName({ color: true, article: 'the' })).toEqual(
+            'the Ωlight_grayΩStone Wall∆'
+        );
+        expect(tile.getName({ color: true, article: true })).toEqual(
+            'a Ωlight_grayΩStone Wall∆'
+        );
+
+        expect(tile.getDescription()).toEqual(tile.getName());
     });
 
-    expect(tile).toBeDefined();
+    test('can create without sprite field', () => {
+        const tile = new Map.tile.Tile({
+            id: 'TEST',
+            name: 'TEST',
+            ch: '#',
+            fg: 'light_gray',
+            bg: 'dark_gray',
+            priority: 90,
+        });
 
-    expect(tile.flags.layer).toEqual(Map.layer.Flags.L_BLOCKS_EVERYTHING);
-    expect(tile.flags.tileMech).toEqual(0);
-    expect(tile.sprite).toMatchObject({
-      ch: "#",
-      fg: COLORS.light_gray,
-      bg: COLORS.dark_gray,
-    });
-    expect(tile.layer).toEqual(Map.layer.Depth.GROUND);
-    expect(tile.activates).toEqual({});
-    expect(tile.priority).toEqual(90);
-    expect(tile.name).toEqual("Stone Wall");
-
-    expect(tile.getName()).toEqual("Stone Wall");
-    expect(tile.getName("a")).toEqual("a Stone Wall");
-    expect(tile.getName("the")).toEqual("the Stone Wall");
-    expect(tile.getName(true)).toEqual("a Stone Wall");
-
-    expect(tile.getName({ color: true })).toEqual("Ωlight_grayΩStone Wall∆");
-    expect(tile.getName({ color: 0xfff })).toEqual("Ω#fffΩStone Wall∆");
-    expect(tile.getName({ color: "white" })).toEqual("ΩwhiteΩStone Wall∆");
-    expect(tile.getName({ color: true, article: "a" })).toEqual(
-      "a Ωlight_grayΩStone Wall∆"
-    );
-    expect(tile.getName({ color: true, article: "the" })).toEqual(
-      "the Ωlight_grayΩStone Wall∆"
-    );
-    expect(tile.getName({ color: true, article: true })).toEqual(
-      "a Ωlight_grayΩStone Wall∆"
-    );
-
-    expect(tile.getDescription()).toEqual(tile.getName());
-  });
-
-  test("can create without sprite field", () => {
-    const tile = new Map.tile.Tile({
-      id: "TEST",
-      name: "TEST",
-      ch: "#",
-      fg: "light_gray",
-      bg: "dark_gray",
-      priority: 90,
+        expect(tile.sprite.ch).toEqual('#');
+        expect(tile.sprite.fg).toBe(COLORS.light_gray);
+        expect(tile.sprite.bg).toBe(COLORS.dark_gray);
     });
 
-    expect(tile.sprite.ch).toEqual("#");
-    expect(tile.sprite.fg).toBe(COLORS.light_gray);
-    expect(tile.sprite.bg).toBe(COLORS.dark_gray);
-  });
+    test('can create tiles with see through bg', () => {
+        const tile = new Map.tile.Tile({
+            id: 'TEST',
+            ch: '#',
+            fg: 'light_gray',
+            bg: null,
+        });
 
-  test("can create tiles with see through bg", () => {
-    const tile = new Map.tile.Tile({
-      id: "TEST",
-      ch: "#",
-      fg: "light_gray",
-      bg: null,
+        expect(tile.sprite.bg).toEqual(-1);
     });
 
-    expect(tile.sprite.bg).toEqual(-1);
-  });
+    test('can extend another tile', () => {
+        const wall = new Map.tile.Tile({
+            id: 'WALL',
+            name: 'Stone Wall',
+            ch: '#',
+            fg: 'light_gray',
+            bg: 'dark_gray',
+            flags: ['L_BLOCKS_EVERYTHING'],
+            priority: 90,
+        });
 
-  test("can extend another tile", () => {
-    const wall = new Map.tile.Tile({
-      id: "WALL",
-      name: "Stone Wall",
-      ch: "#",
-      fg: "light_gray",
-      bg: "dark_gray",
-      flags: ["L_BLOCKS_EVERYTHING"],
-      priority: 90,
+        expect(wall).toBeDefined();
+
+        const glassWall = new Map.tile.Tile({
+            id: 'GLASS_WALL',
+            name: 'Glass Wall',
+            ch: '+',
+            fg: 'teal',
+            flags: ['!L_BLOCKS_VISION'],
+            Extends: wall,
+        });
+
+        expect(glassWall).toBeDefined();
+
+        expect(glassWall.flags.layer).not.toEqual(wall.flags);
+        expect(
+            glassWall.flags.layer & Map.entity.Flags.L_BLOCKS_VISION
+        ).toBeFalsy();
+        expect(
+            glassWall.flags.layer & Map.entity.Flags.L_BLOCKS_MOVE
+        ).toBeTruthy();
+        expect(glassWall.flags.tile).toEqual(wall.flags.tile);
+        expect(glassWall).not.toBe(wall);
+        expect(glassWall.sprite).toMatchObject({
+            ch: '+',
+            fg: COLORS.teal,
+            bg: wall.sprite.bg,
+        });
+
+        // expect(glassWall.getName()).toEqual('Glass Wall');
     });
 
-    expect(wall).toBeDefined();
+    test('extend with light', () => {
+        const tw = Map.tile.install('TORCH_WALL', {
+            Extends: 'WALL',
+            light: { color: 'yellow', radius: 5, fadeTo: 50 },
+        });
 
-    const glassWall = new Map.tile.Tile({
-      id: "GLASS_WALL",
-      name: "Glass Wall",
-      ch: "+",
-      fg: "teal",
-      flags: ["!L_BLOCKS_VISION"],
-      Extends: wall,
+        expect(tw.light).not.toBeNull();
+        expect(tw.light!.color).toEqual(COLORS.yellow);
+        expect(tw.light!.radius.value()).toEqual(5);
+        expect(tw.light!.fadeTo).toEqual(50);
     });
 
-    expect(glassWall).toBeDefined();
+    test('can add multiple from an object', () => {
+        Map.tile.installAll({
+            WALL: {
+                name: 'Stone Wall',
+                ch: '#',
+                fg: 'light_gray',
+                bg: 'dark_gray',
+                flags: ['L_BLOCKS_EVERYTHING'],
+                priority: 90,
+            },
+            GLASS_WALL: {
+                Extends: 'WALL',
+                name: 'Glass Wall',
+                fg: 'teal',
+                bg: 'silver',
+                flags: ['!L_BLOCKS_VISION'],
+            },
+        });
 
-    expect(glassWall.flags.layer).not.toEqual(wall.flags);
-    expect(glassWall.flags.layer & Map.layer.Flags.L_BLOCKS_VISION).toBeFalsy();
-    expect(glassWall.flags.layer & Map.layer.Flags.L_BLOCKS_MOVE).toBeTruthy();
-    expect(glassWall.flags.tile).toEqual(wall.flags.tile);
-    expect(glassWall).not.toBe(wall);
-    expect(glassWall.sprite).toMatchObject({
-      ch: "+",
-      fg: COLORS.teal,
-      bg: wall.sprite.bg,
+        expect(Map.tiles.WALL.getName()).toEqual('Stone Wall');
+        expect(Map.tiles.WALL.flags.layer).toEqual(
+            Map.entity.Flags.L_BLOCKS_EVERYTHING
+        );
+        expect(Map.tiles.GLASS_WALL.getName()).toEqual('Glass Wall');
+        expect(
+            Map.tiles.GLASS_WALL.flags.layer & Map.entity.Flags.L_BLOCKS_VISION
+        ).toBeFalsy();
+        expect(
+            Map.tiles.GLASS_WALL.flags.layer & Map.entity.Flags.L_BLOCKS_MOVE
+        ).toBeTruthy();
     });
 
-    // expect(glassWall.getName()).toEqual('Glass Wall');
-  });
+    test('can set the layer', () => {
+        const carpet = new Map.tile.Tile({
+            id: 'CARPET',
+            name: 'Carpet',
+            ch: '+',
+            fg: 'dark_red',
+            bg: 'dark_teal',
+            priority: 10,
+            layer: 'SURFACE',
+        });
 
-  test("extend with light", () => {
-    const tw = Map.tile.install("TORCH_WALL", {
-      Extends: "WALL",
-      light: { color: "yellow", radius: 5, fadeTo: 50 },
+        expect(carpet.layer).toEqual(Map.entity.Layer.SURFACE);
     });
 
-    expect(tw.light).not.toBeNull();
-    expect(tw.light!.color).toEqual(COLORS.yellow);
-    expect(tw.light!.radius.value()).toEqual(5);
-    expect(tw.light!.fadeTo).toEqual(50);
-  });
+    test('can use objects for activations', async () => {
+        const carpet = Map.tile.install('CARPET', {
+            ch: '+',
+            fg: '#f66',
+            bg: '#ff6',
+            activates: {
+                tick: { chance: 0, log: 'testing' },
+            },
+            layer: 'SURFACE',
+        });
 
-  test("can add multiple from an object", () => {
-    Map.tile.installAll({
-      WALL: {
-        name: "Stone Wall",
-        ch: "#",
-        fg: "light_gray",
-        bg: "dark_gray",
-        flags: ["L_BLOCKS_EVERYTHING"],
-        priority: 90,
-      },
-      GLASS_WALL: {
-        Extends: "WALL",
-        name: "Glass Wall",
-        fg: "teal",
-        bg: "silver",
-        flags: ["!L_BLOCKS_VISION"],
-      },
+        expect(Map.tiles.CARPET).toBe(carpet);
+        expect(carpet.activates.tick).not.toBeNil();
+
+        expect(carpet.activatesOn('tick')).toBeTruthy();
     });
 
-    expect(Map.tiles.WALL.getName()).toEqual("Stone Wall");
-    expect(Map.tiles.WALL.flags.layer).toEqual(
-      Map.layer.Flags.L_BLOCKS_EVERYTHING
-    );
-    expect(Map.tiles.GLASS_WALL.getName()).toEqual("Glass Wall");
-    expect(
-      Map.tiles.GLASS_WALL.flags.layer & Map.layer.Flags.L_BLOCKS_VISION
-    ).toBeFalsy();
-    expect(
-      Map.tiles.GLASS_WALL.flags.layer & Map.layer.Flags.L_BLOCKS_MOVE
-    ).toBeTruthy();
-  });
+    test('can be created by extending another tile', () => {
+        const WALL = Map.tiles.WALL;
+        expect(WALL).toBeDefined();
 
-  test("can set the layer", () => {
-    const carpet = new Map.tile.Tile({
-      id: "CARPET",
-      name: "Carpet",
-      ch: "+",
-      fg: "dark_red",
-      bg: "dark_teal",
-      priority: 10,
-      layer: "SURFACE",
+        const custom = Map.tile.install('CUSTOM', 'WALL', {
+            ch: '+',
+            fg: 'white',
+            name: 'Custom Wall',
+        });
+
+        expect(custom.sprite).toMatchObject({
+            ch: '+',
+            fg: COLORS.white,
+            bg: Map.tiles.WALL.sprite.bg,
+        });
+        expect(custom.name).toEqual('Custom Wall');
+        expect(custom.id).toEqual('CUSTOM');
     });
 
-    expect(carpet.layer).toEqual(Map.layer.Depth.SURFACE);
-  });
+    test('can have a glow light', () => {
+        const tile = Map.tile.install('TEST', {
+            light: 'white, 3',
+            name: 'test',
+        });
 
-  test("can use objects for activations", async () => {
-    const carpet = Map.tile.install("CARPET", {
-      ch: "+",
-      fg: "#f66",
-      bg: "#ff6",
-      activates: {
-        tick: { chance: 0, log: "testing" },
-      },
-      layer: "SURFACE",
+        expect(tile.light).toBeObject();
+        expect(tile.light?.color).toEqual(COLORS.white);
+        expect(tile.light?.radius.value()).toEqual(3);
+        expect(tile.light?.fadeTo).toEqual(0);
+
+        expect(() => {
+            // @ts-ignore
+            Map.tile.install('TEST', { light: 4 });
+        }).toThrow();
     });
 
-    expect(Map.tiles.CARPET).toBe(carpet);
-    expect(carpet.activates.tick).not.toBeNil();
-
-    expect(carpet.activatesOn("tick")).toBeTruthy();
-  });
-
-  test("can be created by extending another tile", () => {
-    const WALL = Map.tiles.WALL;
-    expect(WALL).toBeDefined();
-
-    const custom = Map.tile.install("CUSTOM", "WALL", {
-      ch: "+",
-      fg: "white",
-      name: "Custom Wall",
+    test('hasFlag', () => {
+        const tile = Map.tiles.WALL;
+        expect(
+            tile.hasAllLayerFlags(Map.entity.Flags.L_BLOCKS_MOVE)
+        ).toBeTruthy();
+        expect(tile.hasAllFlags(Map.tile.Flags.T_BRIDGE)).toBeFalsy();
     });
 
-    expect(custom.sprite).toMatchObject({
-      ch: "+",
-      fg: COLORS.white,
-      bg: Map.tiles.WALL.sprite.bg,
-    });
-    expect(custom.name).toEqual("Custom Wall");
-    expect(custom.id).toEqual("CUSTOM");
-  });
-
-  test("can have a glow light", () => {
-    const tile = Map.tile.install("TEST", {
-      light: "white, 3",
-      name: "test",
+    test.skip('hasMechFlag', () => {
+        // const tile = Map.tiles.DOOR;
+        // expect(
+        //   tile.hasAllMechFlags(Map.tile.MechFlags.TM_VISUALLY_DISTINCT)
+        // ).toBeTruthy();
+        // expect(
+        //   tile.hasAllMechFlags(Map.tile.MechFlags.TM_EXTINGUISHES_FIRE)
+        // ).toBeFalsy();
     });
 
-    expect(tile.light).toBeObject();
-    expect(tile.light?.color).toEqual(COLORS.white);
-    expect(tile.light?.radius.value()).toEqual(3);
-    expect(tile.light?.fadeTo).toEqual(0);
+    test('install - { Extends }', () => {
+        const glassWall = Map.tile.install({
+            id: 'GLASS_WALL',
+            Extends: 'WALL',
+            ch: '+',
+            fg: 'teal',
+            bg: 'red',
+            flags: ['!L_BLOCKS_VISION'],
+        });
 
-    expect(() => {
-      // @ts-ignore
-      Map.tile.install("TEST", { light: 4 });
-    }).toThrow();
-  });
-
-  test("hasFlag", () => {
-    const tile = Map.tiles.WALL;
-    expect(tile.hasAllLayerFlags(Map.layer.Flags.L_BLOCKS_MOVE)).toBeTruthy();
-    expect(tile.hasAllFlags(Map.tile.Flags.T_BRIDGE)).toBeFalsy();
-  });
-
-  test.skip("hasMechFlag", () => {
-    // const tile = Map.tiles.DOOR;
-    // expect(
-    //   tile.hasAllMechFlags(Map.tile.MechFlags.TM_VISUALLY_DISTINCT)
-    // ).toBeTruthy();
-    // expect(
-    //   tile.hasAllMechFlags(Map.tile.MechFlags.TM_EXTINGUISHES_FIRE)
-    // ).toBeFalsy();
-  });
-
-  test("install - { Extends }", () => {
-    const glassWall = Map.tile.install({
-      id: "GLASS_WALL",
-      Extends: "WALL",
-      ch: "+",
-      fg: "teal",
-      bg: "red",
-      flags: ["!L_BLOCKS_VISION"],
+        expect(glassWall.name).toEqual('Stone Wall');
+        expect(
+            glassWall.hasAllLayerFlags(Map.entity.Flags.L_BLOCKS_MOVE)
+        ).toBeTruthy();
     });
 
-    expect(glassWall.name).toEqual("Stone Wall");
-    expect(
-      glassWall.hasAllLayerFlags(Map.layer.Flags.L_BLOCKS_MOVE)
-    ).toBeTruthy();
-  });
-
-  test("install - { Extends: Unknown }", () => {
-    expect(() =>
-      Map.tile.install({
-        id: "GLASS_WALL",
-        Extends: "UNKNOWN",
-        ch: "+",
-        fg: "teal",
-        bg: "red",
-        flags: ["!L_BLOCKS_VISION"],
-      })
-    ).toThrow();
-  });
-
-  test("install - {}", () => {
-    const glassWall = Map.tile.install({
-      id: "GLASS_WALL",
-      name: "glass wall",
-      ch: "+",
-      fg: "teal",
-      bg: "red",
-      flags: "L_BLOCKS_EVERYTHING,!L_BLOCKS_VISION",
+    test('install - { Extends: Unknown }', () => {
+        expect(() =>
+            Map.tile.install({
+                id: 'GLASS_WALL',
+                Extends: 'UNKNOWN',
+                ch: '+',
+                fg: 'teal',
+                bg: 'red',
+                flags: ['!L_BLOCKS_VISION'],
+            })
+        ).toThrow();
     });
 
-    expect(glassWall.name).toEqual("glass wall");
-    expect(
-      glassWall.hasAllLayerFlags(Map.layer.Flags.L_BLOCKS_MOVE)
-    ).toBeTruthy();
-    expect(
-      glassWall.hasAllLayerFlags(Map.layer.Flags.L_BLOCKS_VISION)
-    ).toBeFalsy();
-    expect(
-      glassWall.hasAllLayerFlags(
-        Map.layer.Flags.L_BLOCKS_VISION | Map.layer.Flags.L_BLOCKS_MOVE
-      )
-    ).toBeFalsy();
-  });
+    test('install - {}', () => {
+        const glassWall = Map.tile.install({
+            id: 'GLASS_WALL',
+            name: 'glass wall',
+            ch: '+',
+            fg: 'teal',
+            bg: 'red',
+            flags: 'L_BLOCKS_EVERYTHING,!L_BLOCKS_VISION',
+        });
+
+        expect(glassWall.name).toEqual('glass wall');
+        expect(
+            glassWall.hasAllLayerFlags(Map.entity.Flags.L_BLOCKS_MOVE)
+        ).toBeTruthy();
+        expect(
+            glassWall.hasAllLayerFlags(Map.entity.Flags.L_BLOCKS_VISION)
+        ).toBeFalsy();
+        expect(
+            glassWall.hasAllLayerFlags(
+                Map.entity.Flags.L_BLOCKS_VISION |
+                    Map.entity.Flags.L_BLOCKS_MOVE
+            )
+        ).toBeFalsy();
+    });
 });
 
 // describe('tiles', () => {

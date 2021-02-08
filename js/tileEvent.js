@@ -1,10 +1,10 @@
-import { utils as Utils, random, grid as Grid, events as Events, color as Color, flag as Flag, data as Data, message as Msg, make as Make, } from "gw-utils";
-import { Depth, Activation as Flags, Tile as TileFlags, CellMech as CellMechFlags, Layer as LayerFlags, } from "./flags";
-import * as Tile from "./tile";
+import { utils as Utils, random, grid as Grid, events as Events, color as Color, flag as Flag, data as Data, message as Msg, make as Make, } from 'gw-utils';
+import { Layer, Activation as Flags, Tile as TileFlags, CellMech as CellMechFlags, Entity as LayerFlags, } from './flags';
+import * as Tile from './tile';
 export { Flags };
 export class TileEvent {
     constructor(opts = {}) {
-        if (typeof opts === "function") {
+        if (typeof opts === 'function') {
             opts = {
                 fn: opts,
             };
@@ -33,7 +33,7 @@ export class TileEvent {
 export function make(opts) {
     if (!opts)
         return null;
-    if (typeof opts === "string") {
+    if (typeof opts === 'string') {
         opts = { tile: opts };
     }
     const te = new TileEvent(opts);
@@ -66,17 +66,17 @@ export function resetAllMessages() {
 export async function spawn(activation, ctx = {}) {
     let i, j;
     if (!activation)
-        Utils.ERROR("No activation.");
+        Utils.ERROR('No activation.');
     if (!ctx)
-        Utils.ERROR("Context required - and must include map, x, y");
+        Utils.ERROR('Context required - and must include map, x, y');
     let feat;
-    if (typeof activation === "string") {
+    if (typeof activation === 'string') {
         // @ts-ignore
         feat = activations[activation];
         if (!feat)
-            Utils.ERROR("Unknown tile Event: " + activation);
+            Utils.ERROR('Unknown tile Event: ' + activation);
     }
-    else if (typeof activation === "function") {
+    else if (typeof activation === 'function') {
         return activation(ctx);
     }
     else {
@@ -86,7 +86,7 @@ export async function spawn(activation, ctx = {}) {
     const x = ctx.x;
     const y = ctx.y;
     if (x === undefined || y === undefined || !map) {
-        Utils.ERROR("MAP, x, y are required in context.");
+        Utils.ERROR('MAP, x, y are required in context.');
     }
     if (ctx.safe &&
         map.hasCellMechFlag(x, y, CellMechFlags.EVENT_FIRED_THIS_TURN)) {
@@ -96,7 +96,8 @@ export async function spawn(activation, ctx = {}) {
         }
     }
     // Activation.debug('spawn', x, y, 'id=', feat.id, 'tile=', feat.tile, 'item=', feat.item);
-    ctx.refreshCell = ctx.refreshCell || !(feat.flags & Flags.DFF_NO_REDRAW_CELL);
+    ctx.refreshCell =
+        ctx.refreshCell || !(feat.flags & Flags.DFF_NO_REDRAW_CELL);
     const abortIfBlocking = (ctx.abortIfBlocking =
         ctx.abortIfBlocking || feat.flags & Flags.DFF_ABORT_IF_BLOCKS_MAP);
     // if ((feat.flags & DFF_RESURRECT_ALLY) && !resurrectAlly(x, y))
@@ -114,14 +115,14 @@ export async function spawn(activation, ctx = {}) {
     if (feat.tile) {
         tile = Tile.tiles[feat.tile] || null;
         if (!tile) {
-            Utils.ERROR("Unknown tile: " + feat.tile);
+            Utils.ERROR('Unknown tile: ' + feat.tile);
         }
     }
     let item = null;
-    if (feat.item && "item" in Make) {
+    if (feat.item && 'item' in Make) {
         item = Make.item(feat.item);
         if (!item) {
-            Utils.ERROR("Unknown item: " + feat.item);
+            Utils.ERROR('Unknown item: ' + feat.item);
         }
     }
     // Blocking keeps track of whether to abort if it turns out that the DF would obstruct the level.
@@ -153,7 +154,7 @@ export async function spawn(activation, ctx = {}) {
         }
         if (feat.flags & Flags.DFF_NULLIFY_CELL) {
             // first, clear other tiles (not base/ground)
-            if (nullifyCells(map, spawnMap, feat.flags)) {
+            if (nullifyCells(map, spawnMap)) {
                 didSomething = true;
             }
         }
@@ -200,7 +201,7 @@ export async function spawn(activation, ctx = {}) {
                     continue;
                 const cell = map.cell(i, j);
                 if (cell.actor || cell.item) {
-                    await cell.activate("enter", { map, x: i, y: j, cell });
+                    await cell.activate('enter', { map, x: i, y: j, cell });
                 }
             }
         }
@@ -239,7 +240,9 @@ export async function spawn(activation, ctx = {}) {
     if (didSomething) {
         if (tile &&
             tile.flags.tile &
-                (TileFlags.T_DEEP_WATER | TileFlags.T_LAVA | TileFlags.T_AUTO_DESCENT)) {
+                (TileFlags.T_DEEP_WATER |
+                    TileFlags.T_LAVA |
+                    TileFlags.T_AUTO_DESCENT)) {
             Data.updateMapToShoreThisTurn = false;
         }
         // awaken dormant creatures?
@@ -324,11 +327,11 @@ export function computeSpawnMap(feat, spawnMap, ctx = {}) {
     }
     let startProb = feat.spread || 0;
     let probDec = feat.decrement || 0;
-    if (feat.matchTile && typeof feat.matchTile === "string") {
+    if (feat.matchTile && typeof feat.matchTile === 'string') {
         const name = feat.matchTile;
         const tile = Tile.tiles[name];
         if (!tile) {
-            Utils.ERROR("Failed to find match tile with name:" + name);
+            Utils.ERROR('Failed to find match tile with name:' + name);
         }
         feat.matchTile = tile.id;
     }
@@ -435,20 +438,24 @@ export async function spawnTiles(feat, spawnMap, ctx, tile, item) {
             if (tile) {
                 if (cell.tile(tile.layer) === tile) {
                     // If the new cell already contains the fill terrain,
-                    if (tile.layer == Depth.GAS) {
+                    if (tile.layer == Layer.GAS) {
                         spawnMap[i][j] = 1;
                         cell.gasVolume += volume;
                     }
-                    else if (tile.layer == Depth.LIQUID) {
+                    else if (tile.layer == Layer.LIQUID) {
                         spawnMap[i][j] = 1;
                         cell.liquidVolume += volume;
                     }
                 }
-                else if ((superpriority || cell.tile(tile.layer).priority < tile.priority) && // If the terrain in the layer to be overwritten has a higher priority number (unless superpriority),
+                else if ((superpriority ||
+                    cell.tile(tile.layer).priority < tile.priority) && // If the terrain in the layer to be overwritten has a higher priority number (unless superpriority),
                     !cell.obstructsLayer(tile.layer) && // If we will be painting into the surface layer when that cell forbids it,
-                    (!cell.item || !(feat.flags & Flags.DFF_BLOCKED_BY_ITEMS)) &&
-                    (!cell.actor || !(feat.flags & Flags.DFF_BLOCKED_BY_ACTORS)) &&
-                    (!blockedByOtherLayers || cell.topmostTile().priority < tile.priority)) {
+                    (!cell.item ||
+                        !(feat.flags & Flags.DFF_BLOCKED_BY_ITEMS)) &&
+                    (!cell.actor ||
+                        !(feat.flags & Flags.DFF_BLOCKED_BY_ACTORS)) &&
+                    (!blockedByOtherLayers ||
+                        cell.topmostTile().priority < tile.priority)) {
                     // if the fill won't violate the priority of the most important terrain in this cell:
                     spawnMap[i][j] = 1; // so that the spawnmap reflects what actually got built
                     map.setTile(i, j, tile, volume);
@@ -514,15 +521,12 @@ export async function spawnTiles(feat, spawnMap, ctx, tile, item) {
     }
     return accomplishedSomething;
 }
-export function nullifyCells(map, spawnMap, flags) {
+export function nullifyCells(map, spawnMap) {
     let didSomething = false;
-    const nullSurface = flags & Flags.DFF_NULL_SURFACE;
-    const nullLiquid = flags & Flags.DFF_NULL_LIQUID;
-    const nullGas = flags & Flags.DFF_NULL_GAS;
     spawnMap.forEach((v, i, j) => {
         if (!v)
             return;
-        map.clearCellLayers(i, j, !!nullLiquid, !!nullSurface, !!nullGas);
+        map.clearCell(i, j);
         didSomething = true;
     });
     return didSomething;

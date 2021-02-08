@@ -1,6 +1,6 @@
-import * as GW from "gw-utils";
-import * as Flags from "./flags";
-import * as Map from "./map";
+import * as GW from 'gw-utils';
+import * as Flags from './flags';
+import * as Map from './map';
 function demoteCellVisibility(cell) {
     cell.flags &= ~(Flags.Cell.WAS_ANY_KIND_OF_VISIBLE | Flags.Cell.IN_FOV);
     if (cell.flags & Flags.Cell.VISIBLE) {
@@ -29,18 +29,18 @@ function _updateCellVisibility(cell, i, j, map) {
         if (!(cell.flags & Flags.Cell.REVEALED) && GW.data.automationActive) {
             if (cell.item) {
                 const theItem = cell.item;
-                if (theItem.hasLayerFlag(Flags.Layer.L_INTERRUPT_WHEN_SEEN)) {
-                    GW.message.add("§you§ §see§ ΩitemMessageColorΩ§item§∆.", {
+                if (theItem.hasLayerFlag(Flags.Entity.L_INTERRUPT_WHEN_SEEN)) {
+                    GW.message.add('§you§ §see§ ΩitemMessageColorΩ§item§∆.', {
                         item: theItem,
                         actor: GW.data.player,
                     });
                 }
             }
             if (!(cell.flags & Flags.Cell.MAGIC_MAPPED) &&
-                cell.hasLayerFlag(Flags.Layer.L_INTERRUPT_WHEN_SEEN)) {
-                const tile = cell.tileWithLayerFlag(Flags.Layer.L_INTERRUPT_WHEN_SEEN);
+                cell.hasLayerFlag(Flags.Entity.L_INTERRUPT_WHEN_SEEN)) {
+                const tile = cell.tileWithLayerFlag(Flags.Entity.L_INTERRUPT_WHEN_SEEN);
                 if (tile) {
-                    GW.message.add("§you§ §see§ ΩbackgroundMessageColorΩ§item§∆.", {
+                    GW.message.add('§you§ §see§ ΩbackgroundMessageColorΩ§item§∆.', {
                         actor: GW.data.player,
                         item: tile.name,
                     });

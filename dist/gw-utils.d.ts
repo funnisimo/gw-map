@@ -1,6 +1,6 @@
-import { color, grid, types, sprite, utils, canvas, range, flag } from 'gw-utils';
+import { color, types, effect, sprite, grid, utils, canvas, range, flag } from 'gw-utils';
 
-declare enum Depth {
+declare enum Layer {
     ALL_LAYERS = -1,
     GROUND = 0,
     LIQUID = 1,
@@ -12,7 +12,7 @@ declare enum Depth {
     FX = 7,
     UI = 8
 }
-declare enum Layer {
+declare enum Entity {
     L_SUPERPRIORITY,
     L_SECRETLY_PASSABLE,
     L_BLOCKS_MOVE,
@@ -35,37 +35,6 @@ declare enum Layer {
     L_WAYPOINT_BLOCKER,
     L_IS_WALL,
     L_BLOCKS_EVERYTHING
-}
-declare enum Activation {
-    DFF_SUBSEQ_ALWAYS,
-    DFF_SUBSEQ_EVERYWHERE,
-    DFF_TREAT_AS_BLOCKING,
-    DFF_PERMIT_BLOCKING,
-    DFF_ACTIVATE_DORMANT_MONSTER,
-    DFF_BLOCKED_BY_OTHER_LAYERS,
-    DFF_SUPERPRIORITY,
-    DFF_AGGRAVATES_MONSTERS,
-    DFF_RESURRECT_ALLY,
-    DFF_EMIT_EVENT,
-    DFF_NO_REDRAW_CELL,
-    DFF_ABORT_IF_BLOCKS_MAP,
-    DFF_BLOCKED_BY_ITEMS,
-    DFF_BLOCKED_BY_ACTORS,
-    DFF_ALWAYS_FIRE,
-    DFF_NO_MARK_FIRED,
-    DFF_PROTECTED,
-    DFF_SPREAD_CIRCLE,
-    DFF_SPREAD_LINE,
-    DFF_NULL_SURFACE,
-    DFF_NULL_LIQUID,
-    DFF_NULL_GAS,
-    DFF_EVACUATE_CREATURES,
-    DFF_EVACUATE_ITEMS,
-    DFF_BUILD_IN_WALLS,
-    DFF_MUST_TOUCH_WALLS,
-    DFF_NO_TOUCH_WALLS,
-    DFF_ONLY_IF_EMPTY,
-    DFF_NULLIFY_CELL
 }
 declare enum Tile {
     T_BRIDGE,
@@ -174,69 +143,6 @@ declare enum Map {
     MAP_DEFAULT
 }
 
-declare class TileEvent {
-    tile: string | null;
-    fn: Function | null;
-    item: string | null;
-    message: string | null;
-    lightFlare: string | null;
-    flashColor: color.Color | null;
-    messageDisplayed: boolean;
-    emit: string | null;
-    chance: number;
-    volume: number;
-    spread: number;
-    radius: number;
-    decrement: number;
-    flags: number;
-    matchTile: string | null;
-    next: string | null;
-    id: string | null;
-    constructor(opts?: any);
-}
-declare function make(opts: string | any): TileEvent | null;
-declare const activations: Record<string, TileEvent>;
-declare function install(id: string, event: TileEvent | any): any;
-declare function installAll(events: Record<string, TileEvent | any>): void;
-declare function resetAllMessages(): void;
-declare function spawn(activation: TileEvent | Function | string, ctx?: any): Promise<boolean>;
-declare function computeSpawnMap(feat: TileEvent, spawnMap: grid.NumGrid, ctx?: any): void;
-declare function spawnTiles(feat: TileEvent, spawnMap: grid.NumGrid, ctx: any, tile?: Tile$1 | null, item?: types.ItemType | null): Promise<boolean>;
-declare function nullifyCells(map: Map$1, spawnMap: grid.NumGrid, flags: number): boolean;
-declare function evacuateCreatures(map: Map$1, blockingMap: grid.NumGrid): boolean;
-declare function evacuateItems(map: Map$1, blockingMap: grid.NumGrid): boolean;
-
-type tileEvent_d_TileEvent = TileEvent;
-declare const tileEvent_d_TileEvent: typeof TileEvent;
-declare const tileEvent_d_make: typeof make;
-declare const tileEvent_d_activations: typeof activations;
-declare const tileEvent_d_install: typeof install;
-declare const tileEvent_d_installAll: typeof installAll;
-declare const tileEvent_d_resetAllMessages: typeof resetAllMessages;
-declare const tileEvent_d_spawn: typeof spawn;
-declare const tileEvent_d_computeSpawnMap: typeof computeSpawnMap;
-declare const tileEvent_d_spawnTiles: typeof spawnTiles;
-declare const tileEvent_d_nullifyCells: typeof nullifyCells;
-declare const tileEvent_d_evacuateCreatures: typeof evacuateCreatures;
-declare const tileEvent_d_evacuateItems: typeof evacuateItems;
-declare namespace tileEvent_d {
-  export {
-    Activation as Flags,
-    tileEvent_d_TileEvent as TileEvent,
-    tileEvent_d_make as make,
-    tileEvent_d_activations as activations,
-    tileEvent_d_install as install,
-    tileEvent_d_installAll as installAll,
-    tileEvent_d_resetAllMessages as resetAllMessages,
-    tileEvent_d_spawn as spawn,
-    tileEvent_d_computeSpawnMap as computeSpawnMap,
-    tileEvent_d_spawnTiles as spawnTiles,
-    tileEvent_d_nullifyCells as nullifyCells,
-    tileEvent_d_evacuateCreatures as evacuateCreatures,
-    tileEvent_d_evacuateItems as evacuateItems,
-  };
-}
-
 interface NameConfig {
     article?: boolean | string;
     color?: boolean | string | color.ColorBase;
@@ -256,12 +162,12 @@ interface FullTileConfig extends EntityConfig {
     dissipate: number;
 }
 declare type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>;
-declare type TileConfig = AtLeast<FullTileConfig, "id">;
+declare type TileConfig = AtLeast<FullTileConfig, 'id'>;
 /** Tile Class */
-declare class Tile$1 extends Entity implements types.TileType {
+declare class Tile$1 extends Entity$1 implements types.TileType {
     name: string;
     flags: types.TileFlags;
-    activates: Record<string, TileEvent>;
+    activates: Record<string, effect.Effect | string>;
     flavor: string | null;
     desc: string | null;
     article: string | null;
@@ -296,7 +202,7 @@ declare class Tile$1 extends Entity implements types.TileType {
     getName(article: boolean): string;
     getDescription(opts?: any): string;
 }
-declare function make$1(config: TileConfig): Tile$1;
+declare function make(config: TileConfig): Tile$1;
 declare const tiles: Record<string, Tile$1>;
 /**
  * Adds a new Tile into the GW.tiles collection.
@@ -305,9 +211,9 @@ declare const tiles: Record<string, Tile$1>;
  * @param {Object} config - The tile configuration
  * @returns {Tile} The newly created tile
  */
-declare function install$1(id: string, base: string | Tile$1, config: Partial<TileConfig>): Tile$1;
-declare function install$1(id: string, config: Partial<TileConfig>): Tile$1;
-declare function install$1(config: TileConfig): Tile$1;
+declare function install(id: string, base: string | Tile$1, config: Partial<TileConfig>): Tile$1;
+declare function install(id: string, config: Partial<TileConfig>): Tile$1;
+declare function install(config: TileConfig): Tile$1;
 /**
  * Adds multiple tiles to the GW.tiles collection.
  * It extracts all the id:opts pairs from the config object and uses
@@ -316,12 +222,15 @@ declare function install$1(config: TileConfig): Tile$1;
  * @returns {void} Nothing
  * @see addTileKind
  */
-declare function installAll$1(config: Record<string, Partial<TileConfig>>): void;
+declare function installAll(config: Record<string, Partial<TileConfig>>): void;
 
 type tile_d_NameConfig = NameConfig;
 type tile_d_FullTileConfig = FullTileConfig;
 type tile_d_TileConfig = TileConfig;
+declare const tile_d_make: typeof make;
 declare const tile_d_tiles: typeof tiles;
+declare const tile_d_install: typeof install;
+declare const tile_d_installAll: typeof installAll;
 declare namespace tile_d {
   export {
     Tile as Flags,
@@ -330,10 +239,10 @@ declare namespace tile_d {
     tile_d_FullTileConfig as FullTileConfig,
     tile_d_TileConfig as TileConfig,
     Tile$1 as Tile,
-    make$1 as make,
+    tile_d_make as make,
     tile_d_tiles as tiles,
-    install$1 as install,
-    installAll$1 as installAll,
+    tile_d_install as install,
+    tile_d_installAll as installAll,
   };
 }
 
@@ -375,8 +284,8 @@ declare class Cell$1 implements types.CellType {
     glowLight: [number, number, number];
     constructor();
     copy(other: Cell$1): void;
-    clear(): void;
-    clearLayers(nullLiquid?: boolean, nullSurface?: boolean, nullGas?: boolean): void;
+    nullify(): void;
+    clear(floorTile?: string | Tile$1): void;
     get ground(): string | null;
     get liquid(): string | null;
     get surface(): string | null;
@@ -388,7 +297,7 @@ declare class Cell$1 implements types.CellType {
     dump(): string;
     get changed(): boolean;
     set changed(v: boolean);
-    isVisible(): number;
+    isVisible(): boolean;
     isAnyKindOfVisible(): number;
     isOrWasAnyKindOfVisible(): number;
     isRevealed(orMapped?: boolean): boolean;
@@ -399,15 +308,16 @@ declare class Cell$1 implements types.CellType {
     isDark(darkColor?: color.Color | [number, number, number]): boolean;
     get lightChanged(): boolean;
     set lightChanged(v: boolean);
-    tile(layer?: Depth): Tile$1;
-    volume(layer?: Depth): number;
-    setVolume(layer: Depth, volume?: number): void;
+    tile(layer?: Layer): Tile$1;
+    tileId(layer?: Layer): string | null;
+    volume(layer?: Layer): number;
+    setVolume(layer: Layer, volume?: number): void;
     tiles(): Generator<Tile$1>;
     layerFlags(limitToPlayerKnowledge?: boolean): number;
     tileFlags(limitToPlayerKnowledge?: boolean): number;
     tileMechFlags(limitToPlayerKnowledge?: boolean): number;
-    hasLayerFlag(flag: Layer, limitToPlayerKnowledge?: boolean): boolean;
-    hasAllLayerFlags(flag: Layer, limitToPlayerKnowledge?: boolean): boolean;
+    hasLayerFlag(flag: Entity, limitToPlayerKnowledge?: boolean): boolean;
+    hasAllLayerFlags(flag: Entity, limitToPlayerKnowledge?: boolean): boolean;
     hasTileFlag(flagMask: Tile, limitToPlayerKnowledge?: boolean): boolean;
     hasAllTileFlags(flags: Tile, limitToPlayerKnowledge?: boolean): boolean;
     hasTileMechFlag(flagMask: TileMech, limitToPlayerKnowledge?: boolean): boolean;
@@ -416,14 +326,15 @@ declare class Cell$1 implements types.CellType {
     clearFlags(cellFlag?: Cell, cellMechFlag?: CellMech): void;
     hasFlag(flag: Cell, limitToPlayerKnowledge?: boolean): boolean;
     hasMechFlag(flag: CellMech, limitToPlayerKnowledge?: boolean): boolean;
-    hasTile(tile: string | Tile$1): boolean;
+    hasTile(tile: string | types.TileType): boolean;
     topmostTile(skipGas?: boolean): Tile$1;
-    tileWithLayerFlag(layerFlag: number): LayerTile;
-    tileWithFlag(tileFlag: number): LayerTile;
-    tileWithMechFlag(mechFlag: number): LayerTile;
+    tileWithLayerFlag(layerFlag: number): Tile$1 | null;
+    tileWithFlag(tileFlag: number): Tile$1 | null;
+    tileWithMechFlag(mechFlag: number): Tile$1 | null;
     tileDesc(): string | null;
     tileFlavor(): string | null;
     getName(opts?: {}): string;
+    isNull(): boolean;
     isClear(): boolean;
     isEmpty(): boolean;
     isMoveableNow(limitToPlayerKnowledge?: boolean): boolean;
@@ -435,15 +346,17 @@ declare class Cell$1 implements types.CellType {
     isSecretDoorway(limitToPlayerKnowledge?: boolean): boolean;
     blocksPathing(limitToPlayerKnowledge?: boolean): boolean;
     blocksVision(): boolean;
+    blocksEffects(): boolean;
     isLiquid(limitToPlayerKnowledge?: boolean): boolean;
     hasGas(limitToPlayerKnowledge?: boolean): boolean;
+    hasKey(): boolean;
     markRevealed(): boolean;
-    obstructsLayer(depth: Depth): boolean;
+    obstructsLayer(depth: Layer): boolean;
     setTile(tileId?: TileBase | null, volume?: number, map?: Map$1): true | void;
-    clearLayer(depth: Depth): void;
-    clearLayersExcept(except?: Depth, ground?: string | null): void;
+    clearLayer(depth: Layer): void;
+    clearLayersExcept(except?: Layer, ground?: string | null): void;
     clearLayersWithFlags(tileFlags: number, tileMechFlags?: number): void;
-    activate(name: string, ctx?: any): Promise<boolean>;
+    activate(name: string, map: Map$1, x: number, y: number, ctx?: any): Promise<boolean>;
     activatesOn(name: string): boolean;
     get item(): types.ItemType | null;
     set item(item: types.ItemType | null);
@@ -453,7 +366,7 @@ declare class Cell$1 implements types.CellType {
     removeLayer(layer: types.EntityType): boolean;
     storeMemory(): void;
 }
-declare function make$2(tile?: string): Cell$1;
+declare function make$1(tile?: string): Cell$1;
 declare function getAppearance(cell: Cell$1, dest: sprite.Mixer): boolean;
 
 type cell_d_CellMemory = CellMemory;
@@ -467,7 +380,7 @@ declare namespace cell_d {
     cell_d_CellMemory as CellMemory,
     cell_d_TileBase as TileBase,
     Cell$1 as Cell,
-    make$2 as make,
+    make$1 as make,
     cell_d_getAppearance as getAppearance,
   };
 }
@@ -481,7 +394,8 @@ interface MapDrawOptions {
     mapOffsetY: number;
     force: boolean;
 }
-declare type MapEachFn = (cell: Cell$1, x: number, y: number, map: Map$1) => void;
+declare type MapEachFn = (cell: Cell$1, x: number, y: number, map: Map$1) => any;
+declare type AsyncMapEachFn = (cell: Cell$1, x: number, y: number, map: Map$1) => Promise<any>;
 declare type MapMatchFn = (cell: Cell$1, x: number, y: number, map: Map$1) => boolean;
 declare type MapCostFn = (cell: Cell$1, x: number, y: number, map: Map$1) => number;
 interface MapMatchOptions {
@@ -527,13 +441,15 @@ declare class Map$1 implements types.MapType {
     get width(): number;
     get height(): number;
     start(): Promise<void>;
-    clear(): void;
+    clear(floorTile?: string | Tile$1): void;
     dump(fmt?: (cell: Cell$1) => string): void;
     cell(x: number, y: number): Cell$1;
     eachCell(fn: MapEachFn): void;
     forEach(fn: MapEachFn): void;
+    forEachAsync(fn: AsyncMapEachFn): Promise<void>;
     forRect(x: number, y: number, w: number, h: number, fn: MapEachFn): void;
     eachNeighbor(x: number, y: number, fn: MapEachFn, only4dirs?: boolean): void;
+    eachNeighborAsync(x: number, y: number, fn: AsyncMapEachFn, only4dirs?: boolean): Promise<void>;
     randomEach(fn: MapEachFn): void;
     count(fn: MapMatchFn): number;
     hasXY(x: number, y: number): boolean;
@@ -542,7 +458,7 @@ declare class Map$1 implements types.MapType {
     set changed(v: boolean);
     hasCellFlag(x: number, y: number, flag: Cell): number;
     hasCellMechFlag(x: number, y: number, flag: CellMech): number;
-    hasLayerFlag(x: number, y: number, flag: Layer): boolean;
+    hasLayerFlag(x: number, y: number, flag: Entity): boolean;
     hasTileFlag(x: number, y: number, flag: Tile): boolean;
     hasTileMechFlag(x: number, y: number, flag: TileMech): boolean;
     redrawCell(cell: Cell$1): void;
@@ -552,7 +468,7 @@ declare class Map$1 implements types.MapType {
     revealAll(): void;
     markRevealed(x: number, y: number): void;
     makeVisible(v?: boolean): void;
-    isVisible(x: number, y: number): number;
+    isVisible(x: number, y: number): boolean;
     isAnyKindOfVisible(x: number, y: number): number;
     isOrWasAnyKindOfVisible(x: number, y: number): number;
     isRevealed(x: number, y: number): boolean;
@@ -591,9 +507,9 @@ declare class Map$1 implements types.MapType {
     topmostTile(x: number, y: number, skipGas?: boolean): Tile$1;
     tileFlavor(x: number, y: number): string | null;
     setTile(x: number, y: number, tileId: TileBase | null, volume?: number): true | void;
+    nullifyCell(x: number, y: number): void;
     clearCell(x: number, y: number): void;
     clearCellLayersWithFlags(x: number, y: number, tileFlags: Tile, tileMechFlags?: TileMech): void;
-    clearCellLayers(x: number, y: number, nullLiquid?: boolean, nullSurface?: boolean, nullGas?: boolean): void;
     fill(tileId: string | null, boundaryTile?: string | null): void;
     neighborCount(x: number, y: number, matchFn: MapMatchFn, only4dirs?: boolean): number;
     walkableArcCount(x: number, y: number): number;
@@ -623,25 +539,27 @@ declare class Map$1 implements types.MapType {
     addItemNear(x: number, y: number, theItem: types.ItemType): boolean;
     removeItem(theItem: types.ItemType): boolean;
     gridDisruptsWalkability(blockingGrid: grid.NumGrid, opts?: Partial<DisruptsOptions>): boolean;
-    calcFov(grid: grid.NumGrid, x: number, y: number, maxRadius: number, forbiddenCellFlags?: number, forbiddenLayerFlags?: Layer): void;
+    calcFov(grid: grid.NumGrid, x: number, y: number, maxRadius: number, forbiddenCellFlags?: number, forbiddenLayerFlags?: Entity): void;
     losFromTo(a: utils.XY, b: utils.XY): boolean;
     storeMemory(x: number, y: number): void;
     storeMemories(): void;
     activateCell(x: number, y: number, event: string): Promise<boolean>;
     tick(): Promise<void>;
+    exposeToFire(x: number, y: number, alwaysIgnite?: boolean): Promise<boolean>;
     updateLiquid(newVolume: grid.NumGrid): void;
     updateGas(newVolume: grid.NumGrid): void;
     resetCellEvents(): void;
 }
-declare function make$3(w: number, h: number, floor: string, wall: string): Map$1;
-declare function make$3(w: number, h: number, floor: string): Map$1;
-declare function make$3(w: number, h: number, opts?: any): Map$1;
+declare function make$2(w: number, h: number, floor: string, wall: string): Map$1;
+declare function make$2(w: number, h: number, floor: string): Map$1;
+declare function make$2(w: number, h: number, opts?: any): Map$1;
 declare function from(prefab: string | string[], charToTile: Record<string, TileBase | null>, opts?: any): Map$1;
 declare function getCellAppearance(map: Map$1, x: number, y: number, dest: sprite.Mixer): void;
-declare function addText(map: Map$1, x: number, y: number, text: string, fg: color.ColorBase | null, bg: color.ColorBase | null, layer?: Depth): void;
+declare function addText(map: Map$1, x: number, y: number, text: string, fg: color.ColorBase | null, bg: color.ColorBase | null, layer?: Layer): void;
 
 type map_d_MapDrawOptions = MapDrawOptions;
 type map_d_MapEachFn = MapEachFn;
+type map_d_AsyncMapEachFn = AsyncMapEachFn;
 type map_d_MapMatchFn = MapMatchFn;
 type map_d_MapCostFn = MapCostFn;
 type map_d_MapMatchOptions = MapMatchOptions;
@@ -656,6 +574,7 @@ declare namespace map_d {
     Map as Flags,
     map_d_MapDrawOptions as MapDrawOptions,
     map_d_MapEachFn as MapEachFn,
+    map_d_AsyncMapEachFn as AsyncMapEachFn,
     map_d_MapMatchFn as MapMatchFn,
     map_d_MapCostFn as MapCostFn,
     map_d_MapMatchOptions as MapMatchOptions,
@@ -663,7 +582,7 @@ declare namespace map_d {
     map_d_DisruptsOptions as DisruptsOptions,
     map_d_MapFovInfo as MapFovInfo,
     Map$1 as Map,
-    make$3 as make,
+    make$2 as make,
     map_d_from as from,
     map_d_getCellAppearance as getCellAppearance,
     map_d_addText as addText,
@@ -692,14 +611,14 @@ interface LightConfig {
     pass?: boolean;
 }
 declare type LightBase = LightConfig | string | any[];
-declare function make$4(color: color.ColorBase, radius: range.RangeBase, fadeTo?: number, pass?: boolean): Light;
-declare function make$4(light: LightBase): Light;
+declare function make$3(color: color.ColorBase, radius: range.RangeBase, fadeTo?: number, pass?: boolean): Light;
+declare function make$3(light: LightBase): Light;
 declare const lights: Record<string, Light>;
 declare function from$1(light: LightBase): Light;
-declare function install$2(id: string, color: color.ColorBase, radius: range.RangeBase, fadeTo?: number, pass?: boolean): Light;
-declare function install$2(id: string, base: LightBase): Light;
-declare function install$2(id: string, config: LightConfig): Light;
-declare function installAll$2(config?: Record<string, LightConfig | LightBase>): void;
+declare function install$1(id: string, color: color.ColorBase, radius: range.RangeBase, fadeTo?: number, pass?: boolean): Light;
+declare function install$1(id: string, base: LightBase): Light;
+declare function install$1(id: string, config: LightConfig): Light;
+declare function installAll$1(config?: Record<string, LightConfig | LightBase>): void;
 declare type LightData = [number, number, number];
 declare type LightDataGrid = grid.Grid<LightData>;
 declare function recordOldLights(map: Map$1): void;
@@ -731,11 +650,11 @@ declare namespace light_d {
     light_d_intensity as intensity,
     light_d_LightConfig as LightConfig,
     light_d_LightBase as LightBase,
-    make$4 as make,
+    make$3 as make,
     light_d_lights as lights,
     from$1 as from,
-    install$2 as install,
-    installAll$2 as installAll,
+    install$1 as install,
+    installAll$1 as installAll,
     light_d_LightData as LightData,
     light_d_LightDataGrid as LightDataGrid,
     light_d_recordOldLights as recordOldLights,
@@ -749,13 +668,13 @@ declare namespace light_d {
 
 interface EntityConfig extends sprite.SpriteConfig {
     priority: number;
-    layer: Depth | keyof typeof Depth;
+    layer: Layer | keyof typeof Layer;
     light: LightBase | null;
     layerFlags?: flag.FlagBase;
     flags?: flag.FlagBase;
     sprite?: sprite.SpriteConfig;
 }
-declare class Entity implements types.EntityType {
+declare class Entity$1 implements types.EntityType {
     sprite: types.SpriteType;
     priority: number;
     layer: number;
@@ -764,20 +683,18 @@ declare class Entity implements types.EntityType {
     constructor(config: Partial<EntityConfig>);
     hasLayerFlag(flag: number): boolean;
 }
-declare function make$5(config: Partial<EntityConfig>): Entity;
+declare function make$4(config: Partial<EntityConfig>): Entity$1;
 
-type entity_d_Depth = Depth;
-declare const entity_d_Depth: typeof Depth;
+type entity_d_Layer = Layer;
+declare const entity_d_Layer: typeof Layer;
 type entity_d_EntityConfig = EntityConfig;
-type entity_d_Entity = Entity;
-declare const entity_d_Entity: typeof Entity;
 declare namespace entity_d {
   export {
-    Layer as Flags,
-    entity_d_Depth as Depth,
+    Entity as Flags,
+    entity_d_Layer as Layer,
     entity_d_EntityConfig as EntityConfig,
-    entity_d_Entity as Entity,
-    make$5 as make,
+    Entity$1 as Entity,
+    make$4 as make,
   };
 }
 
@@ -793,4 +710,4 @@ declare namespace visibility_d {
   };
 }
 
-export { cell_d as cell, entity_d as layer, light_d as light, lights, map_d as map, tile_d as tile, tileEvent_d as tileEvent, tiles, visibility_d as visibility };
+export { cell_d as cell, entity_d as entity, light_d as light, lights, map_d as map, tile_d as tile, tiles, visibility_d as visibility };

@@ -1,4 +1,4 @@
-export declare enum Depth {
+export declare enum Layer {
     ALL_LAYERS = -1,
     GROUND = 0,
     LIQUID = 1,
@@ -10,7 +10,7 @@ export declare enum Depth {
     FX = 7,
     UI = 8
 }
-export declare enum Layer {
+export declare enum Entity {
     L_SUPERPRIORITY,
     L_SECRETLY_PASSABLE,
     L_BLOCKS_MOVE,
@@ -39,12 +39,8 @@ export declare enum Activation {
     DFF_SUBSEQ_EVERYWHERE,
     DFF_TREAT_AS_BLOCKING,
     DFF_PERMIT_BLOCKING,
-    DFF_ACTIVATE_DORMANT_MONSTER,
     DFF_BLOCKED_BY_OTHER_LAYERS,
     DFF_SUPERPRIORITY,
-    DFF_AGGRAVATES_MONSTERS,
-    DFF_RESURRECT_ALLY,
-    DFF_EMIT_EVENT,
     DFF_NO_REDRAW_CELL,
     DFF_ABORT_IF_BLOCKS_MAP,
     DFF_BLOCKED_BY_ITEMS,
@@ -62,6 +58,10 @@ export declare enum Activation {
     DFF_BUILD_IN_WALLS,
     DFF_MUST_TOUCH_WALLS,
     DFF_NO_TOUCH_WALLS,
+    DFF_ACTIVATE_DORMANT_MONSTER,
+    DFF_AGGRAVATES_MONSTERS,
+    DFF_RESURRECT_ALLY,
+    DFF_EMIT_EVENT,
     DFF_ONLY_IF_EMPTY,
     DFF_NULLIFY_CELL
 }
