@@ -50,6 +50,9 @@
     "peerDependencies": {
         "gw-utils": "^0.3"
     },
+    "files": [
+        "dist"
+    ],
     "prettier": {
         "trailingComma": "es5",
         "tabWidth": 4,
