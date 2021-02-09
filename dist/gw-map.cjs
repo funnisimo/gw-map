@@ -3239,7 +3239,7 @@ class Map$1 {
         }
     }
     async exposeToFire(x, y, alwaysIgnite = false) {
-        let ignitionChance = 0, bestExtinguishingPriority = 1000, explosiveNeighborCount = 0;
+        let ignitionChance = 0, bestExtinguishingPriority = 0, explosiveNeighborCount = 0;
         let fireIgnited = false, explosivePromotion = false;
         const cell = this.cell(x, y);
         if (!cell.hasTileFlag(Tile.T_IS_FLAMMABLE)) {
@@ -3280,7 +3280,10 @@ class Map$1 {
                     explosivePromotion = true;
                 }
             }
-            let event = explosivePromotion ? 'explode' : 'fire';
+            let event = 'fire';
+            if (explosivePromotion && cell.activatesOn('explode')) {
+                event = 'explode';
+            }
             for (let tile of cell.tiles()) {
                 if (tile.flags.tile & Tile.T_IS_FLAMMABLE) {
                     if (tile.layer === Layer.GAS) {
@@ -3289,12 +3292,11 @@ class Map$1 {
                     else if (tile.layer === Layer.LIQUID) {
                         cell.liquidVolume = 0;
                     }
-                    await cell.activate(event, this, x, y, {
-                        force: true,
-                        layer: tile.layer,
-                    });
                 }
             }
+            await cell.activate(event, this, x, y, {
+                force: true,
+            });
             this.redrawCell(cell);
         }
         return fireIgnited;

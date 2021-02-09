@@ -1272,7 +1272,7 @@ export class Map implements Types.MapType {
 
     async exposeToFire(x: number, y: number, alwaysIgnite = false) {
         let ignitionChance = 0,
-            bestExtinguishingPriority = 1000,
+            bestExtinguishingPriority = 0,
             explosiveNeighborCount = 0;
         let fireIgnited = false,
             explosivePromotion = false;
@@ -1330,7 +1330,10 @@ export class Map implements Types.MapType {
                 }
             }
 
-            let event = explosivePromotion ? 'explode' : 'fire';
+            let event = 'fire';
+            if (explosivePromotion && cell.activatesOn('explode')) {
+                event = 'explode';
+            }
             for (let tile of cell.tiles()) {
                 if (tile.flags.tile & TileFlags.T_IS_FLAMMABLE) {
                     if (tile.layer === Entity.Layer.GAS) {
@@ -1338,12 +1341,11 @@ export class Map implements Types.MapType {
                     } else if (tile.layer === Entity.Layer.LIQUID) {
                         cell.liquidVolume = 0;
                     }
-                    await cell.activate(event, this, x, y, {
-                        force: true,
-                        layer: tile.layer,
-                    });
                 }
             }
+            await cell.activate(event, this, x, y, {
+                force: true,
+            });
 
             this.redrawCell(cell);
         }
