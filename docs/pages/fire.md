@@ -72,15 +72,15 @@ LOOP.run(
         mousemove: async (e) => {
             if (!map.isBoundaryXY(e.x, e.y)) {
                 await map.setTile(e.x, e.y, 'GRASS');
-                map.drawInto(canvas);
             }
         },
         click: async (e) => {
             await map.exposeToFire(e.x, e.y, true); // always ignite
-            map.drawInto(canvas);
         },
         tick: async (e) => {
             await map.tick();
+        },
+        draw: () => {
             map.drawInto(canvas);
         },
     },
