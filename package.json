@@ -1,6 +1,6 @@
 {
     "name": "gw-map",
-    "version": "0.0.0",
+    "version": "0.3.0",
     "description": "Map components for Roguelikes",
     "main": "dist/gw-map.cjs",
     "browser": "dist/gw-map.min.js",
