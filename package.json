@@ -11,7 +11,7 @@
         "bundle": "rollup -c",
         "copy": "cp dist/gw-map.min.* docs/js && cp node_modules/gw-utils/dist/gw-utils.min.* docs/js",
         "build": "npm run compile && npm run bundle && npm run copy && npm run version",
-        "serve": "python -m SimpleHTTPServer",
+        "serve": "cd docs && http-server -p 8080",
         "test": "jest",
         "coverage": "jest --coverage",
         "test-debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
@@ -35,7 +35,8 @@
     "devDependencies": {
         "@babel/types": "^7.12.11",
         "@jest/types": "^26.6.2",
-        "gw-utils": "^0.2.0",
+        "gw-utils": "^0.3.0",
+        "http-server": "^0.12.3",
         "jest": "^26.6.3",
         "jest-extended": "^0.11.5",
         "prettier": "^2.2.1",
@@ -47,12 +48,12 @@
     },
     "dependencies": {},
     "peerDependencies": {
-        "gw-utils": "^0.2"
+        "gw-utils": "^0.3"
     },
     "prettier": {
         "trailingComma": "es5",
         "tabWidth": 4,
         "semi": true,
         "singleQuote": true
-      }
     }
+}
