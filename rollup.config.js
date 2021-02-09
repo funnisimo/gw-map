@@ -53,7 +53,7 @@ export default [{
 },
 {
   input: "./js/gw.d.ts",
-  output: [{ file: "dist/gw-utils.d.ts", format: "es" }],
+  output: [{ file: "dist/gw-map.d.ts", format: "es" }],
   plugins: [dts()],
 },
 
