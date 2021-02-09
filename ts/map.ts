@@ -1193,6 +1193,10 @@ export class Map implements Types.MapType {
         return await cell.activate(event, this, x, y, { cell });
     }
 
+    async activateAll(event: string) {
+        return Effect.fireAll(this, event);
+    }
+
     async tick() {
         await Effect.fireAll(this, 'tick');
 

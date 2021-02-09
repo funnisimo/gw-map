@@ -1472,11 +1472,12 @@
                 }
             }
             else {
-                // cell.debug("fire event - %s", name);
+                // console.log('fire event - %s', name);
                 for (let tile of this.tiles()) {
                     if (!tile.activates)
                         continue;
                     const ev = tile.activates[name];
+                    // console.log(' - ', ev);
                     let effect;
                     if (typeof ev === 'string') {
                         effect = GW.effect.effects[ev];
@@ -1490,7 +1491,7 @@
                             !effect.chance ||
                             GW.random.chance(effect.chance, 10000)) {
                             ctx.tile = tile;
-                            // cell.debug(" - spawn event @%d,%d - %s", ctx.x, ctx.y, name);
+                            // console.log(' - spawn event @%d,%d - %s', x, y, name);
                             fired = (await effect.fire(map, x, y, ctx)) || fired;
                             // cell.debug(" - spawned");
                             if (fired) {
@@ -2073,7 +2074,7 @@
         return accomplishedSomething;
     }
     // Spread
-    function cellIsOk(config, map, x, y, flags) {
+    function cellIsOk(config, map, x, y, flags, isStart) {
         if (!map.hasXY(x, y))
             return false;
         const cell = map.cell(x, y);
@@ -2103,10 +2104,7 @@
             if (!ok)
                 return false;
         }
-        else if (cell.blocksEffects() &&
-            !config.matchTile // &&
-        // (ctx.x != x || ctx.y != y)
-        ) {
+        else if (cell.blocksEffects() && !config.matchTile && !isStart) {
             return false;
         }
         // if (ctx.bounds && !ctx.bounds.containsXY(x, y)) return false;
@@ -2149,7 +2147,7 @@
                                 y2 = j + GW.utils.DIRS[dir][1];
                                 if (spawnMap.hasXY(x2, y2) &&
                                     !spawnMap[x2][y2] &&
-                                    cellIsOk(config, map, x2, y2, flags) &&
+                                    cellIsOk(config, map, x2, y2, flags, false) &&
                                     GW.random.chance(startProb)) {
                                     spawnMap[x2][y2] = t;
                                     madeChange = true;
@@ -2162,7 +2160,7 @@
                 startProb -= probDec;
             }
         }
-        if (!cellIsOk(config, map, x, y, flags)) {
+        if (!cellIsOk(config, map, x, y, flags, true)) {
             spawnMap[x][y] = 0;
             --count;
         }
@@ -3182,6 +3180,9 @@
             const cell = this.cell(x, y);
             return await cell.activate(event, this, x, y, { cell });
         }
+        async activateAll(event) {
+            return fireAll(this, event);
+        }
         async tick() {
             await fireAll(this, 'tick');
             // Bookkeeping for fire, pressure plates and key-activated tiles.
@@ -3572,105 +3573,105 @@
     };
 
     // These are the minimal set of tiles to make the diggers work
-    install$1("NULL", {
-        ch: "\u2205",
-        fg: "white",
-        bg: "black",
-        flags: "L_BLOCKS_MOVE",
-        name: "eerie nothingness",
-        article: "an",
+    install$1('NULL', {
+        ch: '\u2205',
+        fg: 'white',
+        bg: 'black',
+        flags: 'L_BLOCKS_MOVE',
+        name: 'eerie nothingness',
+        article: 'an',
         priority: 0,
     });
-    install$1("FLOOR", {
-        ch: "\u00b7",
+    install$1('FLOOR', {
+        ch: '\u00b7',
         fg: [30, 30, 30, 20, 0, 0, 0],
         bg: [2, 2, 10, 0, 2, 2, 0],
         priority: 10,
-        article: "the",
+        article: 'the',
     });
-    install$1("DOOR", {
-        ch: "+",
+    install$1('DOOR', {
+        ch: '+',
         fg: [100, 40, 40],
         bg: [30, 60, 60],
         priority: 30,
-        flags: "T_IS_DOOR, L_BLOCKS_EFFECTS, L_BLOCKS_ITEMS, L_BLOCKS_VISION, L_VISUALLY_DISTINCT",
-        article: "a",
+        flags: 'T_IS_DOOR, L_BLOCKS_EFFECTS, L_BLOCKS_ITEMS, L_BLOCKS_VISION, L_VISUALLY_DISTINCT',
+        article: 'a',
         activates: {
-            enter: { tile: "DOOR_OPEN" },
-            open: { tile: "DOOR_OPEN_ALWAYS" },
+            enter: { tile: 'DOOR_OPEN' },
+            open: { tile: 'DOOR_OPEN_ALWAYS' },
         },
     });
-    install$1("DOOR_OPEN", "DOOR", {
+    install$1('DOOR_OPEN', 'DOOR', {
         ch: "'",
         fg: [100, 40, 40],
         bg: [30, 60, 60],
         priority: 40,
-        flags: "!L_BLOCKS_ITEMS, !L_BLOCKS_VISION",
-        name: "open door",
-        article: "an",
+        flags: '!L_BLOCKS_ITEMS, !L_BLOCKS_VISION',
+        name: 'open door',
+        article: 'an',
         activates: {
             tick: {
                 chance: 100 * 100,
-                tile: "DOOR",
-                flags: "DFF_SUPERPRIORITY, DFF_ONLY_IF_EMPTY",
+                tile: 'DOOR',
+                flags: 'E_SUPERPRIORITY, E_ONLY_IF_EMPTY',
             },
             enter: null,
             open: null,
-            close: { tile: "DOOR", flags: "DFF_SUPERPRIORITY, DFF_ONLY_IF_EMPTY" },
+            close: { tile: 'DOOR', flags: 'E_SUPERPRIORITY, E_ONLY_IF_EMPTY' },
         },
     });
-    install$1("DOOR_OPEN_ALWAYS", "DOOR_OPEN", {
+    install$1('DOOR_OPEN_ALWAYS', 'DOOR_OPEN', {
         activates: {
             tick: null,
-            close: { tile: "DOOR", flags: "DFF_SUPERPRIORITY, DFF_ONLY_IF_EMPTY" },
+            close: { tile: 'DOOR', flags: 'E_SUPERPRIORITY, E_ONLY_IF_EMPTY' },
         },
     });
-    install$1("UP_STAIRS", {
-        ch: "<",
+    install$1('UP_STAIRS', {
+        ch: '<',
         fg: [100, 50, 50],
         bg: [40, 20, 20],
         priority: 200,
-        flags: "T_UP_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR",
-        name: "upward staircase",
-        article: "an",
+        flags: 'T_UP_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR',
+        name: 'upward staircase',
+        article: 'an',
     });
-    install$1("DOWN_STAIRS", {
-        ch: ">",
+    install$1('DOWN_STAIRS', {
+        ch: '>',
         fg: [100, 50, 50],
         bg: [40, 20, 20],
         priority: 200,
-        flags: "T_DOWN_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR",
-        name: "downward staircase",
-        article: "a",
+        flags: 'T_DOWN_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR',
+        name: 'downward staircase',
+        article: 'a',
     });
-    install$1("WALL", {
-        ch: "#",
+    install$1('WALL', {
+        ch: '#',
         fg: [7, 7, 7, 0, 3, 3, 3],
         bg: [40, 40, 40, 10, 10, 0, 5],
         priority: 100,
-        flags: "L_BLOCKS_EVERYTHING",
-        article: "a",
-        name: "stone wall",
-        desc: "A wall made from rough cut stone.",
-        flavor: "a rough stone wall",
+        flags: 'L_BLOCKS_EVERYTHING',
+        article: 'a',
+        name: 'stone wall',
+        desc: 'A wall made from rough cut stone.',
+        flavor: 'a rough stone wall',
     });
-    install$1("LAKE", {
-        ch: "~",
+    install$1('LAKE', {
+        ch: '~',
         fg: [5, 8, 20, 10, 0, 4, 15, true],
         bg: [10, 15, 41, 6, 5, 5, 5, true],
         priority: 50,
-        flags: "T_DEEP_WATER",
-        name: "deep water",
-        article: "the",
+        flags: 'T_DEEP_WATER',
+        name: 'deep water',
+        article: 'the',
     });
-    install$1("BRIDGE", {
-        ch: "=",
+    install$1('BRIDGE', {
+        ch: '=',
         fg: [100, 40, 40],
         priority: 40,
-        layer: "SURFACE",
-        flags: "T_BRIDGE, L_VISUALLY_DISTINCT",
-        article: "a",
-        ground: "LAKE",
+        layer: 'SURFACE',
+        flags: 'T_BRIDGE, L_VISUALLY_DISTINCT',
+        article: 'a',
+        ground: 'LAKE',
     });
 
     exports.cell = cell;

@@ -290,7 +290,8 @@ function cellIsOk(
     map: Map.Map,
     x: number,
     y: number,
-    flags: GW.effect.Flags
+    flags: GW.effect.Flags,
+    isStart: boolean
 ) {
     if (!map.hasXY(x, y)) return false;
     const cell = map.cell(x, y);
@@ -314,11 +315,7 @@ function cellIsOk(
             }
         });
         if (!ok) return false;
-    } else if (
-        cell.blocksEffects() &&
-        !config.matchTile // &&
-        // (ctx.x != x || ctx.y != y)
-    ) {
+    } else if (cell.blocksEffects() && !config.matchTile && !isStart) {
         return false;
     }
 
@@ -375,7 +372,7 @@ export function computeSpawnMap(
                             if (
                                 spawnMap.hasXY(x2, y2) &&
                                 !spawnMap[x2][y2] &&
-                                cellIsOk(config, map, x2, y2, flags) &&
+                                cellIsOk(config, map, x2, y2, flags, false) &&
                                 GW.random.chance(startProb)
                             ) {
                                 spawnMap[x2][y2] = t;
@@ -390,7 +387,7 @@ export function computeSpawnMap(
         }
     }
 
-    if (!cellIsOk(config, map, x, y, flags)) {
+    if (!cellIsOk(config, map, x, y, flags, true)) {
         spawnMap[x][y] = 0;
         --count;
     }

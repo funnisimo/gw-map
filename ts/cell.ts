@@ -761,10 +761,12 @@ export class Cell implements Types.CellType {
                 }
             }
         } else {
-            // cell.debug("fire event - %s", name);
+            // console.log('fire event - %s', name);
             for (let tile of this.tiles()) {
                 if (!tile.activates) continue;
                 const ev = tile.activates[name];
+                // console.log(' - ', ev);
+
                 let effect: Effect.Effect;
                 if (typeof ev === 'string') {
                     effect = Effect.effects[ev];
@@ -779,7 +781,7 @@ export class Cell implements Types.CellType {
                         random.chance(effect.chance, 10000)
                     ) {
                         ctx.tile = tile;
-                        // cell.debug(" - spawn event @%d,%d - %s", ctx.x, ctx.y, name);
+                        // console.log(' - spawn event @%d,%d - %s', x, y, name);
                         fired = (await effect.fire(map, x, y, ctx)) || fired;
                         // cell.debug(" - spawned");
                         if (fired) {
