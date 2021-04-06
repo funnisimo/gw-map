@@ -33,6 +33,7 @@ import * as Visibility from './visibility';
 import * as Effect from './effect';
 
 export { Flags };
+export * from './analyze';
 
 export interface MapDrawOptions {
     x: number;
@@ -175,6 +176,9 @@ export class Map implements Types.MapType {
         this.cells.dump(fmt || ((c: Cell.Cell) => c.dump()));
     }
     cell(x: number, y: number) {
+        return this.cells[x][y];
+    }
+    get(x: number, y: number) {
         return this.cells[x][y];
     }
 
