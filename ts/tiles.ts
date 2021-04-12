@@ -103,6 +103,15 @@ Tile.install('LAKE', {
     article: 'the',
 });
 
+Tile.install('SHALLOW', {
+    ch: '\u00b7',
+    fg: [5, 8, 10, 10, 0, 4, 15, true],
+    bg: [10, 15, 21, 6, 5, 5, 5, true],
+    priority: 20,
+    name: 'shallow water',
+    article: 'the',
+});
+
 Tile.install('BRIDGE', {
     ch: '=',
     fg: [100, 40, 40],

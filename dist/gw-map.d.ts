@@ -565,7 +565,7 @@ declare class Map$1 implements types.MapType {
 declare function make$2(w: number, h: number, floor: string, wall: string): Map$1;
 declare function make$2(w: number, h: number, floor: string): Map$1;
 declare function make$2(w: number, h: number, opts?: any): Map$1;
-declare function from(prefab: string | string[], charToTile: Record<string, TileBase | null>, opts?: any): Map$1;
+declare function from(prefab: string | string[] | grid.NumGrid, charToTile: Record<string, TileBase | null>, opts?: any): Map$1;
 declare function getCellAppearance(map: Map$1, x: number, y: number, dest: sprite.Mixer): void;
 declare function addText(map: Map$1, x: number, y: number, text: string, fg: color.ColorBase | null, bg: color.ColorBase | null, layer?: Layer): void;
 

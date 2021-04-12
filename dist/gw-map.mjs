@@ -3696,20 +3696,40 @@ function make$4(w, h, opts = {}, wall) {
     return map;
 }
 make$5.map = make$4;
+function isString(value) {
+    return typeof value === 'string';
+}
+function isStringArray(value) {
+    return Array.isArray(value) && typeof value[0] === 'string';
+}
 function from$1(prefab, charToTile, opts = {}) {
-    if (!Array.isArray(prefab)) {
+    let height = 0;
+    let width = 0;
+    let map;
+    if (isString(prefab)) {
         prefab = prefab.split('\n');
     }
-    const height = prefab.length;
-    const width = prefab.reduce((len, line) => Math.max(len, line.length), 0);
-    const map = make$4(width, height, opts);
-    prefab.forEach((line, y) => {
-        for (let x = 0; x < width; ++x) {
-            const ch = line[x] || '.';
-            const tile = charToTile[ch] || 'FLOOR';
+    if (isStringArray(prefab)) {
+        height = prefab.length;
+        width = prefab.reduce((len, line) => Math.max(len, line.length), 0);
+        map = make$4(width, height, opts);
+        prefab.forEach((line, y) => {
+            for (let x = 0; x < width; ++x) {
+                const ch = line[x] || '.';
+                const tile = charToTile[ch] || 'FLOOR';
+                map.setTile(x, y, tile);
+            }
+        });
+    }
+    else {
+        height = prefab.height;
+        width = prefab.width;
+        map = make$4(width, height, opts);
+        prefab.forEach((v, x, y) => {
+            const tile = charToTile[v] || 'FLOOR';
             map.setTile(x, y, tile);
-        }
-    });
+        });
+    }
     // redo this because we changed the tiles
     if (opts.visible || opts.revealed) {
         map.makeVisible();
@@ -3959,6 +3979,14 @@ install$1('LAKE', {
     priority: 50,
     flags: 'T_DEEP_WATER',
     name: 'deep water',
+    article: 'the',
+});
+install$1('SHALLOW', {
+    ch: '\u00b7',
+    fg: [5, 8, 10, 10, 0, 4, 15, true],
+    bg: [10, 15, 21, 6, 5, 5, 5, true],
+    priority: 20,
+    name: 'shallow water',
     article: 'the',
 });
 install$1('BRIDGE', {
