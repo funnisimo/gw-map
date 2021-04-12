@@ -33,6 +33,7 @@ import * as Visibility from './visibility';
 import * as Effect from './effect';
 
 export { Flags };
+export * from './analyze';
 
 export interface MapDrawOptions {
     x: number;
@@ -175,6 +176,9 @@ export class Map implements Types.MapType {
         this.cells.dump(fmt || ((c: Cell.Cell) => c.dump()));
     }
     cell(x: number, y: number) {
+        return this.cells[x][y];
+    }
+    get(x: number, y: number) {
         return this.cells[x][y];
     }
 
@@ -1485,25 +1489,49 @@ export function make(w: number, h: number, opts: any = {}, wall?: string) {
 
 Make.map = make;
 
+function isString(value: any): value is string {
+    return typeof value === 'string';
+}
+
+function isStringArray(value: any): value is string[] {
+    return Array.isArray(value) && typeof value[0] === 'string';
+}
+
 export function from(
-    prefab: string | string[],
+    prefab: string | string[] | Grid.NumGrid,
     charToTile: Record<string, Cell.TileBase | null>,
     opts: any = {}
 ) {
-    if (!Array.isArray(prefab)) {
+    let height = 0;
+    let width = 0;
+    let map: Map;
+
+    if (isString(prefab)) {
         prefab = prefab.split('\n');
     }
-    const height = prefab.length;
-    const width = prefab.reduce((len, line) => Math.max(len, line.length), 0);
-    const map = make(width, height, opts);
 
-    prefab.forEach((line, y) => {
-        for (let x = 0; x < width; ++x) {
-            const ch = line[x] || '.';
-            const tile = charToTile[ch] || 'FLOOR';
+    if (isStringArray(prefab)) {
+        height = prefab.length;
+        width = prefab.reduce((len, line) => Math.max(len, line.length), 0);
+        map = make(width, height, opts);
+
+        prefab.forEach((line, y) => {
+            for (let x = 0; x < width; ++x) {
+                const ch = line[x] || '.';
+                const tile = charToTile[ch] || 'FLOOR';
+                map.setTile(x, y, tile);
+            }
+        });
+    } else {
+        height = prefab.height;
+        width = prefab.width;
+        map = make(width, height, opts);
+
+        prefab.forEach((v, x, y) => {
+            const tile = charToTile[v] || 'FLOOR';
             map.setTile(x, y, tile);
-        }
-    });
+        });
+    }
 
     // redo this because we changed the tiles
     if (opts.visible || opts.revealed) {

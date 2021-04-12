@@ -91,6 +91,8 @@ export class Cell implements Types.CellType {
     public oldLight: [number, number, number] = [100, 100, 100];
     public glowLight: [number, number, number] = [100, 100, 100];
 
+    public chokeCount = 0;
+
     constructor() {}
 
     copy(other: Cell) {
@@ -116,6 +118,8 @@ export class Cell implements Types.CellType {
         this.light = [100, 100, 100];
         this.oldLight = [100, 100, 100];
         this.glowLight = [100, 100, 100];
+
+        this.chokeCount = 0;
     }
 
     clear(floorTile: string | Tile = 'FLOOR') {

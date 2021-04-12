@@ -282,6 +282,7 @@ declare class Cell$1 implements types.CellType {
     light: [number, number, number];
     oldLight: [number, number, number];
     glowLight: [number, number, number];
+    chokeCount: number;
     constructor();
     copy(other: Cell$1): void;
     nullify(): void;
@@ -328,9 +329,9 @@ declare class Cell$1 implements types.CellType {
     hasMechFlag(flag: CellMech, limitToPlayerKnowledge?: boolean): boolean;
     hasTile(tile: string | types.TileType): boolean;
     topmostTile(skipGas?: boolean): Tile$1;
-    tileWithLayerFlag(layerFlag: number): Tile$1 | null;
-    tileWithFlag(tileFlag: number): Tile$1 | null;
-    tileWithMechFlag(mechFlag: number): Tile$1 | null;
+    tileWithLayerFlag(layerFlag: number): LayerTile;
+    tileWithFlag(tileFlag: number): LayerTile;
+    tileWithMechFlag(mechFlag: number): LayerTile;
     tileDesc(): string | null;
     tileFlavor(): string | null;
     getName(opts?: {}): string;
@@ -384,6 +385,15 @@ declare namespace cell_d {
     cell_d_getAppearance as getAppearance,
   };
 }
+
+declare function analyze(map: Map$1, updateChokeCounts?: boolean): void;
+declare function updateChokepoints(map: Map$1, updateCounts: boolean): void;
+declare function floodFillCount(map: Map$1, results: grid.NumGrid, passMap: grid.NumGrid, startX: number, startY: number): number;
+declare function updateLoopiness(map: Map$1): void;
+declare function resetLoopiness(cell: Cell$1, _x: number, _y: number, _map: Map$1): void;
+declare function checkLoopiness(cell: Cell$1, x: number, y: number, map: Map$1): boolean;
+declare function fillInnerLoopGrid(map: Map$1, grid: grid.NumGrid): void;
+declare function cleanLoopiness(map: Map$1): void;
 
 interface MapDrawOptions {
     x: number;
@@ -444,6 +454,7 @@ declare class Map$1 implements types.MapType {
     clear(floorTile?: string | Tile$1): void;
     dump(fmt?: (cell: Cell$1) => string): void;
     cell(x: number, y: number): Cell$1;
+    get(x: number, y: number): Cell$1;
     eachCell(fn: MapEachFn): void;
     forEach(fn: MapEachFn): void;
     forEachAsync(fn: AsyncMapEachFn): Promise<void>;
@@ -554,7 +565,7 @@ declare class Map$1 implements types.MapType {
 declare function make$2(w: number, h: number, floor: string, wall: string): Map$1;
 declare function make$2(w: number, h: number, floor: string): Map$1;
 declare function make$2(w: number, h: number, opts?: any): Map$1;
-declare function from(prefab: string | string[], charToTile: Record<string, TileBase | null>, opts?: any): Map$1;
+declare function from(prefab: string | string[] | grid.NumGrid, charToTile: Record<string, TileBase | null>, opts?: any): Map$1;
 declare function getCellAppearance(map: Map$1, x: number, y: number, dest: sprite.Mixer): void;
 declare function addText(map: Map$1, x: number, y: number, text: string, fg: color.ColorBase | null, bg: color.ColorBase | null, layer?: Layer): void;
 
@@ -570,6 +581,14 @@ type map_d_MapFovInfo = MapFovInfo;
 declare const map_d_from: typeof from;
 declare const map_d_getCellAppearance: typeof getCellAppearance;
 declare const map_d_addText: typeof addText;
+declare const map_d_analyze: typeof analyze;
+declare const map_d_updateChokepoints: typeof updateChokepoints;
+declare const map_d_floodFillCount: typeof floodFillCount;
+declare const map_d_updateLoopiness: typeof updateLoopiness;
+declare const map_d_resetLoopiness: typeof resetLoopiness;
+declare const map_d_checkLoopiness: typeof checkLoopiness;
+declare const map_d_fillInnerLoopGrid: typeof fillInnerLoopGrid;
+declare const map_d_cleanLoopiness: typeof cleanLoopiness;
 declare namespace map_d {
   export {
     Map as Flags,
@@ -587,6 +606,14 @@ declare namespace map_d {
     map_d_from as from,
     map_d_getCellAppearance as getCellAppearance,
     map_d_addText as addText,
+    map_d_analyze as analyze,
+    map_d_updateChokepoints as updateChokepoints,
+    map_d_floodFillCount as floodFillCount,
+    map_d_updateLoopiness as updateLoopiness,
+    map_d_resetLoopiness as resetLoopiness,
+    map_d_checkLoopiness as checkLoopiness,
+    map_d_fillInnerLoopGrid as fillInnerLoopGrid,
+    map_d_cleanLoopiness as cleanLoopiness,
   };
 }
 

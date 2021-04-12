@@ -435,22 +435,7 @@ describe('Map', () => {
         template: string[],
         tileMap: Record<string, string | null>
     ) {
-        const h = template.length;
-        const w = template[0].length;
-
-        const map: Map.map.Map = GW.make.map(w, h, 'FLOOR');
-
-        template.forEach((line, y) => {
-            for (let x = 0; x < line.length; ++x) {
-                const ch = line[x] || ' ';
-                const tile = tileMap[ch];
-                if (tile !== undefined) {
-                    map.setTile(x, y, tile);
-                }
-            }
-        });
-
-        return map;
+        return Map.map.from(template, tileMap);
     }
 
     function isWall(cell: Map.cell.Cell) {
@@ -504,8 +489,8 @@ describe('Map', () => {
         expect(map.diagonalBlocked(3, 4, 2, 3)).toBeTruthy();
     });
 
-    test('fillCostGrid', () => {
-        const tiles = { '#': 'WALL', '0': null };
+    test.only('fillCostGrid', () => {
+        const tiles = { '#': 'WALL', '0': 'NULL' };
         const map = mapFrom(
             ['     ', ' ### ', '     ', ' ### ', '00000'],
             tiles
