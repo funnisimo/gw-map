@@ -69,6 +69,9 @@ Tile.install('UP_STAIRS', {
         'T_UP_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR',
     name: 'upward staircase',
     article: 'an',
+    activates: {
+        player: { emit: 'UP_STAIRS' },
+    },
 });
 Tile.install('DOWN_STAIRS', {
     ch: '>',
@@ -79,6 +82,9 @@ Tile.install('DOWN_STAIRS', {
         'T_DOWN_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR',
     name: 'downward staircase',
     article: 'a',
+    activates: {
+        player: { emit: 'DOWN_STAIRS' },
+    },
 });
 
 Tile.install('WALL', {
@@ -106,7 +112,7 @@ Tile.install('LAKE', {
 Tile.install('SHALLOW', {
     ch: '\u00b7',
     fg: [5, 8, 10, 10, 0, 4, 15, true],
-    bg: [10, 15, 21, 6, 5, 5, 5, true],
+    bg: [10, 15, 31, 6, 5, 5, 5, true],
     priority: 20,
     name: 'shallow water',
     article: 'the',

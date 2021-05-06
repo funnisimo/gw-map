@@ -26,11 +26,11 @@ import {
     TileMech as TileMechFlags,
     Layer as TileLayer,
     Entity as LayerFlags,
-} from './flags';
+} from './mapFlags';
 import * as Light from './light';
 import * as Entity from './entity';
 import * as Visibility from './visibility';
-import * as Effect from './effect';
+import * as Effect from './mapEffect';
 
 export { Flags };
 export * from './analyze';
@@ -527,6 +527,10 @@ export class Map implements Types.MapType {
         this.cell(x, y).clear();
     }
 
+    clearCellLayers(x: number, y: number, layers = -1) {
+        return this.cell(x, y).clearLayers(layers);
+    }
+
     clearCellLayersWithFlags(
         x: number,
         y: number,
@@ -646,7 +650,7 @@ export class Map implements Types.MapType {
     matchingLocNear(
         x: number,
         y: number,
-        matcher: MapMatchFn,
+        matcher: MapMatchFn | string,
         opts?: Partial<MapMatchOptions>
     ): Utils.Loc;
     matchingLocNear(x: number, y: number, ...args: any[]) {
@@ -656,17 +660,21 @@ export class Map implements Types.MapType {
         let opts: Partial<MapMatchOptions> = args[1] || {};
 
         const arg = args[0];
-        if (typeof arg !== 'function') {
-            opts = arg || args[1];
+        if (typeof arg === 'string') {
+            matcher = (c) => c.hasTile(arg);
+        }
+        if (typeof matcher !== 'function') {
+            opts = matcher || opts;
             matcher = opts.match || Utils.TRUE;
         }
 
-        const hallwaysAllowed = opts.hallways || false;
+        const hallwaysAllowed = opts.hallways !== false;
         const blockingMap = opts.blockingMap || null;
         const forbidLiquid = opts.liquids === false;
         const deterministic = opts.deterministic || false;
 
-        const candidateLocs = [];
+        let candidateLocs: Utils.Loc[] = [];
+        let closestDist = (this.width + this.height) * 10;
 
         // count up the number of candidate locations
         for (
@@ -678,15 +686,23 @@ export class Map implements Types.MapType {
                 for (j = y - k; j <= y + k; j++) {
                     if (!this.hasXY(i, j)) continue;
                     const cell = this.cell(i, j);
+                    const dist = Math.floor(
+                        10 * Utils.distanceBetween(x, y, i, j)
+                    );
                     // if ((i == x-k || i == x+k || j == y-k || j == y+k)
                     if (
-                        Math.ceil(Utils.distanceBetween(x, y, i, j)) == k &&
+                        Math.floor(dist) == k * 10 &&
                         (!blockingMap || !blockingMap[i][j]) &&
                         matcher(cell, i, j, this) &&
                         (!forbidLiquid || !cell.liquid) &&
                         (hallwaysAllowed || this.walkableArcCount(i, j) < 2)
                     ) {
-                        candidateLocs.push([i, j]);
+                        if (dist < closestDist) {
+                            candidateLocs = [[i, j]];
+                            closestDist = dist;
+                        } else if (dist == closestDist) {
+                            candidateLocs.push([i, j]);
+                        }
                     }
                 }
             }
@@ -1599,6 +1615,9 @@ export function getCellAppearance(
         Color.separate(dest.fg, dest.bg);
     }
 
+    if (dest.dances) {
+        map.flags |= Flags.MAP_DANCES;
+    }
     // dest.bake();
 }
 

@@ -3,7 +3,7 @@ import '../test/matchers';
 import * as UTILS from '../test/utils';
 import * as Map from './gw';
 import * as GW from 'gw-utils';
-import * as Effect from './effect';
+import * as Effect from './mapEffect';
 
 describe('tile effect', () => {
     let map: Map.map.Map;
@@ -244,8 +244,8 @@ describe('tile effect', () => {
             // grid.dump();
             expect(grid.count((v) => !!v)).toEqual(3);
             expect(grid[10][10]).toEqual(1);
-            expect(grid[10][11]).toEqual(2);
-            expect(grid[10][9]).toEqual(0);
+            expect(grid[10][9]).toEqual(2);
+            expect(grid[10][11]).toEqual(0);
         });
 
         // { spread: 100, decrement: 100, matchTile: "DOOR" }
@@ -636,7 +636,7 @@ describe('tile effect', () => {
     describe('waves', () => {
         beforeAll(() => {
             Map.tile.install('WAVE_DONE', {
-                ch: 'R',
+                ch: 'X',
                 fg: 'blue',
                 bg: 'green',
                 priority: 70,
@@ -646,7 +646,7 @@ describe('tile effect', () => {
                 activates: {
                     tick: {
                         tile: 'LAKE',
-                        flags: 'E_SUPERPRIORITY',
+                        flags: 'E_SUPERPRIORITY, E_PROTECTED',
                     },
                 },
             });

@@ -1,5 +1,5 @@
 import * as GW from 'gw-utils';
-import { Entity as Flags, Layer } from './flags';
+import { Entity as Flags, Layer } from './mapFlags';
 import * as Light from './light';
 
 export { Flags, Layer };

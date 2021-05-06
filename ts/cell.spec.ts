@@ -4,6 +4,7 @@ import * as UTILS from '../test/utils';
 import * as Map from './gw';
 import * as GW from 'gw-utils';
 import { Tile } from './tile';
+import { Cell } from './cell';
 
 describe('Cell', () => {
     beforeAll(() => {
@@ -931,6 +932,34 @@ describe('Cell', () => {
 
         const ex = GW.sprite.make('@', 'white', 'red');
         expect(app).toEqual(ex);
+    });
+
+    test('layers and actors', () => {
+        const c: Cell = GW.make.cell();
+        c.setTile('FLOOR');
+
+        const starting = {
+            sprite: GW.sprite.make(null, null, 'green'),
+            layer: Map.entity.Layer.SURFACE,
+        } as Map.entity.Entity;
+        const actor = {
+            sprite: GW.sprite.make('@', 'white', 'blue'),
+            layer: Map.entity.Layer.ACTOR,
+        } as Map.entity.Entity;
+        const replacement = {
+            sprite: GW.sprite.make(null, null, 'red'),
+            layer: Map.entity.Layer.SURFACE,
+        } as Map.entity.Entity;
+
+        c.addLayer(starting);
+        c.addLayer(actor);
+        c.removeLayer(starting);
+        c.addLayer(replacement);
+
+        expect(c.layers).not.toBeNull();
+        expect(c.layers!.layer.sprite).toBe(Map.tiles.FLOOR.sprite);
+        expect(c.layers!.next!.layer).toBe(replacement);
+        expect(c.layers!.next!.next!.layer).toBe(actor);
     });
 
     test('layers will blend opacities', () => {

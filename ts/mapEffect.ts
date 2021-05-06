@@ -100,7 +100,7 @@ export async function tileEffect(
 
     if (effect.flags & Flags.E_CLEAR_CELL) {
         // first, clear other tiles (not base/ground)
-        if (clearCells(map, effect.grid)) {
+        if (clearCells(map, effect.grid, effect.flags)) {
             didSomething = true;
         }
     }
@@ -155,7 +155,11 @@ export async function fireAll(map: Map.Map, event: string) {
 
     // Figure out which tiles will fire - before we change everything...
     map.forEach((cell, x, y) => {
-        cell.clearFlags(0, Cell.MechFlags.EVENT_FIRED_THIS_TURN);
+        cell.clearFlags(
+            0,
+            Cell.MechFlags.EVENT_FIRED_THIS_TURN |
+                Cell.MechFlags.EVENT_PROTECTED
+        );
         for (let tile of cell.tiles()) {
             const effect = GW.effect.from(tile.activates[event]);
             if (!effect) continue;
@@ -191,7 +195,7 @@ export async function fireAll(map: Map.Map, event: string) {
                 GW.random.chance(promoteChance, 10000)
             ) {
                 willFire[x][y] |= GW.flag.fl(tile.layer);
-                cell.mechFlags |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
+                // cell.mechFlags |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
             }
         }
     });
@@ -200,9 +204,13 @@ export async function fireAll(map: Map.Map, event: string) {
     await willFire.forEachAsync(async (w, x, y) => {
         if (!w) return;
         const cell = map.cell(x, y);
+        if (cell.mechFlags & Cell.MechFlags.EVENT_FIRED_THIS_TURN) return;
         for (let layer = 0; layer <= Entity.Layer.GAS; ++layer) {
             if (w & GW.flag.fl(layer)) {
-                await cell.activate(event, map, x, y, { force: true, layer });
+                await cell.activate(event, map, x, y, {
+                    force: true,
+                    layer,
+                });
             }
         }
     });
@@ -232,16 +240,10 @@ export function spawnTiles(
     for (i = 0; i < spawnMap.width; i++) {
         for (j = 0; j < spawnMap.height; j++) {
             if (!spawnMap[i][j]) continue; // If it's not flagged for building in the spawn map,
-            const isRoot = spawnMap[i][j] === 1;
+            // const isRoot = spawnMap[i][j] === 1;
             spawnMap[i][j] = 0; // so that the spawnmap reflects what actually got built
 
             const cell = map.cell(i, j);
-            if (
-                cell.mechFlags & Cell.MechFlags.EVENT_FIRED_THIS_TURN &&
-                !isRoot
-            ) {
-                continue;
-            }
 
             if (cell.tile(tile.layer) === tile) {
                 // If the new cell already contains the fill terrain,
@@ -261,19 +263,20 @@ export function spawnTiles(
                 (!blockedByOtherLayers ||
                     cell.topmostTile().priority < tile.priority) // TODO - highestPriorityTile()
             ) {
-                // if the fill won't violate the priority of the most important terrain in this cell:
-                spawnMap[i][j] = 1; // so that the spawnmap reflects what actually got built
-
-                map.setTile(i, j, tile, volume);
-                // map.redrawCell(cell);
-                // if (volume && cell.gas) {
-                //     cell.volume += (feat.volume || 0);
-                // }
-
-                // debug('- tile', i, j, 'tile=', tile.id);
-
-                // cell.mechFlags |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
-                accomplishedSomething = true;
+                if (map.setTile(i, j, tile, volume)) {
+                    // if the fill won't violate the priority of the most important terrain in this cell:
+                    spawnMap[i][j] = 1; // so that the spawnmap reflects what actually got built
+                    // map.redrawCell(cell);
+                    // if (volume && cell.gas) {
+                    //     cell.volume += (feat.volume || 0);
+                    // }
+                    cell.mechFlags |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
+                    if (flags & Flags.E_PROTECTED) {
+                        cell.mechFlags |= Cell.MechFlags.EVENT_PROTECTED;
+                    }
+                    accomplishedSomething = true;
+                    // debug('- tile', i, j, 'tile=', tile.id);
+                }
             }
         }
     }
@@ -295,6 +298,8 @@ function cellIsOk(
 ) {
     if (!map.hasXY(x, y)) return false;
     const cell = map.cell(x, y);
+
+    if (cell.mechFlags & Cell.MechFlags.EVENT_PROTECTED) return false;
 
     if (flags & Flags.E_BUILD_IN_WALLS) {
         if (!cell.isWall()) return false;
@@ -487,11 +492,29 @@ export function computeSpawnMap(
 //     return true;
 // }
 
-export function clearCells(map: Map.Map, spawnMap: GW.grid.NumGrid) {
+export function clearCells(map: Map.Map, spawnMap: GW.grid.NumGrid, flags = 0) {
     let didSomething = false;
+    const clearAll = (flags & Flags.E_CLEAR_CELL) === Flags.E_CLEAR_CELL;
     spawnMap.forEach((v, i, j) => {
         if (!v) return;
-        map.clearCell(i, j);
+
+        const cell = map.cell(i, j);
+        if (clearAll) {
+            cell.clear();
+        } else {
+            if (flags & Flags.E_CLEAR_GAS) {
+                cell.clearLayer(Entity.Layer.GAS);
+            }
+            if (flags & Flags.E_CLEAR_LIQUID) {
+                cell.clearLayer(Entity.Layer.LIQUID);
+            }
+            if (flags & Flags.E_CLEAR_SURFACE) {
+                cell.clearLayer(Entity.Layer.SURFACE);
+            }
+            if (flags & Flags.E_CLEAR_GROUND) {
+                cell.clearLayer(Entity.Layer.GROUND);
+            }
+        }
         didSomething = true;
     });
     return didSomething;
@@ -549,4 +572,42 @@ export function evacuateItems(map: Map.Map, blockingMap: GW.grid.NumGrid) {
         }
     });
     return didSomething;
+}
+
+export function makeClearEffect(config: any): GW.effect.EffectFn | null {
+    if (!config) {
+        GW.utils.ERROR('Config required to make clear effect.');
+        return null;
+    }
+    if (typeof config === 'string') {
+        config = config
+            .split(/[,|]/)
+            .map((t) => t.trim())
+            .reduce((out, v: string) => {
+                // @ts-ignore -- huh?
+                const layer: number = Entity.Layer[v] || 0;
+                return out | layer;
+            }, 0);
+    } else if (config === true) {
+        config = Entity.Layer.ALL_LAYERS;
+    } else if (!Array.isArray(config)) {
+        GW.utils.ERROR('clear effect must have number or string config.');
+        return null;
+    }
+
+    return clearEffect.bind(config);
+}
+
+GW.effect.installType('clear', makeClearEffect);
+
+export function clearEffect(
+    this: number,
+    effect: GW.effect.Effect,
+    x: number,
+    y: number
+): boolean {
+    const map = effect.map as Map.Map;
+    if (!map) return false;
+
+    return map.clearCellLayers(x, y, this);
 }

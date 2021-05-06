@@ -1,5 +1,5 @@
 import * as GW from 'gw-utils';
-import * as Flags from './flags';
+import * as Flags from './mapFlags';
 import * as Cell from './cell';
 import * as Map from './map';
 

@@ -1,7 +1,7 @@
 import * as GW from 'gw-utils';
 import * as MAP from './map';
 import * as CELL from './cell';
-import * as FLAGS from './flags';
+import * as FLAGS from './mapFlags';
 
 export function analyze(map: MAP.Map, updateChokeCounts = true) {
     updateLoopiness(map);

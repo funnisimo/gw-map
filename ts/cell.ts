@@ -20,7 +20,7 @@ import {
     Map as MapFlags,
     Entity as LayerFlags,
     Layer,
-} from './flags';
+} from './mapFlags';
 
 export { Flags, MechFlags };
 
@@ -130,6 +130,20 @@ export class Cell implements Types.CellType {
         if (floorTile) {
             this._tiles[0] = floorTile;
         }
+    }
+
+    clearLayers(
+        layerFlag: number,
+        floorTile: string | Tile = 'FLOOR'
+    ): boolean {
+        const layers = [Layer.GAS, Layer.LIQUID, Layer.SURFACE, Layer.GROUND];
+
+        return layers.reduce((out: boolean, l: Layer) => {
+            if (l & layerFlag) {
+                return this.clearLayer(l, floorTile) || out;
+            }
+            return out;
+        }, false);
     }
 
     // clearLayers(nullLiquid = false, nullSurface = false, nullGas = false) {
@@ -663,15 +677,24 @@ export class Cell implements Types.CellType {
         return true;
     }
 
-    clearLayer(depth: Layer) {
+    clearLayer(depth: Layer, floorTile: string | Tile = 'FLOOR'): boolean {
         // @ts-ignore
         if (typeof depth === 'string') depth = Layer[depth];
 
         const current = this._tiles[depth];
+
+        let didSomething = false;
+        if (depth === Layer.GROUND) {
+            if (typeof floorTile === 'string') {
+                floorTile = TILES[floorTile] || TILES.FLOOR;
+            }
+        }
         if (current) {
             // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
             this.flags |= Flags.CELL_CHANGED;
             this.removeLayer(current);
+            didSomething =
+                current && (depth !== Layer.GROUND || current !== floorTile);
         }
         this._tiles[depth] = null;
         let layerFlag = 0;
@@ -684,9 +707,10 @@ export class Cell implements Types.CellType {
         } else if (depth == Layer.SURFACE) {
             layerFlag = Flags.HAS_SURFACE;
         } else if (depth == Layer.GROUND) {
-            this._tiles[Layer.GROUND] = TILES.FLOOR; // TODO - ????!!!
+            this._tiles[Layer.GROUND] = floorTile as Tile;
         }
         this.flags &= ~layerFlag;
+        return didSomething;
     }
 
     clearLayersExcept(except: Layer = Layer.GROUND, ground?: string | null) {
@@ -863,9 +887,9 @@ export class Cell implements Types.CellType {
 
         while (
             current.next &&
-            (current.layer.layer < layer.layer ||
-                (current.layer.layer == layer.layer &&
-                    current.layer.priority <= layer.priority))
+            (current.next.layer.layer < layer.layer ||
+                (current.next.layer.layer == layer.layer &&
+                    current.next.layer.priority <= layer.priority))
         ) {
             current = current.next;
         }
@@ -971,6 +995,13 @@ export function getAppearance(cell: Cell, dest: Sprite.Mixer) {
     if (needDistinctness) {
         Color.separate(memory.fg, memory.bg);
     }
+
+    if (memory.dances) {
+        cell.flags |= Flags.COLORS_DANCE;
+    } else {
+        cell.flags &= ~Flags.COLORS_DANCE;
+    }
+
     dest.drawSprite(memory);
     return true;
 }

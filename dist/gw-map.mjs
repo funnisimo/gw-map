@@ -217,6 +217,7 @@ var Cell;
     Cell[Cell["CELL_LIT"] = Fl(27)] = "CELL_LIT";
     Cell[Cell["IS_IN_SHADOW"] = Fl(28)] = "IS_IN_SHADOW";
     Cell[Cell["CELL_DARK"] = Fl(29)] = "CELL_DARK";
+    Cell[Cell["COLORS_DANCE"] = Fl(30)] = "COLORS_DANCE";
     Cell[Cell["PERMANENT_CELL_FLAGS"] = Cell.REVEALED |
         Cell.MAGIC_MAPPED |
         Cell.ITEM_DETECTED |
@@ -277,6 +278,7 @@ var Map;
     Map[Map["MAP_NO_GAS"] = Fl(6)] = "MAP_NO_GAS";
     Map[Map["MAP_CALC_FOV"] = Fl(7)] = "MAP_CALC_FOV";
     Map[Map["MAP_FOV_CHANGED"] = Fl(8)] = "MAP_FOV_CHANGED";
+    Map[Map["MAP_DANCES"] = Fl(9)] = "MAP_DANCES";
     Map[Map["MAP_DEFAULT"] = Map.MAP_STABLE_LIGHTS | Map.MAP_STABLE_GLOW_LIGHTS] = "MAP_DEFAULT";
 })(Map || (Map = {}));
 
@@ -902,6 +904,15 @@ class Cell$1 {
             this._tiles[0] = floorTile;
         }
     }
+    clearLayers(layerFlag, floorTile = 'FLOOR') {
+        const layers = [Layer.GAS, Layer.LIQUID, Layer.SURFACE, Layer.GROUND];
+        return layers.reduce((out, l) => {
+            if (l & layerFlag) {
+                return this.clearLayer(l, floorTile) || out;
+            }
+            return out;
+        }, false);
+    }
     // clearLayers(nullLiquid = false, nullSurface = false, nullGas = false) {
     //     if (nullLiquid) {
     //         this._tiles[1] = null;
@@ -1373,15 +1384,23 @@ class Cell$1 {
         }
         return true;
     }
-    clearLayer(depth) {
+    clearLayer(depth, floorTile = 'FLOOR') {
         // @ts-ignore
         if (typeof depth === 'string')
             depth = Layer[depth];
         const current = this._tiles[depth];
+        let didSomething = false;
+        if (depth === Layer.GROUND) {
+            if (typeof floorTile === 'string') {
+                floorTile = tiles[floorTile] || tiles.FLOOR;
+            }
+        }
         if (current) {
             // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
             this.flags |= Cell.CELL_CHANGED;
             this.removeLayer(current);
+            didSomething =
+                current && (depth !== Layer.GROUND || current !== floorTile);
         }
         this._tiles[depth] = null;
         let layerFlag = 0;
@@ -1397,9 +1416,10 @@ class Cell$1 {
             layerFlag = Cell.HAS_SURFACE;
         }
         else if (depth == Layer.GROUND) {
-            this._tiles[Layer.GROUND] = tiles.FLOOR; // TODO - ????!!!
+            this._tiles[Layer.GROUND] = floorTile;
         }
         this.flags &= ~layerFlag;
+        return didSomething;
     }
     clearLayersExcept(except = Layer.GROUND, ground) {
         const floorTile = ground ? tiles[ground] : this.groundTile;
@@ -1559,9 +1579,9 @@ class Cell$1 {
             return;
         }
         while (current.next &&
-            (current.layer.layer < layer.layer ||
-                (current.layer.layer == layer.layer &&
-                    current.layer.priority <= layer.priority))) {
+            (current.next.layer.layer < layer.layer ||
+                (current.next.layer.layer == layer.layer &&
+                    current.next.layer.priority <= layer.priority))) {
             current = current.next;
         }
         const item = {
@@ -1653,6 +1673,12 @@ function getAppearance(cell, dest) {
     memory.bake(!cell.isAnyKindOfVisible()); // turns off dancing if not visible
     if (needDistinctness) {
         color.separate(memory.fg, memory.bg);
+    }
+    if (memory.dances) {
+        cell.flags |= Cell.COLORS_DANCE;
+    }
+    else {
+        cell.flags &= ~Cell.COLORS_DANCE;
     }
     dest.drawSprite(memory);
     return true;
@@ -1931,7 +1957,7 @@ async function tileEffect(effect, x, y) {
     }
     if (effect.flags & Flags.E_CLEAR_CELL) {
         // first, clear other tiles (not base/ground)
-        if (clearCells(map, effect.grid)) {
+        if (clearCells(map, effect.grid, effect.flags)) {
             didSomething = true;
         }
     }
@@ -1972,7 +1998,8 @@ async function fireAll(map, event) {
     const willFire = grid.alloc(map.width, map.height);
     // Figure out which tiles will fire - before we change everything...
     map.forEach((cell$1, x, y) => {
-        cell$1.clearFlags(0, CellMech.EVENT_FIRED_THIS_TURN);
+        cell$1.clearFlags(0, CellMech.EVENT_FIRED_THIS_TURN |
+            CellMech.EVENT_PROTECTED);
         for (let tile of cell$1.tiles()) {
             const effect$1 = effect.from(tile.activates[event]);
             if (!effect$1)
@@ -1997,7 +2024,7 @@ async function fireAll(map, event) {
             if (!(cell$1.mechFlags & CellMech.CAUGHT_FIRE_THIS_TURN) &&
                 random.chance(promoteChance, 10000)) {
                 willFire[x][y] |= flag.fl(tile.layer);
-                cell$1.mechFlags |= CellMech.EVENT_FIRED_THIS_TURN;
+                // cell.mechFlags |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
             }
         }
     });
@@ -2005,10 +2032,15 @@ async function fireAll(map, event) {
     await willFire.forEachAsync(async (w, x, y) => {
         if (!w)
             return;
-        const cell = map.cell(x, y);
+        const cell$1 = map.cell(x, y);
+        if (cell$1.mechFlags & CellMech.EVENT_FIRED_THIS_TURN)
+            return;
         for (let layer = 0; layer <= Layer.GAS; ++layer) {
             if (w & flag.fl(layer)) {
-                await cell.activate(event, map, x, y, { force: true, layer });
+                await cell$1.activate(event, map, x, y, {
+                    force: true,
+                    layer,
+                });
             }
         }
     });
@@ -2027,13 +2059,9 @@ function spawnTiles(flags, spawnMap, map, tile, volume = 0) {
         for (j = 0; j < spawnMap.height; j++) {
             if (!spawnMap[i][j])
                 continue; // If it's not flagged for building in the spawn map,
-            const isRoot = spawnMap[i][j] === 1;
+            // const isRoot = spawnMap[i][j] === 1;
             spawnMap[i][j] = 0; // so that the spawnmap reflects what actually got built
             const cell$1 = map.cell(i, j);
-            if (cell$1.mechFlags & CellMech.EVENT_FIRED_THIS_TURN &&
-                !isRoot) {
-                continue;
-            }
             if (cell$1.tile(tile.layer) === tile) {
                 // If the new cell already contains the fill terrain,
                 if (tile.layer == Layer.GAS) {
@@ -2053,16 +2081,20 @@ function spawnTiles(flags, spawnMap, map, tile, volume = 0) {
                 (!blockedByOtherLayers ||
                     cell$1.topmostTile().priority < tile.priority) // TODO - highestPriorityTile()
             ) {
-                // if the fill won't violate the priority of the most important terrain in this cell:
-                spawnMap[i][j] = 1; // so that the spawnmap reflects what actually got built
-                map.setTile(i, j, tile, volume);
-                // map.redrawCell(cell);
-                // if (volume && cell.gas) {
-                //     cell.volume += (feat.volume || 0);
-                // }
-                // debug('- tile', i, j, 'tile=', tile.id);
-                // cell.mechFlags |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
-                accomplishedSomething = true;
+                if (map.setTile(i, j, tile, volume)) {
+                    // if the fill won't violate the priority of the most important terrain in this cell:
+                    spawnMap[i][j] = 1; // so that the spawnmap reflects what actually got built
+                    // map.redrawCell(cell);
+                    // if (volume && cell.gas) {
+                    //     cell.volume += (feat.volume || 0);
+                    // }
+                    cell$1.mechFlags |= CellMech.EVENT_FIRED_THIS_TURN;
+                    if (flags & Flags.E_PROTECTED) {
+                        cell$1.mechFlags |= CellMech.EVENT_PROTECTED;
+                    }
+                    accomplishedSomething = true;
+                    // debug('- tile', i, j, 'tile=', tile.id);
+                }
             }
         }
     }
@@ -2075,9 +2107,11 @@ function spawnTiles(flags, spawnMap, map, tile, volume = 0) {
 function cellIsOk(config, map, x, y, flags, isStart) {
     if (!map.hasXY(x, y))
         return false;
-    const cell = map.cell(x, y);
+    const cell$1 = map.cell(x, y);
+    if (cell$1.mechFlags & CellMech.EVENT_PROTECTED)
+        return false;
     if (flags & Flags.E_BUILD_IN_WALLS) {
-        if (!cell.isWall())
+        if (!cell$1.isWall())
             return false;
     }
     else if (flags & Flags.E_MUST_TOUCH_WALLS) {
@@ -2092,7 +2126,7 @@ function cellIsOk(config, map, x, y, flags, isStart) {
     }
     else if (flags & Flags.E_NO_TOUCH_WALLS) {
         let ok = true;
-        if (cell.isWall())
+        if (cell$1.isWall())
             return false; // or on wall
         map.eachNeighbor(x, y, (c) => {
             if (c.isWall()) {
@@ -2102,11 +2136,11 @@ function cellIsOk(config, map, x, y, flags, isStart) {
         if (!ok)
             return false;
     }
-    else if (cell.blocksEffects() && !config.matchTile && !isStart) {
+    else if (cell$1.blocksEffects() && !config.matchTile && !isStart) {
         return false;
     }
     // if (ctx.bounds && !ctx.bounds.containsXY(x, y)) return false;
-    if (config.matchTile && !cell.hasTile(config.matchTile))
+    if (config.matchTile && !cell$1.hasTile(config.matchTile))
         return false;
     return true;
 }
@@ -2241,12 +2275,30 @@ function computeSpawnMap(config, effect, x, y) {
 //     }
 //     return true;
 // }
-function clearCells(map, spawnMap) {
+function clearCells(map, spawnMap, flags = 0) {
     let didSomething = false;
+    const clearAll = (flags & Flags.E_CLEAR_CELL) === Flags.E_CLEAR_CELL;
     spawnMap.forEach((v, i, j) => {
         if (!v)
             return;
-        map.clearCell(i, j);
+        const cell = map.cell(i, j);
+        if (clearAll) {
+            cell.clear();
+        }
+        else {
+            if (flags & Flags.E_CLEAR_GAS) {
+                cell.clearLayer(Layer.GAS);
+            }
+            if (flags & Flags.E_CLEAR_LIQUID) {
+                cell.clearLayer(Layer.LIQUID);
+            }
+            if (flags & Flags.E_CLEAR_SURFACE) {
+                cell.clearLayer(Layer.SURFACE);
+            }
+            if (flags & Flags.E_CLEAR_GROUND) {
+                cell.clearLayer(Layer.GROUND);
+            }
+        }
         didSomething = true;
     });
     return didSomething;
@@ -2294,6 +2346,37 @@ function evacuateItems(map, blockingMap) {
         }
     });
     return didSomething;
+}
+function makeClearEffect(config) {
+    if (!config) {
+        utils.ERROR('Config required to make clear effect.');
+        return null;
+    }
+    if (typeof config === 'string') {
+        config = config
+            .split(/[,|]/)
+            .map((t) => t.trim())
+            .reduce((out, v) => {
+            // @ts-ignore -- huh?
+            const layer = Layer[v] || 0;
+            return out | layer;
+        }, 0);
+    }
+    else if (config === true) {
+        config = Layer.ALL_LAYERS;
+    }
+    else if (!Array.isArray(config)) {
+        utils.ERROR('clear effect must have number or string config.');
+        return null;
+    }
+    return clearEffect.bind(config);
+}
+effect.installType('clear', makeClearEffect);
+function clearEffect(effect, x, y) {
+    const map = effect.map;
+    if (!map)
+        return false;
+    return map.clearCellLayers(x, y, this);
 }
 
 function analyze(map, updateChokeCounts = true) {
@@ -2925,6 +3008,9 @@ class Map$1 {
     clearCell(x, y) {
         this.cell(x, y).clear();
     }
+    clearCellLayers(x, y, layers = -1) {
+        return this.cell(x, y).clearLayers(layers);
+    }
     clearCellLayersWithFlags(x, y, tileFlags, tileMechFlags = 0) {
         const cell = this.cell(x, y);
         cell.clearLayersWithFlags(tileFlags, tileMechFlags);
@@ -3011,15 +3097,19 @@ class Map$1 {
         let matcher = args[0];
         let opts = args[1] || {};
         const arg = args[0];
-        if (typeof arg !== 'function') {
-            opts = arg || args[1];
+        if (typeof arg === 'string') {
+            matcher = (c) => c.hasTile(arg);
+        }
+        if (typeof matcher !== 'function') {
+            opts = matcher || opts;
             matcher = opts.match || utils.TRUE;
         }
-        const hallwaysAllowed = opts.hallways || false;
+        const hallwaysAllowed = opts.hallways !== false;
         const blockingMap = opts.blockingMap || null;
         const forbidLiquid = opts.liquids === false;
         const deterministic = opts.deterministic || false;
-        const candidateLocs = [];
+        let candidateLocs = [];
+        let closestDist = (this.width + this.height) * 10;
         // count up the number of candidate locations
         for (k = 0; k < Math.max(this.width, this.height) && !candidateLocs.length; k++) {
             for (i = x - k; i <= x + k; i++) {
@@ -3027,13 +3117,20 @@ class Map$1 {
                     if (!this.hasXY(i, j))
                         continue;
                     const cell = this.cell(i, j);
+                    const dist = Math.floor(10 * utils.distanceBetween(x, y, i, j));
                     // if ((i == x-k || i == x+k || j == y-k || j == y+k)
-                    if (Math.ceil(utils.distanceBetween(x, y, i, j)) == k &&
+                    if (Math.floor(dist) == k * 10 &&
                         (!blockingMap || !blockingMap[i][j]) &&
                         matcher(cell, i, j, this) &&
                         (!forbidLiquid || !cell.liquid) &&
                         (hallwaysAllowed || this.walkableArcCount(i, j) < 2)) {
-                        candidateLocs.push([i, j]);
+                        if (dist < closestDist) {
+                            candidateLocs = [[i, j]];
+                            closestDist = dist;
+                        }
+                        else if (dist == closestDist) {
+                            candidateLocs.push([i, j]);
+                        }
                     }
                 }
             }
@@ -3785,6 +3882,9 @@ function getCellAppearance(map, x, y, dest) {
     if (needDistinctness) {
         color.separate(dest.fg, dest.bg);
     }
+    if (dest.dances) {
+        map.flags |= Map.MAP_DANCES;
+    }
     // dest.bake();
 }
 function addText(map, x, y, text, fg, bg, layer) {
@@ -3951,6 +4051,9 @@ install$1('UP_STAIRS', {
     flags: 'T_UP_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR',
     name: 'upward staircase',
     article: 'an',
+    activates: {
+        player: { emit: 'UP_STAIRS' },
+    },
 });
 install$1('DOWN_STAIRS', {
     ch: '>',
@@ -3960,6 +4063,9 @@ install$1('DOWN_STAIRS', {
     flags: 'T_DOWN_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR',
     name: 'downward staircase',
     article: 'a',
+    activates: {
+        player: { emit: 'DOWN_STAIRS' },
+    },
 });
 install$1('WALL', {
     ch: '#',
@@ -3984,7 +4090,7 @@ install$1('LAKE', {
 install$1('SHALLOW', {
     ch: '\u00b7',
     fg: [5, 8, 10, 10, 0, 4, 15, true],
-    bg: [10, 15, 21, 6, 5, 5, 5, true],
+    bg: [10, 15, 31, 6, 5, 5, 5, true],
     priority: 20,
     name: 'shallow water',
     article: 'the',

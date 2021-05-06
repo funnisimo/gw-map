@@ -105,6 +105,7 @@ declare enum Cell {
     CELL_LIT,
     IS_IN_SHADOW,
     CELL_DARK,
+    COLORS_DANCE,
     PERMANENT_CELL_FLAGS,
     ANY_KIND_OF_VISIBLE,
     HAS_ANY_ACTOR,
@@ -140,6 +141,7 @@ declare enum Map {
     MAP_NO_GAS,
     MAP_CALC_FOV,
     MAP_FOV_CHANGED,
+    MAP_DANCES,
     MAP_DEFAULT
 }
 
@@ -287,6 +289,7 @@ declare class Cell$1 implements types.CellType {
     copy(other: Cell$1): void;
     nullify(): void;
     clear(floorTile?: string | Tile$1): void;
+    clearLayers(layerFlag: number, floorTile?: string | Tile$1): boolean;
     get ground(): string | null;
     get liquid(): string | null;
     get surface(): string | null;
@@ -354,7 +357,7 @@ declare class Cell$1 implements types.CellType {
     markRevealed(): boolean;
     obstructsLayer(depth: Layer): boolean;
     setTile(tileId?: TileBase | null, volume?: number, map?: Map$1): true | void;
-    clearLayer(depth: Layer): void;
+    clearLayer(depth: Layer, floorTile?: string | Tile$1): boolean;
     clearLayersExcept(except?: Layer, ground?: string | null): void;
     clearLayersWithFlags(tileFlags: number, tileMechFlags?: number): void;
     activate(name: string, map: Map$1, x: number, y: number, ctx?: any): Promise<boolean>;
@@ -520,6 +523,7 @@ declare class Map$1 implements types.MapType {
     setTile(x: number, y: number, tileId: TileBase | null, volume?: number): true | void;
     nullifyCell(x: number, y: number): void;
     clearCell(x: number, y: number): void;
+    clearCellLayers(x: number, y: number, layers?: number): boolean;
     clearCellLayersWithFlags(x: number, y: number, tileFlags: Tile, tileMechFlags?: TileMech): void;
     fill(tileId: string | null, boundaryTile?: string | null): void;
     neighborCount(x: number, y: number, matchFn: MapMatchFn, only4dirs?: boolean): number;
@@ -528,7 +532,7 @@ declare class Map$1 implements types.MapType {
     fillCostGrid(costGrid: grid.NumGrid, costFn?: MapCostFn): void;
     matchingNeighbor(x: number, y: number, matcher: MapMatchFn, only4dirs?: boolean): utils.Loc;
     matchingLocNear(x: number, y: number, opts: Partial<MapMatchOptions>): utils.Loc;
-    matchingLocNear(x: number, y: number, matcher: MapMatchFn, opts?: Partial<MapMatchOptions>): utils.Loc;
+    matchingLocNear(x: number, y: number, matcher: MapMatchFn | string, opts?: Partial<MapMatchOptions>): utils.Loc;
     randomMatchingLoc(opts: Partial<MapMatchOptions>): utils.Loc;
     randomMatchingLoc(match: MapMatchFn): utils.Loc;
     hasVisibleLight(x: number, y: number): boolean;

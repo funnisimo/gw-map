@@ -7,7 +7,7 @@ import {
     effect as Effect,
 } from 'gw-utils';
 
-import { Tile as Flags, TileMech as MechFlags } from './flags';
+import { Tile as Flags, TileMech as MechFlags } from './mapFlags';
 import * as Layer from './entity';
 
 export { Flags, MechFlags };

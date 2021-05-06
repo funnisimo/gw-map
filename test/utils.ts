@@ -1,6 +1,6 @@
 import { Random, types as Types, colors as COLORS } from 'gw-utils';
 import { Map } from '../ts/map';
-import { Layer } from '../ts/flags';
+import { Layer } from '../ts/mapFlags';
 
 export const rnd = jest.fn();
 export const counts = new Array(100).fill(0);

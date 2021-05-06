@@ -250,6 +250,8 @@ export enum Cell {
     IS_IN_SHADOW = Fl(28), // so that a player gains an automatic stealth bonus
     CELL_DARK = Fl(29),
 
+    COLORS_DANCE = Fl(30),
+
     PERMANENT_CELL_FLAGS = REVEALED |
         MAGIC_MAPPED |
         ITEM_DETECTED |
@@ -324,6 +326,8 @@ export enum Map {
 
     MAP_CALC_FOV = Fl(7),
     MAP_FOV_CHANGED = Fl(8),
+
+    MAP_DANCES = Fl(9),
 
     MAP_DEFAULT = MAP_STABLE_LIGHTS | MAP_STABLE_GLOW_LIGHTS,
 }
