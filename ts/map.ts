@@ -787,8 +787,13 @@ export class Map implements Types.MapType {
         return this.cell(x, y).hasVisibleLight();
     }
 
-    addStaticLight(x: number, y: number, light: Light.Light) {
-        const info: LightInfo = { x, y, light, next: this.lights };
+    addStaticLight(x: number, y: number, light: Light.Light | Light.LightBase) {
+        const info: LightInfo = {
+            x,
+            y,
+            light: Light.from(light),
+            next: this.lights,
+        };
         this.lights = info;
         this.staticLightChanged = true;
         return info;
@@ -957,7 +962,7 @@ export class Map implements Types.MapType {
         const cell = this.cell(actor.x, actor.y);
         if (cell.actor === actor) {
             cell.actor = null;
-            Utils.removeFromChain(this, 'actors', actor);
+            Utils.removeFromChain(this, '_actors', actor);
 
             if (actor.light) {
                 this.anyLightChanged = true;
@@ -1063,7 +1068,7 @@ export class Map implements Types.MapType {
         if (cell.item !== theItem) return false;
 
         cell.item = null;
-        Utils.removeFromChain(this, 'items', theItem);
+        Utils.removeFromChain(this, '_items', theItem);
 
         if (theItem.light) {
             this.anyLightChanged = true;

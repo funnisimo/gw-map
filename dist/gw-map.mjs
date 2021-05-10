@@ -389,6 +389,8 @@ function from(...args) {
     if (args.length != 1)
         utils.ERROR('Unknown Light config: ' + JSON.stringify(args));
     const arg = args[0];
+    if (arg instanceof Light)
+        return arg;
     if (typeof arg === 'string') {
         const cached = lights[arg];
         if (cached)
@@ -3195,8 +3197,13 @@ class Map$1 {
     hasVisibleLight(x, y) {
         return this.cell(x, y).hasVisibleLight();
     }
-    addStaticLight(x, y, light) {
-        const info = { x, y, light, next: this.lights };
+    addStaticLight(x, y, light$1) {
+        const info = {
+            x,
+            y,
+            light: from(light$1),
+            next: this.lights,
+        };
         this.lights = info;
         this.staticLightChanged = true;
         return info;
@@ -3344,7 +3351,7 @@ class Map$1 {
         const cell = this.cell(actor.x, actor.y);
         if (cell.actor === actor) {
             cell.actor = null;
-            utils.removeFromChain(this, 'actors', actor);
+            utils.removeFromChain(this, '_actors', actor);
             if (actor.light) {
                 this.anyLightChanged = true;
             }
@@ -3436,7 +3443,7 @@ class Map$1 {
         if (cell.item !== theItem)
             return false;
         cell.item = null;
-        utils.removeFromChain(this, 'items', theItem);
+        utils.removeFromChain(this, '_items', theItem);
         if (theItem.light) {
             this.anyLightChanged = true;
         }

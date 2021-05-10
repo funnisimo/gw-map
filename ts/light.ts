@@ -186,11 +186,12 @@ Make.light = make;
 
 export const lights: Record<string, Light> = {};
 
-export function from(light: LightBase): Light;
+export function from(light: LightBase | Light): Light;
 export function from(...args: any[]) {
     if (args.length != 1)
         Utils.ERROR('Unknown Light config: ' + JSON.stringify(args));
     const arg = args[0];
+    if (arg instanceof Light) return arg;
     if (typeof arg === 'string') {
         const cached = lights[arg];
         if (cached) return cached;

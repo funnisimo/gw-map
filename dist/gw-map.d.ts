@@ -536,7 +536,7 @@ declare class Map$1 implements types.MapType {
     randomMatchingLoc(opts: Partial<MapMatchOptions>): utils.Loc;
     randomMatchingLoc(match: MapMatchFn): utils.Loc;
     hasVisibleLight(x: number, y: number): boolean;
-    addStaticLight(x: number, y: number, light: Light): LightInfo;
+    addStaticLight(x: number, y: number, light: Light | LightBase): LightInfo;
     removeStaticLight(x: number, y: number, light?: Light): void;
     eachStaticLight(fn: MapLightFn): void;
     eachDynamicLight(fn: MapLightFn): void;
@@ -646,7 +646,7 @@ declare type LightBase = LightConfig | string | any[];
 declare function make$3(color: color.ColorBase, radius: range.RangeBase, fadeTo?: number, pass?: boolean): Light;
 declare function make$3(light: LightBase): Light;
 declare const lights: Record<string, Light>;
-declare function from$1(light: LightBase): Light;
+declare function from$1(light: LightBase | Light): Light;
 declare function install$1(id: string, color: color.ColorBase, radius: range.RangeBase, fadeTo?: number, pass?: boolean): Light;
 declare function install$1(id: string, base: LightBase): Light;
 declare function install$1(id: string, config: LightConfig): Light;
