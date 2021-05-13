@@ -38,10 +38,10 @@ export function updateChokepoints(map: MAP.Map, updateCounts: boolean) {
     // done finding loops; now flag chokepoints
     for (let i = 1; i < passMap.width - 1; i++) {
         for (let j = 1; j < passMap.height - 1; j++) {
-            map.cells[i][j].mechFlags &= ~FLAGS.CellMech.IS_CHOKEPOINT;
+            map.cells[i][j].flags.cellMech &= ~FLAGS.CellMech.IS_CHOKEPOINT;
             if (
                 passMap[i][j] &&
-                !(map.cells[i][j].mechFlags & FLAGS.CellMech.IS_IN_LOOP)
+                !(map.cells[i][j].flags.cellMech & FLAGS.CellMech.IS_IN_LOOP)
             ) {
                 passableArcCount = 0;
                 for (let dir = 0; dir < 8; dir++) {
@@ -60,7 +60,7 @@ export function updateChokepoints(map: MAP.Map, updateCounts: boolean) {
                                 (!passMap[i - 1][j] && !passMap[i + 1][j]) ||
                                 (!passMap[i][j - 1] && !passMap[i][j + 1])
                             ) {
-                                map.cells[i][j].mechFlags |=
+                                map.cells[i][j].flags.cellMech |=
                                     FLAGS.CellMech.IS_CHOKEPOINT;
                             }
                             break;
@@ -86,7 +86,7 @@ export function updateChokepoints(map: MAP.Map, updateCounts: boolean) {
             for (let j = 0; j < map.height; j++) {
                 map.cells[i][j].chokeCount = 30000;
                 if (
-                    map.cells[i][j].mechFlags &
+                    map.cells[i][j].flags.cellMech &
                     FLAGS.CellMech.IS_IN_ROOM_MACHINE
                 ) {
                     passMap[i][j] = 0;
@@ -102,7 +102,7 @@ export function updateChokepoints(map: MAP.Map, updateCounts: boolean) {
 
                 if (
                     passMap[i][j] &&
-                    cell.mechFlags & FLAGS.CellMech.IS_CHOKEPOINT
+                    cell.flags.cellMech & FLAGS.CellMech.IS_CHOKEPOINT
                 ) {
                     for (let dir = 0; dir < 4; dir++) {
                         const newX = i + GW.utils.DIRS[dir][0];
@@ -111,7 +111,7 @@ export function updateChokepoints(map: MAP.Map, updateCounts: boolean) {
                             map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
                             passMap[newX][newY] &&
                             !(
-                                map.cells[newX][newY].mechFlags &
+                                map.cells[newX][newY].flags.cellMech &
                                 FLAGS.CellMech.IS_CHOKEPOINT
                             )
                         ) {
@@ -146,7 +146,7 @@ export function updateChokepoints(map: MAP.Map, updateCounts: boolean) {
                                             ].chokeCount = cellCount;
                                             map.cells[i2][
                                                 j2
-                                            ].mechFlags &= ~FLAGS.CellMech
+                                            ].flags.cellMech &= ~FLAGS.CellMech
                                                 .IS_GATE_SITE;
                                         }
                                     }
@@ -155,7 +155,7 @@ export function updateChokepoints(map: MAP.Map, updateCounts: boolean) {
                                 // The chokepoint itself should also take the lesser of its current value or the flood count.
                                 if (cellCount < cell.chokeCount) {
                                     cell.chokeCount = cellCount;
-                                    cell.mechFlags |=
+                                    cell.flags.cellMech |=
                                         FLAGS.CellMech.IS_GATE_SITE;
                                 }
                             }
@@ -182,7 +182,8 @@ export function floodFillCount(
     let count = passMap[startX][startY] == 2 ? 5000 : 1;
 
     if (
-        map.cells[startX][startY].mechFlags & FLAGS.CellMech.IS_IN_AREA_MACHINE
+        map.cells[startX][startY].flags.cellMech &
+        FLAGS.CellMech.IS_IN_AREA_MACHINE
     ) {
         count = 10000;
     }
@@ -225,10 +226,10 @@ export function resetLoopiness(
             cell.hasLayerFlag(FLAGS.Entity.L_BLOCKS_MOVE)) &&
         !cell.hasLayerFlag(FLAGS.Entity.L_SECRETLY_PASSABLE)
     ) {
-        cell.mechFlags &= ~FLAGS.CellMech.IS_IN_LOOP;
+        cell.flags.cellMech &= ~FLAGS.CellMech.IS_IN_LOOP;
         // passMap[i][j] = false;
     } else {
-        cell.mechFlags |= FLAGS.CellMech.IS_IN_LOOP;
+        cell.flags.cellMech |= FLAGS.CellMech.IS_IN_LOOP;
         // passMap[i][j] = true;
     }
 }
@@ -243,7 +244,7 @@ export function checkLoopiness(
     let newX, newY, dir, sdir;
     let numStrings, maxStringLength, currentStringLength;
 
-    if (!cell || !(cell.mechFlags & FLAGS.CellMech.IS_IN_LOOP)) {
+    if (!cell || !(cell.flags.cellMech & FLAGS.CellMech.IS_IN_LOOP)) {
         return false;
     }
 
@@ -255,7 +256,7 @@ export function checkLoopiness(
         if (!map.hasXY(newX, newY)) continue;
 
         const cell = map.get(newX, newY);
-        if (!cell || !(cell.mechFlags & FLAGS.CellMech.IS_IN_LOOP)) {
+        if (!cell || !(cell.flags.cellMech & FLAGS.CellMech.IS_IN_LOOP)) {
             break;
         }
     }
@@ -276,7 +277,7 @@ export function checkLoopiness(
         if (!map.hasXY(newX, newY)) continue;
 
         const newCell = map.get(newX, newY);
-        if (newCell && newCell.mechFlags & FLAGS.CellMech.IS_IN_LOOP) {
+        if (newCell && newCell.flags.cellMech & FLAGS.CellMech.IS_IN_LOOP) {
             currentStringLength++;
             if (!inString) {
                 if (numStrings > 0) {
@@ -298,7 +299,7 @@ export function checkLoopiness(
         maxStringLength = currentStringLength;
     }
     if (numStrings == 1 && maxStringLength <= 4) {
-        cell.mechFlags &= ~FLAGS.CellMech.IS_IN_LOOP;
+        cell.flags.cellMech &= ~FLAGS.CellMech.IS_IN_LOOP;
 
         for (dir = 0; dir < 8; dir++) {
             const newX = x + GW.utils.CLOCK_DIRS[dir][0];
@@ -318,14 +319,14 @@ export function fillInnerLoopGrid(map: MAP.Map, grid: GW.grid.NumGrid) {
     for (let x = 0; x < map.width; ++x) {
         for (let y = 0; y < map.height; ++y) {
             const cell = map.cells[x][y];
-            if (cell.mechFlags & FLAGS.CellMech.IS_IN_LOOP) {
+            if (cell.flags.cellMech & FLAGS.CellMech.IS_IN_LOOP) {
                 grid[x][y] = 1;
             } else if (x > 0 && y > 0) {
                 const up = map.cells[x][y - 1];
                 const left = map.cells[x - 1][y];
                 if (
-                    up.mechFlags & FLAGS.CellMech.IS_IN_LOOP &&
-                    left.mechFlags & FLAGS.CellMech.IS_IN_LOOP
+                    up.flags.cellMech & FLAGS.CellMech.IS_IN_LOOP &&
+                    left.flags.cellMech & FLAGS.CellMech.IS_IN_LOOP
                 ) {
                     grid[x][y] = 1;
                 }
@@ -345,7 +346,7 @@ export function cleanLoopiness(map: MAP.Map) {
     for (let i = 0; i < grid.width; i++) {
         for (let j = 0; j < grid.height; j++) {
             const cell = map.get(i, j);
-            if (cell.mechFlags & FLAGS.CellMech.IS_IN_LOOP) {
+            if (cell.flags.cellMech & FLAGS.CellMech.IS_IN_LOOP) {
                 designationSurvives = false;
                 for (let dir = 0; dir < 8; dir++) {
                     let newX = i + GW.utils.CLOCK_DIRS[dir][0];
@@ -355,7 +356,7 @@ export function cleanLoopiness(map: MAP.Map) {
                         map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, xy, newX, newY) &&
                         !grid[newX][newY] &&
                         !(
-                            map.cells[newX][newY].mechFlags &
+                            map.cells[newX][newY].flags.cellMech &
                             FLAGS.CellMech.IS_IN_LOOP
                         )
                     ) {
@@ -365,7 +366,8 @@ export function cleanLoopiness(map: MAP.Map) {
                 }
                 if (!designationSurvives) {
                     grid[i][j] = 1;
-                    map.cells[i][j].mechFlags &= ~FLAGS.CellMech.IS_IN_LOOP;
+                    map.cells[i][j].flags.cellMech &= ~FLAGS.CellMech
+                        .IS_IN_LOOP;
                 }
             }
         }

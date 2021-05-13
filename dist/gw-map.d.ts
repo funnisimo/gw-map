@@ -254,11 +254,13 @@ declare class CellMemory {
     itemQuantity: number;
     actor: types.ActorType | null;
     tile: Tile$1 | null;
-    cellFlags: number;
-    cellMechFlags: number;
-    layerFlags: number;
-    tileFlags: number;
-    tileMechFlags: number;
+    flags: {
+        cell: number;
+        cellMech: number;
+        layer: number;
+        tile: number;
+        tileMech: number;
+    };
     constructor();
     clear(): void;
     copy(other: CellMemory): void;
@@ -275,8 +277,7 @@ declare class Cell$1 implements types.CellType {
     protected _actor: types.ActorType | null;
     protected _item: types.ItemType | null;
     data: any;
-    flags: Cell;
-    mechFlags: CellMech;
+    flags: types.CellFlags;
     gasVolume: number;
     liquidVolume: number;
     machineNumber: number;
@@ -332,9 +333,9 @@ declare class Cell$1 implements types.CellType {
     hasMechFlag(flag: CellMech, limitToPlayerKnowledge?: boolean): boolean;
     hasTile(tile: string | types.TileType): boolean;
     topmostTile(skipGas?: boolean): Tile$1;
-    tileWithLayerFlag(layerFlag: number): LayerTile;
-    tileWithFlag(tileFlag: number): LayerTile;
-    tileWithMechFlag(mechFlag: number): LayerTile;
+    tileWithLayerFlag(layerFlag: number): Tile$1 | null;
+    tileWithFlag(tileFlag: number): Tile$1 | null;
+    tileWithMechFlag(mechFlag: number): Tile$1 | null;
     tileDesc(): string | null;
     tileFlavor(): string | null;
     getName(opts?: {}): string;
@@ -445,7 +446,9 @@ declare class Map$1 implements types.MapType {
     config: any;
     protected _actors: any | null;
     protected _items: any | null;
-    flags: number;
+    flags: {
+        map: number;
+    };
     ambientLight: color.Color;
     lights: LightInfo | null;
     id: string;
@@ -505,7 +508,6 @@ declare class Map$1 implements types.MapType {
     tileWithLayerFlag(x: number, y: number, mechFlag?: number): Tile$1 | null;
     tileWithFlag(x: number, y: number, flag?: number): Tile$1 | null;
     tileWithMechFlag(x: number, y: number, mechFlag?: number): Tile$1 | null;
-    hasKnownTileFlag(x: number, y: number, flagMask?: number): number;
     isClear(x: number, y: number): boolean;
     isEmpty(x: number, y: number): boolean;
     isObstruction(x: number, y: number, limitToPlayerKnowledge?: boolean): boolean;
@@ -543,12 +545,14 @@ declare class Map$1 implements types.MapType {
     addFx(x: number, y: number, anim: types.FxType): boolean;
     moveFx(x: number, y: number, anim: types.FxType): boolean;
     removeFx(anim: types.FxType): boolean;
+    actors(): Generator<any, void, unknown>;
     actorAt(x: number, y: number): types.ActorType | null;
     addActor(x: number, y: number, theActor: types.ActorType): boolean;
     addActorNear(x: number, y: number, theActor: types.ActorType): boolean;
     moveActor(x: number, y: number, actor: types.ActorType): boolean;
     removeActor(actor: types.ActorType): boolean;
     deleteActorAt(x: number, y: number): boolean;
+    items(): Generator<any, void, unknown>;
     itemAt(x: number, y: number): types.ItemType | null;
     addItem(x: number, y: number, theItem: types.ItemType): boolean;
     addItemNear(x: number, y: number, theItem: types.ItemType): boolean;

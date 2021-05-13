@@ -72,7 +72,7 @@ describe('Cell', () => {
     });
 
     test('dump', () => {
-        const cell = GW.make.cell('WALL');
+        const cell: Cell = GW.make.cell('WALL');
         expect(cell.dump()).toEqual('#');
 
         cell.item = UTILS.makeItem();
@@ -81,12 +81,12 @@ describe('Cell', () => {
         cell.actor = UTILS.makeActor();
         expect(cell.dump()).toEqual('@');
 
-        const empty = GW.make.cell();
+        const empty: Cell = GW.make.cell();
         expect(empty.dump()).toEqual(Map.tiles.NULL.sprite.ch);
     });
 
     test('description + flavor + name', () => {
-        const cell = GW.make.cell('WALL');
+        const cell: Cell = GW.make.cell('WALL');
         expect(cell.tileDesc()).toEqual('A wall made from rough cut stone.');
         expect(cell.tileFlavor()).toEqual('a rough stone wall');
         expect(cell.getName()).toEqual('stone wall');
@@ -95,25 +95,25 @@ describe('Cell', () => {
     });
 
     test('changed', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
         expect(cell.changed).toBeTruthy();
-        expect(cell.flags & Map.cell.Flags.CELL_CHANGED).toBeTruthy();
+        expect(cell.flags.cell & Map.cell.Flags.CELL_CHANGED).toBeTruthy();
         cell.changed = false;
         expect(cell.changed).toBeFalsy();
-        expect(cell.flags & Map.cell.Flags.CELL_CHANGED).toBeFalsy();
+        expect(cell.flags.cell & Map.cell.Flags.CELL_CHANGED).toBeFalsy();
         cell.changed = true;
         expect(cell.changed).toBeTruthy();
-        expect(cell.flags & Map.cell.Flags.CELL_CHANGED).toBeTruthy();
+        expect(cell.flags.cell & Map.cell.Flags.CELL_CHANGED).toBeTruthy();
     });
 
     test('copy + clear', () => {
-        const cell = GW.make.cell('LAKE');
+        const cell: Cell = GW.make.cell('LAKE');
         cell.setTile('BRIDGE');
         cell.storeMemory();
 
-        const other = GW.make.cell();
+        const other: Cell = GW.make.cell();
         expect(other.memory.mixer.ch).toEqual(-1);
-        expect(other.memory.tileFlags).toEqual(0);
+        expect(other.memory.flags.tile).toEqual(0);
 
         other.copy(cell);
         expect(other.hasTile('LAKE')).toBeTruthy();
@@ -121,7 +121,7 @@ describe('Cell', () => {
         expect(other.isClear()).toBeFalsy();
         expect(other.memory.mixer).not.toBe(cell.memory.mixer);
         expect(other.memory.mixer.ch).toEqual(cell.memory.mixer.ch);
-        expect(other.memory.tileFlags).toEqual(cell.memory.tileFlags);
+        expect(other.memory.flags.tile).toEqual(cell.memory.flags.tile);
 
         other.clear();
         expect(other.hasTile('LAKE')).toBeFalsy();
@@ -129,7 +129,7 @@ describe('Cell', () => {
     });
 
     test('isRevealed', () => {
-        const cell = GW.make.cell();
+        const cell: Cell = GW.make.cell();
         expect(cell.isRevealed()).toBeFalsy();
         expect(cell.isRevealed(true)).toBeFalsy();
         cell.setFlags(Map.cell.Flags.MAGIC_MAPPED);
@@ -141,7 +141,7 @@ describe('Cell', () => {
     });
 
     test('listInSidebar', () => {
-        const cell = GW.make.cell('UP_STAIRS');
+        const cell: Cell = GW.make.cell('UP_STAIRS');
         expect(cell.isAnyKindOfVisible()).toBeTruthy();
         expect(cell.listInSidebar()).toBeTruthy();
         cell.clearFlags(Map.cell.Flags.ANY_KIND_OF_VISIBLE);
@@ -151,7 +151,7 @@ describe('Cell', () => {
     });
 
     test('hasVisibleLight', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
         expect(cell.light).toEqual([100, 100, 100]);
         expect(cell.hasVisibleLight()).toBeTruthy();
         cell.light = [0, 0, 0];
@@ -159,7 +159,7 @@ describe('Cell', () => {
     });
 
     test('isDark', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
         expect(cell.light).toEqual([100, 100, 100]);
         expect(cell.isDark()).toBeFalsy();
         cell.light = [0, 0, 0];
@@ -167,19 +167,19 @@ describe('Cell', () => {
     });
 
     test('lightChanged', () => {
-        const cell = GW.make.cell('FLOOR');
-        expect(cell.flags & Map.cell.Flags.LIGHT_CHANGED).toBeFalsy();
+        const cell: Cell = GW.make.cell('FLOOR');
+        expect(cell.flags.cell & Map.cell.Flags.LIGHT_CHANGED).toBeFalsy();
         expect(cell.lightChanged).toBeFalsy();
         cell.lightChanged = true;
-        expect(cell.flags & Map.cell.Flags.LIGHT_CHANGED).toBeTruthy();
+        expect(cell.flags.cell & Map.cell.Flags.LIGHT_CHANGED).toBeTruthy();
         expect(cell.lightChanged).toBeTruthy();
         cell.lightChanged = false;
-        expect(cell.flags & Map.cell.Flags.LIGHT_CHANGED).toBeFalsy();
+        expect(cell.flags.cell & Map.cell.Flags.LIGHT_CHANGED).toBeFalsy();
         expect(cell.lightChanged).toBeFalsy();
     });
 
     test('layerFlags', () => {
-        const cell = GW.make.cell('WALL');
+        const cell: Cell = GW.make.cell('WALL');
 
         cell.clearFlags(Map.cell.Flags.ANY_KIND_OF_VISIBLE);
         expect(cell.layerFlags()).toEqual(Map.entity.Flags.L_BLOCKS_EVERYTHING);
@@ -203,7 +203,7 @@ describe('Cell', () => {
             Map.tile.Flags.T_SPONTANEOUSLY_IGNITES |
                 Map.tile.Flags.T_IS_FLAMMABLE
         );
-        const cell = GW.make.cell(tile);
+        const cell: Cell = GW.make.cell(tile);
 
         cell.clearFlags(Map.cell.Flags.ANY_KIND_OF_VISIBLE);
         expect(cell.tileFlags()).toEqual(
@@ -223,7 +223,7 @@ describe('Cell', () => {
     });
 
     test.skip('tileMechFlags', () => {
-        // const cell = GW.make.cell("UP_STAIRS");
+        // const cell : Cell = GW.make.cell("UP_STAIRS");
         // cell.clearFlags(Map.cell.Flags.ANY_KIND_OF_VISIBLE);
         // expect(cell.tileMechFlags()).toEqual(
         //   Map.tile.MechFlags.TM_VISUALLY_DISTINCT |
@@ -242,7 +242,7 @@ describe('Cell', () => {
     });
 
     test('hasLayerFlag + hasAllLayerFlags', () => {
-        const cell = GW.make.cell('WALL');
+        const cell: Cell = GW.make.cell('WALL');
         expect(
             cell.hasLayerFlag(Map.entity.Flags.L_SECRETLY_PASSABLE)
         ).toBeFalsy();
@@ -273,7 +273,7 @@ describe('Cell', () => {
             Map.tile.Flags.T_SPONTANEOUSLY_IGNITES |
                 Map.tile.Flags.T_IS_FLAMMABLE
         );
-        const cell = GW.make.cell(tile);
+        const cell: Cell = GW.make.cell(tile);
         expect(
             cell.hasTileFlag(Map.tile.Flags.T_SPONTANEOUSLY_IGNITES)
         ).toBeTruthy();
@@ -293,7 +293,7 @@ describe('Cell', () => {
     });
 
     test.skip('hasTileMechFlag + hasAllTileMechFlags', () => {
-        // const cell = GW.make.cell("UP_STAIRS");
+        // const cell : Cell = GW.make.cell("UP_STAIRS");
         // expect(
         //   cell.hasTileMechFlag(Map.tile.MechFlags.TM_ALLOWS_SUBMERGING)
         // ).toBeFalsy();
@@ -315,12 +315,12 @@ describe('Cell', () => {
     });
 
     test('hasFlag', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
         expect(cell.hasFlag(Map.cell.Flags.HAS_DORMANT_MONSTER)).toBeFalsy();
         expect(
             cell.hasFlag(Map.cell.Flags.HAS_DORMANT_MONSTER, true)
         ).toBeFalsy();
-        cell.flags |= Map.cell.Flags.HAS_DORMANT_MONSTER;
+        cell.flags.cell |= Map.cell.Flags.HAS_DORMANT_MONSTER;
         expect(cell.hasFlag(Map.cell.Flags.HAS_DORMANT_MONSTER)).toBeTruthy();
         expect(
             cell.hasFlag(Map.cell.Flags.HAS_DORMANT_MONSTER, true)
@@ -339,12 +339,12 @@ describe('Cell', () => {
     });
 
     test('hasMechFlag', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
         expect(cell.hasMechFlag(Map.cell.MechFlags.IS_IN_LOOP)).toBeFalsy();
         expect(
             cell.hasMechFlag(Map.cell.MechFlags.IS_IN_LOOP, true)
         ).toBeFalsy();
-        cell.mechFlags |= Map.cell.MechFlags.IS_IN_LOOP;
+        cell.flags.cellMech |= Map.cell.MechFlags.IS_IN_LOOP;
         expect(cell.hasMechFlag(Map.cell.MechFlags.IS_IN_LOOP)).toBeTruthy();
         expect(
             cell.hasMechFlag(Map.cell.MechFlags.IS_IN_LOOP, true)
@@ -363,14 +363,14 @@ describe('Cell', () => {
     });
 
     test('hasTile', () => {
-        const cell = GW.make.cell('BRIDGE');
+        const cell: Cell = GW.make.cell('BRIDGE');
         expect(cell.hasTile('WALL')).toBeFalsy();
         expect(cell.hasTile('LAKE')).toBeTruthy();
         expect(cell.hasTile(Map.tiles.BRIDGE)).toBeTruthy();
     });
 
     test('tileWithFlag', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
         expect(cell.tileWithFlag(Map.tile.Flags.T_BRIDGE)).toBeNull();
         cell.setTile('BRIDGE');
         expect(cell.tileWithFlag(Map.tile.Flags.T_BRIDGE)).toBe(
@@ -379,7 +379,7 @@ describe('Cell', () => {
     });
 
     test.skip('tileWithMechFlag', () => {
-        // const cell = GW.make.cell("FLOOR");
+        // const cell : Cell = GW.make.cell("FLOOR");
         // expect(
         //   cell.tileWithMechFlag(Map.tile.MechFlags.TM_VISUALLY_DISTINCT)
         // ).toBeNull();
@@ -390,7 +390,7 @@ describe('Cell', () => {
     });
 
     test('isEmpty', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
         expect(cell.isEmpty()).toBeTruthy();
 
         cell.actor = UTILS.makeActor();
@@ -407,7 +407,7 @@ describe('Cell', () => {
     });
 
     test('isWalkableNow + isMoveableNow - Bridge', () => {
-        const cell = GW.make.cell('LAKE');
+        const cell: Cell = GW.make.cell('LAKE');
         expect(cell.isAnyKindOfVisible()).toBeTruthy();
         expect(cell.isWalkableNow()).toBeFalsy();
         expect(cell.isWalkableNow(true)).toBeFalsy();
@@ -425,7 +425,7 @@ describe('Cell', () => {
         expect(cell.isMoveableNow()).toBeTruthy();
         expect(cell.isMoveableNow(true)).toBeTruthy();
 
-        cell.flags |= Map.cell.Flags.VISIBLE;
+        cell.flags.cell |= Map.cell.Flags.VISIBLE;
         cell.setTile('BRIDGE');
         expect(cell.isAnyKindOfVisible()).toBeTruthy();
         expect(cell.isWalkableNow()).toBeTruthy();
@@ -446,7 +446,7 @@ describe('Cell', () => {
     });
 
     test('isWalkableNow + canBeWalked', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
         expect(cell.isAnyKindOfVisible()).toBeTruthy();
         expect(cell.isWalkableNow()).toBeTruthy();
         expect(cell.isWalkableNow(true)).toBeTruthy();
@@ -464,7 +464,7 @@ describe('Cell', () => {
         expect(cell.canBeWalked()).toBeTruthy();
         expect(cell.canBeWalked(true)).toBeTruthy();
 
-        cell.flags |= Map.cell.Flags.VISIBLE;
+        cell.flags.cell |= Map.cell.Flags.VISIBLE;
         cell.setTile('WALL');
         expect(cell.isAnyKindOfVisible()).toBeTruthy();
         expect(cell.isWalkableNow()).toBeFalsy();
@@ -494,7 +494,7 @@ describe('Cell', () => {
             },
         });
 
-        cell.flags |= Map.cell.Flags.VISIBLE;
+        cell.flags.cell |= Map.cell.Flags.VISIBLE;
         cell.setTile(SECRET_DOOR);
         expect(cell.isAnyKindOfVisible()).toBeTruthy();
         expect(cell.isWalkableNow()).toBeFalsy();
@@ -515,7 +515,7 @@ describe('Cell', () => {
     });
 
     test('isWall', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
         expect(cell.isAnyKindOfVisible()).toBeTruthy();
         expect(cell.isWall()).toBeFalsy();
         expect(cell.isWall(true)).toBeFalsy();
@@ -527,7 +527,7 @@ describe('Cell', () => {
         expect(cell.isWall()).toBeFalsy();
         expect(cell.isWall(true)).toBeFalsy();
 
-        cell.flags |= Map.cell.Flags.VISIBLE;
+        cell.flags.cell |= Map.cell.Flags.VISIBLE;
         cell.setTile('WALL');
         expect(cell.isAnyKindOfVisible()).toBeTruthy();
         expect(cell.isWall()).toBeTruthy();
@@ -540,7 +540,7 @@ describe('Cell', () => {
         expect(cell.isWall()).toBeTruthy();
         expect(cell.isWall(true)).toBeTruthy();
 
-        cell.flags |= Map.cell.Flags.VISIBLE;
+        cell.flags.cell |= Map.cell.Flags.VISIBLE;
         cell.setTile('DOOR');
         expect(cell.isAnyKindOfVisible()).toBeTruthy();
         expect(cell.isWall()).toBeFalsy();
@@ -555,7 +555,7 @@ describe('Cell', () => {
     });
 
     test('isObstruction', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
         expect(cell.isAnyKindOfVisible()).toBeTruthy();
         expect(cell.isObstruction()).toBeFalsy();
         expect(cell.isObstruction(true)).toBeFalsy();
@@ -567,7 +567,7 @@ describe('Cell', () => {
         expect(cell.isObstruction()).toBeFalsy();
         expect(cell.isObstruction(true)).toBeFalsy();
 
-        cell.flags |= Map.cell.Flags.VISIBLE;
+        cell.flags.cell |= Map.cell.Flags.VISIBLE;
         cell.setTile('WALL');
         expect(cell.isAnyKindOfVisible()).toBeTruthy();
         expect(cell.isObstruction()).toBeTruthy();
@@ -582,7 +582,7 @@ describe('Cell', () => {
     });
 
     test('isDoorway', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
         expect(cell.isAnyKindOfVisible()).toBeTruthy();
         expect(cell.isDoorway()).toBeFalsy();
         expect(cell.isDoorway(true)).toBeFalsy();
@@ -594,7 +594,7 @@ describe('Cell', () => {
         expect(cell.isDoorway()).toBeFalsy();
         expect(cell.isDoorway(true)).toBeFalsy();
 
-        cell.flags |= Map.cell.Flags.VISIBLE;
+        cell.flags.cell |= Map.cell.Flags.VISIBLE;
         cell.setTile('DOOR');
         expect(cell.isAnyKindOfVisible()).toBeTruthy();
         expect(cell.isDoorway()).toBeTruthy();
@@ -609,7 +609,7 @@ describe('Cell', () => {
     });
 
     test('isSecretDoorway', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
 
         expect(cell.isAnyKindOfVisible()).toBeTruthy();
         expect(cell.isSecretDoorway()).toBeFalsy();
@@ -647,7 +647,7 @@ describe('Cell', () => {
         cell.clearFlags(Map.cell.Flags.ANY_KIND_OF_VISIBLE);
 
         expect(
-            cell.memory.layerFlags & Map.entity.Flags.L_SECRETLY_PASSABLE
+            cell.memory.flags.layer & Map.entity.Flags.L_SECRETLY_PASSABLE
         ).toBeTruthy();
 
         expect(cell.isAnyKindOfVisible()).toBeFalsy();
@@ -656,7 +656,7 @@ describe('Cell', () => {
     });
 
     test('blocksPathing', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
         expect(cell.blocksPathing()).toBeFalsy();
         expect(cell.blocksPathing(true)).toBeFalsy();
         cell.setTile('WALL');
@@ -666,7 +666,7 @@ describe('Cell', () => {
         expect(cell.blocksPathing()).toBeTruthy();
         expect(cell.blocksPathing(true)).toBeTruthy();
 
-        cell.flags &= ~Map.cell.Flags.IS_WAS_ANY_KIND_OF_VISIBLE;
+        cell.flags.cell &= ~Map.cell.Flags.IS_WAS_ANY_KIND_OF_VISIBLE;
         expect(cell.blocksPathing()).toBeTruthy();
         expect(cell.blocksPathing(true)).toBeFalsy();
 
@@ -676,14 +676,14 @@ describe('Cell', () => {
     });
 
     test('blocksVision', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
         expect(cell.blocksVision()).toBeFalsy();
         cell.setTile('WALL');
         expect(cell.blocksVision()).toBeTruthy();
     });
 
     test('isLiquid', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
 
         expect(cell.isLiquid()).toBeFalsy();
         expect(cell.isLiquid(true)).toBeFalsy();
@@ -703,7 +703,7 @@ describe('Cell', () => {
         expect(cell.isLiquid()).toBeTruthy();
         expect(cell.isLiquid(true)).toBeTruthy();
 
-        cell.flags &= ~Map.cell.Flags.ANY_KIND_OF_VISIBLE;
+        cell.flags.cell &= ~Map.cell.Flags.ANY_KIND_OF_VISIBLE;
         expect(cell.isAnyKindOfVisible()).toBeFalsy();
         expect(cell.isLiquid()).toBeTruthy();
         expect(cell.isLiquid(true)).toBeFalsy();
@@ -714,7 +714,7 @@ describe('Cell', () => {
     });
 
     test('hasGas', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
 
         expect(cell.hasGas()).toBeFalsy();
         expect(cell.hasGas(true)).toBeFalsy();
@@ -724,7 +724,7 @@ describe('Cell', () => {
         expect(cell.hasGas()).toBeTruthy();
         expect(cell.hasGas(true)).toBeTruthy();
 
-        cell.flags &= ~Map.cell.Flags.ANY_KIND_OF_VISIBLE;
+        cell.flags.cell &= ~Map.cell.Flags.ANY_KIND_OF_VISIBLE;
         expect(cell.isAnyKindOfVisible()).toBeFalsy();
         expect(cell.hasGas()).toBeTruthy();
         expect(cell.hasGas(true)).toBeFalsy();
@@ -735,24 +735,24 @@ describe('Cell', () => {
     });
 
     test('markRevealed', () => {
-        const cell = GW.make.cell('FLOOR');
-        expect(cell.flags & Map.cell.Flags.REVEALED).toBeFalsy();
+        const cell: Cell = GW.make.cell('FLOOR');
+        expect(cell.flags.cell & Map.cell.Flags.REVEALED).toBeFalsy();
         expect(cell.markRevealed()).toBeTruthy();
-        expect(cell.flags & Map.cell.Flags.REVEALED).toBeTruthy();
+        expect(cell.flags.cell & Map.cell.Flags.REVEALED).toBeTruthy();
 
-        cell.flags |= Map.cell.Flags.STABLE_MEMORY;
+        cell.flags.cell |= Map.cell.Flags.STABLE_MEMORY;
         expect(cell.markRevealed()).toBeFalsy();
-        expect(cell.flags & Map.cell.Flags.STABLE_MEMORY).toBeFalsy();
+        expect(cell.flags.cell & Map.cell.Flags.STABLE_MEMORY).toBeFalsy();
 
         cell.setTile('WALL');
-        cell.flags = 0;
-        expect(cell.flags & Map.cell.Flags.REVEALED).toBeFalsy();
+        cell.flags.cell = 0;
+        expect(cell.flags.cell & Map.cell.Flags.REVEALED).toBeFalsy();
         expect(cell.markRevealed()).toBeFalsy(); // no open space revealed
-        expect(cell.flags & Map.cell.Flags.REVEALED).toBeTruthy();
+        expect(cell.flags.cell & Map.cell.Flags.REVEALED).toBeTruthy();
     });
 
     test('setTile(null) - can clear tile', () => {
-        const c = GW.make.cell();
+        const c: Cell = GW.make.cell();
         expect(c.ground).toBeNull();
         c.needsRedraw = false;
 
@@ -767,7 +767,7 @@ describe('Cell', () => {
     });
 
     test('setTile(BRIDGE) will also set ground if null', () => {
-        const cell = GW.make.cell();
+        const cell: Cell = GW.make.cell();
         expect(cell.isClear()).toBeTruthy();
         expect(cell.ground).toBeNull();
         expect(cell.surface).toBeNull();
@@ -786,20 +786,20 @@ describe('Cell', () => {
             fg: 'red',
         });
 
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
         cell.setTile(fire);
         expect(
-            cell.mechFlags & Map.cell.MechFlags.CAUGHT_FIRE_THIS_TURN
+            cell.flags.cellMech & Map.cell.MechFlags.CAUGHT_FIRE_THIS_TURN
         ).toBeTruthy();
     });
 
     test('setTile(UNKNOWN) - will throw', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
         expect(() => cell.setTile('UNKNOWN')).toThrow();
     });
 
     test('setTile', () => {
-        const c = GW.make.cell();
+        const c: Cell = GW.make.cell();
 
         expect(Map.tiles.FLOOR.priority).toBeLessThan(Map.tiles.DOOR.priority);
 
@@ -822,71 +822,72 @@ describe('Cell', () => {
         const b = new Map.cell.CellMemory();
 
         a.mixer.draw('a');
-        a.tileFlags = 1;
-        a.cellFlags = 1;
+        a.flags.tile = 1;
+        a.flags.cell = 1;
 
         b.mixer.draw('b');
-        b.tileFlags = 2;
-        b.cellFlags = 2;
+        b.flags.tile = 2;
+        b.flags.cell = 2;
 
         expect(a.mixer).not.toBe(b.mixer);
         a.copy(b);
         expect(a.mixer).not.toBe(b.mixer);
         expect(a.mixer.ch).toEqual('b');
-        expect(a.tileFlags).toEqual(2);
-        expect(a.tileFlags).toEqual(2);
+        expect(a.flags.tile).toEqual(2);
+        expect(a.flags.tile).toEqual(2);
 
         a.clear();
         expect(a.mixer.ch).toEqual(-1);
         expect(a.mixer.fg.isNull()).toBeTruthy();
-        expect(a.tileFlags).toEqual(0);
-        expect(a.cellFlags).toEqual(0);
+        expect(a.flags.tile).toEqual(0);
+        expect(a.flags.cell).toEqual(0);
     });
 
     test('item', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
         expect(cell.item).toBeNull();
 
         const item = UTILS.makeItem();
 
         cell.changed = false;
-        expect(cell.flags & Map.cell.Flags.HAS_ITEM).toBeFalsy();
+        expect(cell.flags.cell & Map.cell.Flags.HAS_ITEM).toBeFalsy();
 
         cell.item = item;
-        expect(cell.flags & Map.cell.Flags.HAS_ITEM).toBeTruthy();
-        expect(cell.flags & Map.cell.Flags.CELL_CHANGED).toBeTruthy();
+        expect(cell.flags.cell & Map.cell.Flags.HAS_ITEM).toBeTruthy();
+        expect(cell.flags.cell & Map.cell.Flags.CELL_CHANGED).toBeTruthy();
         expect(cell.changed).toBeTruthy();
 
         cell.changed = false;
         cell.item = null;
-        expect(cell.flags & Map.cell.Flags.HAS_ITEM).toBeFalsy();
-        expect(cell.flags & Map.cell.Flags.CELL_CHANGED).toBeTruthy();
+        expect(cell.flags.cell & Map.cell.Flags.HAS_ITEM).toBeFalsy();
+        expect(cell.flags.cell & Map.cell.Flags.CELL_CHANGED).toBeTruthy();
         expect(cell.changed).toBeTruthy();
     });
 
     test('actor', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
         expect(cell.actor).toBeNull();
 
         const actor = UTILS.makeActor();
         cell.changed = false;
-        expect(cell.flags & Map.cell.Flags.HAS_ANY_ACTOR).toBeFalsy();
+        expect(cell.flags.cell & Map.cell.Flags.HAS_ANY_ACTOR).toBeFalsy();
 
         cell.actor = actor;
-        expect(cell.flags & Map.cell.Flags.HAS_ANY_ACTOR).toBeTruthy();
-        expect(cell.flags & Map.cell.Flags.CELL_CHANGED).toBeTruthy();
+        expect(cell.flags.cell & Map.cell.Flags.HAS_ANY_ACTOR).toBeTruthy();
+        expect(cell.flags.cell & Map.cell.Flags.CELL_CHANGED).toBeTruthy();
         expect(cell.changed).toBeTruthy();
 
         cell.changed = false;
         cell.actor = null;
-        expect(cell.flags & Map.cell.Flags.HAS_ANY_ACTOR).toBeFalsy();
-        expect(cell.flags & Map.cell.Flags.CELL_CHANGED).toBeTruthy();
+        expect(cell.flags.cell & Map.cell.Flags.HAS_ANY_ACTOR).toBeFalsy();
+        expect(cell.flags.cell & Map.cell.Flags.CELL_CHANGED).toBeTruthy();
         expect(cell.changed).toBeTruthy();
     });
 
     test('will keep layers in sorted order by layer, priority increasing', () => {
-        const c = GW.make.cell();
+        const c: Cell = GW.make.cell();
 
+        // @ts-ignore
         c.addLayer({ sprite: GW.make.sprite('@'), layer: 6 });
         expect(c.layers).toMatchObject({
             layer: {
@@ -896,6 +897,7 @@ describe('Cell', () => {
             next: null,
         });
 
+        // @ts-ignore
         c.addLayer({ sprite: GW.make.sprite('i'), layer: 4 });
         expect(c.layers).toMatchObject({
             layer: {
@@ -913,13 +915,15 @@ describe('Cell', () => {
     });
 
     test('can support many layers', () => {
-        const c = GW.make.cell();
+        const c: Cell = GW.make.cell();
         c.setTile('FLOOR');
 
         const a = GW.sprite.make('@', 'white', 'blue');
         const b = GW.sprite.make(null, null, 'red');
 
+        // @ts-ignore
         c.addLayer({ sprite: a, layer: Map.entity.Layer.FX });
+        // @ts-ignore
         c.addLayer({ sprite: b, layer: Map.entity.Layer.UI, priority: 100 });
 
         expect(c.layers).not.toBeNull();
@@ -964,7 +968,7 @@ describe('Cell', () => {
 
     test('layers will blend opacities', () => {
         GW.cosmetic.seed(12345);
-        const c = GW.make.cell();
+        const c: Cell = GW.make.cell();
         c.setTile('FLOOR');
 
         const a = GW.make.layer({
@@ -983,7 +987,7 @@ describe('Cell', () => {
 
         c.clearFlags(Map.cell.Flags.CELL_CHANGED);
         c.addLayer(a);
-        expect(c.flags & Map.cell.Flags.CELL_CHANGED).toBeTruthy();
+        expect(c.flags.cell & Map.cell.Flags.CELL_CHANGED).toBeTruthy();
         c.addLayer(b);
 
         expect(c.layers).not.toBeNull();
@@ -1000,7 +1004,7 @@ describe('Cell', () => {
 
         c.clearFlags(Map.cell.Flags.CELL_CHANGED);
         c.removeLayer(a);
-        expect(c.flags & Map.cell.Flags.CELL_CHANGED).toBeTruthy();
+        expect(c.flags.cell & Map.cell.Flags.CELL_CHANGED).toBeTruthy();
         c.removeLayer(b);
 
         app.blackOut();
@@ -1012,7 +1016,7 @@ describe('Cell', () => {
     });
 
     test('getAppearance', () => {
-        const cell: Map.cell.Cell = GW.make.cell();
+        const cell: Cell = GW.make.cell();
         cell.setTile('UP_STAIRS');
         const app: GW.sprite.Mixer = GW.make.mixer();
 
@@ -1029,21 +1033,21 @@ describe('Cell', () => {
     });
 
     test('memory', () => {
-        const c = GW.make.cell('FLOOR');
+        const c: Cell = GW.make.cell('FLOOR');
         c.storeMemory();
         expect(c.memory.item).toBeNull();
         expect(c.memory.itemQuantity).toEqual(0);
         expect(c.memory.actor).toBeNull();
         expect(c.memory.tile).toBe(Map.tiles.FLOOR);
-        expect(c.memory.cellFlags).toEqual(
+        expect(c.memory.flags.cell).toEqual(
             Map.cell.Flags.VISIBLE |
                 Map.cell.Flags.IN_FOV |
                 Map.cell.Flags.NEEDS_REDRAW |
                 Map.cell.Flags.CELL_CHANGED
         );
-        expect(c.memory.cellMechFlags).toEqual(0);
-        expect(c.memory.tileFlags).toEqual(0);
-        expect(c.memory.tileMechFlags).toEqual(0);
+        expect(c.memory.flags.cellMech).toEqual(0);
+        expect(c.memory.flags.tile).toEqual(0);
+        expect(c.memory.flags.tileMech).toEqual(0);
         const FLOOR = Map.tiles.FLOOR.sprite;
         expect(c.memory.mixer.ch).toEqual(FLOOR.ch);
         expect(c.memory.mixer.fg).toBakeFrom(FLOOR.fg);
@@ -1061,7 +1065,7 @@ describe('Cell', () => {
         expect(c.memory.itemQuantity).toEqual(item.quantity);
         expect(c.memory.actor).toBe(actor);
         expect(c.memory.tile).toBe(Map.tiles.FLOOR);
-        expect(c.memory.cellFlags).toEqual(
+        expect(c.memory.flags.cell).toEqual(
             Map.cell.Flags.VISIBLE |
                 Map.cell.Flags.IN_FOV |
                 Map.cell.Flags.NEEDS_REDRAW |
@@ -1069,28 +1073,28 @@ describe('Cell', () => {
                 Map.cell.Flags.HAS_ANY_ACTOR |
                 Map.cell.Flags.HAS_ITEM
         );
-        expect(c.memory.cellMechFlags).toEqual(0);
-        expect(c.memory.tileFlags).toEqual(0);
-        expect(c.memory.tileMechFlags).toEqual(0);
+        expect(c.memory.flags.cellMech).toEqual(0);
+        expect(c.memory.flags.tile).toEqual(0);
+        expect(c.memory.flags.tileMech).toEqual(0);
         expect(c.memory.mixer.ch).toEqual(actor.sprite.ch);
         expect(c.memory.mixer.fg).toBakeFrom(actor.sprite.fg);
         expect(c.memory.mixer.bg).toBakeFrom(Map.tiles.FLOOR.sprite.bg);
 
         const otherCell = ({
             storeMemory: jest.fn().mockReturnValue(undefined),
-            flags: 0,
+            flags: {},
         } as unknown) as GW.types.CellType;
 
         actor.rememberedInCell = otherCell;
         c.storeMemory();
         expect(otherCell.storeMemory).toHaveBeenCalled();
-        expect(otherCell.flags).toBeGreaterThan(0);
+        expect(otherCell.flags.cell).toBeGreaterThan(0);
     });
 
     test('will set liquid with volume', () => {
         GW.cosmetic.seed(12345);
         const FLOOR = Map.tiles.TEST_FLOOR;
-        const c = GW.make.cell();
+        const c: Cell = GW.make.cell();
         c.setTile('TEST_FLOOR');
 
         const app = new GW.sprite.Mixer();
@@ -1138,7 +1142,7 @@ describe('Cell', () => {
     test('will add liquid volumes', () => {
         GW.cosmetic.seed(12345);
         const FLOOR = Map.tiles.TEST_FLOOR;
-        const c = GW.make.cell();
+        const c: Cell = GW.make.cell();
         c.setTile('TEST_FLOOR');
 
         const app = new GW.sprite.Mixer();
@@ -1171,7 +1175,7 @@ describe('Cell', () => {
     test('will add gas volumes', () => {
         GW.cosmetic.seed(12345);
         const FLOOR = Map.tiles.TEST_FLOOR;
-        const c = GW.make.cell();
+        const c: Cell = GW.make.cell();
         c.setTile('TEST_FLOOR');
 
         const app = new GW.sprite.Mixer();
@@ -1206,7 +1210,7 @@ describe('Cell', () => {
     });
 
     test('layers', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
         const mixer = new GW.make.mixer();
         const a = GW.make.layer({
             layer: Map.entity.Layer.FX,
@@ -1298,19 +1302,20 @@ describe('Cell', () => {
     });
 
     test('activatesOn', () => {
-        const cell = GW.make.cell('ENTER');
+        const cell: Cell = GW.make.cell('ENTER');
         expect(cell.activatesOn('enter')).toBeTruthy();
         expect(cell.activatesOn('fire')).toBeFalsy();
     });
 
     test('activate', async () => {
-        const cell = GW.make.cell('LOW_CHANCE');
+        const map: Map.map.Map = Map.map.make(10, 10);
+        const cell: Cell = GW.make.cell('LOW_CHANCE');
         UTILS.mockRandom();
-        expect(await cell.activate('enter', {})).toBeFalsy();
+        expect(await cell.activate('enter', map, 5, 5, {})).toBeFalsy();
     });
 
     test('clearLayer', () => {
-        const cell = GW.make.cell('FLOOR');
+        const cell: Cell = GW.make.cell('FLOOR');
         cell.setTile('RED_LIQUID', 100);
         expect(cell.ground).toEqual('FLOOR');
         expect(cell.liquid).toEqual('RED_LIQUID');
@@ -1330,7 +1335,7 @@ describe('Cell', () => {
     });
 
     test('clearLayersExcept', () => {
-        const cell = GW.make.cell('ENTER');
+        const cell: Cell = GW.make.cell('ENTER');
         cell.setTile('BRIDGE');
         cell.setTile('RED_LIQUID', 100);
         cell.setTile('RED_GAS', 100);
@@ -1362,7 +1367,7 @@ describe('Cell', () => {
     });
 
     test('clarLayerWithFlags', () => {
-        const cell = GW.make.cell('ENTER');
+        const cell: Cell = GW.make.cell('ENTER');
         cell.setTile('BRIDGE');
         cell.setTile('RED_LIQUID', 100);
         cell.setTile('RED_GAS', 100);

@@ -116,7 +116,7 @@ export class Map implements Types.MapType {
     public config: any = {};
     protected _actors: any | null = null;
     protected _items: any | null = null;
-    public flags = 0;
+    public flags = { map: 0 };
     public ambientLight: Color.Color;
     public lights: LightInfo | null = null;
     public id: string;
@@ -135,7 +135,7 @@ export class Map implements Types.MapType {
         this.config.tick = this.config.tick || 100;
         this._actors = null;
         this._items = null;
-        this.flags = Flag.from(Flags, Flags.MAP_DEFAULT, opts.flags);
+        this.flags.map = Flag.from(Flags, Flags.MAP_DEFAULT, opts.flags);
         const ambient =
             opts.ambient || opts.ambientLight || opts.light || 'white';
         this.ambientLight = Color.make(ambient);
@@ -144,8 +144,8 @@ export class Map implements Types.MapType {
         }
         this.lights = null;
         this.id = opts.id;
-        if (this.config.fov) {
-            this.flags |= Flags.MAP_CALC_FOV;
+        if (opts.fov) {
+            this.flags.map |= Flags.MAP_CALC_FOV;
             this.fov = { x: -1, y: -1 };
         }
         if (opts.updateLiquid && typeof opts.updateLiquid === 'function') {
@@ -157,6 +157,15 @@ export class Map implements Types.MapType {
 
         Light.updateLighting(this); // to set the ambient light
         Visibility.initMap(this);
+
+        if (opts.visible || opts.revealed || !this.fov) {
+            this.revealAll();
+        }
+        if (opts.visible || !this.fov) {
+            this.makeVisible();
+        }
+
+        this.changed = false;
     }
 
     get width() {
@@ -240,22 +249,22 @@ export class Map implements Types.MapType {
     }
 
     get changed() {
-        return (this.flags & Flags.MAP_CHANGED) > 0;
+        return (this.flags.map & Flags.MAP_CHANGED) > 0;
     }
 
     set changed(v: boolean) {
         if (v === true) {
-            this.flags |= Flags.MAP_CHANGED;
+            this.flags.map |= Flags.MAP_CHANGED;
         } else if (v === false) {
-            this.flags &= ~Flags.MAP_CHANGED;
+            this.flags.map &= ~Flags.MAP_CHANGED;
         }
     }
 
     hasCellFlag(x: number, y: number, flag: CellFlags) {
-        return this.cell(x, y).flags & flag;
+        return this.cell(x, y).flags.cell & flag;
     }
     hasCellMechFlag(x: number, y: number, flag: CellMechFlags) {
-        return this.cell(x, y).mechFlags & flag;
+        return this.cell(x, y).flags.cellMech & flag;
     }
     hasLayerFlag(x: number, y: number, flag: LayerFlags) {
         return this.cell(x, y).hasLayerFlag(flag);
@@ -270,7 +279,7 @@ export class Map implements Types.MapType {
     redrawCell(cell: Cell.Cell) {
         // if (cell.isAnyKindOfVisible()) {
         cell.needsRedraw = true;
-        this.flags |= Flags.MAP_CHANGED;
+        this.flags.map |= Flags.MAP_CHANGED;
         // }
     }
 
@@ -323,16 +332,20 @@ export class Map implements Types.MapType {
             c.markRevealed();
             c.storeMemory();
         });
-        if (DATA.player) {
-            DATA.player.invalidateCostMap();
-        }
+
+        // TODO - !!!
+        // if (DATA.player) {
+        //     DATA.player.invalidateCostMap();
+        // }
     }
 
     markRevealed(x: number, y: number) {
         if (!this.cell(x, y).markRevealed()) return;
-        if (DATA.player) {
-            DATA.player.invalidateCostMap();
-        }
+
+        // TODO - !!!
+        // if (DATA.player) {
+        //     DATA.player.invalidateCostMap();
+        // }
     }
 
     makeVisible(v = true) {
@@ -357,13 +370,13 @@ export class Map implements Types.MapType {
     }
 
     get anyLightChanged() {
-        return (this.flags & Flags.MAP_STABLE_LIGHTS) == 0;
+        return (this.flags.map & Flags.MAP_STABLE_LIGHTS) == 0;
     }
     set anyLightChanged(v: boolean) {
         if (v) {
-            this.flags &= ~Flags.MAP_STABLE_LIGHTS;
+            this.flags.map &= ~Flags.MAP_STABLE_LIGHTS;
         } else {
-            this.flags |= Flags.MAP_STABLE_LIGHTS;
+            this.flags.map |= Flags.MAP_STABLE_LIGHTS;
         }
     }
 
@@ -375,26 +388,26 @@ export class Map implements Types.MapType {
     }
 
     get staticLightChanged() {
-        return (this.flags & Flags.MAP_STABLE_GLOW_LIGHTS) == 0;
+        return (this.flags.map & Flags.MAP_STABLE_GLOW_LIGHTS) == 0;
     }
     set staticLightChanged(v: boolean) {
         if (v) {
-            this.flags &= ~(
+            this.flags.map &= ~(
                 Flags.MAP_STABLE_GLOW_LIGHTS | Flags.MAP_STABLE_LIGHTS
             );
         } else {
-            this.flags |= Flags.MAP_STABLE_GLOW_LIGHTS;
+            this.flags.map |= Flags.MAP_STABLE_GLOW_LIGHTS;
         }
     }
 
     setFlag(flag: number) {
-        this.flags |= flag;
+        this.flags.map |= flag;
         this.changed = true;
     }
 
     setFlags(mapFlag = 0, cellFlag = 0, cellMechFlag = 0) {
         if (mapFlag) {
-            this.flags |= mapFlag;
+            this.flags.map |= mapFlag;
         }
         if (cellFlag || cellMechFlag) {
             this.forEach((c) => c.setFlags(cellFlag, cellMechFlag));
@@ -403,13 +416,13 @@ export class Map implements Types.MapType {
     }
 
     clearFlag(flag: number) {
-        this.flags &= ~flag;
+        this.flags.map &= ~flag;
         this.changed = true;
     }
 
     clearFlags(mapFlag = 0, cellFlag = 0, cellMechFlag = 0) {
         if (mapFlag) {
-            this.flags &= ~mapFlag;
+            this.flags.map &= ~mapFlag;
         }
         if (cellFlag || cellMechFlag) {
             this.forEach((cell) => cell.clearFlags(cellFlag, cellMechFlag));
@@ -423,7 +436,7 @@ export class Map implements Types.MapType {
 
     setCellFlags(x: number, y: number, cellFlag = 0, cellMechFlag = 0) {
         this.cell(x, y).setFlags(cellFlag, cellMechFlag);
-        this.flags |= Flags.MAP_CHANGED;
+        this.flags.map |= Flags.MAP_CHANGED;
     }
 
     clearCellFlags(x: number, y: number, cellFlags = 0, cellMechFlags = 0) {
@@ -455,9 +468,9 @@ export class Map implements Types.MapType {
         return this.cells[x][y].tileWithMechFlag(mechFlag);
     }
 
-    hasKnownTileFlag(x: number, y: number, flagMask = 0) {
-        return this.cells[x][y].memory.tileFlags & flagMask;
-    }
+    // hasKnownTileFlag(x: number, y: number, flagMask = 0) {
+    //     return this.cells[x][y].memory.flags.tile & flagMask;
+    // }
 
     // hasTileInGroup(x, y, ...groups) { return this.cells[x][y].hasTileInGroup(...groups); }
 
@@ -760,7 +773,7 @@ export class Map implements Types.MapType {
                 (!blockingMap || !blockingMap[x][y]) &&
                 (!tile || cell.hasTile(tile)) &&
                 (!forbidLiquid || !cell.liquid) &&
-                (!forbidCellFlags || !(cell.flags & forbidCellFlags)) &&
+                (!forbidCellFlags || !(cell.flags.cell & forbidCellFlags)) &&
                 (!forbidTileFlags || !cell.hasTileFlag(forbidTileFlags)) &&
                 (!forbidTileMechFlags ||
                     !cell.hasTileMechFlag(forbidTileMechFlags)) &&
@@ -875,11 +888,21 @@ export class Map implements Types.MapType {
         const oldCell = this.cell(anim.x, anim.y);
         oldCell.removeLayer(anim);
         this.redrawCell(oldCell);
-        this.flags |= Flags.MAP_CHANGED;
+        this.flags.map |= Flags.MAP_CHANGED;
         return true;
     }
 
     // ACTORS
+
+    *actors() {
+        let current = this._actors;
+
+        while (current) {
+            const next = current.next;
+            yield current;
+            current = next;
+        }
+    }
 
     // will return the PLAYER if the PLAYER is at (x, y).
     actorAt(x: number, y: number): Types.ActorType | null {
@@ -904,7 +927,7 @@ export class Map implements Types.MapType {
             theActor === DATA.player
                 ? CellFlags.HAS_PLAYER
                 : CellFlags.HAS_ANY_ACTOR;
-        cell.flags |= flag;
+        cell.flags.cell |= flag;
         // if (theActor.flags & Flags.Actor.MK_DETECTED)
         // {
         // 	cell.flags |= CellFlags.MONSTER_DETECTED;
@@ -920,7 +943,7 @@ export class Map implements Types.MapType {
             theActor.isPlayer() ||
             (cell.isAnyKindOfVisible() && theActor.blocksVision())
         ) {
-            this.flags |= Flags.MAP_FOV_CHANGED;
+            this.flags.map |= Flags.MAP_FOV_CHANGED;
         }
 
         theActor.x = x;
@@ -973,7 +996,7 @@ export class Map implements Types.MapType {
                 actor.isPlayer() ||
                 (cell.isAnyKindOfVisible() && actor.blocksVision())
             ) {
-                this.flags |= Flags.MAP_FOV_CHANGED;
+                this.flags.map |= Flags.MAP_FOV_CHANGED;
             }
 
             this.redrawCell(cell);
@@ -1002,7 +1025,7 @@ export class Map implements Types.MapType {
     // 	theActor.y = y;
     // 	this.dormant.add(theActor);
     // 	cell.flags |= (CellFlags.HAS_DORMANT_MONSTER);
-    // 	this.flags |= Flags.MAP_CHANGED;
+    // 	this.flags.map |= Flags.MAP_CHANGED;
     // 	return true;
     // }
     //
@@ -1010,11 +1033,21 @@ export class Map implements Types.MapType {
     // 	const cell = this.cell(actor.x, actor.y);
     // 	cell.flags &= ~(CellFlags.HAS_DORMANT_MONSTER);
     // 	cell.flags |= CellFlags.NEEDS_REDRAW;
-    // 	this.flags |= Flags.MAP_CHANGED;
+    // 	this.flags.map |= Flags.MAP_CHANGED;
     // 	this.dormant.remove(actor);
     // }
 
     // ITEMS
+
+    *items() {
+        let current = this._items;
+
+        while (current) {
+            const next = current.next;
+            yield current;
+            current = next;
+        }
+    }
 
     itemAt(x: number, y: number): Types.ItemType | null {
         const cell = this.cell(x, y);
@@ -1042,7 +1075,7 @@ export class Map implements Types.MapType {
         this.redrawCell(cell);
 
         if (theItem.isDetected() || CONFIG.D_ITEM_OMNISCIENCE) {
-            cell.flags |= CellFlags.ITEM_DETECTED;
+            cell.flags.cell |= CellFlags.ITEM_DETECTED;
         }
 
         return true;
@@ -1074,7 +1107,7 @@ export class Map implements Types.MapType {
             this.anyLightChanged = true;
         }
 
-        cell.flags &= ~(CellFlags.HAS_ITEM | CellFlags.ITEM_DETECTED);
+        cell.flags.cell &= ~(CellFlags.HAS_ITEM | CellFlags.ITEM_DETECTED);
         this.redrawCell(cell);
         return true;
     }
@@ -1202,7 +1235,7 @@ export class Map implements Types.MapType {
         for (x = 0; x < this.width; ++x) {
             for (y = 0; y < this.height; ++y) {
                 const cell = this.cell(x, y);
-                if (cell.flags & CellFlags.ANY_KIND_OF_VISIBLE) {
+                if (cell.flags.cell & CellFlags.ANY_KIND_OF_VISIBLE) {
                     cell.storeMemory();
                 }
                 // cell.flags &= CellFlags.PERMANENT_CELL_FLAGS;
@@ -1227,15 +1260,15 @@ export class Map implements Types.MapType {
 
         // Bookkeeping for fire, pressure plates and key-activated tiles.
         await this.forEachAsync(async (cell, x, y) => {
-            cell.mechFlags &= ~Cell.MechFlags.CAUGHT_FIRE_THIS_TURN;
+            cell.flags.cellMech &= ~Cell.MechFlags.CAUGHT_FIRE_THIS_TURN;
             if (
                 !(
-                    cell.flags &
+                    cell.flags.cell &
                     (CellFlags.HAS_ANY_ACTOR | CellFlags.HAS_ITEM)
                 ) &&
-                cell.mechFlags & CellMechFlags.PRESSURE_PLATE_DEPRESSED
+                cell.flags.cellMech & CellMechFlags.PRESSURE_PLATE_DEPRESSED
             ) {
-                cell.mechFlags &= ~CellMechFlags.PRESSURE_PLATE_DEPRESSED;
+                cell.flags.cellMech &= ~CellMechFlags.PRESSURE_PLATE_DEPRESSED;
             }
             if (cell.activatesOn('noKey') && !cell.hasKey()) {
                 await cell.activate('noKey', this, x, y);
@@ -1246,7 +1279,7 @@ export class Map implements Types.MapType {
         await this.forEachAsync(async (cell, x, y) => {
             if (
                 cell.hasTileFlag(Tile.Flags.T_IS_FIRE) &&
-                !(cell.mechFlags & CellMechFlags.CAUGHT_FIRE_THIS_TURN)
+                !(cell.flags.cellMech & CellMechFlags.CAUGHT_FIRE_THIS_TURN)
             ) {
                 await this.exposeToFire(x, y, false);
                 await this.eachNeighborAsync(
@@ -1258,7 +1291,7 @@ export class Map implements Types.MapType {
             }
         });
 
-        if (!(this.flags & Flags.MAP_NO_LIQUID)) {
+        if (!(this.flags.map & Flags.MAP_NO_LIQUID)) {
             const newVolume = Grid.alloc(this.width, this.height);
             const calc = calcBaseVolume(this, TileLayer.LIQUID, newVolume);
 
@@ -1268,15 +1301,15 @@ export class Map implements Types.MapType {
 
             if (calc != CalcType.NONE) {
                 updateVolume(this, TileLayer.LIQUID, newVolume);
-                this.flags &= ~Flags.MAP_NO_LIQUID;
+                this.flags.map &= ~Flags.MAP_NO_LIQUID;
             } else {
-                this.flags |= Flags.MAP_NO_LIQUID;
+                this.flags.map |= Flags.MAP_NO_LIQUID;
             }
             this.changed = true;
             Grid.free(newVolume);
         }
 
-        if (!(this.flags & Flags.MAP_NO_GAS)) {
+        if (!(this.flags.map & Flags.MAP_NO_GAS)) {
             const newVolume = Grid.alloc(this.width, this.height);
             const calc = calcBaseVolume(this, TileLayer.GAS, newVolume);
 
@@ -1286,9 +1319,9 @@ export class Map implements Types.MapType {
 
             if (calc != CalcType.NONE) {
                 updateVolume(this, TileLayer.GAS, newVolume);
-                this.flags &= ~Flags.MAP_NO_GAS;
+                this.flags.map &= ~Flags.MAP_NO_GAS;
             } else {
-                this.flags |= Flags.MAP_NO_GAS;
+                this.flags.map |= Flags.MAP_NO_GAS;
             }
             this.changed = true;
             Grid.free(newVolume);
@@ -1463,7 +1496,7 @@ export class Map implements Types.MapType {
     resetCellEvents() {
         this.forEach(
             (c) =>
-                (c.mechFlags &= ~(
+                (c.flags.cellMech &= ~(
                     CellMechFlags.EVENT_FIRED_THIS_TURN |
                     CellMechFlags.EVENT_PROTECTED
                 ))
@@ -1492,14 +1525,6 @@ export function make(w: number, h: number, opts: any = {}, wall?: string) {
     }
     if (floor) {
         map.fill(floor, boundary);
-    }
-
-    if (opts.visible || opts.revealed) {
-        map.makeVisible();
-        map.revealAll();
-    }
-    if (opts.revealed && !opts.visible) {
-        map.makeVisible(false);
     }
 
     if (!DATA.map) {
@@ -1584,7 +1609,7 @@ export function getCellAppearance(
 
     if (
         cell.isAnyKindOfVisible() &&
-        cell.flags & (CellFlags.CELL_CHANGED | CellFlags.NEEDS_REDRAW)
+        cell.flags.cell & (CellFlags.CELL_CHANGED | CellFlags.NEEDS_REDRAW)
     ) {
         Cell.getAppearance(cell, dest);
     } else {
@@ -1602,9 +1627,9 @@ export function getCellAppearance(
     }
 
     let needDistinctness = false;
-    if (cell.flags & (CellFlags.IS_CURSOR | CellFlags.IS_IN_PATH)) {
+    if (cell.flags.cell & (CellFlags.IS_CURSOR | CellFlags.IS_IN_PATH)) {
         const highlight =
-            cell.flags & CellFlags.IS_CURSOR ? COLORS.cursor : COLORS.path;
+            cell.flags.cell & CellFlags.IS_CURSOR ? COLORS.cursor : COLORS.path;
         if (cell.hasLayerFlag(LayerFlags.L_INVERT_WHEN_HIGHLIGHTED)) {
             Color.swap(dest.fg, dest.bg);
         } else {
@@ -1621,7 +1646,7 @@ export function getCellAppearance(
     }
 
     if (dest.dances) {
-        map.flags |= Flags.MAP_DANCES;
+        map.flags.map |= Flags.MAP_DANCES;
     }
     // dest.bake();
 }

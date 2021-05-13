@@ -177,7 +177,7 @@ export async function fireAll(map: Map.Map, event: string) {
                             !n.hasLayerFlag(Entity.Flags.L_BLOCKS_EFFECTS) &&
                             n.tileId(tile.layer) != cell.tileId(tile.layer) &&
                             !(
-                                n.mechFlags &
+                                n.flags.cellMech &
                                 Cell.MechFlags.CAUGHT_FIRE_THIS_TURN
                             )
                         ) {
@@ -191,11 +191,11 @@ export async function fireAll(map: Map.Map, event: string) {
                 promoteChance = effect.chance || 100 * 100; // 100%
             }
             if (
-                !(cell.mechFlags & Cell.MechFlags.CAUGHT_FIRE_THIS_TURN) &&
+                !(cell.flags.cellMech & Cell.MechFlags.CAUGHT_FIRE_THIS_TURN) &&
                 GW.random.chance(promoteChance, 10000)
             ) {
                 willFire[x][y] |= GW.flag.fl(tile.layer);
-                // cell.mechFlags |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
+                // cell.flags.cellMech |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
             }
         }
     });
@@ -204,7 +204,7 @@ export async function fireAll(map: Map.Map, event: string) {
     await willFire.forEachAsync(async (w, x, y) => {
         if (!w) return;
         const cell = map.cell(x, y);
-        if (cell.mechFlags & Cell.MechFlags.EVENT_FIRED_THIS_TURN) return;
+        if (cell.flags.cellMech & Cell.MechFlags.EVENT_FIRED_THIS_TURN) return;
         for (let layer = 0; layer <= Entity.Layer.GAS; ++layer) {
             if (w & GW.flag.fl(layer)) {
                 await cell.activate(event, map, x, y, {
@@ -270,9 +270,9 @@ export function spawnTiles(
                     // if (volume && cell.gas) {
                     //     cell.volume += (feat.volume || 0);
                     // }
-                    cell.mechFlags |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
+                    cell.flags.cellMech |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
                     if (flags & Flags.E_PROTECTED) {
-                        cell.mechFlags |= Cell.MechFlags.EVENT_PROTECTED;
+                        cell.flags.cellMech |= Cell.MechFlags.EVENT_PROTECTED;
                     }
                     accomplishedSomething = true;
                     // debug('- tile', i, j, 'tile=', tile.id);
@@ -299,7 +299,7 @@ function cellIsOk(
     if (!map.hasXY(x, y)) return false;
     const cell = map.cell(x, y);
 
-    if (cell.mechFlags & Cell.MechFlags.EVENT_PROTECTED) return false;
+    if (cell.flags.cellMech & Cell.MechFlags.EVENT_PROTECTED) return false;
 
     if (flags & Flags.E_BUILD_IN_WALLS) {
         if (!cell.isWall()) return false;

@@ -34,11 +34,18 @@ export class CellMemory {
     public itemQuantity = 0;
     public actor: Types.ActorType | null = null;
     public tile: Tile | null = null;
-    public cellFlags = 0;
-    public cellMechFlags = 0;
-    public layerFlags = 0;
-    public tileFlags = 0;
-    public tileMechFlags = 0;
+    public flags = {
+        cell: 0,
+        cellMech: 0,
+        layer: 0,
+        tile: 0,
+        tileMech: 0,
+    };
+    // public cellFlags = 0;
+    // public cellMechFlags = 0;
+    // public layerFlags = 0;
+    // public tileFlags = 0;
+    // public tileMechFlags = 0;
 
     constructor() {}
 
@@ -48,11 +55,11 @@ export class CellMemory {
         this.itemQuantity = 0;
         this.actor = null;
         this.tile = null;
-        this.cellFlags = 0;
-        this.cellMechFlags = 0;
-        this.layerFlags = 0;
-        this.tileFlags = 0;
-        this.tileMechFlags = 0;
+        this.flags.cell = 0;
+        this.flags.cellMech = 0;
+        this.flags.layer = 0;
+        this.flags.tile = 0;
+        this.flags.tileMech = 0;
     }
 
     copy(other: CellMemory) {
@@ -80,8 +87,7 @@ export class Cell implements Types.CellType {
     protected _item: Types.ItemType | null = null;
     public data: any = {};
 
-    public flags: Flags = Flags.CELL_DEFAULT; // non-terrain cell flags
-    public mechFlags: MechFlags = 0;
+    public flags: Types.CellFlags = { cell: Flags.CELL_DEFAULT, cellMech: 0 };
     public gasVolume = 0; // quantity of gas in cell
     public liquidVolume = 0;
     public machineNumber = 0;
@@ -108,8 +114,8 @@ export class Cell implements Types.CellType {
         this._item = null;
         this.data = {};
 
-        this.flags = Flags.CELL_DEFAULT; // non-terrain cell flags
-        this.mechFlags = 0;
+        this.flags.cell = Flags.CELL_DEFAULT; // non-terrain cell flags
+        this.flags.cellMech = 0;
         this.gasVolume = 0; // quantity of gas in cell
         this.liquidVolume = 0;
         this.machineNumber = 0;
@@ -158,7 +164,7 @@ export class Cell implements Types.CellType {
     //         this._tiles[3] = null;
     //         this.gasVolume = 0;
     //     }
-    //     this.flags |= Flags.CELL_CHANGED;
+    //     this.flags.cell |= Flags.CELL_CHANGED;
     // }
 
     get ground() {
@@ -200,47 +206,47 @@ export class Cell implements Types.CellType {
     }
 
     get changed() {
-        return (this.flags & Flags.CELL_CHANGED) > 0;
+        return (this.flags.cell & Flags.CELL_CHANGED) > 0;
     }
     set changed(v: boolean) {
         if (v) {
-            this.flags |= Flags.CELL_CHANGED;
+            this.flags.cell |= Flags.CELL_CHANGED;
         } else {
-            this.flags &= ~Flags.CELL_CHANGED;
+            this.flags.cell &= ~Flags.CELL_CHANGED;
         }
     }
 
     isVisible() {
-        return this.flags & Flags.VISIBLE ? true : false;
+        return this.flags.cell & Flags.VISIBLE ? true : false;
     }
     isAnyKindOfVisible() {
         return (
-            this.flags &
+            this.flags.cell &
             Flags.ANY_KIND_OF_VISIBLE /* || CONFIG.playbackOmniscience */
         );
     }
     isOrWasAnyKindOfVisible() {
         return (
-            this.flags &
+            this.flags.cell &
             Flags.IS_WAS_ANY_KIND_OF_VISIBLE /* || CONFIG.playbackOmniscience */
         );
     }
     isRevealed(orMapped = false): boolean {
         const flag = Flags.REVEALED | (orMapped ? Flags.MAGIC_MAPPED : 0);
-        return (this.flags & flag) > 0;
+        return (this.flags.cell & flag) > 0;
     }
     listInSidebar(): boolean {
         return this.hasLayerFlag(LayerFlags.L_LIST_IN_SIDEBAR, true);
     }
 
     get needsRedraw() {
-        return (this.flags & Flags.NEEDS_REDRAW) > 0;
+        return (this.flags.cell & Flags.NEEDS_REDRAW) > 0;
     }
     set needsRedraw(v: boolean) {
         if (v) {
-            this.flags |= Flags.NEEDS_REDRAW;
+            this.flags.cell |= Flags.NEEDS_REDRAW;
         } else {
-            this.flags &= ~Flags.NEEDS_REDRAW;
+            this.flags.cell &= ~Flags.NEEDS_REDRAW;
         }
     }
 
@@ -256,14 +262,14 @@ export class Cell implements Types.CellType {
     } // TODO
 
     get lightChanged() {
-        return (this.flags & Flags.LIGHT_CHANGED) > 0;
+        return (this.flags.cell & Flags.LIGHT_CHANGED) > 0;
     }
 
     set lightChanged(v: boolean) {
         if (v) {
-            this.flags |= Flags.LIGHT_CHANGED | Flags.NEEDS_REDRAW;
+            this.flags.cell |= Flags.LIGHT_CHANGED | Flags.NEEDS_REDRAW;
         } else {
-            this.flags &= ~Flags.LIGHT_CHANGED;
+            this.flags.cell &= ~Flags.LIGHT_CHANGED;
         }
     }
 
@@ -299,7 +305,7 @@ export class Cell implements Types.CellType {
 
     layerFlags(limitToPlayerKnowledge = false) {
         if (limitToPlayerKnowledge && !this.isVisible()) {
-            return this.memory.layerFlags;
+            return this.memory.flags.layer;
         }
         let flags = 0;
         for (let tile of this.tiles()) {
@@ -310,7 +316,7 @@ export class Cell implements Types.CellType {
 
     tileFlags(limitToPlayerKnowledge = false) {
         if (limitToPlayerKnowledge && !this.isVisible()) {
-            return this.memory.tileFlags;
+            return this.memory.flags.tile;
         }
         let flags = 0;
         for (let tile of this.tiles()) {
@@ -321,7 +327,7 @@ export class Cell implements Types.CellType {
 
     tileMechFlags(limitToPlayerKnowledge = false) {
         if (limitToPlayerKnowledge && !this.isVisible()) {
-            return this.memory.tileMechFlags;
+            return this.memory.flags.tileMech;
         }
         let flags = 0;
         for (let tile of this.tiles()) {
@@ -332,11 +338,29 @@ export class Cell implements Types.CellType {
 
     hasLayerFlag(flag: LayerFlags, limitToPlayerKnowledge = false) {
         const flags = this.layerFlags(limitToPlayerKnowledge);
-        return !!(flag & flags);
+        if (flag & flags) return true;
+        let actor = this.actor;
+        let item = this.item;
+        if (limitToPlayerKnowledge) {
+            actor = this.memory.actor;
+            item = this.memory.item;
+        }
+        if (actor && actor.layerFlags() & flag) return true;
+        if (item && item.layerFlags() & flag) return true;
+        return false;
     }
 
     hasAllLayerFlags(flag: LayerFlags, limitToPlayerKnowledge = false) {
-        const flags = this.layerFlags(limitToPlayerKnowledge);
+        let flags = this.layerFlags(limitToPlayerKnowledge);
+        let actor = this.actor;
+        let item = this.item;
+        if (limitToPlayerKnowledge) {
+            actor = this.memory.actor;
+            item = this.memory.item;
+        }
+        if (actor) flags |= actor.layerFlags();
+        if (item) flags |= item.layerFlags();
+
         return (flag & flags) === flag;
     }
 
@@ -359,32 +383,32 @@ export class Cell implements Types.CellType {
     }
 
     setFlags(cellFlag: Flags = 0, cellMechFlag: MechFlags = 0) {
-        this.flags |= cellFlag;
-        this.mechFlags |= cellMechFlag;
-        // this.flags |= Flags.NEEDS_REDRAW;
+        this.flags.cell |= cellFlag;
+        this.flags.cellMech |= cellMechFlag;
+        // this.flags.cell |= Flags.NEEDS_REDRAW;
     }
 
     clearFlags(cellFlag: Flags = 0, cellMechFlag: MechFlags = 0) {
-        this.flags &= ~cellFlag;
-        this.mechFlags &= ~cellMechFlag;
+        this.flags.cell &= ~cellFlag;
+        this.flags.cellMech &= ~cellMechFlag;
         // if ((~cellFlag) & Flags.NEEDS_REDRAW) {
-        //   this.flags |= Flags.NEEDS_REDRAW;
+        //   this.flags.cell |= Flags.NEEDS_REDRAW;
         // }
     }
 
     hasFlag(flag: Flags, limitToPlayerKnowledge = false) {
         const flags =
             limitToPlayerKnowledge && !this.isAnyKindOfVisible()
-                ? this.memory.cellFlags
-                : this.flags;
+                ? this.memory.flags.cell
+                : this.flags.cell;
         return (flag & flags) > 0;
     }
 
     hasMechFlag(flag: MechFlags, limitToPlayerKnowledge = false) {
         const flags =
             limitToPlayerKnowledge && !this.isAnyKindOfVisible()
-                ? this.memory.cellMechFlags
-                : this.mechFlags;
+                ? this.memory.flags.cellMech
+                : this.flags.cellMech;
         return (flag & flags) > 0;
     }
 
@@ -490,7 +514,7 @@ export class Cell implements Types.CellType {
     isMoveableNow(limitToPlayerKnowledge = false): boolean {
         const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
         const layerFlags = useMemory
-            ? this.memory.layerFlags
+            ? this.memory.flags.layer
             : this.layerFlags(false);
         return (layerFlags & LayerFlags.L_BLOCKS_MOVE) === 0;
     }
@@ -498,11 +522,11 @@ export class Cell implements Types.CellType {
     isWalkableNow(limitToPlayerKnowledge = false): boolean {
         const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
         const layerFlags = useMemory
-            ? this.memory.layerFlags
+            ? this.memory.flags.layer
             : this.layerFlags(false);
         if (layerFlags & LayerFlags.L_BLOCKS_MOVE) return false;
 
-        const tileFlags = useMemory ? this.memory.tileFlags : this.tileFlags();
+        const tileFlags = useMemory ? this.memory.flags.tile : this.tileFlags();
         if (!(tileFlags & TileFlags.T_IS_DEEP_LIQUID)) return true;
         return (tileFlags & TileFlags.T_BRIDGE) > 0;
     }
@@ -511,26 +535,32 @@ export class Cell implements Types.CellType {
         if (this.isWalkableNow(limitToPlayerKnowledge)) return true;
         const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
         const layerFlags = useMemory
-            ? this.memory.layerFlags
+            ? this.memory.flags.layer
             : this.layerFlags(false);
         return (layerFlags & LayerFlags.L_SECRETLY_PASSABLE) > 0;
     }
 
     isWall(limitToPlayerKnowledge = false): boolean {
         const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
-        let layerFlags = useMemory ? this.memory.layerFlags : this.layerFlags();
+        let layerFlags = useMemory
+            ? this.memory.flags.layer
+            : this.layerFlags();
         return (layerFlags & LayerFlags.L_IS_WALL) === LayerFlags.L_IS_WALL;
     }
 
     isObstruction(limitToPlayerKnowledge = false): boolean {
         const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
-        let layerFlags = useMemory ? this.memory.layerFlags : this.layerFlags();
+        let layerFlags = useMemory
+            ? this.memory.flags.layer
+            : this.layerFlags();
         return !!(layerFlags & LayerFlags.L_BLOCKS_DIAGONAL);
     }
 
     isDoorway(limitToPlayerKnowledge = false): boolean {
         const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
-        let layerFlags = useMemory ? this.memory.layerFlags : this.layerFlags();
+        let layerFlags = useMemory
+            ? this.memory.flags.layer
+            : this.layerFlags();
         return (
             (layerFlags & LayerFlags.L_BLOCKS_VISION) > 0 &&
             (layerFlags & LayerFlags.L_BLOCKS_MOVE) === 0
@@ -546,7 +576,7 @@ export class Cell implements Types.CellType {
     blocksPathing(limitToPlayerKnowledge = false): boolean {
         const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
         if (!this.isWalkableNow(limitToPlayerKnowledge)) return true;
-        let tileFlags = useMemory ? this.memory.tileFlags : this.tileFlags();
+        let tileFlags = useMemory ? this.memory.flags.tile : this.tileFlags();
         return !!(tileFlags & TileFlags.T_PATHING_BLOCKER);
     }
 
@@ -562,7 +592,7 @@ export class Cell implements Types.CellType {
 
     isLiquid(limitToPlayerKnowledge = false): boolean {
         const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
-        let tileFlags = useMemory ? this.memory.tileFlags : this.tileFlags();
+        let tileFlags = useMemory ? this.memory.flags.tile : this.tileFlags();
         return !!(tileFlags & TileFlags.T_IS_DEEP_LIQUID);
     }
 
@@ -572,7 +602,7 @@ export class Cell implements Types.CellType {
     // Should these be cell flags - indicating we have this layer
     hasGas(limitToPlayerKnowledge = false): boolean {
         const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
-        let cellFlags = useMemory ? this.memory.cellFlags : this.flags;
+        let cellFlags = useMemory ? this.memory.flags.cell : this.flags.cell;
         return !!(cellFlags & Flags.HAS_GAS);
     }
 
@@ -582,10 +612,10 @@ export class Cell implements Types.CellType {
     }
 
     markRevealed() {
-        this.flags &= ~Flags.STABLE_MEMORY;
-        if (this.flags & Flags.REVEALED) return false;
+        this.flags.cell &= ~Flags.STABLE_MEMORY;
+        if (this.flags.cell & Flags.REVEALED) return false;
 
-        this.flags |= Flags.REVEALED;
+        this.flags.cell |= Flags.REVEALED;
         return !this.isWall();
     }
 
@@ -628,7 +658,7 @@ export class Cell implements Types.CellType {
             tile.flags.tile & TileFlags.T_IS_FIRE &&
             !(oldTile.flags.tile & TileFlags.T_IS_FIRE)
         ) {
-            this.mechFlags |= MechFlags.CAUGHT_FIRE_THIS_TURN;
+            this.flags.cellMech |= MechFlags.CAUGHT_FIRE_THIS_TURN;
         }
 
         const blocksVision = tile.flags.layer & LayerFlags.L_BLOCKS_VISION;
@@ -662,13 +692,13 @@ export class Cell implements Types.CellType {
         }
 
         if (tileId) {
-            this.flags |= layerFlag;
+            this.flags.cell |= layerFlag;
         } else {
-            this.flags &= ~layerFlag;
+            this.flags.cell &= ~layerFlag;
         }
 
-        // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
-        this.flags |= Flags.CELL_CHANGED | Flags.NEEDS_REDRAW;
+        // this.flags.cell |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
+        this.flags.cell |= Flags.CELL_CHANGED | Flags.NEEDS_REDRAW;
         if (map && oldTile.light !== tile.light) {
             map.clearFlag(
                 MapFlags.MAP_STABLE_GLOW_LIGHTS | MapFlags.MAP_STABLE_LIGHTS
@@ -690,8 +720,8 @@ export class Cell implements Types.CellType {
             }
         }
         if (current) {
-            // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
-            this.flags |= Flags.CELL_CHANGED;
+            // this.flags.cell |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
+            this.flags.cell |= Flags.CELL_CHANGED;
             this.removeLayer(current);
             didSomething =
                 current && (depth !== Layer.GROUND || current !== floorTile);
@@ -709,7 +739,7 @@ export class Cell implements Types.CellType {
         } else if (depth == Layer.GROUND) {
             this._tiles[Layer.GROUND] = floorTile as Tile;
         }
-        this.flags &= ~layerFlag;
+        this.flags.cell &= ~layerFlag;
         return didSomething;
     }
 
@@ -724,8 +754,8 @@ export class Cell implements Types.CellType {
                 }
             }
         }
-        // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
-        this.flags |= Flags.CELL_CHANGED;
+        // this.flags.cell |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
+        this.flags.cell |= Flags.CELL_CHANGED;
     }
 
     clearLayersWithFlags(tileFlags: number, tileMechFlags = 0) {
@@ -749,7 +779,7 @@ export class Cell implements Types.CellType {
                 }
             }
         }
-        // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
+        // this.flags.cell |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
     }
 
     // EVENTS
@@ -840,10 +870,10 @@ export class Cell implements Types.CellType {
         }
         this._item = item;
         if (item) {
-            this.flags |= Flags.HAS_ITEM;
+            this.flags.cell |= Flags.HAS_ITEM;
             this.addLayer(item);
         } else {
-            this.flags &= ~Flags.HAS_ITEM;
+            this.flags.cell &= ~Flags.HAS_ITEM;
         }
     }
 
@@ -858,18 +888,18 @@ export class Cell implements Types.CellType {
         }
         this._actor = actor;
         if (actor) {
-            this.flags |= Flags.HAS_ANY_ACTOR;
+            this.flags.cell |= Flags.HAS_ANY_ACTOR;
             this.addLayer(actor);
         } else {
-            this.flags &= ~Flags.HAS_ANY_ACTOR;
+            this.flags.cell &= ~Flags.HAS_ANY_ACTOR;
         }
     }
 
     addLayer(layer: Types.EntityType) {
         if (!layer) return;
 
-        // this.flags |= Flags.NEEDS_REDRAW;
-        this.flags |= Flags.CELL_CHANGED;
+        // this.flags.cell |= Flags.NEEDS_REDRAW;
+        this.flags.cell |= Flags.CELL_CHANGED;
         let current = this.layers;
 
         if (
@@ -905,8 +935,8 @@ export class Cell implements Types.CellType {
         if (!layer) return false;
         if (!this.layers) return false;
 
-        // this.flags |= Flags.NEEDS_REDRAW;
-        this.flags |= Flags.CELL_CHANGED;
+        // this.flags.cell |= Flags.NEEDS_REDRAW;
+        this.flags.cell |= Flags.CELL_CHANGED;
 
         if (this.layers && this.layers.layer === layer) {
             this.layers = this.layers.next;
@@ -930,11 +960,11 @@ export class Cell implements Types.CellType {
 
     storeMemory() {
         const memory = this.memory;
-        memory.tileFlags = this.tileFlags();
-        memory.tileMechFlags = this.tileMechFlags();
-        memory.layerFlags = this.layerFlags();
-        memory.cellFlags = this.flags;
-        memory.cellMechFlags = this.mechFlags;
+        memory.flags.tile = this.tileFlags();
+        memory.flags.tileMech = this.tileMechFlags();
+        memory.flags.layer = this.layerFlags();
+        memory.flags.cell = this.flags.cell;
+        memory.flags.cellMech = this.flags.cellMech;
         memory.tile = this.topmostTile();
         if (this.item) {
             memory.item = this.item;
@@ -953,7 +983,7 @@ export class Cell implements Types.CellType {
             ) {
                 // console.log("remembered in cell change");
                 this.actor.rememberedInCell.storeMemory();
-                this.actor.rememberedInCell.flags |= Flags.NEEDS_REDRAW;
+                this.actor.rememberedInCell.flags.cell |= Flags.NEEDS_REDRAW;
             }
             this.actor.rememberedInCell = this;
         }
@@ -997,9 +1027,9 @@ export function getAppearance(cell: Cell, dest: Sprite.Mixer) {
     }
 
     if (memory.dances) {
-        cell.flags |= Flags.COLORS_DANCE;
+        cell.flags.cell |= Flags.COLORS_DANCE;
     } else {
-        cell.flags &= ~Flags.COLORS_DANCE;
+        cell.flags.cell &= ~Flags.COLORS_DANCE;
     }
 
     dest.drawSprite(memory);

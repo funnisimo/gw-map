@@ -105,10 +105,10 @@ export class Light implements Types.LightType {
                 );
             }
             if (dispelShadows) {
-                cell.flags &= ~Flags.Cell.IS_IN_SHADOW;
+                cell.flags.cell &= ~Flags.Cell.IS_IN_SHADOW;
             }
             if (
-                cell.flags &
+                cell.flags.cell &
                 (Flags.Cell.IN_FOV | Flags.Cell.ANY_KIND_OF_VISIBLE)
             ) {
                 overlappedFieldOfView = true;
@@ -119,7 +119,7 @@ export class Light implements Types.LightType {
 
         if (dispelShadows) {
             const cell = map.cell(x, y);
-            cell.flags &= ~Flags.Cell.IS_IN_SHADOW;
+            cell.flags.cell &= ~Flags.Cell.IS_IN_SHADOW;
         }
 
         Grid.free(grid);
@@ -242,16 +242,16 @@ export function installAll(
 function updateDisplayDetail(map: Map.Map) {
     map.eachCell((cell: Cell.Cell, _i: number, _j: number) => {
         // clear light flags
-        cell.flags &= ~(Flags.Cell.CELL_LIT | Flags.Cell.CELL_DARK);
+        cell.flags.cell &= ~(Flags.Cell.CELL_LIT | Flags.Cell.CELL_DARK);
 
         if (cell.light.some((v, i) => v !== cell.oldLight[i])) {
             cell.lightChanged = true;
         }
 
         if (cell.isDark()) {
-            cell.flags |= Flags.Cell.CELL_DARK;
-        } else if (!(cell.flags & Flags.Cell.IS_IN_SHADOW)) {
-            cell.flags |= Flags.Cell.CELL_LIT;
+            cell.flags.cell |= Flags.Cell.CELL_DARK;
+        } else if (!(cell.flags.cell & Flags.Cell.IS_IN_SHADOW)) {
+            cell.flags.cell |= Flags.Cell.CELL_LIT;
         }
     });
 }
@@ -294,7 +294,7 @@ export function zeroOutLights(map: Map.Map) {
         for (k = 0; k < 3; k++) {
             cell.light[k] = light[k];
         }
-        cell.flags |= Flags.Cell.IS_IN_SHADOW;
+        cell.flags.cell |= Flags.Cell.IS_IN_SHADOW;
     });
 }
 

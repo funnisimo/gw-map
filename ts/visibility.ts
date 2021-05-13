@@ -4,18 +4,20 @@ import * as Cell from './cell';
 import * as Map from './map';
 
 function demoteCellVisibility(cell: Cell.Cell) {
-    cell.flags &= ~(Flags.Cell.WAS_ANY_KIND_OF_VISIBLE | Flags.Cell.IN_FOV);
-    if (cell.flags & Flags.Cell.VISIBLE) {
-        cell.flags &= ~Flags.Cell.VISIBLE;
-        cell.flags |= Flags.Cell.WAS_VISIBLE;
+    cell.flags.cell &= ~(
+        Flags.Cell.WAS_ANY_KIND_OF_VISIBLE | Flags.Cell.IN_FOV
+    );
+    if (cell.flags.cell & Flags.Cell.VISIBLE) {
+        cell.flags.cell &= ~Flags.Cell.VISIBLE;
+        cell.flags.cell |= Flags.Cell.WAS_VISIBLE;
     }
-    if (cell.flags & Flags.Cell.CLAIRVOYANT_VISIBLE) {
-        cell.flags &= ~Flags.Cell.CLAIRVOYANT_VISIBLE;
-        cell.flags |= Flags.Cell.WAS_CLAIRVOYANT_VISIBLE;
+    if (cell.flags.cell & Flags.Cell.CLAIRVOYANT_VISIBLE) {
+        cell.flags.cell &= ~Flags.Cell.CLAIRVOYANT_VISIBLE;
+        cell.flags.cell |= Flags.Cell.WAS_CLAIRVOYANT_VISIBLE;
     }
-    if (cell.flags & Flags.Cell.TELEPATHIC_VISIBLE) {
-        cell.flags &= ~Flags.Cell.TELEPATHIC_VISIBLE;
-        cell.flags |= Flags.Cell.WAS_TELEPATHIC_VISIBLE;
+    if (cell.flags.cell & Flags.Cell.TELEPATHIC_VISIBLE) {
+        cell.flags.cell &= ~Flags.Cell.TELEPATHIC_VISIBLE;
+        cell.flags.cell |= Flags.Cell.WAS_TELEPATHIC_VISIBLE;
     }
 }
 
@@ -25,8 +27,8 @@ function _updateCellVisibility(
     j: number,
     map: Map.Map
 ) {
-    const isVisible = cell.flags & Flags.Cell.VISIBLE;
-    const wasVisible = cell.flags & Flags.Cell.WAS_VISIBLE;
+    const isVisible = cell.flags.cell & Flags.Cell.VISIBLE;
+    const wasVisible = cell.flags.cell & Flags.Cell.WAS_VISIBLE;
 
     if (isVisible && wasVisible) {
         if (cell.lightChanged) {
@@ -34,7 +36,10 @@ function _updateCellVisibility(
         }
     } else if (isVisible && !wasVisible) {
         // if the cell became visible this move
-        if (!(cell.flags & Flags.Cell.REVEALED) && GW.data.automationActive) {
+        if (
+            !(cell.flags.cell & Flags.Cell.REVEALED) &&
+            GW.data.automationActive
+        ) {
             if (cell.item) {
                 const theItem: GW.types.ItemType = cell.item;
                 if (theItem.hasLayerFlag(Flags.Entity.L_INTERRUPT_WHEN_SEEN)) {
@@ -45,7 +50,7 @@ function _updateCellVisibility(
                 }
             }
             if (
-                !(cell.flags & Flags.Cell.MAGIC_MAPPED) &&
+                !(cell.flags.cell & Flags.Cell.MAGIC_MAPPED) &&
                 cell.hasLayerFlag(Flags.Entity.L_INTERRUPT_WHEN_SEEN)
             ) {
                 const tile = cell.tileWithLayerFlag(
@@ -78,8 +83,8 @@ function _updateCellClairyvoyance(
     _j: number,
     map: Map.Map
 ) {
-    const isClairy = cell.flags & Flags.Cell.CLAIRVOYANT_VISIBLE;
-    const wasClairy = cell.flags & Flags.Cell.WAS_CLAIRVOYANT_VISIBLE;
+    const isClairy = cell.flags.cell & Flags.Cell.CLAIRVOYANT_VISIBLE;
+    const wasClairy = cell.flags.cell & Flags.Cell.WAS_CLAIRVOYANT_VISIBLE;
 
     if (isClairy && wasClairy) {
         if (cell.lightChanged) {
@@ -91,7 +96,7 @@ function _updateCellClairyvoyance(
         map.redrawCell(cell);
     } else if (!wasClairy && isClairy) {
         // became clairvoyantly visible
-        cell.flags &= ~Flags.Cell.STABLE_MEMORY;
+        cell.flags.cell &= ~Flags.Cell.STABLE_MEMORY;
         map.redrawCell(cell);
     }
 
@@ -104,8 +109,8 @@ function _updateCellTelepathy(
     _j: number,
     map: Map.Map
 ) {
-    const isTele = cell.flags & Flags.Cell.TELEPATHIC_VISIBLE;
-    const wasTele = cell.flags & Flags.Cell.WAS_TELEPATHIC_VISIBLE;
+    const isTele = cell.flags.cell & Flags.Cell.TELEPATHIC_VISIBLE;
+    const wasTele = cell.flags.cell & Flags.Cell.WAS_TELEPATHIC_VISIBLE;
 
     if (isTele && wasTele) {
         if (cell.lightChanged) {
@@ -118,12 +123,12 @@ function _updateCellTelepathy(
     } else if (!wasTele && isTele) {
         // became telepathically visible
         if (
-            !(cell.flags & Flags.Cell.REVEALED) &&
+            !(cell.flags.cell & Flags.Cell.REVEALED) &&
             !cell.hasTileFlag(Flags.Tile.T_PATHING_BLOCKER)
         ) {
             GW.data.xpxpThisTurn++;
         }
-        cell.flags &= ~Flags.Cell.STABLE_MEMORY;
+        cell.flags.cell &= ~Flags.Cell.STABLE_MEMORY;
         map.redrawCell(cell);
     }
     return isTele;
@@ -135,8 +140,8 @@ function _updateCellDetect(
     _j: number,
     map: Map.Map
 ) {
-    const isMonst = cell.flags & Flags.Cell.MONSTER_DETECTED;
-    const wasMonst = cell.flags & Flags.Cell.WAS_MONSTER_DETECTED;
+    const isMonst = cell.flags.cell & Flags.Cell.MONSTER_DETECTED;
+    const wasMonst = cell.flags.cell & Flags.Cell.WAS_MONSTER_DETECTED;
 
     if (isMonst && wasMonst) {
         if (cell.lightChanged) {
@@ -144,12 +149,12 @@ function _updateCellDetect(
         }
     } else if (!isMonst && wasMonst) {
         // ceased being detected visible
-        cell.flags &= ~Flags.Cell.STABLE_MEMORY;
+        cell.flags.cell &= ~Flags.Cell.STABLE_MEMORY;
         map.redrawCell(cell);
         cell.storeMemory();
     } else if (!wasMonst && isMonst) {
         // became detected visible
-        cell.flags &= ~Flags.Cell.STABLE_MEMORY;
+        cell.flags.cell &= ~Flags.Cell.STABLE_MEMORY;
         map.redrawCell(cell);
         cell.storeMemory();
     }
@@ -163,11 +168,11 @@ function promoteCellVisibility(
     map: Map.Map
 ) {
     if (
-        cell.flags & Flags.Cell.IN_FOV &&
+        cell.flags.cell & Flags.Cell.IN_FOV &&
         map.hasVisibleLight(i, j) &&
-        !(cell.mechFlags & Flags.CellMech.DARKENED)
+        !(cell.flags.cellMech & Flags.CellMech.DARKENED)
     ) {
-        cell.flags |= Flags.Cell.VISIBLE;
+        cell.flags.cell |= Flags.Cell.VISIBLE;
     }
 
     if (_updateCellVisibility(cell, i, j, map)) return;
@@ -177,8 +182,8 @@ function promoteCellVisibility(
 }
 
 export function initMap(map: Map.Map) {
-    if (!(map.flags & Map.Flags.MAP_CALC_FOV)) {
-        map.forEach((cell) => (cell.flags |= Flags.Cell.REVEALED));
+    if (!(map.flags.map & Map.Flags.MAP_CALC_FOV)) {
+        map.setFlags(0, Flags.Cell.REVEALED | Flags.Cell.VISIBLE);
         return;
     }
 
@@ -186,12 +191,12 @@ export function initMap(map: Map.Map) {
 }
 
 export function update(map: Map.Map, x: number, y: number, maxRadius: number) {
-    if (!(map.flags & Map.Flags.MAP_CALC_FOV) || !map.fov) return false;
+    if (!(map.flags.map & Map.Flags.MAP_CALC_FOV) || !map.fov) return false;
 
     if (x == map.fov.x && y == map.fov.y) {
-        if (!(map.flags & Flags.Map.MAP_FOV_CHANGED)) return false;
+        if (!(map.flags.map & Flags.Map.MAP_FOV_CHANGED)) return false;
     }
-    map.flags &= ~Flags.Map.MAP_FOV_CHANGED;
+    map.flags.map &= ~Flags.Map.MAP_FOV_CHANGED;
     map.fov.x = x;
     map.fov.y = y;
 

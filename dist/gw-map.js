@@ -340,9 +340,9 @@
                     cell.light[k] += Math.floor((LIGHT_COMPONENTS[k] * lightMultiplier) / 100);
                 }
                 if (dispelShadows) {
-                    cell.flags &= ~Cell.IS_IN_SHADOW;
+                    cell.flags.cell &= ~Cell.IS_IN_SHADOW;
                 }
-                if (cell.flags &
+                if (cell.flags.cell &
                     (Cell.IN_FOV | Cell.ANY_KIND_OF_VISIBLE)) {
                     overlappedFieldOfView = true;
                 }
@@ -350,7 +350,7 @@
             });
             if (dispelShadows) {
                 const cell = map.cell(x, y);
-                cell.flags &= ~Cell.IS_IN_SHADOW;
+                cell.flags.cell &= ~Cell.IS_IN_SHADOW;
             }
             GW.grid.free(grid);
             return overlappedFieldOfView;
@@ -430,15 +430,15 @@
     function updateDisplayDetail(map) {
         map.eachCell((cell, _i, _j) => {
             // clear light flags
-            cell.flags &= ~(Cell.CELL_LIT | Cell.CELL_DARK);
+            cell.flags.cell &= ~(Cell.CELL_LIT | Cell.CELL_DARK);
             if (cell.light.some((v, i) => v !== cell.oldLight[i])) {
                 cell.lightChanged = true;
             }
             if (cell.isDark()) {
-                cell.flags |= Cell.CELL_DARK;
+                cell.flags.cell |= Cell.CELL_DARK;
             }
-            else if (!(cell.flags & Cell.IS_IN_SHADOW)) {
-                cell.flags |= Cell.CELL_LIT;
+            else if (!(cell.flags.cell & Cell.IS_IN_SHADOW)) {
+                cell.flags.cell |= Cell.CELL_LIT;
             }
         });
     }
@@ -474,7 +474,7 @@
             for (k = 0; k < 3; k++) {
                 cell.light[k] = light[k];
             }
-            cell.flags |= Cell.IS_IN_SHADOW;
+            cell.flags.cell |= Cell.IS_IN_SHADOW;
         });
     }
     function recordGlowLights(map) {
@@ -830,17 +830,24 @@
     GW.color.install('cursorColor', 25, 100, 150);
     GW.config.cursorPathIntensity = 50;
     class CellMemory {
+        // public cellFlags = 0;
+        // public cellMechFlags = 0;
+        // public layerFlags = 0;
+        // public tileFlags = 0;
+        // public tileMechFlags = 0;
         constructor() {
             this.mixer = new GW.sprite.Mixer();
             this.item = null;
             this.itemQuantity = 0;
             this.actor = null;
             this.tile = null;
-            this.cellFlags = 0;
-            this.cellMechFlags = 0;
-            this.layerFlags = 0;
-            this.tileFlags = 0;
-            this.tileMechFlags = 0;
+            this.flags = {
+                cell: 0,
+                cellMech: 0,
+                layer: 0,
+                tile: 0,
+                tileMech: 0,
+            };
         }
         clear() {
             this.mixer.nullify();
@@ -848,11 +855,11 @@
             this.itemQuantity = 0;
             this.actor = null;
             this.tile = null;
-            this.cellFlags = 0;
-            this.cellMechFlags = 0;
-            this.layerFlags = 0;
-            this.tileFlags = 0;
-            this.tileMechFlags = 0;
+            this.flags.cell = 0;
+            this.flags.cellMech = 0;
+            this.flags.layer = 0;
+            this.flags.tile = 0;
+            this.flags.tileMech = 0;
         }
         copy(other) {
             const mixer = this.mixer;
@@ -868,8 +875,7 @@
             this._actor = null;
             this._item = null;
             this.data = {};
-            this.flags = Cell.CELL_DEFAULT; // non-terrain cell flags
-            this.mechFlags = 0;
+            this.flags = { cell: Cell.CELL_DEFAULT, cellMech: 0 };
             this.gasVolume = 0; // quantity of gas in cell
             this.liquidVolume = 0;
             this.machineNumber = 0;
@@ -890,8 +896,8 @@
             this._actor = null;
             this._item = null;
             this.data = {};
-            this.flags = Cell.CELL_DEFAULT; // non-terrain cell flags
-            this.mechFlags = 0;
+            this.flags.cell = Cell.CELL_DEFAULT; // non-terrain cell flags
+            this.flags.cellMech = 0;
             this.gasVolume = 0; // quantity of gas in cell
             this.liquidVolume = 0;
             this.machineNumber = 0;
@@ -931,7 +937,7 @@
         //         this._tiles[3] = null;
         //         this.gasVolume = 0;
         //     }
-        //     this.flags |= Flags.CELL_CHANGED;
+        //     this.flags.cell |= Flags.CELL_CHANGED;
         // }
         get ground() {
             var _a;
@@ -976,43 +982,43 @@
             return tiles.NULL.sprite.ch;
         }
         get changed() {
-            return (this.flags & Cell.CELL_CHANGED) > 0;
+            return (this.flags.cell & Cell.CELL_CHANGED) > 0;
         }
         set changed(v) {
             if (v) {
-                this.flags |= Cell.CELL_CHANGED;
+                this.flags.cell |= Cell.CELL_CHANGED;
             }
             else {
-                this.flags &= ~Cell.CELL_CHANGED;
+                this.flags.cell &= ~Cell.CELL_CHANGED;
             }
         }
         isVisible() {
-            return this.flags & Cell.VISIBLE ? true : false;
+            return this.flags.cell & Cell.VISIBLE ? true : false;
         }
         isAnyKindOfVisible() {
-            return (this.flags &
+            return (this.flags.cell &
                 Cell.ANY_KIND_OF_VISIBLE /* || CONFIG.playbackOmniscience */);
         }
         isOrWasAnyKindOfVisible() {
-            return (this.flags &
+            return (this.flags.cell &
                 Cell.IS_WAS_ANY_KIND_OF_VISIBLE /* || CONFIG.playbackOmniscience */);
         }
         isRevealed(orMapped = false) {
             const flag = Cell.REVEALED | (orMapped ? Cell.MAGIC_MAPPED : 0);
-            return (this.flags & flag) > 0;
+            return (this.flags.cell & flag) > 0;
         }
         listInSidebar() {
             return this.hasLayerFlag(Entity.L_LIST_IN_SIDEBAR, true);
         }
         get needsRedraw() {
-            return (this.flags & Cell.NEEDS_REDRAW) > 0;
+            return (this.flags.cell & Cell.NEEDS_REDRAW) > 0;
         }
         set needsRedraw(v) {
             if (v) {
-                this.flags |= Cell.NEEDS_REDRAW;
+                this.flags.cell |= Cell.NEEDS_REDRAW;
             }
             else {
-                this.flags &= ~Cell.NEEDS_REDRAW;
+                this.flags.cell &= ~Cell.NEEDS_REDRAW;
             }
         }
         // TODO - Use functions in LIGHT to check these on cell.light directly???
@@ -1026,14 +1032,14 @@
             return intensity(this.light) <= intensity$1;
         } // TODO
         get lightChanged() {
-            return (this.flags & Cell.LIGHT_CHANGED) > 0;
+            return (this.flags.cell & Cell.LIGHT_CHANGED) > 0;
         }
         set lightChanged(v) {
             if (v) {
-                this.flags |= Cell.LIGHT_CHANGED | Cell.NEEDS_REDRAW;
+                this.flags.cell |= Cell.LIGHT_CHANGED | Cell.NEEDS_REDRAW;
             }
             else {
-                this.flags &= ~Cell.LIGHT_CHANGED;
+                this.flags.cell &= ~Cell.LIGHT_CHANGED;
             }
         }
         tile(layer = Layer.GROUND) {
@@ -1067,7 +1073,7 @@
         }
         layerFlags(limitToPlayerKnowledge = false) {
             if (limitToPlayerKnowledge && !this.isVisible()) {
-                return this.memory.layerFlags;
+                return this.memory.flags.layer;
             }
             let flags = 0;
             for (let tile of this.tiles()) {
@@ -1077,7 +1083,7 @@
         }
         tileFlags(limitToPlayerKnowledge = false) {
             if (limitToPlayerKnowledge && !this.isVisible()) {
-                return this.memory.tileFlags;
+                return this.memory.flags.tile;
             }
             let flags = 0;
             for (let tile of this.tiles()) {
@@ -1087,7 +1093,7 @@
         }
         tileMechFlags(limitToPlayerKnowledge = false) {
             if (limitToPlayerKnowledge && !this.isVisible()) {
-                return this.memory.tileMechFlags;
+                return this.memory.flags.tileMech;
             }
             let flags = 0;
             for (let tile of this.tiles()) {
@@ -1097,10 +1103,32 @@
         }
         hasLayerFlag(flag, limitToPlayerKnowledge = false) {
             const flags = this.layerFlags(limitToPlayerKnowledge);
-            return !!(flag & flags);
+            if (flag & flags)
+                return true;
+            let actor = this.actor;
+            let item = this.item;
+            if (limitToPlayerKnowledge) {
+                actor = this.memory.actor;
+                item = this.memory.item;
+            }
+            if (actor && actor.layerFlags() & flag)
+                return true;
+            if (item && item.layerFlags() & flag)
+                return true;
+            return false;
         }
         hasAllLayerFlags(flag, limitToPlayerKnowledge = false) {
-            const flags = this.layerFlags(limitToPlayerKnowledge);
+            let flags = this.layerFlags(limitToPlayerKnowledge);
+            let actor = this.actor;
+            let item = this.item;
+            if (limitToPlayerKnowledge) {
+                actor = this.memory.actor;
+                item = this.memory.item;
+            }
+            if (actor)
+                flags |= actor.layerFlags();
+            if (item)
+                flags |= item.layerFlags();
             return (flag & flags) === flag;
         }
         hasTileFlag(flagMask, limitToPlayerKnowledge = false) {
@@ -1118,27 +1146,27 @@
             return (flags & this.tileMechFlags(limitToPlayerKnowledge)) === flags;
         }
         setFlags(cellFlag = 0, cellMechFlag = 0) {
-            this.flags |= cellFlag;
-            this.mechFlags |= cellMechFlag;
-            // this.flags |= Flags.NEEDS_REDRAW;
+            this.flags.cell |= cellFlag;
+            this.flags.cellMech |= cellMechFlag;
+            // this.flags.cell |= Flags.NEEDS_REDRAW;
         }
         clearFlags(cellFlag = 0, cellMechFlag = 0) {
-            this.flags &= ~cellFlag;
-            this.mechFlags &= ~cellMechFlag;
+            this.flags.cell &= ~cellFlag;
+            this.flags.cellMech &= ~cellMechFlag;
             // if ((~cellFlag) & Flags.NEEDS_REDRAW) {
-            //   this.flags |= Flags.NEEDS_REDRAW;
+            //   this.flags.cell |= Flags.NEEDS_REDRAW;
             // }
         }
         hasFlag(flag, limitToPlayerKnowledge = false) {
             const flags = limitToPlayerKnowledge && !this.isAnyKindOfVisible()
-                ? this.memory.cellFlags
-                : this.flags;
+                ? this.memory.flags.cell
+                : this.flags.cell;
             return (flag & flags) > 0;
         }
         hasMechFlag(flag, limitToPlayerKnowledge = false) {
             const flags = limitToPlayerKnowledge && !this.isAnyKindOfVisible()
-                ? this.memory.cellMechFlags
-                : this.mechFlags;
+                ? this.memory.flags.cellMech
+                : this.flags.cellMech;
             return (flag & flags) > 0;
         }
         hasTile(tile) {
@@ -1227,18 +1255,18 @@
         isMoveableNow(limitToPlayerKnowledge = false) {
             const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
             const layerFlags = useMemory
-                ? this.memory.layerFlags
+                ? this.memory.flags.layer
                 : this.layerFlags(false);
             return (layerFlags & Entity.L_BLOCKS_MOVE) === 0;
         }
         isWalkableNow(limitToPlayerKnowledge = false) {
             const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
             const layerFlags = useMemory
-                ? this.memory.layerFlags
+                ? this.memory.flags.layer
                 : this.layerFlags(false);
             if (layerFlags & Entity.L_BLOCKS_MOVE)
                 return false;
-            const tileFlags = useMemory ? this.memory.tileFlags : this.tileFlags();
+            const tileFlags = useMemory ? this.memory.flags.tile : this.tileFlags();
             if (!(tileFlags & Tile.T_IS_DEEP_LIQUID))
                 return true;
             return (tileFlags & Tile.T_BRIDGE) > 0;
@@ -1248,23 +1276,29 @@
                 return true;
             const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
             const layerFlags = useMemory
-                ? this.memory.layerFlags
+                ? this.memory.flags.layer
                 : this.layerFlags(false);
             return (layerFlags & Entity.L_SECRETLY_PASSABLE) > 0;
         }
         isWall(limitToPlayerKnowledge = false) {
             const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
-            let layerFlags = useMemory ? this.memory.layerFlags : this.layerFlags();
+            let layerFlags = useMemory
+                ? this.memory.flags.layer
+                : this.layerFlags();
             return (layerFlags & Entity.L_IS_WALL) === Entity.L_IS_WALL;
         }
         isObstruction(limitToPlayerKnowledge = false) {
             const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
-            let layerFlags = useMemory ? this.memory.layerFlags : this.layerFlags();
+            let layerFlags = useMemory
+                ? this.memory.flags.layer
+                : this.layerFlags();
             return !!(layerFlags & Entity.L_BLOCKS_DIAGONAL);
         }
         isDoorway(limitToPlayerKnowledge = false) {
             const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
-            let layerFlags = useMemory ? this.memory.layerFlags : this.layerFlags();
+            let layerFlags = useMemory
+                ? this.memory.flags.layer
+                : this.layerFlags();
             return ((layerFlags & Entity.L_BLOCKS_VISION) > 0 &&
                 (layerFlags & Entity.L_BLOCKS_MOVE) === 0);
         }
@@ -1278,7 +1312,7 @@
             const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
             if (!this.isWalkableNow(limitToPlayerKnowledge))
                 return true;
-            let tileFlags = useMemory ? this.memory.tileFlags : this.tileFlags();
+            let tileFlags = useMemory ? this.memory.flags.tile : this.tileFlags();
             return !!(tileFlags & Tile.T_PATHING_BLOCKER);
         }
         blocksVision() {
@@ -1291,7 +1325,7 @@
         }
         isLiquid(limitToPlayerKnowledge = false) {
             const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
-            let tileFlags = useMemory ? this.memory.tileFlags : this.tileFlags();
+            let tileFlags = useMemory ? this.memory.flags.tile : this.tileFlags();
             return !!(tileFlags & Tile.T_IS_DEEP_LIQUID);
         }
         // TODO - Should this look at the tiles instead of the flags?
@@ -1300,7 +1334,7 @@
         // Should these be cell flags - indicating we have this layer
         hasGas(limitToPlayerKnowledge = false) {
             const useMemory = limitToPlayerKnowledge && !this.isAnyKindOfVisible();
-            let cellFlags = useMemory ? this.memory.cellFlags : this.flags;
+            let cellFlags = useMemory ? this.memory.flags.cell : this.flags.cell;
             return !!(cellFlags & Cell.HAS_GAS);
         }
         // TODO - Check floor and actor
@@ -1308,10 +1342,10 @@
             return false;
         }
         markRevealed() {
-            this.flags &= ~Cell.STABLE_MEMORY;
-            if (this.flags & Cell.REVEALED)
+            this.flags.cell &= ~Cell.STABLE_MEMORY;
+            if (this.flags.cell & Cell.REVEALED)
                 return false;
-            this.flags |= Cell.REVEALED;
+            this.flags.cell |= Cell.REVEALED;
             return !this.isWall();
         }
         obstructsLayer(depth) {
@@ -1345,7 +1379,7 @@
             }
             if (tile.flags.tile & Tile.T_IS_FIRE &&
                 !(oldTile.flags.tile & Tile.T_IS_FIRE)) {
-                this.mechFlags |= CellMech.CAUGHT_FIRE_THIS_TURN;
+                this.flags.cellMech |= CellMech.CAUGHT_FIRE_THIS_TURN;
             }
             const blocksVision = tile.flags.layer & Entity.L_BLOCKS_VISION;
             const oldBlocksVision = oldTile.flags.layer & Entity.L_BLOCKS_VISION;
@@ -1378,13 +1412,13 @@
                 layerFlag = Cell.HAS_SURFACE;
             }
             if (tileId) {
-                this.flags |= layerFlag;
+                this.flags.cell |= layerFlag;
             }
             else {
-                this.flags &= ~layerFlag;
+                this.flags.cell &= ~layerFlag;
             }
-            // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
-            this.flags |= Cell.CELL_CHANGED | Cell.NEEDS_REDRAW;
+            // this.flags.cell |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
+            this.flags.cell |= Cell.CELL_CHANGED | Cell.NEEDS_REDRAW;
             if (map && oldTile.light !== tile.light) {
                 map.clearFlag(Map.MAP_STABLE_GLOW_LIGHTS | Map.MAP_STABLE_LIGHTS);
             }
@@ -1402,8 +1436,8 @@
                 }
             }
             if (current) {
-                // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
-                this.flags |= Cell.CELL_CHANGED;
+                // this.flags.cell |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
+                this.flags.cell |= Cell.CELL_CHANGED;
                 this.removeLayer(current);
                 didSomething =
                     current && (depth !== Layer.GROUND || current !== floorTile);
@@ -1424,7 +1458,7 @@
             else if (depth == Layer.GROUND) {
                 this._tiles[Layer.GROUND] = floorTile;
             }
-            this.flags &= ~layerFlag;
+            this.flags.cell &= ~layerFlag;
             return didSomething;
         }
         clearLayersExcept(except = Layer.GROUND, ground) {
@@ -1440,8 +1474,8 @@
                     }
                 }
             }
-            // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
-            this.flags |= Cell.CELL_CHANGED;
+            // this.flags.cell |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
+            this.flags.cell |= Cell.CELL_CHANGED;
         }
         clearLayersWithFlags(tileFlags, tileMechFlags = 0) {
             for (let i = 0; i < this._tiles.length; ++i) {
@@ -1465,7 +1499,7 @@
                     }
                 }
             }
-            // this.flags |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
+            // this.flags.cell |= (Flags.NEEDS_REDRAW | Flags.CELL_CHANGED);
         }
         // EVENTS
         async activate(name, map, x, y, ctx = {}) {
@@ -1544,11 +1578,11 @@
             }
             this._item = item;
             if (item) {
-                this.flags |= Cell.HAS_ITEM;
+                this.flags.cell |= Cell.HAS_ITEM;
                 this.addLayer(item);
             }
             else {
-                this.flags &= ~Cell.HAS_ITEM;
+                this.flags.cell &= ~Cell.HAS_ITEM;
             }
         }
         // ACTOR
@@ -1561,18 +1595,18 @@
             }
             this._actor = actor;
             if (actor) {
-                this.flags |= Cell.HAS_ANY_ACTOR;
+                this.flags.cell |= Cell.HAS_ANY_ACTOR;
                 this.addLayer(actor);
             }
             else {
-                this.flags &= ~Cell.HAS_ANY_ACTOR;
+                this.flags.cell &= ~Cell.HAS_ANY_ACTOR;
             }
         }
         addLayer(layer) {
             if (!layer)
                 return;
-            // this.flags |= Flags.NEEDS_REDRAW;
-            this.flags |= Cell.CELL_CHANGED;
+            // this.flags.cell |= Flags.NEEDS_REDRAW;
+            this.flags.cell |= Cell.CELL_CHANGED;
             let current = this.layers;
             if (!current ||
                 current.layer.layer > layer.layer ||
@@ -1601,8 +1635,8 @@
                 return false;
             if (!this.layers)
                 return false;
-            // this.flags |= Flags.NEEDS_REDRAW;
-            this.flags |= Cell.CELL_CHANGED;
+            // this.flags.cell |= Flags.NEEDS_REDRAW;
+            this.flags.cell |= Cell.CELL_CHANGED;
             if (this.layers && this.layers.layer === layer) {
                 this.layers = this.layers.next;
                 return true;
@@ -1622,11 +1656,11 @@
         // MEMORY
         storeMemory() {
             const memory = this.memory;
-            memory.tileFlags = this.tileFlags();
-            memory.tileMechFlags = this.tileMechFlags();
-            memory.layerFlags = this.layerFlags();
-            memory.cellFlags = this.flags;
-            memory.cellMechFlags = this.mechFlags;
+            memory.flags.tile = this.tileFlags();
+            memory.flags.tileMech = this.tileMechFlags();
+            memory.flags.layer = this.layerFlags();
+            memory.flags.cell = this.flags.cell;
+            memory.flags.cellMech = this.flags.cellMech;
             memory.tile = this.topmostTile();
             if (this.item) {
                 memory.item = this.item;
@@ -1643,7 +1677,7 @@
                     this.actor.rememberedInCell !== this) {
                     // console.log("remembered in cell change");
                     this.actor.rememberedInCell.storeMemory();
-                    this.actor.rememberedInCell.flags |= Cell.NEEDS_REDRAW;
+                    this.actor.rememberedInCell.flags.cell |= Cell.NEEDS_REDRAW;
                 }
                 this.actor.rememberedInCell = this;
             }
@@ -1681,10 +1715,10 @@
             GW.color.separate(memory.fg, memory.bg);
         }
         if (memory.dances) {
-            cell.flags |= Cell.COLORS_DANCE;
+            cell.flags.cell |= Cell.COLORS_DANCE;
         }
         else {
-            cell.flags &= ~Cell.COLORS_DANCE;
+            cell.flags.cell &= ~Cell.COLORS_DANCE;
         }
         dest.drawSprite(memory);
         return true;
@@ -1701,23 +1735,23 @@
     };
 
     function demoteCellVisibility(cell) {
-        cell.flags &= ~(Cell.WAS_ANY_KIND_OF_VISIBLE | Cell.IN_FOV);
-        if (cell.flags & Cell.VISIBLE) {
-            cell.flags &= ~Cell.VISIBLE;
-            cell.flags |= Cell.WAS_VISIBLE;
+        cell.flags.cell &= ~(Cell.WAS_ANY_KIND_OF_VISIBLE | Cell.IN_FOV);
+        if (cell.flags.cell & Cell.VISIBLE) {
+            cell.flags.cell &= ~Cell.VISIBLE;
+            cell.flags.cell |= Cell.WAS_VISIBLE;
         }
-        if (cell.flags & Cell.CLAIRVOYANT_VISIBLE) {
-            cell.flags &= ~Cell.CLAIRVOYANT_VISIBLE;
-            cell.flags |= Cell.WAS_CLAIRVOYANT_VISIBLE;
+        if (cell.flags.cell & Cell.CLAIRVOYANT_VISIBLE) {
+            cell.flags.cell &= ~Cell.CLAIRVOYANT_VISIBLE;
+            cell.flags.cell |= Cell.WAS_CLAIRVOYANT_VISIBLE;
         }
-        if (cell.flags & Cell.TELEPATHIC_VISIBLE) {
-            cell.flags &= ~Cell.TELEPATHIC_VISIBLE;
-            cell.flags |= Cell.WAS_TELEPATHIC_VISIBLE;
+        if (cell.flags.cell & Cell.TELEPATHIC_VISIBLE) {
+            cell.flags.cell &= ~Cell.TELEPATHIC_VISIBLE;
+            cell.flags.cell |= Cell.WAS_TELEPATHIC_VISIBLE;
         }
     }
     function _updateCellVisibility(cell, i, j, map) {
-        const isVisible = cell.flags & Cell.VISIBLE;
-        const wasVisible = cell.flags & Cell.WAS_VISIBLE;
+        const isVisible = cell.flags.cell & Cell.VISIBLE;
+        const wasVisible = cell.flags.cell & Cell.WAS_VISIBLE;
         if (isVisible && wasVisible) {
             if (cell.lightChanged) {
                 map.redrawCell(cell);
@@ -1725,7 +1759,8 @@
         }
         else if (isVisible && !wasVisible) {
             // if the cell became visible this move
-            if (!(cell.flags & Cell.REVEALED) && GW.data.automationActive) {
+            if (!(cell.flags.cell & Cell.REVEALED) &&
+                GW.data.automationActive) {
                 if (cell.item) {
                     const theItem = cell.item;
                     if (theItem.hasLayerFlag(Entity.L_INTERRUPT_WHEN_SEEN)) {
@@ -1735,7 +1770,7 @@
                         });
                     }
                 }
-                if (!(cell.flags & Cell.MAGIC_MAPPED) &&
+                if (!(cell.flags.cell & Cell.MAGIC_MAPPED) &&
                     cell.hasLayerFlag(Entity.L_INTERRUPT_WHEN_SEEN)) {
                     const tile = cell.tileWithLayerFlag(Entity.L_INTERRUPT_WHEN_SEEN);
                     if (tile) {
@@ -1757,8 +1792,8 @@
         return isVisible;
     }
     function _updateCellClairyvoyance(cell, _i, _j, map) {
-        const isClairy = cell.flags & Cell.CLAIRVOYANT_VISIBLE;
-        const wasClairy = cell.flags & Cell.WAS_CLAIRVOYANT_VISIBLE;
+        const isClairy = cell.flags.cell & Cell.CLAIRVOYANT_VISIBLE;
+        const wasClairy = cell.flags.cell & Cell.WAS_CLAIRVOYANT_VISIBLE;
         if (isClairy && wasClairy) {
             if (cell.lightChanged) {
                 map.redrawCell(cell);
@@ -1771,14 +1806,14 @@
         }
         else if (!wasClairy && isClairy) {
             // became clairvoyantly visible
-            cell.flags &= ~Cell.STABLE_MEMORY;
+            cell.flags.cell &= ~Cell.STABLE_MEMORY;
             map.redrawCell(cell);
         }
         return isClairy;
     }
     function _updateCellTelepathy(cell, _i, _j, map) {
-        const isTele = cell.flags & Cell.TELEPATHIC_VISIBLE;
-        const wasTele = cell.flags & Cell.WAS_TELEPATHIC_VISIBLE;
+        const isTele = cell.flags.cell & Cell.TELEPATHIC_VISIBLE;
+        const wasTele = cell.flags.cell & Cell.WAS_TELEPATHIC_VISIBLE;
         if (isTele && wasTele) {
             if (cell.lightChanged) {
                 map.redrawCell(cell);
@@ -1791,18 +1826,18 @@
         }
         else if (!wasTele && isTele) {
             // became telepathically visible
-            if (!(cell.flags & Cell.REVEALED) &&
+            if (!(cell.flags.cell & Cell.REVEALED) &&
                 !cell.hasTileFlag(Tile.T_PATHING_BLOCKER)) {
                 GW.data.xpxpThisTurn++;
             }
-            cell.flags &= ~Cell.STABLE_MEMORY;
+            cell.flags.cell &= ~Cell.STABLE_MEMORY;
             map.redrawCell(cell);
         }
         return isTele;
     }
     function _updateCellDetect(cell, _i, _j, map) {
-        const isMonst = cell.flags & Cell.MONSTER_DETECTED;
-        const wasMonst = cell.flags & Cell.WAS_MONSTER_DETECTED;
+        const isMonst = cell.flags.cell & Cell.MONSTER_DETECTED;
+        const wasMonst = cell.flags.cell & Cell.WAS_MONSTER_DETECTED;
         if (isMonst && wasMonst) {
             if (cell.lightChanged) {
                 map.redrawCell(cell);
@@ -1810,23 +1845,23 @@
         }
         else if (!isMonst && wasMonst) {
             // ceased being detected visible
-            cell.flags &= ~Cell.STABLE_MEMORY;
+            cell.flags.cell &= ~Cell.STABLE_MEMORY;
             map.redrawCell(cell);
             cell.storeMemory();
         }
         else if (!wasMonst && isMonst) {
             // became detected visible
-            cell.flags &= ~Cell.STABLE_MEMORY;
+            cell.flags.cell &= ~Cell.STABLE_MEMORY;
             map.redrawCell(cell);
             cell.storeMemory();
         }
         return isMonst;
     }
     function promoteCellVisibility(cell, i, j, map) {
-        if (cell.flags & Cell.IN_FOV &&
+        if (cell.flags.cell & Cell.IN_FOV &&
             map.hasVisibleLight(i, j) &&
-            !(cell.mechFlags & CellMech.DARKENED)) {
-            cell.flags |= Cell.VISIBLE;
+            !(cell.flags.cellMech & CellMech.DARKENED)) {
+            cell.flags.cell |= Cell.VISIBLE;
         }
         if (_updateCellVisibility(cell, i, j, map))
             return;
@@ -1838,20 +1873,20 @@
             return;
     }
     function initMap(map$1) {
-        if (!(map$1.flags & Map.MAP_CALC_FOV)) {
-            map$1.forEach((cell) => (cell.flags |= Cell.REVEALED));
+        if (!(map$1.flags.map & Map.MAP_CALC_FOV)) {
+            map$1.setFlags(0, Cell.REVEALED | Cell.VISIBLE);
             return;
         }
         map$1.clearFlags(0, Cell.IS_WAS_ANY_KIND_OF_VISIBLE);
     }
     function update(map$1, x, y, maxRadius) {
-        if (!(map$1.flags & Map.MAP_CALC_FOV) || !map$1.fov)
+        if (!(map$1.flags.map & Map.MAP_CALC_FOV) || !map$1.fov)
             return false;
         if (x == map$1.fov.x && y == map$1.fov.y) {
-            if (!(map$1.flags & Map.MAP_FOV_CHANGED))
+            if (!(map$1.flags.map & Map.MAP_FOV_CHANGED))
                 return false;
         }
-        map$1.flags &= ~Map.MAP_FOV_CHANGED;
+        map$1.flags.map &= ~Map.MAP_FOV_CHANGED;
         map$1.fov.x = x;
         map$1.fov.y = y;
         map$1.forEach(demoteCellVisibility);
@@ -2017,7 +2052,7 @@
                     map.eachNeighbor(x, y, (n, _i, _j) => {
                         if (!n.hasLayerFlag(Entity.L_BLOCKS_EFFECTS) &&
                             n.tileId(tile.layer) != cell$1.tileId(tile.layer) &&
-                            !(n.mechFlags &
+                            !(n.flags.cellMech &
                                 CellMech.CAUGHT_FIRE_THIS_TURN)) {
                             // TODO - Should this break from the loop after doing this once or keep going?
                             promoteChance += -1 * effect.chance;
@@ -2027,10 +2062,10 @@
                 else {
                     promoteChance = effect.chance || 100 * 100; // 100%
                 }
-                if (!(cell$1.mechFlags & CellMech.CAUGHT_FIRE_THIS_TURN) &&
+                if (!(cell$1.flags.cellMech & CellMech.CAUGHT_FIRE_THIS_TURN) &&
                     GW.random.chance(promoteChance, 10000)) {
                     willFire[x][y] |= GW.flag.fl(tile.layer);
-                    // cell.mechFlags |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
+                    // cell.flags.cellMech |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
                 }
             }
         });
@@ -2039,7 +2074,7 @@
             if (!w)
                 return;
             const cell$1 = map.cell(x, y);
-            if (cell$1.mechFlags & CellMech.EVENT_FIRED_THIS_TURN)
+            if (cell$1.flags.cellMech & CellMech.EVENT_FIRED_THIS_TURN)
                 return;
             for (let layer = 0; layer <= Layer.GAS; ++layer) {
                 if (w & GW.flag.fl(layer)) {
@@ -2094,9 +2129,9 @@
                         // if (volume && cell.gas) {
                         //     cell.volume += (feat.volume || 0);
                         // }
-                        cell$1.mechFlags |= CellMech.EVENT_FIRED_THIS_TURN;
+                        cell$1.flags.cellMech |= CellMech.EVENT_FIRED_THIS_TURN;
                         if (flags & Flags.E_PROTECTED) {
-                            cell$1.mechFlags |= CellMech.EVENT_PROTECTED;
+                            cell$1.flags.cellMech |= CellMech.EVENT_PROTECTED;
                         }
                         accomplishedSomething = true;
                         // debug('- tile', i, j, 'tile=', tile.id);
@@ -2114,7 +2149,7 @@
         if (!map.hasXY(x, y))
             return false;
         const cell$1 = map.cell(x, y);
-        if (cell$1.mechFlags & CellMech.EVENT_PROTECTED)
+        if (cell$1.flags.cellMech & CellMech.EVENT_PROTECTED)
             return false;
         if (flags & Flags.E_BUILD_IN_WALLS) {
             if (!cell$1.isWall())
@@ -2414,9 +2449,9 @@
         // done finding loops; now flag chokepoints
         for (let i = 1; i < passMap.width - 1; i++) {
             for (let j = 1; j < passMap.height - 1; j++) {
-                map.cells[i][j].mechFlags &= ~CellMech.IS_CHOKEPOINT;
+                map.cells[i][j].flags.cellMech &= ~CellMech.IS_CHOKEPOINT;
                 if (passMap[i][j] &&
-                    !(map.cells[i][j].mechFlags & CellMech.IS_IN_LOOP)) {
+                    !(map.cells[i][j].flags.cellMech & CellMech.IS_IN_LOOP)) {
                     passableArcCount = 0;
                     for (let dir = 0; dir < 8; dir++) {
                         const oldX = i + GW.utils.CLOCK_DIRS[(dir + 7) % 8][0];
@@ -2430,7 +2465,7 @@
                             if (++passableArcCount > 2) {
                                 if ((!passMap[i - 1][j] && !passMap[i + 1][j]) ||
                                     (!passMap[i][j - 1] && !passMap[i][j + 1])) {
-                                    map.cells[i][j].mechFlags |=
+                                    map.cells[i][j].flags.cellMech |=
                                         CellMech.IS_CHOKEPOINT;
                                 }
                                 break;
@@ -2452,7 +2487,7 @@
             for (let i = 0; i < map.width; i++) {
                 for (let j = 0; j < map.height; j++) {
                     map.cells[i][j].chokeCount = 30000;
-                    if (map.cells[i][j].mechFlags &
+                    if (map.cells[i][j].flags.cellMech &
                         CellMech.IS_IN_ROOM_MACHINE) {
                         passMap[i][j] = 0;
                     }
@@ -2463,13 +2498,13 @@
                 for (let j = 0; j < map.height; j++) {
                     const cell = map.cells[i][j];
                     if (passMap[i][j] &&
-                        cell.mechFlags & CellMech.IS_CHOKEPOINT) {
+                        cell.flags.cellMech & CellMech.IS_CHOKEPOINT) {
                         for (let dir = 0; dir < 4; dir++) {
                             const newX = i + GW.utils.DIRS[dir][0];
                             const newY = j + GW.utils.DIRS[dir][1];
                             if (map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
                                 passMap[newX][newY] &&
-                                !(map.cells[newX][newY].mechFlags &
+                                !(map.cells[newX][newY].flags.cellMech &
                                     CellMech.IS_CHOKEPOINT)) {
                                 // OK, (newX, newY) is an open point and (i, j) is a chokepoint.
                                 // Pretend (i, j) is blocked by changing passMap, and run a flood-fill cell count starting on (newX, newY).
@@ -2488,7 +2523,7 @@
                                                 cellCount <
                                                     map.cells[i2][j2].chokeCount) {
                                                 map.cells[i2][j2].chokeCount = cellCount;
-                                                map.cells[i2][j2].mechFlags &= ~CellMech
+                                                map.cells[i2][j2].flags.cellMech &= ~CellMech
                                                     .IS_GATE_SITE;
                                             }
                                         }
@@ -2496,7 +2531,7 @@
                                     // The chokepoint itself should also take the lesser of its current value or the flood count.
                                     if (cellCount < cell.chokeCount) {
                                         cell.chokeCount = cellCount;
-                                        cell.mechFlags |=
+                                        cell.flags.cellMech |=
                                             CellMech.IS_GATE_SITE;
                                     }
                                 }
@@ -2513,7 +2548,8 @@
     // Returns 10000 if the area included an area machine.
     function floodFillCount(map, results, passMap, startX, startY) {
         let count = passMap[startX][startY] == 2 ? 5000 : 1;
-        if (map.cells[startX][startY].mechFlags & CellMech.IS_IN_AREA_MACHINE) {
+        if (map.cells[startX][startY].flags.cellMech &
+            CellMech.IS_IN_AREA_MACHINE) {
             count = 10000;
         }
         results[startX][startY] = 1;
@@ -2540,11 +2576,11 @@
         if ((cell.hasTileFlag(Tile.T_PATHING_BLOCKER) ||
             cell.hasLayerFlag(Entity.L_BLOCKS_MOVE)) &&
             !cell.hasLayerFlag(Entity.L_SECRETLY_PASSABLE)) {
-            cell.mechFlags &= ~CellMech.IS_IN_LOOP;
+            cell.flags.cellMech &= ~CellMech.IS_IN_LOOP;
             // passMap[i][j] = false;
         }
         else {
-            cell.mechFlags |= CellMech.IS_IN_LOOP;
+            cell.flags.cellMech |= CellMech.IS_IN_LOOP;
             // passMap[i][j] = true;
         }
     }
@@ -2552,7 +2588,7 @@
         let inString;
         let newX, newY, dir, sdir;
         let numStrings, maxStringLength, currentStringLength;
-        if (!cell || !(cell.mechFlags & CellMech.IS_IN_LOOP)) {
+        if (!cell || !(cell.flags.cellMech & CellMech.IS_IN_LOOP)) {
             return false;
         }
         // find an unloopy neighbor to start on
@@ -2562,7 +2598,7 @@
             if (!map.hasXY(newX, newY))
                 continue;
             const cell = map.get(newX, newY);
-            if (!cell || !(cell.mechFlags & CellMech.IS_IN_LOOP)) {
+            if (!cell || !(cell.flags.cellMech & CellMech.IS_IN_LOOP)) {
                 break;
             }
         }
@@ -2582,7 +2618,7 @@
             if (!map.hasXY(newX, newY))
                 continue;
             const newCell = map.get(newX, newY);
-            if (newCell && newCell.mechFlags & CellMech.IS_IN_LOOP) {
+            if (newCell && newCell.flags.cellMech & CellMech.IS_IN_LOOP) {
                 currentStringLength++;
                 if (!inString) {
                     if (numStrings > 0) {
@@ -2604,7 +2640,7 @@
             maxStringLength = currentStringLength;
         }
         if (numStrings == 1 && maxStringLength <= 4) {
-            cell.mechFlags &= ~CellMech.IS_IN_LOOP;
+            cell.flags.cellMech &= ~CellMech.IS_IN_LOOP;
             for (dir = 0; dir < 8; dir++) {
                 const newX = x + GW.utils.CLOCK_DIRS[dir][0];
                 const newY = y + GW.utils.CLOCK_DIRS[dir][1];
@@ -2623,14 +2659,14 @@
         for (let x = 0; x < map.width; ++x) {
             for (let y = 0; y < map.height; ++y) {
                 const cell = map.cells[x][y];
-                if (cell.mechFlags & CellMech.IS_IN_LOOP) {
+                if (cell.flags.cellMech & CellMech.IS_IN_LOOP) {
                     grid[x][y] = 1;
                 }
                 else if (x > 0 && y > 0) {
                     const up = map.cells[x][y - 1];
                     const left = map.cells[x - 1][y];
-                    if (up.mechFlags & CellMech.IS_IN_LOOP &&
-                        left.mechFlags & CellMech.IS_IN_LOOP) {
+                    if (up.flags.cellMech & CellMech.IS_IN_LOOP &&
+                        left.flags.cellMech & CellMech.IS_IN_LOOP) {
                         grid[x][y] = 1;
                     }
                 }
@@ -2646,14 +2682,14 @@
         for (let i = 0; i < grid.width; i++) {
             for (let j = 0; j < grid.height; j++) {
                 const cell = map.get(i, j);
-                if (cell.mechFlags & CellMech.IS_IN_LOOP) {
+                if (cell.flags.cellMech & CellMech.IS_IN_LOOP) {
                     designationSurvives = false;
                     for (let dir = 0; dir < 8; dir++) {
                         let newX = i + GW.utils.CLOCK_DIRS[dir][0];
                         let newY = j + GW.utils.CLOCK_DIRS[dir][1];
                         if (map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, xy, newX, newY) &&
                             !grid[newX][newY] &&
-                            !(map.cells[newX][newY].mechFlags &
+                            !(map.cells[newX][newY].flags.cellMech &
                                 CellMech.IS_IN_LOOP)) {
                             designationSurvives = true;
                             break;
@@ -2661,7 +2697,8 @@
                     }
                     if (!designationSurvives) {
                         grid[i][j] = 1;
-                        map.cells[i][j].mechFlags &= ~CellMech.IS_IN_LOOP;
+                        map.cells[i][j].flags.cellMech &= ~CellMech
+                            .IS_IN_LOOP;
                     }
                 }
             }
@@ -2680,7 +2717,7 @@
             this.config = {};
             this._actors = null;
             this._items = null;
-            this.flags = 0;
+            this.flags = { map: 0 };
             this.lights = null;
             this.fov = null;
             this._width = w;
@@ -2691,7 +2728,7 @@
             this.config.tick = this.config.tick || 100;
             this._actors = null;
             this._items = null;
-            this.flags = GW.flag.from(Map, Map.MAP_DEFAULT, opts.flags);
+            this.flags.map = GW.flag.from(Map, Map.MAP_DEFAULT, opts.flags);
             const ambient = opts.ambient || opts.ambientLight || opts.light || 'white';
             this.ambientLight = GW.color.make(ambient);
             if (opts.ambient || opts.ambientLight || opts.light) {
@@ -2699,8 +2736,8 @@
             }
             this.lights = null;
             this.id = opts.id;
-            if (this.config.fov) {
-                this.flags |= Map.MAP_CALC_FOV;
+            if (opts.fov) {
+                this.flags.map |= Map.MAP_CALC_FOV;
                 this.fov = { x: -1, y: -1 };
             }
             if (opts.updateLiquid && typeof opts.updateLiquid === 'function') {
@@ -2711,6 +2748,13 @@
             }
             updateLighting(this); // to set the ambient light
             initMap(this);
+            if (opts.visible || opts.revealed || !this.fov) {
+                this.revealAll();
+            }
+            if (opts.visible || !this.fov) {
+                this.makeVisible();
+            }
+            this.changed = false;
         }
         get width() {
             return this._width;
@@ -2769,21 +2813,21 @@
             return this.cells.isBoundaryXY(x, y);
         }
         get changed() {
-            return (this.flags & Map.MAP_CHANGED) > 0;
+            return (this.flags.map & Map.MAP_CHANGED) > 0;
         }
         set changed(v) {
             if (v === true) {
-                this.flags |= Map.MAP_CHANGED;
+                this.flags.map |= Map.MAP_CHANGED;
             }
             else if (v === false) {
-                this.flags &= ~Map.MAP_CHANGED;
+                this.flags.map &= ~Map.MAP_CHANGED;
             }
         }
         hasCellFlag(x, y, flag) {
-            return this.cell(x, y).flags & flag;
+            return this.cell(x, y).flags.cell & flag;
         }
         hasCellMechFlag(x, y, flag) {
-            return this.cell(x, y).mechFlags & flag;
+            return this.cell(x, y).flags.cellMech & flag;
         }
         hasLayerFlag(x, y, flag) {
             return this.cell(x, y).hasLayerFlag(flag);
@@ -2797,7 +2841,7 @@
         redrawCell(cell) {
             // if (cell.isAnyKindOfVisible()) {
             cell.needsRedraw = true;
-            this.flags |= Map.MAP_CHANGED;
+            this.flags.map |= Map.MAP_CHANGED;
             // }
         }
         redrawXY(x, y) {
@@ -2836,16 +2880,18 @@
                 c.markRevealed();
                 c.storeMemory();
             });
-            if (GW.data.player) {
-                GW.data.player.invalidateCostMap();
-            }
+            // TODO - !!!
+            // if (DATA.player) {
+            //     DATA.player.invalidateCostMap();
+            // }
         }
         markRevealed(x, y) {
             if (!this.cell(x, y).markRevealed())
                 return;
-            if (GW.data.player) {
-                GW.data.player.invalidateCostMap();
-            }
+            // TODO - !!!
+            // if (DATA.player) {
+            //     DATA.player.invalidateCostMap();
+            // }
         }
         makeVisible(v = true) {
             if (v) {
@@ -2868,14 +2914,14 @@
             return this.cell(x, y).isRevealed();
         }
         get anyLightChanged() {
-            return (this.flags & Map.MAP_STABLE_LIGHTS) == 0;
+            return (this.flags.map & Map.MAP_STABLE_LIGHTS) == 0;
         }
         set anyLightChanged(v) {
             if (v) {
-                this.flags &= ~Map.MAP_STABLE_LIGHTS;
+                this.flags.map &= ~Map.MAP_STABLE_LIGHTS;
             }
             else {
-                this.flags |= Map.MAP_STABLE_LIGHTS;
+                this.flags.map |= Map.MAP_STABLE_LIGHTS;
             }
         }
         get ambientLightChanged() {
@@ -2885,23 +2931,23 @@
             this.staticLightChanged = v;
         }
         get staticLightChanged() {
-            return (this.flags & Map.MAP_STABLE_GLOW_LIGHTS) == 0;
+            return (this.flags.map & Map.MAP_STABLE_GLOW_LIGHTS) == 0;
         }
         set staticLightChanged(v) {
             if (v) {
-                this.flags &= ~(Map.MAP_STABLE_GLOW_LIGHTS | Map.MAP_STABLE_LIGHTS);
+                this.flags.map &= ~(Map.MAP_STABLE_GLOW_LIGHTS | Map.MAP_STABLE_LIGHTS);
             }
             else {
-                this.flags |= Map.MAP_STABLE_GLOW_LIGHTS;
+                this.flags.map |= Map.MAP_STABLE_GLOW_LIGHTS;
             }
         }
         setFlag(flag) {
-            this.flags |= flag;
+            this.flags.map |= flag;
             this.changed = true;
         }
         setFlags(mapFlag = 0, cellFlag = 0, cellMechFlag = 0) {
             if (mapFlag) {
-                this.flags |= mapFlag;
+                this.flags.map |= mapFlag;
             }
             if (cellFlag || cellMechFlag) {
                 this.forEach((c) => c.setFlags(cellFlag, cellMechFlag));
@@ -2909,12 +2955,12 @@
             this.changed = true;
         }
         clearFlag(flag) {
-            this.flags &= ~flag;
+            this.flags.map &= ~flag;
             this.changed = true;
         }
         clearFlags(mapFlag = 0, cellFlag = 0, cellMechFlag = 0) {
             if (mapFlag) {
-                this.flags &= ~mapFlag;
+                this.flags.map &= ~mapFlag;
             }
             if (cellFlag || cellMechFlag) {
                 this.forEach((cell) => cell.clearFlags(cellFlag, cellMechFlag));
@@ -2926,7 +2972,7 @@
         // }
         setCellFlags(x, y, cellFlag = 0, cellMechFlag = 0) {
             this.cell(x, y).setFlags(cellFlag, cellMechFlag);
-            this.flags |= Map.MAP_CHANGED;
+            this.flags.map |= Map.MAP_CHANGED;
         }
         clearCellFlags(x, y, cellFlags = 0, cellMechFlags = 0) {
             this.cell(x, y).clearFlags(cellFlags, cellMechFlags);
@@ -2953,9 +2999,9 @@
         tileWithMechFlag(x, y, mechFlag = 0) {
             return this.cells[x][y].tileWithMechFlag(mechFlag);
         }
-        hasKnownTileFlag(x, y, flagMask = 0) {
-            return this.cells[x][y].memory.tileFlags & flagMask;
-        }
+        // hasKnownTileFlag(x: number, y: number, flagMask = 0) {
+        //     return this.cells[x][y].memory.flags.tile & flagMask;
+        // }
         // hasTileInGroup(x, y, ...groups) { return this.cells[x][y].hasTileInGroup(...groups); }
         // discoveredTileFlags(x: number, y: number) {
         //   return this.cells[x][y].discoveredTileFlags();
@@ -3180,7 +3226,7 @@
                 if ((!blockingMap || !blockingMap[x][y]) &&
                     (!tile || cell.hasTile(tile)) &&
                     (!forbidLiquid || !cell.liquid) &&
-                    (!forbidCellFlags || !(cell.flags & forbidCellFlags)) &&
+                    (!forbidCellFlags || !(cell.flags.cell & forbidCellFlags)) &&
                     (!forbidTileFlags || !cell.hasTileFlag(forbidTileFlags)) &&
                     (!forbidTileMechFlags ||
                         !cell.hasTileMechFlag(forbidTileMechFlags)) &&
@@ -3282,10 +3328,18 @@
             const oldCell = this.cell(anim.x, anim.y);
             oldCell.removeLayer(anim);
             this.redrawCell(oldCell);
-            this.flags |= Map.MAP_CHANGED;
+            this.flags.map |= Map.MAP_CHANGED;
             return true;
         }
         // ACTORS
+        *actors() {
+            let current = this._actors;
+            while (current) {
+                const next = current.next;
+                yield current;
+                current = next;
+            }
+        }
         // will return the PLAYER if the PLAYER is at (x, y).
         actorAt(x, y) {
             // creature *
@@ -3307,7 +3361,7 @@
             const flag = theActor === GW.data.player
                 ? Cell.HAS_PLAYER
                 : Cell.HAS_ANY_ACTOR;
-            cell.flags |= flag;
+            cell.flags.cell |= flag;
             // if (theActor.flags & Flags.Actor.MK_DETECTED)
             // {
             // 	cell.flags |= CellFlags.MONSTER_DETECTED;
@@ -3319,7 +3373,7 @@
             // -- we need to update the FOV
             if (theActor.isPlayer() ||
                 (cell.isAnyKindOfVisible() && theActor.blocksVision())) {
-                this.flags |= Map.MAP_FOV_CHANGED;
+                this.flags.map |= Map.MAP_FOV_CHANGED;
             }
             theActor.x = x;
             theActor.y = y;
@@ -3363,7 +3417,7 @@
                 // -- we need to update the FOV
                 if (actor.isPlayer() ||
                     (cell.isAnyKindOfVisible() && actor.blocksVision())) {
-                    this.flags |= Map.MAP_FOV_CHANGED;
+                    this.flags.map |= Map.MAP_FOV_CHANGED;
                 }
                 this.redrawCell(cell);
                 return true;
@@ -3390,7 +3444,7 @@
         // 	theActor.y = y;
         // 	this.dormant.add(theActor);
         // 	cell.flags |= (CellFlags.HAS_DORMANT_MONSTER);
-        // 	this.flags |= Flags.MAP_CHANGED;
+        // 	this.flags.map |= Flags.MAP_CHANGED;
         // 	return true;
         // }
         //
@@ -3398,10 +3452,18 @@
         // 	const cell = this.cell(actor.x, actor.y);
         // 	cell.flags &= ~(CellFlags.HAS_DORMANT_MONSTER);
         // 	cell.flags |= CellFlags.NEEDS_REDRAW;
-        // 	this.flags |= Flags.MAP_CHANGED;
+        // 	this.flags.map |= Flags.MAP_CHANGED;
         // 	this.dormant.remove(actor);
         // }
         // ITEMS
+        *items() {
+            let current = this._items;
+            while (current) {
+                const next = current.next;
+                yield current;
+                current = next;
+            }
+        }
         itemAt(x, y) {
             const cell = this.cell(x, y);
             return cell.item;
@@ -3424,7 +3486,7 @@
             }
             this.redrawCell(cell);
             if (theItem.isDetected() || GW.config.D_ITEM_OMNISCIENCE) {
-                cell.flags |= Cell.ITEM_DETECTED;
+                cell.flags.cell |= Cell.ITEM_DETECTED;
             }
             return true;
         }
@@ -3451,7 +3513,7 @@
             if (theItem.light) {
                 this.anyLightChanged = true;
             }
-            cell.flags &= ~(Cell.HAS_ITEM | Cell.ITEM_DETECTED);
+            cell.flags.cell &= ~(Cell.HAS_ITEM | Cell.ITEM_DETECTED);
             this.redrawCell(cell);
             return true;
         }
@@ -3562,7 +3624,7 @@
             for (x = 0; x < this.width; ++x) {
                 for (y = 0; y < this.height; ++y) {
                     const cell = this.cell(x, y);
-                    if (cell.flags & Cell.ANY_KIND_OF_VISIBLE) {
+                    if (cell.flags.cell & Cell.ANY_KIND_OF_VISIBLE) {
                         cell.storeMemory();
                     }
                     // cell.flags &= CellFlags.PERMANENT_CELL_FLAGS;
@@ -3582,11 +3644,11 @@
             await fireAll(this, 'tick');
             // Bookkeeping for fire, pressure plates and key-activated tiles.
             await this.forEachAsync(async (cell$1, x, y) => {
-                cell$1.mechFlags &= ~CellMech.CAUGHT_FIRE_THIS_TURN;
-                if (!(cell$1.flags &
+                cell$1.flags.cellMech &= ~CellMech.CAUGHT_FIRE_THIS_TURN;
+                if (!(cell$1.flags.cell &
                     (Cell.HAS_ANY_ACTOR | Cell.HAS_ITEM)) &&
-                    cell$1.mechFlags & CellMech.PRESSURE_PLATE_DEPRESSED) {
-                    cell$1.mechFlags &= ~CellMech.PRESSURE_PLATE_DEPRESSED;
+                    cell$1.flags.cellMech & CellMech.PRESSURE_PLATE_DEPRESSED) {
+                    cell$1.flags.cellMech &= ~CellMech.PRESSURE_PLATE_DEPRESSED;
                 }
                 if (cell$1.activatesOn('noKey') && !cell$1.hasKey()) {
                     await cell$1.activate('noKey', this, x, y);
@@ -3595,12 +3657,12 @@
             // now spread the fire...
             await this.forEachAsync(async (cell, x, y) => {
                 if (cell.hasTileFlag(Tile.T_IS_FIRE) &&
-                    !(cell.mechFlags & CellMech.CAUGHT_FIRE_THIS_TURN)) {
+                    !(cell.flags.cellMech & CellMech.CAUGHT_FIRE_THIS_TURN)) {
                     await this.exposeToFire(x, y, false);
                     await this.eachNeighborAsync(x, y, (_n, i, j) => this.exposeToFire(i, j), true);
                 }
             });
-            if (!(this.flags & Map.MAP_NO_LIQUID)) {
+            if (!(this.flags.map & Map.MAP_NO_LIQUID)) {
                 const newVolume = GW.grid.alloc(this.width, this.height);
                 const calc = calcBaseVolume(this, Layer.LIQUID, newVolume);
                 if (calc === CalcType.CALC) {
@@ -3608,15 +3670,15 @@
                 }
                 if (calc != CalcType.NONE) {
                     updateVolume(this, Layer.LIQUID, newVolume);
-                    this.flags &= ~Map.MAP_NO_LIQUID;
+                    this.flags.map &= ~Map.MAP_NO_LIQUID;
                 }
                 else {
-                    this.flags |= Map.MAP_NO_LIQUID;
+                    this.flags.map |= Map.MAP_NO_LIQUID;
                 }
                 this.changed = true;
                 GW.grid.free(newVolume);
             }
-            if (!(this.flags & Map.MAP_NO_GAS)) {
+            if (!(this.flags.map & Map.MAP_NO_GAS)) {
                 const newVolume = GW.grid.alloc(this.width, this.height);
                 const calc = calcBaseVolume(this, Layer.GAS, newVolume);
                 if (calc === CalcType.CALC) {
@@ -3624,10 +3686,10 @@
                 }
                 if (calc != CalcType.NONE) {
                     updateVolume(this, Layer.GAS, newVolume);
-                    this.flags &= ~Map.MAP_NO_GAS;
+                    this.flags.map &= ~Map.MAP_NO_GAS;
                 }
                 else {
-                    this.flags |= Map.MAP_NO_GAS;
+                    this.flags.map |= Map.MAP_NO_GAS;
                 }
                 this.changed = true;
                 GW.grid.free(newVolume);
@@ -3768,7 +3830,7 @@
             // newVolume.dump();
         }
         resetCellEvents() {
-            this.forEach((c) => (c.mechFlags &= ~(CellMech.EVENT_FIRED_THIS_TURN |
+            this.forEach((c) => (c.flags.cellMech &= ~(CellMech.EVENT_FIRED_THIS_TURN |
                 CellMech.EVENT_PROTECTED)));
         }
     }
@@ -3790,13 +3852,6 @@
         }
         if (floor) {
             map.fill(floor, boundary);
-        }
-        if (opts.visible || opts.revealed) {
-            map.makeVisible();
-            map.revealAll();
-        }
-        if (opts.revealed && !opts.visible) {
-            map.makeVisible(false);
         }
         if (!GW.data.map) {
             GW.data.map = map;
@@ -3860,7 +3915,7 @@
             return;
         const cell$1 = map.cell(x, y);
         if (cell$1.isAnyKindOfVisible() &&
-            cell$1.flags & (Cell.CELL_CHANGED | Cell.NEEDS_REDRAW)) {
+            cell$1.flags.cell & (Cell.CELL_CHANGED | Cell.NEEDS_REDRAW)) {
             getAppearance(cell$1, dest);
         }
         else {
@@ -3877,8 +3932,8 @@
             dest.fg.mix(GW.colors.black, 30);
         }
         let needDistinctness = false;
-        if (cell$1.flags & (Cell.IS_CURSOR | Cell.IS_IN_PATH)) {
-            const highlight = cell$1.flags & Cell.IS_CURSOR ? GW.colors.cursor : GW.colors.path;
+        if (cell$1.flags.cell & (Cell.IS_CURSOR | Cell.IS_IN_PATH)) {
+            const highlight = cell$1.flags.cell & Cell.IS_CURSOR ? GW.colors.cursor : GW.colors.path;
             if (cell$1.hasLayerFlag(Entity.L_INVERT_WHEN_HIGHLIGHTED)) {
                 GW.color.swap(dest.fg, dest.bg);
             }
@@ -3894,7 +3949,7 @@
             GW.color.separate(dest.fg, dest.bg);
         }
         if (dest.dances) {
-            map.flags |= Map.MAP_DANCES;
+            map.flags.map |= Map.MAP_DANCES;
         }
         // dest.bake();
     }

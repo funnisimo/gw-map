@@ -37,7 +37,7 @@ describe('Map', () => {
     test('setTile', () => {
         GW.cosmetic.seed(12345);
 
-        const map = GW.make.map(10, 10);
+        const map = GW.make.map(10, 10, { fov: false });
         expect(Map.tiles.FLOOR).toBeDefined();
 
         map.setTile(2, 2, 'FLOOR');
@@ -119,13 +119,13 @@ describe('Map', () => {
     test('changed', () => {
         const map = GW.make.map(10, 10, 'FLOOR');
         expect(map.changed).toBeFalsy();
-        expect(map.flags & Map.map.Flags.MAP_CHANGED).toBeFalsy();
+        expect(map.flags.map & Map.map.Flags.MAP_CHANGED).toBeFalsy();
         map.changed = true;
         expect(map.changed).toBeTruthy();
-        expect(map.flags & Map.map.Flags.MAP_CHANGED).toBeTruthy();
+        expect(map.flags.map & Map.map.Flags.MAP_CHANGED).toBeTruthy();
         map.changed = false;
         expect(map.changed).toBeFalsy();
-        expect(map.flags & Map.map.Flags.MAP_CHANGED).toBeFalsy();
+        expect(map.flags.map & Map.map.Flags.MAP_CHANGED).toBeFalsy();
     });
 
     test('has-XXX-Flag', () => {
@@ -174,27 +174,29 @@ describe('Map', () => {
     });
 
     test('revealAll + markRevealed', () => {
-        const player = (GW.data.player = {
-            invalidateCostMap: jest.fn(),
-        });
+        // const player = (GW.data.player = {
+        //     invalidateCostMap: jest.fn(),
+        // });
 
         const map: Map.map.Map = GW.make.map(10, 10, {
             tile: 'FLOOR',
             fov: true,
         });
         map.eachCell((c) =>
-            expect(c.flags & Map.cell.Flags.REVEALED).toBeFalsy()
+            expect(c.flags.cell & Map.cell.Flags.REVEALED).toBeFalsy()
         );
         map.markRevealed(3, 3);
-        expect(map.cell(3, 3).flags & Map.cell.Flags.REVEALED).toBeTruthy();
-        expect(player.invalidateCostMap).toHaveBeenCalled();
-        player.invalidateCostMap.mockClear();
+        expect(
+            map.cell(3, 3).flags.cell & Map.cell.Flags.REVEALED
+        ).toBeTruthy();
+        // expect(player.invalidateCostMap).toHaveBeenCalled();
+        // player.invalidateCostMap.mockClear();
 
         map.revealAll();
         map.eachCell((c) =>
-            expect(c.flags & Map.cell.Flags.REVEALED).toBeTruthy()
+            expect(c.flags.cell & Map.cell.Flags.REVEALED).toBeTruthy()
         );
-        expect(player.invalidateCostMap).toHaveBeenCalled();
+        // expect(player.invalidateCostMap).toHaveBeenCalled();
     });
 
     test('visibility', () => {
@@ -260,24 +262,24 @@ describe('Map', () => {
     test('clearFlag', () => {
         const map: Map.map.Map = GW.make.map(10, 10, 'FLOOR');
 
-        expect(map.flags).toEqual(
+        expect(map.flags.map).toEqual(
             Map.map.Flags.MAP_STABLE_LIGHTS |
                 Map.map.Flags.MAP_STABLE_GLOW_LIGHTS
         );
 
         map.clearFlag(Map.map.Flags.MAP_STABLE_LIGHTS);
-        expect(map.flags).toEqual(
+        expect(map.flags.map).toEqual(
             Map.map.Flags.MAP_STABLE_GLOW_LIGHTS | Map.map.Flags.MAP_CHANGED
         );
 
         // cannot undo changed b/c clearing flags sets changed!  must do 'changed = false'
         map.clearFlags(Map.map.Flags.MAP_CHANGED);
-        expect(map.flags).toEqual(
+        expect(map.flags.map).toEqual(
             Map.map.Flags.MAP_STABLE_GLOW_LIGHTS | Map.map.Flags.MAP_CHANGED
         );
 
         map.changed = false;
-        expect(map.flags).toEqual(Map.map.Flags.MAP_STABLE_GLOW_LIGHTS);
+        expect(map.flags.map).toEqual(Map.map.Flags.MAP_STABLE_GLOW_LIGHTS);
 
         expect(
             map.hasCellFlag(3, 3, Map.cell.Flags.TELEPATHIC_VISIBLE)
@@ -289,7 +291,7 @@ describe('Map', () => {
         expect(
             map.hasCellFlag(3, 3, Map.cell.Flags.TELEPATHIC_VISIBLE)
         ).toBeTruthy();
-        expect(map.flags & Map.map.Flags.MAP_ALWAYS_LIT).toBeTruthy();
+        expect(map.flags.map & Map.map.Flags.MAP_ALWAYS_LIT).toBeTruthy();
 
         map.clearFlags(
             Map.map.Flags.MAP_ALWAYS_LIT,
@@ -298,7 +300,7 @@ describe('Map', () => {
         expect(
             map.hasCellFlag(3, 3, Map.cell.Flags.TELEPATHIC_VISIBLE)
         ).toBeFalsy();
-        expect(map.flags & Map.map.Flags.MAP_ALWAYS_LIT).toBeFalsy();
+        expect(map.flags.map & Map.map.Flags.MAP_ALWAYS_LIT).toBeFalsy();
 
         map.setCellFlags(3, 3, Map.cell.Flags.CLAIRVOYANT_VISIBLE);
         expect(
@@ -339,12 +341,8 @@ describe('Map', () => {
             map.tileWithLayerFlag(1, 1, Map.entity.Flags.L_BRIGHT_MEMORY)
         ).toBeNull();
 
-        expect(
-            map.hasKnownTileFlag(1, 1, Map.tile.Flags.T_UP_STAIRS)
-        ).toBeTruthy();
-        expect(
-            map.hasKnownTileFlag(1, 1, Map.tile.Flags.T_DOWN_STAIRS)
-        ).toBeFalsy();
+        expect(map.hasTileFlag(1, 1, Map.tile.Flags.T_UP_STAIRS)).toBeTruthy();
+        expect(map.hasTileFlag(1, 1, Map.tile.Flags.T_DOWN_STAIRS)).toBeFalsy();
     });
 
     test.each([
@@ -631,7 +629,7 @@ describe('Map', () => {
         map.addActor(3, 3, player);
         expect(map.actorAt(3, 3)).toBe(player);
         expect(map.hasCellFlag(3, 3, Map.cell.Flags.HAS_PLAYER)).toBeTruthy();
-        expect(map.flags & Map.map.Flags.MAP_FOV_CHANGED).toBeTruthy();
+        expect(map.flags.map & Map.map.Flags.MAP_FOV_CHANGED).toBeTruthy();
         expect(map.anyLightChanged).toBeFalsy();
         expect(map.cell(3, 3).needsRedraw).toBeTruthy();
 
@@ -645,7 +643,7 @@ describe('Map', () => {
         map.moveActor(4, 4, player);
         expect(map.actorAt(3, 3)).toBeNull();
         expect(map.hasCellFlag(3, 3, Map.cell.Flags.HAS_ANY_ACTOR)).toBeFalsy();
-        expect(map.flags & Map.map.Flags.MAP_FOV_CHANGED).toBeTruthy();
+        expect(map.flags.map & Map.map.Flags.MAP_FOV_CHANGED).toBeTruthy();
 
         map.addActor(3, 3, other);
         expect(map.anyLightChanged).toBeTruthy();
@@ -667,7 +665,7 @@ describe('Map', () => {
         map.removeActor(player);
         expect(map.actorAt(4, 4)).toBeNull();
         expect(map.hasCellFlag(4, 4, Map.cell.Flags.HAS_ANY_ACTOR)).toBeFalsy();
-        expect(map.flags & Map.map.Flags.MAP_FOV_CHANGED).toBeTruthy();
+        expect(map.flags.map & Map.map.Flags.MAP_FOV_CHANGED).toBeTruthy();
 
         // @ts-ignore
         other.avoidsCell.mockReturnValue(true);
@@ -677,7 +675,7 @@ describe('Map', () => {
         expect(map.addActorNear(3, 3, player)).toBeTruthy();
         expect(map.actorAt(3, 3)).toBe(player);
         expect(map.hasCellFlag(3, 3, Map.cell.Flags.HAS_PLAYER)).toBeTruthy();
-        expect(map.flags & Map.map.Flags.MAP_FOV_CHANGED).toBeTruthy();
+        expect(map.flags.map & Map.map.Flags.MAP_FOV_CHANGED).toBeTruthy();
 
         map.deleteActorAt(3, 3);
         expect(map.actorAt(3, 3)).toBeNull();
@@ -794,11 +792,11 @@ describe('Map', () => {
         const map: Map.map.Map = GW.make.map(10, 10, 'FLOOR', 'WALL');
 
         expect(map.hasTile(0, 0, 'WALL')).toBeTruthy();
-        expect(map.cell(0, 0).memory.layerFlags).toEqual(0);
+        expect(map.cell(0, 0).memory.flags.layer).toEqual(0);
         expect(map.isAnyKindOfVisible(0, 0)).toBeTruthy();
 
         map.storeMemories();
-        expect(map.cell(0, 0).memory.layerFlags).toBeGreaterThan(0);
+        expect(map.cell(0, 0).memory.flags.layer).toBeGreaterThan(0);
     });
 
     test('addText', () => {
@@ -902,7 +900,7 @@ describe('Map', () => {
       }
 
       if (visible) {
-        cell.flags |= Map.cell.Flags.VISIBLE;
+        cell.flags.cell |= Map.cell.Flags.VISIBLE;
       } else {
         cell.clearFlags(Map.cell.Flags.ANY_KIND_OF_VISIBLE);
       }
@@ -913,7 +911,7 @@ describe('Map', () => {
       }
 
       if (anyVisible) {
-        cell.flags |= Map.cell.Flags.CLAIRVOYANT_VISIBLE;
+        cell.flags.cell |= Map.cell.Flags.CLAIRVOYANT_VISIBLE;
       } else {
         cell.clearFlags(
           Map.cell.Flags.CLAIRVOYANT_VISIBLE | Map.cell.Flags.TELEPATHIC_VISIBLE
@@ -921,13 +919,13 @@ describe('Map', () => {
       }
 
       if (cursor) {
-        cell.flags |= Map.cell.Flags.IS_CURSOR;
+        cell.flags.cell |= Map.cell.Flags.IS_CURSOR;
       } else {
         cell.clearFlags(Map.cell.Flags.IS_CURSOR);
       }
 
       if (path) {
-        cell.flags |= Map.cell.Flags.IS_IN_PATH;
+        cell.flags.cell |= Map.cell.Flags.IS_IN_PATH;
       } else {
         cell.clearFlags(Map.cell.Flags.IS_IN_PATH);
       }
@@ -994,7 +992,7 @@ describe('Map', () => {
             const cell = map.cell(5, 5);
             expect(cell.liquidVolume).toEqual(20);
             expect(map.cell(4, 5).liquidVolume).toEqual(0);
-            expect(map.flags & Map.map.Flags.MAP_NO_LIQUID).toBeFalsy();
+            expect(map.flags.map & Map.map.Flags.MAP_NO_LIQUID).toBeFalsy();
 
             await map.tick();
             expect(cell.liquidVolume).toEqual(5);
@@ -1105,7 +1103,7 @@ describe('Map', () => {
                 expect(map.count((cell) => cell.liquidVolume > 0)).toEqual(0);
 
                 map.setTile(10, 10, liquid, volume);
-                expect(map.flags & Map.map.Flags.MAP_NO_LIQUID).toBeFalsy();
+                expect(map.flags.map & Map.map.Flags.MAP_NO_LIQUID).toBeFalsy();
                 expect(map.count((cell) => cell.liquidVolume !== 0)).toEqual(1);
 
                 // map.dump((c) => "" + c.liquidVolume);
@@ -1166,7 +1164,7 @@ describe('Map', () => {
             expect(map.count((cell) => cell.gasVolume > 0)).toEqual(0);
 
             map.setTile(5, 5, 'RED_GAS', 90);
-            expect(map.flags & Map.map.Flags.MAP_NO_GAS).toBeFalsy();
+            expect(map.flags.map & Map.map.Flags.MAP_NO_GAS).toBeFalsy();
 
             cell = map.cell(5, 5);
             expect(cell.gas).toEqual('RED_GAS');
@@ -1252,7 +1250,7 @@ describe('Map', () => {
         expect(map.count((cell) => cell.gasVolume > 0)).toEqual(0);
 
         map.setTile(5, 5, gas, size); // 20000 from brogue dewars
-        expect(map.flags & Map.map.Flags.MAP_NO_GAS).toBeFalsy();
+        expect(map.flags.map & Map.map.Flags.MAP_NO_GAS).toBeFalsy();
         expect(map.count((cell) => cell.gasVolume !== 0)).toEqual(1);
 
         let roundCount = 0;
@@ -1347,7 +1345,7 @@ describe('Map', () => {
             expect(map.count((cell) => cell.gasVolume > 0)).toEqual(0);
 
             map.setTile(10, 10, gas, volume);
-            expect(map.flags & Map.map.Flags.MAP_NO_GAS).toBeFalsy();
+            expect(map.flags.map & Map.map.Flags.MAP_NO_GAS).toBeFalsy();
             expect(map.count((cell) => cell.gasVolume !== 0)).toEqual(1);
 
             // map.dump((c) => "" + c.gasVolume);

@@ -37,7 +37,9 @@ describe('analyze', () => {
 
             expect(
                 map.count((c) =>
-                    c.mechFlags & MAP.cell.MechFlags.IS_IN_LOOP ? true : false
+                    c.flags.cellMech & MAP.cell.MechFlags.IS_IN_LOOP
+                        ? true
+                        : false
                 )
             ).toEqual(16);
         });
