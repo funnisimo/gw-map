@@ -18,7 +18,7 @@ export function updateChokepoints(map: MAP.Map, updateCounts: boolean) {
 
     for (let i = 0; i < map.width; i++) {
         for (let j = 0; j < map.height; j++) {
-            const cell = map.get(i, j);
+            const cell = map.cell(i, j);
             if (
                 (cell.hasTileFlag(FLAGS.Tile.T_PATHING_BLOCKER) ||
                     cell.hasLayerFlag(FLAGS.Entity.L_BLOCKS_MOVE)) &&
@@ -305,7 +305,7 @@ export function checkLoopiness(
             const newX = x + GW.utils.CLOCK_DIRS[dir][0];
             const newY = y + GW.utils.CLOCK_DIRS[dir][1];
             if (map.hasXY(newX, newY)) {
-                const newCell = map.get(newX, newY);
+                const newCell = map.cell(newX, newY);
                 checkLoopiness(newCell, newX, newY, map);
             }
         }
@@ -345,7 +345,7 @@ export function cleanLoopiness(map: MAP.Map) {
 
     for (let i = 0; i < grid.width; i++) {
         for (let j = 0; j < grid.height; j++) {
-            const cell = map.get(i, j);
+            const cell = map.cell(i, j);
             if (cell.flags.cellMech & FLAGS.CellMech.IS_IN_LOOP) {
                 designationSurvives = false;
                 for (let dir = 0; dir < 8; dir++) {

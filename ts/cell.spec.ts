@@ -47,7 +47,7 @@ describe('Cell', () => {
             id: 'ENTER',
             ch: '!',
             fg: 'red',
-            activates: {
+            effects: {
                 enter: 'FLOOR',
             },
         });
@@ -55,7 +55,7 @@ describe('Cell', () => {
             id: 'LOW_CHANCE',
             ch: '!',
             fg: 'red',
-            activates: {
+            effects: {
                 enter: { tile: 'FLOOR', chance: 1 },
             },
         });
@@ -487,7 +487,7 @@ describe('Cell', () => {
             id: 'SECRET_DOOR',
             Extends: 'DOOR',
             flags: 'L_SECRETLY_PASSABLE, L_BLOCKS_MOVE, L_BLOCKS_VISION',
-            activates: {
+            effects: {
                 discover: { tile: 'DOOR' },
                 open: false,
                 enter: false,
@@ -626,7 +626,7 @@ describe('Cell', () => {
             id: 'SECRET_DOOR',
             Extends: 'DOOR',
             flags: 'L_SECRETLY_PASSABLE, L_BLOCKS_MOVE, L_BLOCKS_VISION',
-            activates: {
+            effects: {
                 discover: { tile: 'DOOR' },
                 open: false,
                 enter: false,
@@ -1303,8 +1303,8 @@ describe('Cell', () => {
 
     test('activatesOn', () => {
         const cell: Cell = GW.make.cell('ENTER');
-        expect(cell.activatesOn('enter')).toBeTruthy();
-        expect(cell.activatesOn('fire')).toBeFalsy();
+        expect(cell.hasEffect('enter')).toBeTruthy();
+        expect(cell.hasEffect('fire')).toBeFalsy();
     });
 
     test('activate', async () => {

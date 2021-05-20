@@ -26,7 +26,7 @@ export interface FullTileConfig extends Layer.EntityConfig {
     mechFlags: number | string | any[];
     priority: number;
 
-    activates: any;
+    effects: any;
 
     flavor: string;
     desc: string;
@@ -47,7 +47,7 @@ export class Tile extends Layer.Entity implements Types.TileType {
     public name: string;
     public flags: Types.TileFlags = { layer: 0, tile: 0, tileMech: 0 };
 
-    public activates: Record<string, Effect.Effect | string> = {};
+    public effects: Record<string, Effect.Effect | string> = {};
 
     public flavor: string | null = null;
     public desc: string | null = null;
@@ -100,8 +100,8 @@ export class Tile extends Layer.Entity implements Types.TileType {
                 this,
                 base
             );
-            if (base.activates) {
-                Object.assign(this.activates, base.activates);
+            if (base.effects) {
+                Object.assign(this.effects, base.effects);
             }
             Object.assign(this.flags, base.flags);
         }
@@ -113,7 +113,7 @@ export class Tile extends Layer.Entity implements Types.TileType {
                 'layerFlags',
                 'mechFlags',
                 'sprite',
-                'activates',
+                'effects',
                 'ch',
                 'fg',
                 'bg',
@@ -149,21 +149,21 @@ export class Tile extends Layer.Entity implements Types.TileType {
             config.mechFlags || config.flags
         );
 
-        if (config.activates) {
-            Object.entries(config.activates).forEach(([key, info]) => {
+        if (config.effects) {
+            Object.entries(config.effects).forEach(([key, info]) => {
                 if (info) {
                     if (typeof info === 'string') {
                         if (tiles[info]) {
                             info = { tile: info };
                         } else {
-                            this.activates[key] = info;
+                            this.effects[key] = info;
                             return;
                         }
                     }
                     const activation = Effect.make(info)!;
-                    this.activates[key] = activation;
+                    this.effects[key] = activation;
                 } else {
-                    delete this.activates[key];
+                    delete this.effects[key];
                 }
             });
         }
@@ -195,8 +195,8 @@ export class Tile extends Layer.Entity implements Types.TileType {
         );
     }
 
-    activatesOn(name: string) {
-        return !!this.activates[name];
+    hasEffect(name: string) {
+        return !!this.effects[name];
     }
 
     getName(): string;

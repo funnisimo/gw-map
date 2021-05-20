@@ -544,7 +544,7 @@ describe('tile effect', () => {
                 article: 'some',
                 bg: 'red',
                 layer: 'LIQUID',
-                activates: {
+                effects: {
                     fire: { fn },
                 },
             });
@@ -564,7 +564,7 @@ describe('tile effect', () => {
                 article: 'some',
                 bg: 'red',
                 layer: 'LIQUID',
-                activates: {
+                effects: {
                     fire: { flags: 'E_EVACUATE_CREATURES', tile: 'FLOOR' },
                 },
             });
@@ -604,7 +604,7 @@ describe('tile effect', () => {
                 article: 'some',
                 bg: 'red',
                 layer: 'LIQUID',
-                activates: {
+                effects: {
                     fire: { flags: 'E_EVACUATE_ITEMS', tile: 'FLOOR' },
                 },
             });
@@ -643,7 +643,7 @@ describe('tile effect', () => {
                 flags: 'T_DEEP_WATER',
                 name: 'water',
                 article: 'some',
-                activates: {
+                effects: {
                     tick: {
                         tile: 'LAKE',
                         flags: 'E_SUPERPRIORITY, E_PROTECTED',
@@ -658,7 +658,7 @@ describe('tile effect', () => {
                 flags: 'T_DEEP_WATER',
                 name: 'wave crest',
                 article: 'the',
-                activates: {
+                effects: {
                     tick: {
                         tile: {
                             id: 'WAVE',
@@ -680,9 +680,9 @@ describe('tile effect', () => {
 
         test('tiles installed', () => {
             expect(Map.tiles.WAVE).toBeDefined();
-            expect(Map.tiles.WAVE.activates.tick).toBeDefined();
+            expect(Map.tiles.WAVE.effects.tick).toBeDefined();
             expect(Map.tiles.WAVE_DONE).toBeDefined();
-            expect(Map.tiles.WAVE_DONE.activates.tick).toBeDefined();
+            expect(Map.tiles.WAVE_DONE.effects.tick).toBeDefined();
         });
 
         test('can do waves', async () => {

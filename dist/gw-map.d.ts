@@ -154,7 +154,7 @@ interface FullTileConfig extends EntityConfig {
     flags: number | string | any[];
     mechFlags: number | string | any[];
     priority: number;
-    activates: any;
+    effects: any;
     flavor: string;
     desc: string;
     name: string;
@@ -169,7 +169,7 @@ declare type TileConfig = AtLeast<FullTileConfig, 'id'>;
 declare class Tile$1 extends Entity$1 implements types.TileType {
     name: string;
     flags: types.TileFlags;
-    activates: Record<string, effect.Effect | string>;
+    effects: Record<string, effect.Effect | string>;
     flavor: string | null;
     desc: string | null;
     article: string | null;
@@ -197,7 +197,7 @@ declare class Tile$1 extends Entity$1 implements types.TileType {
     hasAllLayerFlags(flag: number): boolean;
     hasAllMechFlags(flag: number): boolean;
     blocksPathing(): number;
-    activatesOn(name: string): boolean;
+    hasEffect(name: string): boolean;
     getName(): string;
     getName(opts: NameConfig): string;
     getName(article: string): string;
@@ -267,7 +267,8 @@ declare class CellMemory {
 }
 declare type TileBase = Tile$1 | string;
 interface LayerItem {
-    layer: types.EntityType;
+    obj: types.EntityType;
+    layer: Layer;
     next: LayerItem | null;
 }
 declare type LayerTile = Tile$1 | null;
@@ -303,7 +304,7 @@ declare class Cell$1 implements types.CellType {
     get changed(): boolean;
     set changed(v: boolean);
     isVisible(): boolean;
-    isAnyKindOfVisible(): number;
+    isAnyKindOfVisible(): boolean;
     isOrWasAnyKindOfVisible(): number;
     isRevealed(orMapped?: boolean): boolean;
     listInSidebar(): boolean;
@@ -362,12 +363,12 @@ declare class Cell$1 implements types.CellType {
     clearLayersExcept(except?: Layer, ground?: string | null): void;
     clearLayersWithFlags(tileFlags: number, tileMechFlags?: number): void;
     activate(name: string, map: Map$1, x: number, y: number, ctx?: any): Promise<boolean>;
-    activatesOn(name: string): boolean;
+    hasEffect(name: string): boolean;
     get item(): types.ItemType | null;
     set item(item: types.ItemType | null);
     get actor(): types.ActorType | null;
     set actor(actor: types.ActorType | null);
-    addLayer(layer: types.EntityType): void;
+    addLayer(obj: types.EntityType, layer?: Layer): void;
     removeLayer(layer: types.EntityType): boolean;
     storeMemory(): void;
 }
@@ -417,6 +418,7 @@ interface MapMatchOptions {
     blockingMap: grid.NumGrid;
     liquids: boolean;
     match: MapMatchFn;
+    forbidLayerFlags: number;
     forbidCellFlags: number;
     forbidTileFlags: number;
     forbidTileMechFlags: number;
@@ -453,6 +455,7 @@ declare class Map$1 implements types.MapType {
     lights: LightInfo | null;
     id: string;
     fov: utils.XY | null;
+    effects: Record<string, effect.Effect | string>;
     constructor(w: number, h: number, opts?: any);
     get width(): number;
     get height(): number;
@@ -460,7 +463,7 @@ declare class Map$1 implements types.MapType {
     clear(floorTile?: string | Tile$1): void;
     dump(fmt?: (cell: Cell$1) => string): void;
     cell(x: number, y: number): Cell$1;
-    get(x: number, y: number): Cell$1;
+    get(x: number, y: number): Cell$1 | undefined;
     eachCell(fn: MapEachFn): void;
     forEach(fn: MapEachFn): void;
     forEachAsync(fn: AsyncMapEachFn): Promise<void>;
@@ -476,8 +479,8 @@ declare class Map$1 implements types.MapType {
     hasCellFlag(x: number, y: number, flag: Cell): number;
     hasCellMechFlag(x: number, y: number, flag: CellMech): number;
     hasLayerFlag(x: number, y: number, flag: Entity): boolean;
-    hasTileFlag(x: number, y: number, flag: Tile): boolean;
-    hasTileMechFlag(x: number, y: number, flag: TileMech): boolean;
+    hasTileFlag(x: number, y: number, flag: Tile, limitToPlayerKnowledge?: boolean): boolean;
+    hasTileMechFlag(x: number, y: number, flag: TileMech, limitToPlayerKnowledge?: boolean): boolean;
     redrawCell(cell: Cell$1): void;
     redrawXY(x: number, y: number): void;
     redrawAll(): void;
@@ -486,7 +489,7 @@ declare class Map$1 implements types.MapType {
     markRevealed(x: number, y: number): void;
     makeVisible(v?: boolean): void;
     isVisible(x: number, y: number): boolean;
-    isAnyKindOfVisible(x: number, y: number): number;
+    isAnyKindOfVisible(x: number, y: number): boolean;
     isOrWasAnyKindOfVisible(x: number, y: number): number;
     isRevealed(x: number, y: number): boolean;
     get anyLightChanged(): boolean;
@@ -555,7 +558,6 @@ declare class Map$1 implements types.MapType {
     items(): Generator<any, void, unknown>;
     itemAt(x: number, y: number): types.ItemType | null;
     addItem(x: number, y: number, theItem: types.ItemType): boolean;
-    addItemNear(x: number, y: number, theItem: types.ItemType): boolean;
     removeItem(theItem: types.ItemType): boolean;
     gridDisruptsWalkability(blockingGrid: grid.NumGrid, opts?: Partial<DisruptsOptions>): boolean;
     calcFov(grid: grid.NumGrid, x: number, y: number, maxRadius: number, forbiddenCellFlags?: number, forbiddenLayerFlags?: Entity): void;

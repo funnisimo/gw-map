@@ -40,7 +40,7 @@ describe('Tile', () => {
             bg: COLORS.dark_gray,
         });
         expect(tile.layer).toEqual(Map.entity.Layer.GROUND);
-        expect(tile.activates).toEqual({});
+        expect(tile.effects).toEqual({});
         expect(tile.priority).toEqual(90);
         expect(tile.name).toEqual('Stone Wall');
 
@@ -198,16 +198,16 @@ describe('Tile', () => {
             ch: '+',
             fg: '#f66',
             bg: '#ff6',
-            activates: {
+            effects: {
                 tick: { chance: 0, log: 'testing' },
             },
             layer: 'SURFACE',
         });
 
         expect(Map.tiles.CARPET).toBe(carpet);
-        expect(carpet.activates.tick).not.toBeNil();
+        expect(carpet.effects.tick).not.toBeNil();
 
-        expect(carpet.activatesOn('tick')).toBeTruthy();
+        expect(carpet.hasEffect('tick')).toBeTruthy();
     });
 
     test('can be created by extending another tile', () => {

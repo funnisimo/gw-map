@@ -648,7 +648,7 @@ class Tile$1 extends Entity$1 {
             return config;
         })());
         this.flags = { layer: 0, tile: 0, tileMech: 0 };
-        this.activates = {};
+        this.effects = {};
         this.flavor = null;
         this.desc = null;
         this.article = null;
@@ -657,8 +657,8 @@ class Tile$1 extends Entity$1 {
         let base = config.Extends;
         if (base) {
             GW.utils.assignOmitting(['sprite', 'depth', 'priority', 'activates', 'flags', 'light'], this, base);
-            if (base.activates) {
-                Object.assign(this.activates, base.activates);
+            if (base.effects) {
+                Object.assign(this.effects, base.effects);
             }
             Object.assign(this.flags, base.flags);
         }
@@ -669,7 +669,7 @@ class Tile$1 extends Entity$1 {
             'layerFlags',
             'mechFlags',
             'sprite',
-            'activates',
+            'effects',
             'ch',
             'fg',
             'bg',
@@ -692,23 +692,23 @@ class Tile$1 extends Entity$1 {
         this.flags.layer = GW.flag.from(Entity, this.flags.layer, config.layerFlags || config.flags);
         // @ts-ignore
         this.flags.tileMech = GW.flag.from(TileMech, this.flags.tileMech, config.mechFlags || config.flags);
-        if (config.activates) {
-            Object.entries(config.activates).forEach(([key, info]) => {
+        if (config.effects) {
+            Object.entries(config.effects).forEach(([key, info]) => {
                 if (info) {
                     if (typeof info === 'string') {
                         if (tiles[info]) {
                             info = { tile: info };
                         }
                         else {
-                            this.activates[key] = info;
+                            this.effects[key] = info;
                             return;
                         }
                     }
                     const activation = GW.effect.make(info);
-                    this.activates[key] = activation;
+                    this.effects[key] = activation;
                 }
                 else {
-                    delete this.activates[key];
+                    delete this.effects[key];
                 }
             });
         }
@@ -733,8 +733,8 @@ class Tile$1 extends Entity$1 {
         return (this.flags.layer & Entity.L_BLOCKS_MOVE ||
             this.flags.tile & Tile.T_PATHING_BLOCKER);
     }
-    activatesOn(name) {
-        return !!this.activates[name];
+    hasEffect(name) {
+        return !!this.effects[name];
     }
     getName(arg) {
         let opts = {};
@@ -993,11 +993,10 @@ class Cell$1 {
         }
     }
     isVisible() {
-        return this.flags.cell & Cell.VISIBLE ? true : false;
+        return !!(this.flags.cell & Cell.VISIBLE);
     }
     isAnyKindOfVisible() {
-        return (this.flags.cell &
-            Cell.ANY_KIND_OF_VISIBLE /* || CONFIG.playbackOmniscience */);
+        return !!((this.flags.cell & Cell.ANY_KIND_OF_VISIBLE) /* || CONFIG.playbackOmniscience */);
     }
     isOrWasAnyKindOfVisible() {
         return (this.flags.cell &
@@ -1507,8 +1506,8 @@ class Cell$1 {
         let fired = false;
         if (ctx.layer !== undefined) {
             const tile = this.tile(ctx.layer);
-            if (tile && tile.activates) {
-                const ev = tile.activates[name];
+            if (tile && tile.effects) {
+                const ev = tile.effects[name];
                 let effect;
                 if (typeof ev === 'string') {
                     effect = GW.effect.effects[ev];
@@ -1532,9 +1531,9 @@ class Cell$1 {
         else {
             // console.log('fire event - %s', name);
             for (let tile of this.tiles()) {
-                if (!tile.activates)
+                if (!tile.effects)
                     continue;
-                const ev = tile.activates[name];
+                const ev = tile.effects[name];
                 // console.log(' - ', ev);
                 let effect;
                 if (typeof ev === 'string') {
@@ -1561,9 +1560,9 @@ class Cell$1 {
         }
         return fired;
     }
-    activatesOn(name) {
+    hasEffect(name) {
         for (let tile of this.tiles()) {
-            if (tile.activatesOn(name))
+            if (tile.hasEffect(name))
                 return true;
         }
         return false;
@@ -1579,7 +1578,7 @@ class Cell$1 {
         this._item = item;
         if (item) {
             this.flags.cell |= Cell.HAS_ITEM;
-            this.addLayer(item);
+            this.addLayer(item, Layer.ITEM);
         }
         else {
             this.flags.cell &= ~Cell.HAS_ITEM;
@@ -1595,37 +1594,42 @@ class Cell$1 {
         }
         this._actor = actor;
         if (actor) {
-            this.flags.cell |= Cell.HAS_ANY_ACTOR;
-            this.addLayer(actor);
+            this.flags.cell |= actor.isPlayer()
+                ? Cell.HAS_PLAYER
+                : Cell.HAS_ACTOR;
+            this.addLayer(actor, Layer.ACTOR);
         }
         else {
             this.flags.cell &= ~Cell.HAS_ANY_ACTOR;
         }
     }
-    addLayer(layer) {
-        if (!layer)
+    addLayer(obj, layer) {
+        var _a;
+        if (!obj)
             return;
         // this.flags.cell |= Flags.NEEDS_REDRAW;
         this.flags.cell |= Cell.CELL_CHANGED;
         let current = this.layers;
+        layer = (_a = layer !== null && layer !== void 0 ? layer : obj.layer) !== null && _a !== void 0 ? _a : Layer.GROUND;
         if (!current ||
-            current.layer.layer > layer.layer ||
-            (current.layer.layer == layer.layer &&
-                current.layer.priority > layer.priority)) {
+            current.layer > layer ||
+            (current.layer == layer && current.obj.priority > obj.priority)) {
             this.layers = {
+                obj,
                 layer,
                 next: current,
             };
             return;
         }
         while (current.next &&
-            (current.next.layer.layer < layer.layer ||
-                (current.next.layer.layer == layer.layer &&
-                    current.next.layer.priority <= layer.priority))) {
+            (current.next.layer < layer ||
+                (current.next.layer == layer &&
+                    current.next.obj.priority <= obj.priority))) {
             current = current.next;
         }
         const item = {
             layer,
+            obj,
             next: current.next,
         };
         current.next = item;
@@ -1637,14 +1641,14 @@ class Cell$1 {
             return false;
         // this.flags.cell |= Flags.NEEDS_REDRAW;
         this.flags.cell |= Cell.CELL_CHANGED;
-        if (this.layers && this.layers.layer === layer) {
+        if (this.layers && this.layers.obj === layer) {
             this.layers = this.layers.next;
             return true;
         }
         let prev = this.layers;
         let current = this.layers.next;
         while (current) {
-            if (current.layer === layer) {
+            if (current.obj === layer) {
                 prev.next = current.next;
                 return true;
             }
@@ -1662,7 +1666,7 @@ class Cell$1 {
         memory.flags.cell = this.flags.cell;
         memory.flags.cellMech = this.flags.cellMech;
         memory.tile = this.topmostTile();
-        if (this.item) {
+        if (this.item && this.isRevealed()) {
             memory.item = this.item;
             memory.itemQuantity = this.item.quantity;
         }
@@ -1670,17 +1674,11 @@ class Cell$1 {
             memory.item = null;
             memory.itemQuantity = 0;
         }
-        memory.actor = this.actor;
-        getAppearance(this, memory.mixer);
-        if (this.actor && this.isOrWasAnyKindOfVisible()) {
-            if (this.actor.rememberedInCell &&
-                this.actor.rememberedInCell !== this) {
-                // console.log("remembered in cell change");
-                this.actor.rememberedInCell.storeMemory();
-                this.actor.rememberedInCell.flags.cell |= Cell.NEEDS_REDRAW;
-            }
-            this.actor.rememberedInCell = this;
+        memory.actor = null;
+        if (this.actor && this.isAnyKindOfVisible()) {
+            memory.actor = this.actor;
         }
+        getAppearance(this, memory.mixer);
     }
 }
 function make$3(tile) {
@@ -1697,15 +1695,17 @@ function getAppearance(cell, dest) {
     let needDistinctness = cell.layerFlags() & Entity.L_VISUALLY_DISTINCT;
     let current = cell.layers;
     while (current) {
-        const layer = current.layer;
-        let alpha = layer.sprite.opacity || 100;
-        if (layer.layer == Layer.LIQUID) {
+        const obj = current.obj;
+        let alpha = obj.sprite.opacity || 100;
+        if (current.layer == Layer.LIQUID) {
             alpha = GW.utils.clamp(cell.liquidVolume * 34, 20, 100);
         }
-        else if (layer.layer == Layer.GAS) {
+        else if (current.layer == Layer.GAS) {
             alpha = GW.utils.clamp(cell.gasVolume * 34, 20, 100);
         }
-        memory.drawSprite(layer.sprite, alpha);
+        if (cell.isAnyKindOfVisible() || current.layer < Layer.ACTOR) {
+            memory.drawSprite(obj.sprite, alpha);
+        }
         current = current.next;
     }
     memory.fg.multiply(cell.light);
@@ -2042,7 +2042,7 @@ async function fireAll(map, event) {
         cell$1.clearFlags(0, CellMech.EVENT_FIRED_THIS_TURN |
             CellMech.EVENT_PROTECTED);
         for (let tile of cell$1.tiles()) {
-            const effect = GW.effect.from(tile.activates[event]);
+            const effect = GW.effect.from(tile.effects[event]);
             if (!effect)
                 continue;
             let promoteChance = 0;
@@ -2432,7 +2432,7 @@ function updateChokepoints(map, updateCounts) {
     const grid = GW.grid.alloc(map.width, map.height);
     for (let i = 0; i < map.width; i++) {
         for (let j = 0; j < map.height; j++) {
-            const cell = map.get(i, j);
+            const cell = map.cell(i, j);
             if ((cell.hasTileFlag(Tile.T_PATHING_BLOCKER) ||
                 cell.hasLayerFlag(Entity.L_BLOCKS_MOVE)) &&
                 !cell.hasLayerFlag(Entity.L_SECRETLY_PASSABLE)) {
@@ -2645,7 +2645,7 @@ function checkLoopiness(cell, x, y, map) {
             const newX = x + GW.utils.CLOCK_DIRS[dir][0];
             const newY = y + GW.utils.CLOCK_DIRS[dir][1];
             if (map.hasXY(newX, newY)) {
-                const newCell = map.get(newX, newY);
+                const newCell = map.cell(newX, newY);
                 checkLoopiness(newCell, newX, newY, map);
             }
         }
@@ -2681,7 +2681,7 @@ function cleanLoopiness(map) {
     let designationSurvives;
     for (let i = 0; i < grid.width; i++) {
         for (let j = 0; j < grid.height; j++) {
-            const cell = map.get(i, j);
+            const cell = map.cell(i, j);
             if (cell.flags.cellMech & CellMech.IS_IN_LOOP) {
                 designationSurvives = false;
                 for (let dir = 0; dir < 8; dir++) {
@@ -2720,6 +2720,7 @@ class Map$1 {
         this.flags = { map: 0 };
         this.lights = null;
         this.fov = null;
+        this.effects = {};
         this._width = w;
         this._height = h;
         this.cells = GW.grid.make(w, h, () => new Cell$1());
@@ -2774,7 +2775,7 @@ class Map$1 {
         return this.cells[x][y];
     }
     get(x, y) {
-        return this.cells[x][y];
+        return this.cells.get(x, y);
     }
     eachCell(fn) {
         this.cells.forEach((c, i, j) => fn(c, i, j, this));
@@ -2832,11 +2833,11 @@ class Map$1 {
     hasLayerFlag(x, y, flag) {
         return this.cell(x, y).hasLayerFlag(flag);
     }
-    hasTileFlag(x, y, flag) {
-        return this.cell(x, y).hasTileFlag(flag);
+    hasTileFlag(x, y, flag, limitToPlayerKnowledge = false) {
+        return this.cell(x, y).hasTileFlag(flag, limitToPlayerKnowledge);
     }
-    hasTileMechFlag(x, y, flag) {
-        return this.cell(x, y).hasTileMechFlag(flag);
+    hasTileMechFlag(x, y, flag, limitToPlayerKnowledge = false) {
+        return this.cell(x, y).hasTileMechFlag(flag, limitToPlayerKnowledge);
     }
     redrawCell(cell) {
         // if (cell.isAnyKindOfVisible()) {
@@ -3132,17 +3133,11 @@ class Map$1 {
         });
     }
     matchingNeighbor(x, y, matcher, only4dirs = false) {
-        const maxIndex = only4dirs ? 4 : 8;
-        for (let d = 0; d < maxIndex; ++d) {
-            const dir = GW.utils.DIRS[d];
-            const i = x + dir[0];
-            const j = y + dir[1];
-            if (this.hasXY(i, j)) {
-                if (matcher(this.cells[i][j], i, j, this))
-                    return [i, j];
-            }
-        }
-        return [-1, -1];
+        return GW.utils.matchingNeighbor(x, y, (i, j) => {
+            if (!this.hasXY(i, j))
+                return false;
+            return matcher(this.cell(i, j), i, j, this);
+        }, only4dirs);
     }
     matchingLocNear(x, y, ...args) {
         let i, j, k;
@@ -3213,6 +3208,7 @@ class Map$1 {
         const forbidLiquid = opts.liquids === false;
         const matcher = opts.match || GW.utils.TRUE;
         const forbidCellFlags = opts.forbidCellFlags || 0;
+        const forbidLayerFlags = opts.forbidLayerFlags || 0;
         const forbidTileFlags = opts.forbidTileFlags || 0;
         const forbidTileMechFlags = opts.forbidTileMechFlags || 0;
         const tile = opts.tile || null;
@@ -3228,6 +3224,7 @@ class Map$1 {
                 (!forbidLiquid || !cell.liquid) &&
                 (!forbidCellFlags || !(cell.flags.cell & forbidCellFlags)) &&
                 (!forbidTileFlags || !cell.hasTileFlag(forbidTileFlags)) &&
+                (!forbidLayerFlags || !cell.hasLayerFlag(forbidLayerFlags)) &&
                 (!forbidTileMechFlags ||
                     !cell.hasTileMechFlag(forbidTileMechFlags)) &&
                 (hallwaysAllowed || this.walkableArcCount(x, y) < 2) &&
@@ -3360,7 +3357,7 @@ class Map$1 {
         this._actors = theActor;
         const flag = theActor === GW.data.player
             ? Cell.HAS_PLAYER
-            : Cell.HAS_ANY_ACTOR;
+            : Cell.HAS_ACTOR;
         cell.flags.cell |= flag;
         // if (theActor.flags & Flags.Actor.MK_DETECTED)
         // {
@@ -3394,6 +3391,13 @@ class Map$1 {
         if (!this.hasXY(x, y))
             return false;
         this.removeActor(actor);
+        if (actor.rememberedInCell) {
+            const cell = this.cell(x, y);
+            if (cell.isAnyKindOfVisible() !==
+                actor.rememberedInCell.isAnyKindOfVisible()) {
+                actor.rememberedInCell.storeMemory();
+            }
+        }
         if (!this.addActor(x, y, actor)) {
             this.addActor(actor.x, actor.y, actor);
             return false;
@@ -3490,16 +3494,16 @@ class Map$1 {
         }
         return true;
     }
-    addItemNear(x, y, theItem) {
-        const loc = this.matchingLocNear(x, y, (cell) => {
-            return !theItem.forbidsCell(cell);
-        });
-        if (!loc || loc[0] < 0) {
-            // GW.ui.message(colors.badMessageColor, 'There is no place to put the item.');
-            return false;
-        }
-        return this.addItem(loc[0], loc[1], theItem);
-    }
+    // addItemNear(x: number, y: number, theItem: Types.ItemType) {
+    //     const loc = this.matchingLocNear(x, y, (cell) => {
+    //         return !theItem.forbidsCell(cell);
+    //     });
+    //     if (!loc || loc[0] < 0) {
+    //         // GW.ui.message(colors.badMessageColor, 'There is no place to put the item.');
+    //         return false;
+    //     }
+    //     return this.addItem(loc[0], loc[1], theItem);
+    // }
     removeItem(theItem) {
         const x = theItem.x;
         const y = theItem.y;
@@ -3650,7 +3654,7 @@ class Map$1 {
                 cell$1.flags.cellMech & CellMech.PRESSURE_PLATE_DEPRESSED) {
                 cell$1.flags.cellMech &= ~CellMech.PRESSURE_PLATE_DEPRESSED;
             }
-            if (cell$1.activatesOn('noKey') && !cell$1.hasKey()) {
+            if (cell$1.hasEffect('noKey') && !cell$1.hasKey()) {
                 await cell$1.activate('noKey', this, x, y);
             }
         });
@@ -3714,7 +3718,7 @@ class Map$1 {
             if (tile.flags.tile & Tile.T_IS_FLAMMABLE &&
                 (tile.layer === Layer.GAS ||
                     tile.priority >= bestExtinguishingPriority)) {
-                const effect = GW.effect.from(tile.activates.fire);
+                const effect = GW.effect.from(tile.effects.fire);
                 if (effect && effect.chance > ignitionChance) {
                     ignitionChance = effect.chance;
                 }
@@ -3738,7 +3742,7 @@ class Map$1 {
                 }
             }
             let event = 'fire';
-            if (explosivePromotion && cell.activatesOn('explode')) {
+            if (explosivePromotion && cell.hasEffect('explode')) {
                 event = 'explode';
             }
             for (let tile of cell.tiles()) {
@@ -4079,7 +4083,7 @@ install$1('DOOR', {
     priority: 30,
     flags: 'T_IS_DOOR, L_BLOCKS_EFFECTS, L_BLOCKS_ITEMS, L_BLOCKS_VISION, L_VISUALLY_DISTINCT',
     article: 'a',
-    activates: {
+    effects: {
         enter: { tile: 'DOOR_OPEN' },
         open: { tile: 'DOOR_OPEN_ALWAYS' },
     },
@@ -4092,7 +4096,7 @@ install$1('DOOR_OPEN', 'DOOR', {
     flags: '!L_BLOCKS_ITEMS, !L_BLOCKS_VISION',
     name: 'open door',
     article: 'an',
-    activates: {
+    effects: {
         tick: {
             chance: 100 * 100,
             tile: 'DOOR',
@@ -4104,7 +4108,7 @@ install$1('DOOR_OPEN', 'DOOR', {
     },
 });
 install$1('DOOR_OPEN_ALWAYS', 'DOOR_OPEN', {
-    activates: {
+    effects: {
         tick: null,
         close: { tile: 'DOOR', flags: 'E_SUPERPRIORITY, E_ONLY_IF_EMPTY' },
     },
@@ -4117,7 +4121,7 @@ install$1('UP_STAIRS', {
     flags: 'T_UP_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR',
     name: 'upward staircase',
     article: 'an',
-    activates: {
+    effects: {
         player: { emit: 'UP_STAIRS' },
     },
 });
@@ -4129,7 +4133,7 @@ install$1('DOWN_STAIRS', {
     flags: 'T_DOWN_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR',
     name: 'downward staircase',
     article: 'a',
-    activates: {
+    effects: {
         player: { emit: 'DOWN_STAIRS' },
     },
 });
@@ -4143,6 +4147,17 @@ install$1('WALL', {
     name: 'stone wall',
     desc: 'A wall made from rough cut stone.',
     flavor: 'a rough stone wall',
+});
+install$1('IMPREGNABLE', {
+    ch: '#',
+    fg: [7, 7, 7, 0, 3, 3, 3],
+    bg: [40, 40, 40, 10, 10, 0, 5],
+    priority: 100,
+    flags: 'L_BLOCKS_EVERYTHING, IMPREGNABLE',
+    article: 'a',
+    name: 'impregnable wall',
+    desc: 'A wall made from very hard stone.',
+    flavor: 'an impregnable wall',
 });
 install$1('LAKE', {
     ch: '~',

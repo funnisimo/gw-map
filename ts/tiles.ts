@@ -27,7 +27,7 @@ Tile.install('DOOR', {
     flags:
         'T_IS_DOOR, L_BLOCKS_EFFECTS, L_BLOCKS_ITEMS, L_BLOCKS_VISION, L_VISUALLY_DISTINCT',
     article: 'a',
-    activates: {
+    effects: {
         enter: { tile: 'DOOR_OPEN' },
         open: { tile: 'DOOR_OPEN_ALWAYS' },
     },
@@ -41,7 +41,7 @@ Tile.install('DOOR_OPEN', 'DOOR', {
     flags: '!L_BLOCKS_ITEMS, !L_BLOCKS_VISION',
     name: 'open door',
     article: 'an',
-    activates: {
+    effects: {
         tick: {
             chance: 100 * 100, // 100%
             tile: 'DOOR',
@@ -54,7 +54,7 @@ Tile.install('DOOR_OPEN', 'DOOR', {
 });
 
 Tile.install('DOOR_OPEN_ALWAYS', 'DOOR_OPEN', {
-    activates: {
+    effects: {
         tick: null,
         close: { tile: 'DOOR', flags: 'E_SUPERPRIORITY, E_ONLY_IF_EMPTY' },
     },
@@ -69,7 +69,7 @@ Tile.install('UP_STAIRS', {
         'T_UP_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR',
     name: 'upward staircase',
     article: 'an',
-    activates: {
+    effects: {
         player: { emit: 'UP_STAIRS' },
     },
 });
@@ -82,7 +82,7 @@ Tile.install('DOWN_STAIRS', {
         'T_DOWN_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR',
     name: 'downward staircase',
     article: 'a',
-    activates: {
+    effects: {
         player: { emit: 'DOWN_STAIRS' },
     },
 });
@@ -97,6 +97,18 @@ Tile.install('WALL', {
     name: 'stone wall',
     desc: 'A wall made from rough cut stone.',
     flavor: 'a rough stone wall',
+});
+
+Tile.install('IMPREGNABLE', {
+    ch: '#',
+    fg: [7, 7, 7, 0, 3, 3, 3],
+    bg: [40, 40, 40, 10, 10, 0, 5],
+    priority: 100,
+    flags: 'L_BLOCKS_EVERYTHING, IMPREGNABLE',
+    article: 'a',
+    name: 'impregnable wall',
+    desc: 'A wall made from very hard stone.',
+    flavor: 'an impregnable wall',
 });
 
 Tile.install('LAKE', {

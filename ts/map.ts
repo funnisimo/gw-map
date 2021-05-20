@@ -82,6 +82,7 @@ export interface MapMatchOptions {
     blockingMap: Grid.NumGrid;
     liquids: boolean;
     match: MapMatchFn;
+    forbidLayerFlags: number;
     forbidCellFlags: number;
     forbidTileFlags: number;
     forbidTileMechFlags: number;
@@ -121,6 +122,7 @@ export class Map implements Types.MapType {
     public lights: LightInfo | null = null;
     public id: string;
     public fov: Utils.XY | null = null;
+    public effects: Record<string, EFFECT.Effect | string> = {};
 
     constructor(w: number, h: number, opts: any = {}) {
         this._width = w;
@@ -188,7 +190,7 @@ export class Map implements Types.MapType {
         return this.cells[x][y];
     }
     get(x: number, y: number) {
-        return this.cells[x][y];
+        return this.cells.get(x, y);
     }
 
     eachCell(fn: MapEachFn) {
@@ -269,11 +271,21 @@ export class Map implements Types.MapType {
     hasLayerFlag(x: number, y: number, flag: LayerFlags) {
         return this.cell(x, y).hasLayerFlag(flag);
     }
-    hasTileFlag(x: number, y: number, flag: TileFlags) {
-        return this.cell(x, y).hasTileFlag(flag);
+    hasTileFlag(
+        x: number,
+        y: number,
+        flag: TileFlags,
+        limitToPlayerKnowledge = false
+    ) {
+        return this.cell(x, y).hasTileFlag(flag, limitToPlayerKnowledge);
     }
-    hasTileMechFlag(x: number, y: number, flag: TileMechFlags) {
-        return this.cell(x, y).hasTileMechFlag(flag);
+    hasTileMechFlag(
+        x: number,
+        y: number,
+        flag: TileMechFlags,
+        limitToPlayerKnowledge = false
+    ) {
+        return this.cell(x, y).hasTileMechFlag(flag, limitToPlayerKnowledge);
     }
 
     redrawCell(cell: Cell.Cell) {
@@ -642,16 +654,15 @@ export class Map implements Types.MapType {
         matcher: MapMatchFn,
         only4dirs = false
     ): Utils.Loc {
-        const maxIndex = only4dirs ? 4 : 8;
-        for (let d = 0; d < maxIndex; ++d) {
-            const dir = Utils.DIRS[d];
-            const i = x + dir[0];
-            const j = y + dir[1];
-            if (this.hasXY(i, j)) {
-                if (matcher(this.cells[i][j], i, j, this)) return [i, j];
-            }
-        }
-        return [-1, -1];
+        return Utils.matchingNeighbor(
+            x,
+            y,
+            (i, j) => {
+                if (!this.hasXY(i, j)) return false;
+                return matcher(this.cell(i, j), i, j, this);
+            },
+            only4dirs
+        );
     }
 
     // blockingMap is optional
@@ -757,6 +768,7 @@ export class Map implements Types.MapType {
         const forbidLiquid = opts.liquids === false;
         const matcher = opts.match || Utils.TRUE;
         const forbidCellFlags = opts.forbidCellFlags || 0;
+        const forbidLayerFlags = opts.forbidLayerFlags || 0;
         const forbidTileFlags = opts.forbidTileFlags || 0;
         const forbidTileMechFlags = opts.forbidTileMechFlags || 0;
         const tile = opts.tile || null;
@@ -775,6 +787,7 @@ export class Map implements Types.MapType {
                 (!forbidLiquid || !cell.liquid) &&
                 (!forbidCellFlags || !(cell.flags.cell & forbidCellFlags)) &&
                 (!forbidTileFlags || !cell.hasTileFlag(forbidTileFlags)) &&
+                (!forbidLayerFlags || !cell.hasLayerFlag(forbidLayerFlags)) &&
                 (!forbidTileMechFlags ||
                     !cell.hasTileMechFlag(forbidTileMechFlags)) &&
                 (hallwaysAllowed || this.walkableArcCount(x, y) < 2) &&
@@ -926,7 +939,7 @@ export class Map implements Types.MapType {
         const flag =
             theActor === DATA.player
                 ? CellFlags.HAS_PLAYER
-                : CellFlags.HAS_ANY_ACTOR;
+                : CellFlags.HAS_ACTOR;
         cell.flags.cell |= flag;
         // if (theActor.flags & Flags.Actor.MK_DETECTED)
         // {
@@ -968,6 +981,16 @@ export class Map implements Types.MapType {
     moveActor(x: number, y: number, actor: Types.ActorType) {
         if (!this.hasXY(x, y)) return false;
         this.removeActor(actor);
+
+        if (actor.rememberedInCell) {
+            const cell = this.cell(x, y);
+            if (
+                cell.isAnyKindOfVisible() !==
+                actor.rememberedInCell.isAnyKindOfVisible()
+            ) {
+                actor.rememberedInCell.storeMemory();
+            }
+        }
 
         if (!this.addActor(x, y, actor)) {
             this.addActor(actor.x, actor.y, actor);
@@ -1081,17 +1104,17 @@ export class Map implements Types.MapType {
         return true;
     }
 
-    addItemNear(x: number, y: number, theItem: Types.ItemType) {
-        const loc = this.matchingLocNear(x, y, (cell) => {
-            return !theItem.forbidsCell(cell);
-        });
-        if (!loc || loc[0] < 0) {
-            // GW.ui.message(colors.badMessageColor, 'There is no place to put the item.');
-            return false;
-        }
+    // addItemNear(x: number, y: number, theItem: Types.ItemType) {
+    //     const loc = this.matchingLocNear(x, y, (cell) => {
+    //         return !theItem.forbidsCell(cell);
+    //     });
+    //     if (!loc || loc[0] < 0) {
+    //         // GW.ui.message(colors.badMessageColor, 'There is no place to put the item.');
+    //         return false;
+    //     }
 
-        return this.addItem(loc[0], loc[1], theItem);
-    }
+    //     return this.addItem(loc[0], loc[1], theItem);
+    // }
 
     removeItem(theItem: Types.ItemType) {
         const x = theItem.x;
@@ -1270,7 +1293,7 @@ export class Map implements Types.MapType {
             ) {
                 cell.flags.cellMech &= ~CellMechFlags.PRESSURE_PLATE_DEPRESSED;
             }
-            if (cell.activatesOn('noKey') && !cell.hasKey()) {
+            if (cell.hasEffect('noKey') && !cell.hasKey()) {
                 await cell.activate('noKey', this, x, y);
             }
         });
@@ -1358,7 +1381,7 @@ export class Map implements Types.MapType {
                 (tile.layer === Entity.Layer.GAS ||
                     tile.priority >= bestExtinguishingPriority)
             ) {
-                const effect = EFFECT.from(tile.activates.fire);
+                const effect = EFFECT.from(tile.effects.fire);
                 if (effect && effect.chance > ignitionChance) {
                     ignitionChance = effect.chance;
                 }
@@ -1389,7 +1412,7 @@ export class Map implements Types.MapType {
             }
 
             let event = 'fire';
-            if (explosivePromotion && cell.activatesOn('explode')) {
+            if (explosivePromotion && cell.hasEffect('explode')) {
                 event = 'explode';
             }
             for (let tile of cell.tiles()) {

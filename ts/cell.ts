@@ -73,7 +73,8 @@ export class CellMemory {
 export type TileBase = Tile | string;
 
 interface LayerItem {
-    layer: Types.EntityType;
+    obj: Types.EntityType;
+    layer: Layer;
     next: LayerItem | null;
 }
 
@@ -216,13 +217,14 @@ export class Cell implements Types.CellType {
         }
     }
 
-    isVisible() {
-        return this.flags.cell & Flags.VISIBLE ? true : false;
+    isVisible(): boolean {
+        return !!(this.flags.cell & Flags.VISIBLE);
     }
-    isAnyKindOfVisible() {
-        return (
-            this.flags.cell &
-            Flags.ANY_KIND_OF_VISIBLE /* || CONFIG.playbackOmniscience */
+    isAnyKindOfVisible(): boolean {
+        return !!(
+            (
+                this.flags.cell & Flags.ANY_KIND_OF_VISIBLE
+            ) /* || CONFIG.playbackOmniscience */
         );
     }
     isOrWasAnyKindOfVisible() {
@@ -796,8 +798,8 @@ export class Cell implements Types.CellType {
 
         if (ctx.layer !== undefined) {
             const tile = this.tile(ctx.layer);
-            if (tile && tile.activates) {
-                const ev = tile.activates[name];
+            if (tile && tile.effects) {
+                const ev = tile.effects[name];
                 let effect: Effect.Effect;
                 if (typeof ev === 'string') {
                     effect = Effect.effects[ev];
@@ -821,8 +823,8 @@ export class Cell implements Types.CellType {
         } else {
             // console.log('fire event - %s', name);
             for (let tile of this.tiles()) {
-                if (!tile.activates) continue;
-                const ev = tile.activates[name];
+                if (!tile.effects) continue;
+                const ev = tile.effects[name];
                 // console.log(' - ', ev);
 
                 let effect: Effect.Effect;
@@ -852,9 +854,9 @@ export class Cell implements Types.CellType {
         return fired;
     }
 
-    activatesOn(name: string) {
+    hasEffect(name: string) {
         for (let tile of this.tiles()) {
-            if (tile.activatesOn(name)) return true;
+            if (tile.hasEffect(name)) return true;
         }
         return false;
     }
@@ -871,7 +873,7 @@ export class Cell implements Types.CellType {
         this._item = item;
         if (item) {
             this.flags.cell |= Flags.HAS_ITEM;
-            this.addLayer(item);
+            this.addLayer(item, Layer.ITEM);
         } else {
             this.flags.cell &= ~Flags.HAS_ITEM;
         }
@@ -888,27 +890,30 @@ export class Cell implements Types.CellType {
         }
         this._actor = actor;
         if (actor) {
-            this.flags.cell |= Flags.HAS_ANY_ACTOR;
-            this.addLayer(actor);
+            this.flags.cell |= actor.isPlayer()
+                ? Flags.HAS_PLAYER
+                : Flags.HAS_ACTOR;
+            this.addLayer(actor, Layer.ACTOR);
         } else {
             this.flags.cell &= ~Flags.HAS_ANY_ACTOR;
         }
     }
 
-    addLayer(layer: Types.EntityType) {
-        if (!layer) return;
+    addLayer(obj: Types.EntityType, layer?: Layer) {
+        if (!obj) return;
 
         // this.flags.cell |= Flags.NEEDS_REDRAW;
         this.flags.cell |= Flags.CELL_CHANGED;
         let current = this.layers;
+        layer = layer ?? obj.layer ?? Layer.GROUND;
 
         if (
             !current ||
-            current.layer.layer > layer.layer ||
-            (current.layer.layer == layer.layer &&
-                current.layer.priority > layer.priority)
+            current.layer > layer ||
+            (current.layer == layer && current.obj.priority > obj.priority)
         ) {
             this.layers = {
+                obj,
                 layer,
                 next: current,
             };
@@ -917,15 +922,16 @@ export class Cell implements Types.CellType {
 
         while (
             current.next &&
-            (current.next.layer.layer < layer.layer ||
-                (current.next.layer.layer == layer.layer &&
-                    current.next.layer.priority <= layer.priority))
+            (current.next.layer < layer ||
+                (current.next.layer == layer &&
+                    current.next.obj.priority <= obj.priority))
         ) {
             current = current.next;
         }
 
         const item = {
             layer,
+            obj,
             next: current.next,
         };
         current.next = item;
@@ -938,7 +944,7 @@ export class Cell implements Types.CellType {
         // this.flags.cell |= Flags.NEEDS_REDRAW;
         this.flags.cell |= Flags.CELL_CHANGED;
 
-        if (this.layers && this.layers.layer === layer) {
+        if (this.layers && this.layers.obj === layer) {
             this.layers = this.layers.next;
             return true;
         }
@@ -946,7 +952,7 @@ export class Cell implements Types.CellType {
         let prev = this.layers;
         let current = this.layers.next;
         while (current) {
-            if (current.layer === layer) {
+            if (current.obj === layer) {
                 prev.next = current.next;
                 return true;
             }
@@ -966,27 +972,19 @@ export class Cell implements Types.CellType {
         memory.flags.cell = this.flags.cell;
         memory.flags.cellMech = this.flags.cellMech;
         memory.tile = this.topmostTile();
-        if (this.item) {
+        if (this.item && this.isRevealed()) {
             memory.item = this.item;
             memory.itemQuantity = this.item.quantity;
         } else {
             memory.item = null;
             memory.itemQuantity = 0;
         }
-        memory.actor = this.actor;
-        getAppearance(this, memory.mixer);
 
-        if (this.actor && this.isOrWasAnyKindOfVisible()) {
-            if (
-                this.actor.rememberedInCell &&
-                this.actor.rememberedInCell !== this
-            ) {
-                // console.log("remembered in cell change");
-                this.actor.rememberedInCell.storeMemory();
-                this.actor.rememberedInCell.flags.cell |= Flags.NEEDS_REDRAW;
-            }
-            this.actor.rememberedInCell = this;
+        memory.actor = null;
+        if (this.actor && this.isAnyKindOfVisible()) {
+            memory.actor = this.actor;
         }
+        getAppearance(this, memory.mixer);
     }
 }
 
@@ -1008,14 +1006,16 @@ export function getAppearance(cell: Cell, dest: Sprite.Mixer) {
 
     let current = cell.layers;
     while (current) {
-        const layer = current.layer;
-        let alpha = layer.sprite.opacity || 100;
-        if (layer.layer == Layer.LIQUID) {
+        const obj = current.obj;
+        let alpha = obj.sprite.opacity || 100;
+        if (current.layer == Layer.LIQUID) {
             alpha = Utils.clamp(cell.liquidVolume * 34, 20, 100);
-        } else if (layer.layer == Layer.GAS) {
+        } else if (current.layer == Layer.GAS) {
             alpha = Utils.clamp(cell.gasVolume * 34, 20, 100);
         }
-        memory.drawSprite(layer.sprite, alpha);
+        if (cell.isAnyKindOfVisible() || current.layer < Layer.ACTOR) {
+            memory.drawSprite(obj.sprite, alpha);
+        }
         current = current.next;
     }
 

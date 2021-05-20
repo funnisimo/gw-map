@@ -161,7 +161,7 @@ export async function fireAll(map: Map.Map, event: string) {
                 Cell.MechFlags.EVENT_PROTECTED
         );
         for (let tile of cell.tiles()) {
-            const effect = GW.effect.from(tile.activates[event]);
+            const effect = GW.effect.from(tile.effects[event]);
             if (!effect) continue;
 
             let promoteChance = 0;
