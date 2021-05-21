@@ -334,9 +334,9 @@ declare class Cell$1 implements types.CellType {
     hasMechFlag(flag: CellMech, limitToPlayerKnowledge?: boolean): boolean;
     hasTile(tile: string | types.TileType): boolean;
     topmostTile(skipGas?: boolean): Tile$1;
-    tileWithLayerFlag(layerFlag: number): Tile$1 | null;
-    tileWithFlag(tileFlag: number): Tile$1 | null;
-    tileWithMechFlag(mechFlag: number): Tile$1 | null;
+    tileWithLayerFlag(layerFlag: number): LayerTile;
+    tileWithFlag(tileFlag: number): LayerTile;
+    tileWithMechFlag(mechFlag: number): LayerTile;
     tileDesc(): string | null;
     tileFlavor(): string | null;
     getName(opts?: {}): string;
