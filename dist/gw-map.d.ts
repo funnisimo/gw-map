@@ -435,7 +435,7 @@ declare type MapLightFn = (light: types.LightType, x: number, y: number) => void
 interface DisruptsOptions {
     gridOffsetX: number;
     gridOffsetY: number;
-    bounds: types.Bounds | null;
+    bounds: utils.Bounds | null;
 }
 interface MapFovInfo extends utils.XY {
     lastRadius: number;

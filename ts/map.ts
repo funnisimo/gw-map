@@ -102,7 +102,7 @@ export type MapLightFn = (light: Types.LightType, x: number, y: number) => void;
 export interface DisruptsOptions {
     gridOffsetX: number;
     gridOffsetY: number;
-    bounds: Types.Bounds | null;
+    bounds: Utils.Bounds | null;
 }
 
 export interface MapFovInfo extends Utils.XY {
