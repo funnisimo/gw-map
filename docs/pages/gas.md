@@ -16,29 +16,28 @@ GW.tile.install('SLIME', {
     dissipate: 0,
 });
 
-const map = GW.make.map(20, 20, {
+const map = GW.map.make(20, 20, {
     tile: 'FLOOR',
     wall: 'WALL',
 });
-const loop = GW.make.loop();
-const canvas = GW.canvas.withFont({
+const canvas = GW.canvas.make(map.width, map.height, {
     font: 'monospace',
-    width: map.width,
-    height: map.height,
-    io: LOOP,
+    loop: LOOP,
 });
-map.drawInto(canvas);
+const buffer = canvas.buffer;
 SHOW(canvas.node);
 
 LOOP.run(
     {
         click: async (e) => {
             await map.setTile(e.x, e.y, 'SLIME', GW.random.range(3, 11));
-            map.drawInto(canvas);
         },
         tick: async (e) => {
             await map.tick();
-            map.drawInto(canvas);
+        },
+        draw: () => {
+            map.drawInto(buffer);
+            buffer.render();
         },
     },
     500
@@ -56,29 +55,30 @@ GW.tile.install('SLIME2', {
 
 SHOW(GW.tiles.SLIME2.dissipate);
 
-const map = GW.make.map(20, 20, {
+const map = GW.map.make(20, 20, {
     tile: 'FLOOR',
     wall: 'WALL',
 });
-const loop = GW.make.loop();
-const canvas = GW.canvas.withFont({
+const canvas = GW.canvas.make({
     font: 'monospace',
     width: map.width,
     height: map.height,
-    io: LOOP,
+    loop: LOOP,
 });
-map.drawInto(canvas);
+const buffer = canvas.buffer;
 SHOW(canvas.node);
 
 LOOP.run(
     {
         click: async (e) => {
             await map.setTile(e.x, e.y, 'SLIME2', GW.random.range(3, 11));
-            map.drawInto(canvas);
         },
         tick: async (e) => {
             await map.tick();
-            map.drawInto(canvas);
+        },
+        draw: () => {
+            map.drawInto(buffer);
+            buffer.render();
         },
     },
     500
@@ -101,29 +101,30 @@ GW.tile.install('SWAMP_GAS', {
     dissipate: 0,
 });
 
-const map = GW.make.map(20, 20, {
+const map = GW.map.make(20, 20, {
     tile: 'FLOOR',
     wall: 'WALL',
 });
-const loop = GW.make.loop();
-const canvas = GW.canvas.withFont({
+const canvas = GW.canvas.make({
     font: 'monospace',
     width: map.width,
     height: map.height,
-    io: LOOP,
+    loop: LOOP,
 });
-map.drawInto(canvas);
+const buffer = canvas.buffer;
 SHOW(canvas.node);
 
 LOOP.run(
     {
         click: async (e) => {
             await map.setTile(e.x, e.y, 'SWAMP_GAS', GW.random.range(30, 50));
-            map.drawInto(canvas);
         },
         tick: async (e) => {
             await map.tick();
-            map.drawInto(canvas);
+        },
+        draw: () => {
+            map.drawInto(buffer);
+            buffer.render();
         },
     },
     500
@@ -140,29 +141,30 @@ GW.tile.install('SWAMP_GAS2', {
     dissipate: 20 * 100, // 20%
 });
 
-const map = GW.make.map(20, 20, {
+const map = GW.map.make(20, 20, {
     tile: 'FLOOR',
     wall: 'WALL',
 });
-const loop = GW.make.loop();
-const canvas = GW.canvas.withFont({
+const canvas = GW.canvas.make({
     font: 'monospace',
     width: map.width,
     height: map.height,
-    io: LOOP,
+    loop: LOOP,
 });
-map.drawInto(canvas);
+const buffer = canvas.buffer;
 SHOW(canvas.node);
 
 LOOP.run(
     {
         click: async (e) => {
             await map.setTile(e.x, e.y, 'SWAMP_GAS2', GW.random.range(30, 50));
-            map.drawInto(canvas);
         },
         tick: async (e) => {
             await map.tick();
-            map.drawInto(canvas);
+        },
+        draw: () => {
+            map.drawInto(buffer);
+            buffer.render();
         },
     },
     500

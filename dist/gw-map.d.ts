@@ -484,7 +484,7 @@ declare class Map$1 implements types.MapType {
     redrawCell(cell: Cell$1): void;
     redrawXY(x: number, y: number): void;
     redrawAll(): void;
-    drawInto(canvas: canvas.Canvas | canvas.DataBuffer, opts?: Partial<MapDrawOptions> | boolean): void;
+    drawInto(dest: canvas.Canvas | canvas.DataBuffer, opts?: Partial<MapDrawOptions> | boolean): void;
     revealAll(): void;
     markRevealed(x: number, y: number): void;
     makeVisible(v?: boolean): void;

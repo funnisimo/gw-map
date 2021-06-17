@@ -310,23 +310,25 @@ export class Map implements Types.MapType {
     }
 
     drawInto(
-        canvas: Canvas.Canvas | Canvas.DataBuffer,
+        dest: Canvas.Canvas | Canvas.DataBuffer,
         opts: Partial<MapDrawOptions> | boolean = {}
     ) {
         Light.updateLighting(this);
+        const buffer: Canvas.DataBuffer =
+            dest instanceof Canvas.Canvas ? dest.buffer : dest;
 
         if (typeof opts === 'boolean') opts = { force: opts };
         const mixer = new Sprite.Mixer();
-        for (let x = 0; x < canvas.width; ++x) {
-            for (let y = 0; y < canvas.height; ++y) {
+        for (let x = 0; x < buffer.width; ++x) {
+            for (let y = 0; y < buffer.height; ++y) {
                 const cell = this.cell(x, y);
                 if (cell.needsRedraw || opts.force) {
                     getCellAppearance(this, x, y, mixer);
                     const glyph =
                         typeof mixer.ch === 'number'
                             ? mixer.ch
-                            : canvas.toGlyph(mixer.ch);
-                    canvas.draw(
+                            : buffer.toGlyph(mixer.ch);
+                    buffer.draw(
                         x,
                         y,
                         glyph,

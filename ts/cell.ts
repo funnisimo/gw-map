@@ -234,7 +234,10 @@ export class Cell implements Types.CellType {
         );
     }
     isRevealed(orMapped = false): boolean {
-        const flag = Flags.REVEALED | (orMapped ? Flags.MAGIC_MAPPED : 0);
+        const flag =
+            Flags.REVEALED |
+            Flags.VISIBLE |
+            (orMapped ? Flags.MAGIC_MAPPED : 0);
         return (this.flags.cell & flag) > 0;
     }
     listInSidebar(): boolean {

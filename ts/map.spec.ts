@@ -516,7 +516,7 @@ describe('Map', () => {
         const map: Map.map.Map = GW.make.map(10, 10, 'FLOOR');
 
         map.setTile(9, 8, 'WALL');
-        expect(isWall(map.get(9, 8))).toBeTruthy();
+        expect(isWall(map.cell(9, 8))).toBeTruthy();
 
         expect(map.matchingLocNear(3, 3, isWall)).toEqual([9, 8]);
         expect(map.matchingLocNear(3, 3, { match: isWall })).toEqual([9, 8]);

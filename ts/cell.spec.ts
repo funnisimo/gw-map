@@ -130,11 +130,17 @@ describe('Cell', () => {
 
     test('isRevealed', () => {
         const cell: Cell = GW.make.cell();
+        expect(cell.isRevealed()).toBeTruthy();
+        expect(cell.isRevealed(true)).toBeTruthy();
+
+        cell.flags.cell &= ~Map.cell.Flags.VISIBLE;
         expect(cell.isRevealed()).toBeFalsy();
         expect(cell.isRevealed(true)).toBeFalsy();
+
         cell.setFlags(Map.cell.Flags.MAGIC_MAPPED);
         expect(cell.isRevealed()).toBeFalsy();
         expect(cell.isRevealed(true)).toBeTruthy();
+
         cell.markRevealed();
         expect(cell.isRevealed()).toBeTruthy();
         expect(cell.isRevealed(true)).toBeTruthy();
@@ -890,7 +896,8 @@ describe('Cell', () => {
         // @ts-ignore
         c.addLayer({ sprite: GW.make.sprite('@'), layer: 6 });
         expect(c.layers).toMatchObject({
-            layer: {
+            layer: 6,
+            obj: {
                 layer: 6,
                 sprite: { ch: '@', fg: GW.colors.white, bg: -1 },
             },
@@ -900,13 +907,15 @@ describe('Cell', () => {
         // @ts-ignore
         c.addLayer({ sprite: GW.make.sprite('i'), layer: 4 });
         expect(c.layers).toMatchObject({
-            layer: {
+            layer: 4,
+            obj: {
                 layer: 4,
                 sprite: { ch: 'i', fg: GW.colors.white, bg: -1 },
             },
         });
         expect(c.layers!.next).toMatchObject({
-            layer: {
+            layer: 6,
+            obj: {
                 layer: 6,
                 sprite: { ch: '@', fg: GW.colors.white, bg: -1 },
             },
@@ -927,9 +936,9 @@ describe('Cell', () => {
         c.addLayer({ sprite: b, layer: Map.entity.Layer.UI, priority: 100 });
 
         expect(c.layers).not.toBeNull();
-        expect(c.layers!.layer.sprite).toBe(Map.tiles.FLOOR.sprite);
-        expect(c.layers!.next!.layer.sprite).toBe(a);
-        expect(c.layers!.next!.next!.layer.sprite).toBe(b);
+        expect(c.layers!.obj.sprite).toBe(Map.tiles.FLOOR.sprite);
+        expect(c.layers!.next!.obj.sprite).toBe(a);
+        expect(c.layers!.next!.next!.obj.sprite).toBe(b);
 
         const app = new GW.sprite.Mixer();
         Map.cell.getAppearance(c, app);
@@ -945,14 +954,26 @@ describe('Cell', () => {
         const starting = {
             sprite: GW.sprite.make(null, null, 'green'),
             layer: Map.entity.Layer.SURFACE,
+            priority: 50,
+            light: null,
+            flags: { layer: 0 },
+            hasLayerFlag: GW.utils.FALSE,
         } as Map.entity.Entity;
         const actor = {
             sprite: GW.sprite.make('@', 'white', 'blue'),
             layer: Map.entity.Layer.ACTOR,
+            priority: 50,
+            light: null,
+            flags: { layer: 0 },
+            hasLayerFlag: GW.utils.FALSE,
         } as Map.entity.Entity;
         const replacement = {
             sprite: GW.sprite.make(null, null, 'red'),
             layer: Map.entity.Layer.SURFACE,
+            priority: 50,
+            light: null,
+            flags: { layer: 0 },
+            hasLayerFlag: GW.utils.FALSE,
         } as Map.entity.Entity;
 
         c.addLayer(starting);
@@ -961,9 +982,9 @@ describe('Cell', () => {
         c.addLayer(replacement);
 
         expect(c.layers).not.toBeNull();
-        expect(c.layers!.layer.sprite).toBe(Map.tiles.FLOOR.sprite);
-        expect(c.layers!.next!.layer).toBe(replacement);
-        expect(c.layers!.next!.next!.layer).toBe(actor);
+        expect(c.layers!.obj.sprite).toBe(Map.tiles.FLOOR.sprite);
+        expect(c.layers!.next!.obj).toBe(replacement);
+        expect(c.layers!.next!.next!.obj).toBe(actor);
     });
 
     test('layers will blend opacities', () => {
@@ -991,8 +1012,8 @@ describe('Cell', () => {
         c.addLayer(b);
 
         expect(c.layers).not.toBeNull();
-        expect(c.layers!.next!.layer).toBe(a);
-        expect(c.layers!.next!.next!.layer).toBe(b);
+        expect(c.layers!.next!.obj).toBe(a);
+        expect(c.layers!.next!.next!.obj).toBe(b);
 
         const app = new GW.sprite.Mixer();
         Map.cell.getAppearance(c, app);
@@ -1070,7 +1091,7 @@ describe('Cell', () => {
                 Map.cell.Flags.IN_FOV |
                 Map.cell.Flags.NEEDS_REDRAW |
                 Map.cell.Flags.CELL_CHANGED |
-                Map.cell.Flags.HAS_ANY_ACTOR |
+                Map.cell.Flags.HAS_ACTOR |
                 Map.cell.Flags.HAS_ITEM
         );
         expect(c.memory.flags.cellMech).toEqual(0);
@@ -1087,8 +1108,7 @@ describe('Cell', () => {
 
         actor.rememberedInCell = otherCell;
         c.storeMemory();
-        expect(otherCell.storeMemory).toHaveBeenCalled();
-        expect(otherCell.flags.cell).toBeGreaterThan(0);
+        expect(otherCell.storeMemory).not.toHaveBeenCalled();
     });
 
     test('will set liquid with volume', () => {

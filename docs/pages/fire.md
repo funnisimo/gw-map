@@ -13,7 +13,7 @@ GW.tile.install('GRASS', {
     fg: 'green',
     name: 'grass',
     flags: 'T_IS_FLAMMABLE',
-    activates: {
+    effects: {
         fire: { tile: 'GRASS_ON_FIRE', chance: 80 * 100 },
     },
 });
@@ -40,7 +40,7 @@ GW.tile.install('GRASS_ON_FIRE', {
     name: 'burning grass',
     flags: 'T_IS_FIRE',
     priority: 100,
-    activates: {
+    effects: {
         tick: {
             tile: 'GRASS_BURNT',
             chance: 30 * 100,
@@ -57,14 +57,15 @@ const map = GW.make.map(20, 20, {
     tile: 'FLOOR',
     wall: 'WALL',
 });
-const loop = GW.make.loop();
-const canvas = GW.canvas.withFont({
+const canvas = GW.canvas.make({
     font: 'monospace',
     width: map.width,
     height: map.height,
-    io: LOOP,
+    loop: LOOP,
 });
-map.drawInto(canvas);
+const buffer = canvas.buffer;
+// map.drawInto(buffer);
+// buffer.render();
 SHOW(canvas.node);
 
 LOOP.run(
@@ -81,7 +82,8 @@ LOOP.run(
             await map.tick();
         },
         draw: () => {
-            map.drawInto(canvas);
+            map.drawInto(buffer);
+            buffer.render();
         },
     },
     500

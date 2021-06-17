@@ -1003,7 +1003,9 @@ class Cell$1 {
             Cell.IS_WAS_ANY_KIND_OF_VISIBLE /* || CONFIG.playbackOmniscience */);
     }
     isRevealed(orMapped = false) {
-        const flag = Cell.REVEALED | (orMapped ? Cell.MAGIC_MAPPED : 0);
+        const flag = Cell.REVEALED |
+            Cell.VISIBLE |
+            (orMapped ? Cell.MAGIC_MAPPED : 0);
         return (this.flags.cell & flag) > 0;
     }
     listInSidebar() {
@@ -2857,20 +2859,21 @@ class Map$1 {
         });
         this.changed = true;
     }
-    drawInto(canvas, opts = {}) {
+    drawInto(dest, opts = {}) {
         updateLighting(this);
+        const buffer = dest instanceof GW.canvas.Canvas ? dest.buffer : dest;
         if (typeof opts === 'boolean')
             opts = { force: opts };
         const mixer = new GW.sprite.Mixer();
-        for (let x = 0; x < canvas.width; ++x) {
-            for (let y = 0; y < canvas.height; ++y) {
+        for (let x = 0; x < buffer.width; ++x) {
+            for (let y = 0; y < buffer.height; ++y) {
                 const cell = this.cell(x, y);
                 if (cell.needsRedraw || opts.force) {
                     getCellAppearance(this, x, y, mixer);
                     const glyph = typeof mixer.ch === 'number'
                         ? mixer.ch
-                        : canvas.toGlyph(mixer.ch);
-                    canvas.draw(x, y, glyph, mixer.fg.toInt(), mixer.bg.toInt());
+                        : buffer.toGlyph(mixer.ch);
+                    buffer.draw(x, y, glyph, mixer.fg.toInt(), mixer.bg.toInt());
                     cell.needsRedraw = false;
                 }
             }
