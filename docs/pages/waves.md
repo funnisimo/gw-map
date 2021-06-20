@@ -15,8 +15,8 @@ GW.tile.install('WAVE_DONE', {
     flags: 'T_DEEP_WATER',
     name: 'water',
     article: 'some',
-    activates: {
-        tick: { tile: 'LAKE', flags: 'E_SUPERPRIORITY' },
+    effects: {
+        tick: { tile: 'LAKE', flags: 'E_SUPERPRIORITY, E_PROTECTED' },
     },
 });
 
@@ -28,7 +28,7 @@ GW.tile.install('WAVE', {
     flags: 'T_DEEP_WATER',
     name: 'wave crest',
     article: 'the',
-    activates: {
+    effects: {
         tick: {
             tile: {
                 id: 'WAVE',
@@ -47,24 +47,27 @@ const map = GW.make.map(20, 20, {
     wall: 'WALL',
 });
 const loop = GW.make.loop();
-const canvas = GW.canvas.withFont({
+const canvas = GW.canvas.make({
     font: 'monospace',
     width: map.width,
     height: map.height,
-    io: LOOP,
+    loop: LOOP,
 });
-map.drawInto(canvas);
+map.drawInto(canvas.buffer);
+canvas.buffer.render();
 SHOW(canvas.node);
 
 LOOP.run(
     {
         click: async (e) => {
             await map.setTile(e.x, e.y, 'WAVE');
-            map.drawInto(canvas);
+            map.drawInto(canvas.buffer);
+            canvas.buffer.render();
         },
         tick: async (e) => {
             await map.tick();
-            map.drawInto(canvas);
+            map.drawInto(canvas.buffer);
+            canvas.buffer.render();
         },
     },
     500

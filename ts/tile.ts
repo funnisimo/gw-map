@@ -96,7 +96,7 @@ export class Tile extends Layer.Entity implements Types.TileType {
         let base: Tile = config.Extends as Tile;
         if (base) {
             Utils.assignOmitting(
-                ['sprite', 'depth', 'priority', 'activates', 'flags', 'light'],
+                ['sprite', 'depth', 'priority', 'effects', 'flags', 'light'],
                 this,
                 base
             );

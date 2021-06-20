@@ -124,7 +124,7 @@ Tile.install('LAKE', {
 Tile.install('SHALLOW', {
     ch: '\u00b7',
     fg: [5, 8, 10, 10, 0, 4, 15, true],
-    bg: [10, 15, 31, 6, 5, 5, 5, true],
+    bg: [10, 30, 30, 6, 0, 10, 10, true],
     priority: 20,
     name: 'shallow water',
     article: 'the',

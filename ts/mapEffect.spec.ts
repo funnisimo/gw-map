@@ -32,7 +32,8 @@ describe('tile effect', () => {
 
         GW.data.gameHasEnded = false;
 
-        UTILS.mockRandom();
+        // UTILS.mockRandom();
+        GW.random.seed(12345);
         GW.events.removeAllListeners();
     });
 
@@ -284,10 +285,10 @@ describe('tile effect', () => {
                 Effect.computeSpawnMap(config, effect, ctx.x, ctx.y)
             ).toBeTruthy();
             // grid.dump();
-            expect(grid.count((v) => !!v)).toEqual(11);
+            expect(grid.count((v) => !!v)).toEqual(5);
             expect(grid[10][10]).toEqual(1);
             expect(grid[9][8]).toEqual(0);
-            expect(grid[13][10]).toEqual(6);
+            expect(grid[10][8]).toEqual(3);
         });
 
         // // DFF_SPREAD_CIRCLE

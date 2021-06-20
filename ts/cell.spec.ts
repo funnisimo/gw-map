@@ -1330,7 +1330,8 @@ describe('Cell', () => {
     test('activate', async () => {
         const map: Map.map.Map = Map.map.make(10, 10);
         const cell: Cell = GW.make.cell('LOW_CHANCE');
-        UTILS.mockRandom();
+        // UTILS.mockRandom();
+        GW.random.seed(12345);
         expect(await cell.activate('enter', map, 5, 5, {})).toBeFalsy();
     });
 

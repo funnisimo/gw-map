@@ -51,12 +51,13 @@ const prefab = [
 ];
 
 const map = GW.map.from(prefab, charToTile);
-const canvas = GW.canvas.withFont({
+const canvas = GW.canvas.make({
     font: 'monospace',
     width: map.width,
     height: map.height,
 });
-map.drawInto(canvas);
+map.drawInto(canvas.buffer);
+canvas.buffer.render();
 SHOW(canvas.node);
 ```
 
@@ -117,17 +118,19 @@ const map = GW.map.from(prefab, charToTile, {
     fov: true,
     revealed: true,
 });
-const canvas = GW.canvas.withFont({
+const canvas = GW.canvas.make({
     font: 'monospace',
     width: map.width,
     height: map.height,
 });
-map.drawInto(canvas);
+map.drawInto(canvas.buffer);
+canvas.buffer.render();
 SHOW(canvas.node);
 
 canvas.onmousemove = (e) => {
     GW.visibility.update(map, e.x, e.y, 10);
-    map.drawInto(canvas);
+    map.drawInto(canvas.buffer);
+    canvas.buffer.render();
 };
 ```
 
@@ -143,7 +146,7 @@ GW.tile.install('GRASS', {
     ch: '"',
     fg: 'green',
     priority: 25,
-    activates: {
+    effects: {
         enter: { tile: 'GRASS_TRAMPLED' },
     },
 });
@@ -153,7 +156,7 @@ GW.tile.install('GRASS_TRAMPLED', {
     ch: "'",
     fg: 'dark_green',
     priority: 50,
-    activates: {
+    effects: {
         tick: {
             chance: 10 * 100, // 10% of the time...
             tile: 'GRASS', // replace this tile with GRASS
@@ -167,24 +170,27 @@ const map = GW.make.map(20, 20, {
     wall: 'WALL',
 });
 const loop = GW.make.loop();
-const canvas = GW.canvas.withFont({
+const canvas = GW.canvas.make({
     font: 'monospace',
     width: map.width,
     height: map.height,
-    io: LOOP,
+    loop: LOOP,
 });
-map.drawInto(canvas);
+map.drawInto(canvas.buffer);
+canvas.buffer.render();
 SHOW(canvas.node);
 
 LOOP.run(
     {
         mousemove: async (e) => {
             await map.activateCell(e.x, e.y, 'enter');
-            map.drawInto(canvas);
+            map.drawInto(canvas.buffer);
+            canvas.buffer.render();
         },
         tick: async (e) => {
             await map.tick();
-            map.drawInto(canvas);
+            map.drawInto(canvas.buffer);
+            canvas.buffer.render();
         },
     },
     500
@@ -230,14 +236,15 @@ const prefab = [
 ];
 
 const map = GW.map.from(prefab, charToTile, { fov: true });
-const canvas = GW.canvas.withFont({
+const canvas = GW.canvas.make({
     font: 'monospace',
     width: map.width,
     height: map.height,
-    io: LOOP,
+    loop: LOOP,
 });
 GW.visibility.update(map, 5, 5, 10);
-map.drawInto(canvas);
+map.drawInto(canvas.buffer);
+canvas.buffer.render();
 SHOW(canvas.node);
 
 LOOP.run(
@@ -245,12 +252,14 @@ LOOP.run(
         mousemove: async (e) => {
             await map.activateCell(e.x, e.y, 'enter');
             GW.visibility.update(map, 5, 5, 10);
-            map.drawInto(canvas);
+            map.drawInto(canvas.buffer);
+            canvas.buffer.render();
         },
         tick: async (e) => {
             await map.tick();
             GW.visibility.update(map, 5, 5, 10);
-            map.drawInto(canvas);
+            map.drawInto(canvas.buffer);
+            canvas.buffer.render();
         },
     },
     500

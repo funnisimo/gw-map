@@ -656,7 +656,7 @@
             this.defaultGround = null;
             let base = config.Extends;
             if (base) {
-                GW.utils.assignOmitting(['sprite', 'depth', 'priority', 'activates', 'flags', 'light'], this, base);
+                GW.utils.assignOmitting(['sprite', 'depth', 'priority', 'effects', 'flags', 'light'], this, base);
                 if (base.effects) {
                     Object.assign(this.effects, base.effects);
                 }
@@ -4174,7 +4174,7 @@
     install$1('SHALLOW', {
         ch: '\u00b7',
         fg: [5, 8, 10, 10, 0, 4, 15, true],
-        bg: [10, 15, 31, 6, 5, 5, 5, true],
+        bg: [10, 30, 30, 6, 0, 10, 10, true],
         priority: 20,
         name: 'shallow water',
         article: 'the',
@@ -4201,4 +4201,3 @@
     Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
-//# sourceMappingURL=gw-map.js.map
