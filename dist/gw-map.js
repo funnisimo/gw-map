@@ -654,6 +654,7 @@
             this.article = null;
             this.dissipate = 2000; // 20 * 100 = 20%
             this.defaultGround = null;
+            this.index = -1;
             let base = config.Extends;
             if (base) {
                 GW.utils.assignOmitting(['sprite', 'depth', 'priority', 'effects', 'flags', 'light'], this, base);
@@ -778,6 +779,7 @@
     }
     GW.make.tile = make$2;
     const tiles = {};
+    const allTiles = [];
     function install$1(...args) {
         let id = args[0];
         let base = args[1];
@@ -798,6 +800,8 @@
         config.id = id;
         const tile = make$2(config);
         tiles[id] = tile;
+        tile.index = allTiles.length;
+        allTiles.push(tile);
         return tile;
     }
     /**
@@ -822,6 +826,7 @@
         Tile: Tile$1,
         make: make$2,
         tiles: tiles,
+        allTiles: allTiles,
         install: install$1,
         installAll: installAll$1
     };

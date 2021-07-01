@@ -56,6 +56,7 @@ export class Tile extends Layer.Entity implements Types.TileType {
 
     public dissipate = 2000; // 20 * 100 = 20%
     public defaultGround: string | null = null;
+    public index = -1;
 
     /**
      * Creates a new Tile object.
@@ -270,6 +271,7 @@ export function make(config: TileConfig) {
 Make.tile = make;
 
 export const tiles: Record<string, Tile> = {};
+export const allTiles: Tile[] = [];
 
 /**
  * Adds a new Tile into the GW.tiles collection.
@@ -307,6 +309,8 @@ export function install(...args: any[]) {
     config.id = id;
     const tile = make(config);
     tiles[id] = tile;
+    tile.index = allTiles.length;
+    allTiles.push(tile);
     return tile;
 }
 

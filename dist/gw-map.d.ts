@@ -176,6 +176,7 @@ declare class Tile$1 extends Entity$1 implements types.TileType {
     id: string;
     dissipate: number;
     defaultGround: string | null;
+    index: number;
     /**
      * Creates a new Tile object.
      * @param {Object} [config={}] - The configuration of the Tile
@@ -206,6 +207,7 @@ declare class Tile$1 extends Entity$1 implements types.TileType {
 }
 declare function make(config: TileConfig): Tile$1;
 declare const tiles: Record<string, Tile$1>;
+declare const allTiles: Tile$1[];
 /**
  * Adds a new Tile into the GW.tiles collection.
  * @param {String} [id] - The identifier for this Tile
@@ -231,6 +233,7 @@ type tile_d_FullTileConfig = FullTileConfig;
 type tile_d_TileConfig = TileConfig;
 declare const tile_d_make: typeof make;
 declare const tile_d_tiles: typeof tiles;
+declare const tile_d_allTiles: typeof allTiles;
 declare const tile_d_install: typeof install;
 declare const tile_d_installAll: typeof installAll;
 declare namespace tile_d {
@@ -243,6 +246,7 @@ declare namespace tile_d {
     Tile$1 as Tile,
     tile_d_make as make,
     tile_d_tiles as tiles,
+    tile_d_allTiles as allTiles,
     tile_d_install as install,
     tile_d_installAll as installAll,
   };

@@ -650,6 +650,7 @@ class Tile$1 extends Entity$1 {
         this.article = null;
         this.dissipate = 2000; // 20 * 100 = 20%
         this.defaultGround = null;
+        this.index = -1;
         let base = config.Extends;
         if (base) {
             utils.assignOmitting(['sprite', 'depth', 'priority', 'effects', 'flags', 'light'], this, base);
@@ -774,6 +775,7 @@ function make$2(config) {
 }
 make$5.tile = make$2;
 const tiles = {};
+const allTiles = [];
 function install$1(...args) {
     let id = args[0];
     let base = args[1];
@@ -794,6 +796,8 @@ function install$1(...args) {
     config.id = id;
     const tile = make$2(config);
     tiles[id] = tile;
+    tile.index = allTiles.length;
+    allTiles.push(tile);
     return tile;
 }
 /**
@@ -818,6 +822,7 @@ var tile = {
     Tile: Tile$1,
     make: make$2,
     tiles: tiles,
+    allTiles: allTiles,
     install: install$1,
     installAll: installAll$1
 };
