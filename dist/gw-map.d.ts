@@ -1,4 +1,4 @@
-import { color, types, effect, sprite, grid, utils, canvas, range, flag } from 'gw-utils';
+import { color, effect, types, sprite, grid, utils, canvas, range, flag } from 'gw-utils';
 
 declare enum Layer {
     ALL_LAYERS = -1,
@@ -152,9 +152,8 @@ interface NameConfig {
 interface FullTileConfig extends EntityConfig {
     Extends: string | Tile$1;
     flags: number | string | any[];
-    mechFlags: number | string | any[];
     priority: number;
-    effects: any;
+    effects: Record<string, Partial<effect.EffectConfig | string | null>>;
     flavor: string;
     desc: string;
     name: string;
@@ -169,7 +168,7 @@ declare type TileConfig = AtLeast<FullTileConfig, 'id'>;
 declare class Tile$1 extends Entity$1 implements types.TileType {
     name: string;
     flags: types.TileFlags;
-    effects: Record<string, effect.Effect | string>;
+    effects: Record<string, effect.EffectInfo>;
     flavor: string | null;
     desc: string | null;
     article: string | null;
@@ -459,7 +458,7 @@ declare class Map$1 implements types.MapType {
     lights: LightInfo | null;
     id: string;
     fov: utils.XY | null;
-    effects: Record<string, effect.Effect | string>;
+    effects: Record<string, effect.EffectInfo>;
     constructor(w: number, h: number, opts?: any);
     get width(): number;
     get height(): number;
@@ -752,4 +751,23 @@ declare namespace visibility_d {
   };
 }
 
-export { cell_d as cell, entity_d as entity, light_d as light, lights, map_d as map, tile_d as tile, tiles, visibility_d as visibility };
+interface SpawnConfig {
+    tile: string;
+    grow: number;
+    decrement: number;
+    matchTile: string;
+    flags: flag.FlagBase;
+    volume: number;
+    next: string;
+}
+interface SpawnInfo {
+    tile: string;
+    grow: number;
+    decrement: number;
+    matchTile: string;
+    flags: number;
+    volume: number;
+    next: string | null;
+}
+
+export { SpawnConfig, SpawnInfo, cell_d as cell, entity_d as entity, light_d as light, lights, map_d as map, tile_d as tile, tiles, visibility_d as visibility };

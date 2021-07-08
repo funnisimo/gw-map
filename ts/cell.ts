@@ -5,7 +5,6 @@ import {
     config as CONFIG,
     data as DATA,
     types as Types,
-    random,
     make as Make,
     effect as Effect,
 } from 'gw-utils';
@@ -797,13 +796,13 @@ export class Cell implements Types.CellType {
         ctx: any = {}
     ) {
         ctx.cell = this;
-        let fired = false;
+        let didSomething = false;
 
         if (ctx.layer !== undefined) {
             const tile = this.tile(ctx.layer);
             if (tile && tile.effects) {
                 const ev = tile.effects[name];
-                let effect: Effect.Effect;
+                let effect: Effect.EffectInfo;
                 if (typeof ev === 'string') {
                     effect = Effect.effects[ev];
                 } else {
@@ -811,16 +810,16 @@ export class Cell implements Types.CellType {
                 }
                 if (effect) {
                     // console.log(' - has event');
-                    if (
-                        ctx.force ||
-                        !effect.chance ||
-                        random.chance(effect.chance, 10000)
-                    ) {
-                        ctx.tile = tile;
-                        // console.log(' - spawn event @%d,%d - %s', x, y, name);
-                        fired = await effect.fire(map, x, y, ctx);
-                        // cell.debug(" - spawned");
-                    }
+                    // if (
+                    //     ctx.force ||
+                    //     !effect.chance ||
+                    //     random.chance(effect.chance, 10000)
+                    // ) {
+                    ctx.tile = tile;
+                    // console.log(' - spawn event @%d,%d - %s', x, y, name);
+                    didSomething = await Effect.fire(effect, map, x, y, ctx);
+                    // cell.debug(" - spawned");
+                    // }
                 }
             }
         } else {
@@ -830,7 +829,7 @@ export class Cell implements Types.CellType {
                 const ev = tile.effects[name];
                 // console.log(' - ', ev);
 
-                let effect: Effect.Effect;
+                let effect: Effect.EffectInfo;
                 if (typeof ev === 'string') {
                     effect = Effect.effects[ev];
                 } else {
@@ -838,23 +837,25 @@ export class Cell implements Types.CellType {
                 }
                 if (effect) {
                     // cell.debug(" - has event");
-                    if (
-                        ctx.force ||
-                        !effect.chance ||
-                        random.chance(effect.chance, 10000)
-                    ) {
-                        ctx.tile = tile;
-                        // console.log(' - spawn event @%d,%d - %s', x, y, name);
-                        fired = (await effect.fire(map, x, y, ctx)) || fired;
-                        // cell.debug(" - spawned");
-                        if (fired) {
-                            break;
-                        }
+                    // if (
+                    //     ctx.force ||
+                    //     !effect.chance ||
+                    //     random.chance(effect.chance, 10000)
+                    // ) {
+                    ctx.tile = tile;
+                    // console.log(' - spawn event @%d,%d - %s', x, y, name);
+                    didSomething =
+                        (await Effect.fire(effect, map, x, y, ctx)) ||
+                        didSomething;
+                    // cell.debug(" - spawned");
+                    if (didSomething) {
+                        break;
                     }
+                    // }
                 }
             }
         }
-        return fired;
+        return didSomething;
     }
 
     hasEffect(name: string) {

@@ -6,147 +6,184 @@ import * as Entity from './entity';
 
 const Flags = GW.effect.Flags;
 
-export function makeTileEffect(config: any): GW.effect.EffectFn | null {
-    if (!config) {
-        GW.utils.ERROR('Config required to make tile effect.');
-        return null;
-    }
-    if (typeof config === 'string') {
-        config = config.split(/[,|]/).map((t) => t.trim());
-    }
-    if (Array.isArray(config)) {
-        config = {
-            id: config[0],
-            spread: config[1] || 0,
-            decrement: config[2] || 0,
-        };
-    }
-
-    config.id = config.id || config.tile;
-    config.spread = config.spread || 0;
-    config.decrement = config.decrement || 0;
-    if (config.spread >= 100 && config.decrement <= 0) {
-        config.decrement = 100;
-    }
-    config.matchTile = config.matchTile || config.match || config.needs || null;
-    config.volume = config.volume || 0;
-
-    if (!config.id) {
-        GW.utils.ERROR('id required to make tile effect.');
-    }
-
-    return tileEffect.bind(config);
-}
-
-GW.effect.installType('tile', makeTileEffect);
-
-export interface TileEffectConfig {
-    id: string;
-    spread: number;
+export interface SpawnConfig {
+    tile: string;
+    grow: number;
     decrement: number;
-    matchTile?: string | null;
+    matchTile: string;
+    flags: GW.flag.FlagBase;
     volume: number;
+    next: string;
 }
 
-export async function tileEffect(
-    this: TileEffectConfig,
-    effect: GW.effect.Effect,
-    x: number,
-    y: number
-) {
-    const id = this.id;
-    const tile = Tile.tiles[id] || null;
-    if (!tile) return false;
+export interface SpawnInfo {
+    tile: string;
+    grow: number;
+    decrement: number;
+    matchTile: string;
+    flags: number;
+    volume: number;
+    next: string | null;
+}
 
-    const abortIfBlocking = !!(effect.flags & Flags.E_ABORT_IF_BLOCKS_MAP);
-    const isBlocking = !!(
-        abortIfBlocking &&
-        !(effect.flags & Flags.E_PERMIT_BLOCKING) &&
-        (tile.blocksPathing() || effect.flags & Flags.E_TREAT_AS_BLOCKING)
-    );
+export class SpawnEffect implements GW.effect.EffectHandler {
+    make(
+        src: Partial<GW.effect.EffectConfig>,
+        dest: GW.effect.EffectInfo
+    ): boolean {
+        if (!src.tile) return true; // no error
 
-    let didSomething = false;
+        let config = src.tile;
+        if (typeof config === 'string') {
+            const parts = config.split(/[,|]/).map((p) => p.trim());
+            config = {
+                tile: parts[0],
+                grow: Number.parseInt(parts[1] || '0'),
+                decrement: Number.parseInt(parts[2] || '0'),
+            };
+        }
 
-    const map = effect.map as Map.Map;
+        const info = {
+            grow: config.grow ?? config.spread ?? 0,
+            decrement: config.decrement ?? 0,
+            flags: GW.flag.from(GW.effect.Flags, config.flags),
+            volume: config.volume ?? 0,
+            next: config.next ?? null,
+        } as SpawnInfo;
 
-    didSomething = computeSpawnMap(this, effect, x, y);
+        const id = config.tile ?? config.id;
 
-    if (!didSomething) {
-        return false;
+        if (typeof id === 'string') {
+            info.tile = id;
+        } else {
+            throw new Error('Invalid tile spawn config: ' + id);
+        }
+
+        if (!info.tile) {
+            throw new Error('Must have tile.');
+        }
+
+        const match = config.matchTile ?? config.match;
+
+        if (typeof match === 'string') {
+            info.matchTile = match;
+        } else if (match) {
+            throw new Error(
+                'Invalid tile spawn match tile: ' + config.matchTile
+            );
+        }
+
+        dest.tile = info;
+        return true;
     }
 
-    if (
-        abortIfBlocking &&
-        isBlocking &&
-        map.gridDisruptsWalkability(effect.grid)
-    ) {
+    async fire(
+        effect: GW.effect.EffectInfo,
+        mapType: GW.types.MapType,
+        x: number,
+        y: number,
+        ctx: GW.effect.EffectCtx
+    ): Promise<boolean> {
+        if (!effect.tile) return false; // did nothing
+
+        const id = effect.tile.tile;
+        const tile = Tile.tiles[id] || null;
+        if (!tile) {
+            throw new Error('Failed to find tile for effect: ' + id);
+        }
+
+        const abortIfBlocking = !!(effect.flags & Flags.E_ABORT_IF_BLOCKS_MAP);
+        const isBlocking = !!(
+            abortIfBlocking &&
+            !(effect.flags & Flags.E_PERMIT_BLOCKING) &&
+            (tile.blocksPathing() || effect.flags & Flags.E_TREAT_AS_BLOCKING)
+        );
+
+        let didSomething = false;
+
+        const map = mapType as Map.Map;
+
+        didSomething = computeSpawnMap(effect, map, x, y, ctx);
+
+        if (!didSomething) {
+            return false;
+        }
+
+        if (
+            abortIfBlocking &&
+            isBlocking &&
+            map.gridDisruptsWalkability(effect.grid)
+        ) {
+            // GW.grid.free(spawnMap);
+            return false;
+        }
+
+        if (effect.flags & Flags.E_EVACUATE_CREATURES) {
+            // first, evacuate creatures, so that they do not re-trigger the tile.
+            if (evacuateCreatures(map, ctx.grid!)) {
+                didSomething = true;
+            }
+        }
+
+        if (effect.flags & Flags.E_EVACUATE_ITEMS) {
+            // first, evacuate items, so that they do not re-trigger the tile.
+            if (evacuateItems(map, ctx.grid!)) {
+                didSomething = true;
+            }
+        }
+
+        if (effect.flags & Flags.E_CLEAR_CELL) {
+            // first, clear other tiles (not base/ground)
+            if (clearCells(map, ctx.grid!, effect.flags)) {
+                didSomething = true;
+            }
+        }
+
+        const spawned = spawnTiles(
+            effect.flags,
+            ctx.grid,
+            map as Map.Map,
+            tile,
+            effect.tile.volume
+        );
+
+        if (spawned) {
+            didSomething = true;
+            // await spawnMap.forEachAsync( (v, x, y) => {
+            //     if (!v) return;
+            //     await map.applyInstantEffects(x, y);
+            // });
+
+            // if (applyEffects) {
+            // if (PLAYER.xLoc == i && PLAYER.yLoc == j && !PLAYER.status.levitating && refresh) {
+            // 	flavorMessage(tileFlavor(PLAYER.xLoc, PLAYER.yLoc));
+            // }
+            // if (cell.actor || cell.item) {
+            // 	for(let t of cell.tiles()) {
+            // 		await t.applyInstantEffects(map, i, j, cell);
+            // 		if (Data.gameHasEnded) {
+            // 			return true;
+            // 		}
+            // 	}
+            // }
+            // if (tile.flags & TileFlags.T_IS_FIRE) {
+            // 	if (cell.flags & CellFlags.HAS_ITEM) {
+            // 		theItem = map.itemAt(i, j);
+            // 		if (theItem.flags & Flags.Item.ITEM_FLAMMABLE) {
+            // 			await burnItem(theItem);
+            // 		}
+            // 	}
+            // }
+            // }
+        }
+
         // GW.grid.free(spawnMap);
-        return false;
+
+        return didSomething;
     }
-
-    if (effect.flags & Flags.E_EVACUATE_CREATURES) {
-        // first, evacuate creatures, so that they do not re-trigger the tile.
-        if (evacuateCreatures(map, effect.grid)) {
-            didSomething = true;
-        }
-    }
-
-    if (effect.flags & Flags.E_EVACUATE_ITEMS) {
-        // first, evacuate items, so that they do not re-trigger the tile.
-        if (evacuateItems(map, effect.grid)) {
-            didSomething = true;
-        }
-    }
-
-    if (effect.flags & Flags.E_CLEAR_CELL) {
-        // first, clear other tiles (not base/ground)
-        if (clearCells(map, effect.grid, effect.flags)) {
-            didSomething = true;
-        }
-    }
-
-    const spawned = spawnTiles(
-        effect.flags,
-        effect.grid,
-        effect.map as Map.Map,
-        tile,
-        this.volume
-    );
-
-    if (spawned) {
-        didSomething = true;
-        // await spawnMap.forEachAsync( (v, x, y) => {
-        //     if (!v) return;
-        //     await map.applyInstantEffects(x, y);
-        // });
-
-        // if (applyEffects) {
-        // if (PLAYER.xLoc == i && PLAYER.yLoc == j && !PLAYER.status.levitating && refresh) {
-        // 	flavorMessage(tileFlavor(PLAYER.xLoc, PLAYER.yLoc));
-        // }
-        // if (cell.actor || cell.item) {
-        // 	for(let t of cell.tiles()) {
-        // 		await t.applyInstantEffects(map, i, j, cell);
-        // 		if (Data.gameHasEnded) {
-        // 			return true;
-        // 		}
-        // 	}
-        // }
-        // if (tile.flags & TileFlags.T_IS_FIRE) {
-        // 	if (cell.flags & CellFlags.HAS_ITEM) {
-        // 		theItem = map.itemAt(i, j);
-        // 		if (theItem.flags & Flags.Item.ITEM_FLAMMABLE) {
-        // 			await burnItem(theItem);
-        // 		}
-        // 	}
-        // }
-        // }
-    }
-
-    // GW.grid.free(spawnMap);
-
-    return didSomething;
 }
+
+GW.effect.installType('tile', new SpawnEffect());
 
 // tick
 
@@ -161,7 +198,10 @@ export async function fireAll(map: Map.Map, event: string) {
                 Cell.MechFlags.EVENT_PROTECTED
         );
         for (let tile of cell.tiles()) {
-            const effect = GW.effect.from(tile.effects[event]);
+            const ev = tile.effects[event];
+            if (!ev) continue;
+
+            const effect = GW.effect.from(ev);
             if (!effect) continue;
 
             let promoteChance = 0;
@@ -221,7 +261,7 @@ export async function fireAll(map: Map.Map, event: string) {
 // Spawn
 
 export function spawnTiles(
-    flags: GW.effect.Flags,
+    flags: number,
     spawnMap: GW.grid.NumGrid,
     map: Map.Map,
     tile: Tile.Tile,
@@ -289,52 +329,71 @@ export function spawnTiles(
 // Spread
 
 function cellIsOk(
-    config: TileEffectConfig,
-    map: Map.Map,
+    effect: GW.effect.EffectInfo,
+    map_: GW.types.MapType,
     x: number,
     y: number,
-    flags: GW.effect.Flags,
     isStart: boolean
 ) {
+    const map = map_ as Map.Map;
     if (!map.hasXY(x, y)) return false;
     const cell = map.cell(x, y);
 
     if (cell.flags.cellMech & Cell.MechFlags.EVENT_PROTECTED) return false;
 
-    if (flags & Flags.E_BUILD_IN_WALLS) {
-        if (!cell.isWall()) return false;
-    } else if (flags & Flags.E_MUST_TOUCH_WALLS) {
-        let ok = false;
-        map.eachNeighbor(x, y, (c: Cell.Cell) => {
-            if (c.isWall()) {
-                ok = true;
-            }
-        });
-        if (!ok) return false;
-    } else if (flags & Flags.E_NO_TOUCH_WALLS) {
-        let ok = true;
-        if (cell.isWall()) return false; // or on wall
-        map.eachNeighbor(x, y, (c: Cell.Cell) => {
-            if (c.isWall()) {
-                ok = false;
-            }
-        });
-        if (!ok) return false;
-    } else if (cell.blocksEffects() && !config.matchTile && !isStart) {
+    if (cell.blocksEffects() && !effect.tile.matchTile && !isStart) {
         return false;
     }
 
+    if (effect.flags & Flags.E_BUILD_IN_WALLS) {
+        if (!cell.isWall()) return false;
+    } else if (effect.flags & Flags.E_MUST_TOUCH_WALLS) {
+        let ok = false;
+        map.eachNeighbor(
+            x,
+            y,
+            (c: Cell.Cell) => {
+                if (c.isWall()) {
+                    ok = true;
+                }
+            },
+            true
+        );
+        if (!ok) return false;
+    } else if (effect.flags & Flags.E_NO_TOUCH_WALLS) {
+        let ok = true;
+        if (cell.isWall()) return false; // or on wall
+        map.eachNeighbor(
+            x,
+            y,
+            (c: Cell.Cell) => {
+                if (c.isWall()) {
+                    ok = false;
+                }
+            },
+            true
+        );
+        if (!ok) return false;
+    }
+
     // if (ctx.bounds && !ctx.bounds.containsXY(x, y)) return false;
-    if (config.matchTile && !cell.hasTile(config.matchTile)) return false;
+    if (
+        effect.tile.matchTile &&
+        !isStart &&
+        !cell.hasTile(effect.tile.matchTile)
+    ) {
+        return false;
+    }
 
     return true;
 }
 
 export function computeSpawnMap(
-    config: TileEffectConfig,
-    effect: GW.effect.Effect,
+    effect: GW.effect.EffectInfo,
+    map: GW.types.MapType,
     x: number,
-    y: number
+    y: number,
+    ctx: GW.effect.EffectCtx
 ) {
     let i, j, dir, t, x2, y2;
     let madeChange;
@@ -344,15 +403,18 @@ export function computeSpawnMap(
     //   // Activation.debug('- bounds', bounds);
     // }
 
-    const map: Map.Map = effect.map as Map.Map;
-    const flags: GW.effect.Flags = effect.flags;
-    const grid: GW.grid.NumGrid = effect.grid;
+    const config = effect.tile as SpawnInfo;
 
-    let startProb = config.spread || 0;
+    let startProb = config.grow || 0;
     let probDec = config.decrement || 0;
-    const spawnMap = grid;
+    const spawnMap = ctx.grid;
 
     spawnMap.fill(0);
+
+    if (!cellIsOk(effect, map, x, y, true)) {
+        return false;
+    }
+
     spawnMap[x][y] = t = 1; // incremented before anything else happens
     let count = 1;
 
@@ -377,8 +439,8 @@ export function computeSpawnMap(
                             if (
                                 spawnMap.hasXY(x2, y2) &&
                                 !spawnMap[x2][y2] &&
-                                cellIsOk(config, map, x2, y2, flags, false) &&
-                                GW.random.chance(startProb)
+                                GW.random.chance(startProb) &&
+                                cellIsOk(effect, map, x2, y2, false)
                             ) {
                                 spawnMap[x2][y2] = t;
                                 madeChange = true;
@@ -390,11 +452,6 @@ export function computeSpawnMap(
             }
             startProb -= probDec;
         }
-    }
-
-    if (!cellIsOk(config, map, x, y, flags, true)) {
-        spawnMap[x][y] = 0;
-        --count;
     }
 
     return count > 0;
@@ -574,40 +631,53 @@ export function evacuateItems(map: Map.Map, blockingMap: GW.grid.NumGrid) {
     return didSomething;
 }
 
-export function makeClearEffect(config: any): GW.effect.EffectFn | null {
-    if (!config) {
-        GW.utils.ERROR('Config required to make clear effect.');
-        return null;
-    }
-    if (typeof config === 'string') {
-        config = config
-            .split(/[,|]/)
-            .map((t) => t.trim())
-            .reduce((out, v: string) => {
-                // @ts-ignore -- huh?
+class ClearTileEffect implements GW.effect.EffectHandler {
+    make(
+        src: Partial<GW.effect.EffectConfig>,
+        dest: GW.effect.EffectInfo
+    ): boolean {
+        if (!src.clear) return true;
+        let config = src.clear;
+        let layers = 0;
+
+        if (typeof config === 'string') {
+            config = config.split(/[,|]/).map((t) => t.trim());
+        }
+
+        if (config === true) {
+            layers = Entity.Layer.ALL_LAYERS;
+        } else if (typeof config === 'number') {
+            layers = config;
+        } else if (Array.isArray(config)) {
+            layers = config.reduce((out, v: string | number) => {
+                if (typeof v === 'number') return out | v;
+
+                // @ts-ignore
                 const layer: number = Entity.Layer[v] || 0;
                 return out | layer;
             }, 0);
-    } else if (config === true) {
-        config = Entity.Layer.ALL_LAYERS;
-    } else if (!Array.isArray(config)) {
-        GW.utils.ERROR('clear effect must have number or string config.');
-        return null;
+        } else {
+            throw new Error('clear effect must have number or string config.');
+        }
+
+        dest.clear = layers;
+        return layers > 0;
     }
 
-    return clearEffect.bind(config);
+    fire(
+        config: GW.effect.EffectInfo,
+        map_: GW.types.MapType,
+        x: number,
+        y: number,
+        _ctx: GW.effect.EffectCtx
+    ): boolean {
+        if (!config.clear) return false;
+
+        const map = map_ as Map.Map;
+        if (!map) return false;
+
+        return map.clearCellLayers(x, y, config.clear);
+    }
 }
 
-GW.effect.installType('clear', makeClearEffect);
-
-export function clearEffect(
-    this: number,
-    effect: GW.effect.Effect,
-    x: number,
-    y: number
-): boolean {
-    const map = effect.map as Map.Map;
-    if (!map) return false;
-
-    return map.clearCellLayers(x, y, this);
-}
+GW.effect.installType('clear', new ClearTileEffect());

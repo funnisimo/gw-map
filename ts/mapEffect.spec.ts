@@ -8,75 +8,73 @@ import * as Effect from './mapEffect';
 describe('tile effect', () => {
     let map: Map.map.Map;
     let ctx: any;
-    let effect: GW.effect.Effect;
-    let config: Effect.TileEffectConfig;
+    let effect: GW.effect.EffectInfo;
     let grid: GW.grid.NumGrid;
-
-    function makeEffect(config = {}) {
-        // @ts-ignore
-        if (effect && effect._grid) {
-            // @ts-ignore
-            GW.grid.free(effect._grid);
-        }
-        effect = GW.effect.make(config)!;
-        effect.map = map;
-        grid = effect.grid;
-        return effect;
-    }
 
     beforeEach(() => {
         map = Map.map.make(20, 20, 'FLOOR', 'WALL');
-        ctx = { x: 10, y: 10, map };
-        config = { spread: 0, decrement: 0, id: 'WALL', volume: 0 };
-        effect = makeEffect({ tile: 'WALL ' });
 
         GW.data.gameHasEnded = false;
+        effect = {} as GW.effect.EffectInfo;
 
-        // UTILS.mockRandom();
         GW.random.seed(12345);
         GW.events.removeAllListeners();
+        grid = GW.grid.alloc(20, 20);
+        ctx = { x: 10, y: 10, grid };
     });
 
     afterEach(() => {
-        // @ts-ignore
-        GW.grid.free(effect._grid);
+        GW.grid.free(grid);
     });
 
     describe('spread', () => {
         test('tile', () => {
-            expect(grid).toBeArray();
+            effect = GW.effect.make({
+                tile: 'WALL,0,0',
+            });
 
-            config.spread = 0;
-            config.decrement = 0;
+            expect(effect.tile.grow).toEqual(0);
+            expect(effect.tile.decrement).toEqual(0);
+
             expect(
-                Effect.computeSpawnMap(config, effect, ctx.x, ctx.y)
+                Effect.computeSpawnMap(effect, map, ctx.x, ctx.y, ctx)
             ).toBeTruthy();
 
-            expect(grid.count(0)).toEqual(map.width * map.height - 1);
+            expect(grid.count((v) => !!v)).toEqual(1);
             expect(grid[ctx.x][ctx.y]).toEqual(1);
             grid.eachNeighbor(ctx.x, ctx.y, (v) => expect(v).toEqual(0), true);
         });
 
         test('tile and neighbors', () => {
-            config.spread = 100;
-            config.decrement = 100;
+            effect = GW.effect.make({
+                tile: { id: 'WALL', grow: 100, decrement: 100 },
+            });
+
+            expect(effect.tile.grow).toEqual(100);
+            expect(effect.tile.decrement).toEqual(100);
+
             expect(
-                Effect.computeSpawnMap(config, effect, ctx.x, ctx.y)
+                Effect.computeSpawnMap(effect, map, ctx.x, ctx.y, ctx)
             ).toBeTruthy();
 
-            expect(grid.count(0)).toEqual(map.width * map.height - 5);
+            expect(grid.count((v) => !!v)).toEqual(5);
             expect(grid[ctx.x][ctx.y]).toEqual(1);
             grid.eachNeighbor(ctx.x, ctx.y, (v) => expect(v).toEqual(2), true);
         });
 
         test('2 levels', () => {
-            config.spread = 200;
-            config.decrement = 100;
+            effect = GW.effect.make({
+                tile: { tile: 'WALL', grow: 200, decrement: 100 },
+            });
+
+            expect(effect.tile.grow).toEqual(200);
+            expect(effect.tile.decrement).toEqual(100);
+
             expect(
-                Effect.computeSpawnMap(config, effect, ctx.x, ctx.y)
+                Effect.computeSpawnMap(effect, map, ctx.x, ctx.y, ctx)
             ).toBeTruthy();
 
-            expect(grid.count(0)).toEqual(map.width * map.height - 1 - 4 - 8);
+            expect(grid.count((v) => !!v)).toEqual(1 + 4 + 8);
             expect(grid[ctx.x][ctx.y]).toEqual(1);
             grid.eachNeighbor(ctx.x, ctx.y, (v) => expect(v).toEqual(2), true);
             expect(grid.count(3)).toEqual(8);
@@ -84,15 +82,15 @@ describe('tile effect', () => {
 
         test('build in walls', () => {
             // not on a wall
-            effect = makeEffect({
+            effect = GW.effect.make({
                 tile: { id: 'WALL' },
                 flags: 'E_BUILD_IN_WALLS',
-            })!;
+            });
             expect(
                 effect.flags & GW.effect.Flags.E_BUILD_IN_WALLS
             ).toBeTruthy();
             expect(
-                Effect.computeSpawnMap(config, effect, ctx.x, ctx.y)
+                Effect.computeSpawnMap(effect, map, ctx.x, ctx.y, ctx)
             ).toBeFalsy();
             expect(grid.count(1)).toEqual(0);
             expect(grid.count(0)).toEqual(map.width * map.height);
@@ -101,7 +99,7 @@ describe('tile effect', () => {
             map.setTile(ctx.x, ctx.y, 'WALL');
 
             expect(
-                Effect.computeSpawnMap(config, effect, ctx.x, ctx.y)
+                Effect.computeSpawnMap(effect, map, ctx.x, ctx.y, ctx)
             ).toBeTruthy();
 
             expect(grid.count(1)).toEqual(1);
@@ -111,7 +109,7 @@ describe('tile effect', () => {
 
         test('must touch walls', () => {
             // not near a wall
-            effect = makeEffect({
+            effect = GW.effect.make({
                 tile: { id: 'WALL' },
                 flags: 'E_MUST_TOUCH_WALLS',
             })!;
@@ -119,7 +117,7 @@ describe('tile effect', () => {
                 effect.flags & GW.effect.Flags.E_MUST_TOUCH_WALLS
             ).toBeTruthy();
             expect(
-                Effect.computeSpawnMap(config, effect, ctx.x, ctx.y)
+                Effect.computeSpawnMap(effect, map, ctx.x, ctx.y, ctx)
             ).toBeFalsy();
             expect(grid.count(1)).toEqual(0);
             expect(grid.count(0)).toEqual(map.width * map.height);
@@ -127,7 +125,7 @@ describe('tile effect', () => {
             // not on a wall
             map.setTile(ctx.x, ctx.y, 'WALL');
             expect(
-                Effect.computeSpawnMap(config, effect, ctx.x, ctx.y)
+                Effect.computeSpawnMap(effect, map, ctx.x, ctx.y, ctx)
             ).toBeFalsy();
             expect(grid.count(1)).toEqual(0);
             expect(grid.count(0)).toEqual(map.width * map.height);
@@ -137,7 +135,7 @@ describe('tile effect', () => {
             map.setTile(ctx.x, ctx.y, 'FLOOR');
             map.setTile(ctx.x, ctx.y - 1, 'WALL');
             expect(
-                Effect.computeSpawnMap(config, effect, ctx.x, ctx.y)
+                Effect.computeSpawnMap(effect, map, ctx.x, ctx.y, ctx)
             ).toBeTruthy();
             expect(grid.count(1)).toEqual(1);
             expect(grid.count(0)).toEqual(map.width * map.height - 1);
@@ -145,26 +143,26 @@ describe('tile effect', () => {
         });
 
         test('no touch walls', () => {
-            effect = makeEffect({
-                tile: { id: 'WALL' },
+            effect = GW.effect.make({
+                tile: { id: 'WALL', grow: 100, decrement: 100 },
                 flags: 'E_NO_TOUCH_WALLS',
-            })!;
+            });
             expect(
                 effect.flags & GW.effect.Flags.E_NO_TOUCH_WALLS
             ).toBeTruthy();
 
             // no walls - ok
             expect(
-                Effect.computeSpawnMap(config, effect, ctx.x, ctx.y)
+                Effect.computeSpawnMap(effect, map, ctx.x, ctx.y, ctx)
             ).toBeTruthy();
             expect(grid.count(1)).toEqual(1);
-            expect(grid.count(0)).toEqual(map.width * map.height - 1);
+            expect(grid.count((v) => !!v)).toEqual(5);
             expect(grid[ctx.x][ctx.y]).toEqual(1);
 
             // on a wall - no
             map.setTile(ctx.x, ctx.y, 'WALL');
             expect(
-                Effect.computeSpawnMap(config, effect, ctx.x, ctx.y)
+                Effect.computeSpawnMap(effect, map, ctx.x, ctx.y, ctx)
             ).toBeFalsy();
             expect(grid.count(1)).toEqual(0);
             expect(grid.count(0)).toEqual(map.width * map.height);
@@ -174,7 +172,7 @@ describe('tile effect', () => {
             map.setTile(ctx.x, ctx.y, 'FLOOR');
             map.setTile(ctx.x, ctx.y - 1, 'WALL');
             expect(
-                Effect.computeSpawnMap(config, effect, ctx.x, ctx.y)
+                Effect.computeSpawnMap(effect, map, ctx.x, ctx.y, ctx)
             ).toBeFalsy();
             expect(grid.count(1)).toEqual(0);
             expect(grid.count(0)).toEqual(map.width * map.height);
@@ -182,12 +180,14 @@ describe('tile effect', () => {
         });
 
         test('spawn map - blocks effects', () => {
-            config.spread = 100;
-            config.decrement = 100;
+            effect = GW.effect.make({
+                tile: 'WALL, 100, 100',
+                flags: 'E_NO_TOUCH_WALLS',
+            });
 
             // ok
             expect(
-                Effect.computeSpawnMap(config, effect, ctx.x, ctx.y)
+                Effect.computeSpawnMap(effect, map, ctx.x, ctx.y, ctx)
             ).toBeTruthy();
             expect(grid.count(1)).toEqual(1);
             expect(grid.count(2)).toEqual(4);
@@ -220,8 +220,15 @@ describe('tile effect', () => {
                 )
             ).toBeTruthy();
 
+            let cell = map.cell(ctx.x - 1, ctx.y);
+            expect(cell.blocksEffects()).toBeTruthy();
+            cell = map.cell(ctx.x, ctx.y - 1);
+            expect(cell.blocksEffects()).toBeTruthy();
+
+            expect(effect.matchTile).toBeFalsy();
+
             expect(
-                Effect.computeSpawnMap(config, effect, ctx.x, ctx.y)
+                Effect.computeSpawnMap(effect, map, ctx.x, ctx.y, ctx)
             ).toBeTruthy();
             expect(grid.count(1)).toEqual(1);
             expect(grid.count(2)).toEqual(2);
@@ -235,11 +242,12 @@ describe('tile effect', () => {
         // { spread: 50 }
         test('{ spread: 50 }', () => {
             GW.random.seed(12345);
-            config.spread = 50;
-            config.decrement = 0;
+            effect = GW.effect.make({
+                tile: 'WALL, 50, 0',
+            });
 
             expect(
-                Effect.computeSpawnMap(config, effect, ctx.x, ctx.y)
+                Effect.computeSpawnMap(effect, map, ctx.x, ctx.y, ctx)
             ).toBeTruthy();
 
             // grid.dump();
@@ -252,37 +260,47 @@ describe('tile effect', () => {
         // { spread: 100, decrement: 100, matchTile: "DOOR" }
         test('{ spread: 100, decrement: 100, matchTile: "DOOR" }', () => {
             GW.random.seed(12345);
-            config.spread = 100;
-            config.decrement = 100;
-            config.matchTile = 'DOOR';
+            effect = GW.effect.make({
+                tile: {
+                    id: 'WALL',
+                    grow: 100,
+                    decrement: 10,
+                    matchTile: 'DOOR',
+                },
+            });
+
+            expect(effect.tile.matchTile).toEqual('DOOR');
 
             expect(
-                Effect.computeSpawnMap(config, effect, ctx.x, ctx.y)
-            ).toBeFalsy();
+                Effect.computeSpawnMap(effect, map, ctx.x, ctx.y, ctx)
+            ).toBeTruthy();
 
             // grid.dump();
-            expect(grid.count((v) => !!v)).toEqual(0); // There are no doors!
+            expect(grid.count((v) => !!v)).toEqual(1); // There are no doors!
 
             map.setTile(9, 10, 'DOOR');
             // map.setTile(11, 10, 'DOOR');
             map.setTile(10, 9, 'DOOR');
             // map.setTile(10, 11, 'DOOR');
 
+            grid.fill(0);
+
             expect(
-                Effect.computeSpawnMap(config, effect, ctx.x, ctx.y)
+                Effect.computeSpawnMap(effect, map, ctx.x, ctx.y, ctx)
             ).toBeTruthy();
             // grid.dump();
-            expect(grid.count((v) => !!v)).toEqual(2); // match some doors
+            expect(grid.count((v) => !!v)).toEqual(3); // match some doors
         });
 
         // { spread: 50, decrement: 10 }
         test('{ spread: 50, decrement: 10 }', () => {
             GW.random.seed(12345);
-            config.spread = 50;
-            config.decrement = 10;
+            effect = GW.effect.make({
+                tile: { id: 'WALL', grow: 50, decrement: 10 },
+            });
 
             expect(
-                Effect.computeSpawnMap(config, effect, ctx.x, ctx.y)
+                Effect.computeSpawnMap(effect, map, ctx.x, ctx.y, ctx)
             ).toBeTruthy();
             // grid.dump();
             expect(grid.count((v) => !!v)).toEqual(5);
@@ -458,9 +476,10 @@ describe('tile effect', () => {
 
     describe('fire', () => {
         test('tile', async () => {
+            effect = GW.effect.make({ tile: 'WALL' });
             expect(map.hasTile(ctx.x, ctx.y, 'WALL')).toBeFalsy();
             await expect(
-                effect.fire(ctx.map, ctx.x, ctx.y)
+                GW.effect.fire(effect, map, ctx.x, ctx.y, ctx)
             ).resolves.toBeTruthy();
             expect(map.hasTile(ctx.x, ctx.y, 'WALL')).toBeTruthy();
             map.eachNeighbor(ctx.x, ctx.y, (c) =>
@@ -469,10 +488,10 @@ describe('tile effect', () => {
         });
 
         test('tile and neighbors - string', async () => {
-            effect = makeEffect({ tile: 'WALL,100,100' })!;
+            effect = GW.effect.make({ tile: 'WALL,100,100' })!;
             expect(map.hasTile(ctx.x, ctx.y, 'WALL')).toBeFalsy();
             await expect(
-                effect.fire(ctx.map, ctx.x, ctx.y)
+                GW.effect.fire(effect, map, ctx.x, ctx.y, ctx)
             ).resolves.toBeTruthy();
             expect(map.hasTile(ctx.x, ctx.y, 'WALL')).toBeTruthy();
             map.eachNeighbor(
@@ -484,12 +503,13 @@ describe('tile effect', () => {
         });
 
         test('tile and neighbors - object', async () => {
-            effect = makeEffect({
+            effect = GW.effect.make({
                 tile: { id: 'WALL', spread: 100, decrement: 100 },
-            })!;
+            });
+
             expect(map.hasTile(ctx.x, ctx.y, 'WALL')).toBeFalsy();
             await expect(
-                effect.fire(ctx.map, ctx.x, ctx.y)
+                GW.effect.fire(effect, map, ctx.x, ctx.y, ctx)
             ).resolves.toBeTruthy();
             expect(map.hasTile(ctx.x, ctx.y, 'WALL')).toBeTruthy();
             map.eachNeighbor(
@@ -501,7 +521,7 @@ describe('tile effect', () => {
         });
 
         test('can clear extra tiles from the cell', async () => {
-            effect = makeEffect({ flags: 'E_CLEAR_CELL', tile: 'FLOOR' })!;
+            effect = GW.effect.make({ flags: 'E_CLEAR_CELL', tile: 'FLOOR' })!;
 
             expect(effect.flags & GW.effect.Flags.E_CLEAR_CELL).toBeTruthy();
             map.setTile(ctx.x, ctx.y, 'BRIDGE');
@@ -510,7 +530,7 @@ describe('tile effect', () => {
             expect(cell.ground).toEqual('FLOOR');
 
             await expect(
-                effect.fire(ctx.map, ctx.x, ctx.y)
+                GW.effect.fire(effect, map, ctx.x, ctx.y, ctx)
             ).resolves.toBeTruthy();
             expect(cell.ground).toEqual('FLOOR');
             expect(cell.surface).toEqual(null);
@@ -524,11 +544,11 @@ describe('tile effect', () => {
                 layer: 'LIQUID',
             });
 
-            effect = makeEffect({
+            effect = GW.effect.make({
                 tile: { id: 'RED_LIQUID', volume: 50 },
             })!;
             await expect(
-                effect.fire(ctx.map, ctx.x, ctx.y)
+                GW.effect.fire(effect, map, ctx.x, ctx.y, ctx)
             ).resolves.toBeTruthy();
 
             const cell = map.cell(ctx.x, ctx.y);

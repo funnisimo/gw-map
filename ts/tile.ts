@@ -23,10 +23,9 @@ export interface FullTileConfig extends Layer.EntityConfig {
     Extends: string | Tile;
 
     flags: number | string | any[];
-    mechFlags: number | string | any[];
     priority: number;
 
-    effects: any;
+    effects: Record<string, Partial<Effect.EffectConfig | string | null>>;
 
     flavor: string;
     desc: string;
@@ -47,7 +46,7 @@ export class Tile extends Layer.Entity implements Types.TileType {
     public name: string;
     public flags: Types.TileFlags = { layer: 0, tile: 0, tileMech: 0 };
 
-    public effects: Record<string, Effect.Effect | string> = {};
+    public effects: Record<string, Effect.EffectInfo> = {};
 
     public flavor: string | null = null;
     public desc: string | null = null;
@@ -112,7 +111,6 @@ export class Tile extends Layer.Entity implements Types.TileType {
                 'extends',
                 'flags',
                 'layerFlags',
-                'mechFlags',
                 'sprite',
                 'effects',
                 'ch',
@@ -147,21 +145,20 @@ export class Tile extends Layer.Entity implements Types.TileType {
         this.flags.tileMech = Flag.from(
             MechFlags,
             this.flags.tileMech,
-            config.mechFlags || config.flags
+            config.flags
         );
 
         if (config.effects) {
             Object.entries(config.effects).forEach(([key, info]) => {
                 if (info) {
                     if (typeof info === 'string') {
-                        if (tiles[info]) {
-                            info = { tile: info };
-                        } else {
-                            this.effects[key] = info;
+                        if (Effect.effects[info]) {
+                            this.effects[key] = Effect.effects[info];
                             return;
                         }
+                        info = { tile: info };
                     }
-                    const activation = Effect.make(info)!;
+                    const activation = Effect.make(info);
                     this.effects[key] = activation;
                 } else {
                     delete this.effects[key];

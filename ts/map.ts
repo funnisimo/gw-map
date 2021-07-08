@@ -122,7 +122,7 @@ export class Map implements Types.MapType {
     public lights: LightInfo | null = null;
     public id: string;
     public fov: Utils.XY | null = null;
-    public effects: Record<string, EFFECT.Effect | string> = {};
+    public effects: Record<string, EFFECT.EffectInfo> = {};
 
     constructor(w: number, h: number, opts: any = {}) {
         this._width = w;

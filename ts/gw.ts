@@ -6,6 +6,6 @@ export * as cell from './cell';
 export * as map from './map';
 export * as visibility from './visibility';
 import './tiles';
-import './mapEffect';
+export { SpawnConfig, SpawnInfo } from './mapEffect';
 export { tiles } from './tile';
 export { lights } from './light';

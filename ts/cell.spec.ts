@@ -495,8 +495,8 @@ describe('Cell', () => {
             flags: 'L_SECRETLY_PASSABLE, L_BLOCKS_MOVE, L_BLOCKS_VISION',
             effects: {
                 discover: { tile: 'DOOR' },
-                open: false,
-                enter: false,
+                open: null,
+                enter: null,
             },
         });
 
@@ -634,8 +634,8 @@ describe('Cell', () => {
             flags: 'L_SECRETLY_PASSABLE, L_BLOCKS_MOVE, L_BLOCKS_VISION',
             effects: {
                 discover: { tile: 'DOOR' },
-                open: false,
-                enter: false,
+                open: null,
+                enter: null,
             },
         });
 
