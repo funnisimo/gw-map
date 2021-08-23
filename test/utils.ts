@@ -1,6 +1,6 @@
-import { types as Types, colors as COLORS } from 'gw-utils';
-import { Map } from '../ts/map';
-import { Layer } from '../ts/mapFlags';
+import * as Map from '../ts/map';
+import { Actor } from '../ts/actor';
+import { Item } from '../ts/item';
 
 // export const rnd = jest.fn();
 // export const counts = new Array(100).fill(0);
@@ -35,42 +35,48 @@ export async function alwaysAsync(fn: Function, count = 1000) {
     }
 }
 
-export function countTile(map: Map, tile: string) {
+export function countTile(map: Map.Map, tile: string) {
     let count = 0;
-    map.forEach((cell) => {
+    map.cells.forEach((cell) => {
         if (cell.hasTile(tile)) ++count;
     });
     return count;
 }
 
-export function makeActor() {
-    return ({
-        rememberedInCell: null,
-        sprite: { ch: '@', fg: COLORS.blue, bg: -1 },
-        layer: Layer.ACTOR,
-        priority: 50,
-        isPlayer: jest.fn().mockReturnValue(false),
-        delete: jest.fn(),
-        avoidsCell: jest.fn().mockReturnValue(false),
-        blocksVision: jest.fn().mockReturnValue(false),
-    } as unknown) as Types.ActorType;
+export function mockCell(): Map.Cell {
+    const cell = new Map.Cell();
+    jest.spyOn(cell, 'tileFlags').mockReturnValue(0);
+    jest.spyOn(cell, 'tileMechFlags').mockReturnValue(0);
+    return cell;
 }
 
-export function makePlayer() {
-    const player = makeActor();
+export function mockMap(w = 10, h = 10): Map.Map {
+    const map = Map.make(w, h);
+    jest.spyOn(map, 'isVisible').mockReturnValue(true);
+    return map;
+}
+
+export function mockActor(): Actor {
+    const actor = new Actor();
+    actor.sprite.ch = 'a';
+    jest.spyOn(actor, 'isPlayer').mockReturnValue(false);
+    jest.spyOn(actor, 'forbidsCell').mockReturnValue(false);
+    jest.spyOn(actor, 'blocksVision').mockReturnValue(false);
+    return actor;
+}
+
+export function mockPlayer(): Actor {
+    const player = mockActor();
+    player.sprite.ch = '@';
     // @ts-ignore
     player.isPlayer.mockReturnValue(true);
     return player;
 }
 
-export function makeItem() {
-    return ({
-        quantity: 1,
-        sprite: { ch: '!', fg: 'white' },
-        layer: Layer.ITEM,
-        isDetected: jest.fn().mockReturnValue(false),
-        forbidsCell: jest.fn().mockReturnValue(false),
-        clone: jest.fn().mockImplementation(makeItem),
-        delete: jest.fn(),
-    } as unknown) as Types.ItemType;
+export function mockItem(): Item {
+    const item = new Item();
+    item.sprite.ch = '!';
+    jest.spyOn(item, 'forbidsCell').mockReturnValue(false);
+    jest.spyOn(item, 'blocksVision').mockReturnValue(false);
+    return item;
 }

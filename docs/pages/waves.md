@@ -7,7 +7,7 @@ Here we create a **WAVE** tile that when placed, will expand outward and replace
 Click on the map to start a wave. Notice how multiple waves will cancel each other out.
 
 ```js
-GW.tile.install('WAVE_DONE', {
+GWM.tile.install('WAVE_DONE', {
     ch: '~',
     fg: 'teal',
     bg: 'blue',
@@ -20,7 +20,7 @@ GW.tile.install('WAVE_DONE', {
     },
 });
 
-GW.tile.install('WAVE', {
+GWM.tile.install('WAVE', {
     ch: '^',
     fg: 'white',
     bg: 'blue',
@@ -42,12 +42,11 @@ GW.tile.install('WAVE', {
     },
 });
 
-const map = GW.make.map(20, 20, {
+const map = GWM.map.make(20, 20, {
     tile: 'LAKE',
-    wall: 'WALL',
+    boundary: 'WALL',
 });
-const loop = GW.make.loop();
-const canvas = GW.canvas.make({
+const canvas = GWU.canvas.make({
     font: 'monospace',
     width: map.width,
     height: map.height,

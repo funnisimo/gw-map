@@ -18,23 +18,25 @@ const prefab = [
     '#...#....#',
     '##+####+##',
     '#...~~~..#',
-    '#...==...#',
+    '#...~~...#',
     '#..~~~...#',
     '#...~~~..#',
     '##########',
 ];
 
-const map = GW.map.from(prefab, charToTile);
-map.ambientLight.assign(150, 100, 100);
-map.ambientLightChanged = true;
-const canvas = GW.canvas.make({
+const map = GWM.map.from(prefab, charToTile);
+map.light.setAmbient([150, 100, 100]);
+map.light.update();
+
+const canvas = GWU.canvas.make({
     font: 'monospace',
     width: map.width,
     height: map.height,
 });
-map.drawInto(canvas.buffer);
-canvas.buffer.render();
 SHOW(canvas.node);
+
+map.drawInto(canvas);
+canvas.render();
 ```
 
 In addition to ambient light, you can add static lights to the map. Static lights have the following information:
@@ -49,7 +51,6 @@ const charToTile = {
     '#': 'WALL',
     '+': 'DOOR',
     '~': 'LAKE',
-    '=': 'BRIDGE',
 };
 
 const prefab = [
@@ -59,26 +60,25 @@ const prefab = [
     '#...#....#',
     '##+####+##',
     '#...~~~..#',
-    '#...==...#',
+    '#...~~...#',
     '#..~~~...#',
     '#...~~~..#',
     '##########',
 ];
 
-const map = GW.map.from(prefab, charToTile);
-map.addStaticLight(
-    5,
-    3,
-    GW.make.light({ color: 'yellow', radius: 5, fadeTo: 25 })
-);
-const canvas = GW.canvas.make({
+const map = GWM.map.from(prefab, charToTile);
+map.light.addStatic(5, 3, { color: 'yellow', radius: 5, fadeTo: 25 });
+map.light.update();
+
+const canvas = GWU.canvas.make({
     font: 'monospace',
     width: map.width,
     height: map.height,
 });
-map.drawInto(canvas.buffer);
-canvas.buffer.render();
 SHOW(canvas.node);
+
+map.drawInto(canvas);
+canvas.render();
 ```
 
 Tiles can also have lights associated with them. The lights are automatically managed as the tile is added/removed.
@@ -86,24 +86,25 @@ Tiles can also have lights associated with them. The lights are automatically ma
 Click on a square to toggle between a wall, torch wall, and floor.
 
 ```js
-GW.tile.install('TORCH_WALL', 'WALL', {
+GWM.tile.install('TORCH_WALL', 'WALL', {
     ch: '!',
-    light: GW.make.light({ color: 'yellow', radius: 5, fadeTo: 50 }),
+    light: { color: 'yellow', radius: 5, fadeTo: 50 },
 });
 
-const map = GW.make.map(20, 20, {
+const map = GWM.map.make(20, 20, {
     tile: 'FLOOR',
-    wall: 'WALL',
+    boundary: 'WALL',
     ambient: [25, 25, 25],
 });
-const canvas = GW.canvas.make({
+const canvas = GWU.canvas.make({
     font: 'monospace',
     width: map.width,
     height: map.height,
 });
-map.drawInto(canvas.buffer);
-canvas.buffer.render();
 SHOW(canvas.node);
+
+map.drawInto(canvas);
+canvas.render();
 
 canvas.onclick = (e) => {
     if (map.isBoundaryXY(e.x, e.y)) return;
@@ -114,7 +115,8 @@ canvas.onclick = (e) => {
         tile = 'WALL';
     }
     map.setTile(e.x, e.y, tile);
-    map.drawInto(canvas.buffer);
-    canvas.buffer.render();
+    map.light.update();
+    map.drawInto(canvas);
+    canvas.render();
 };
 ```
