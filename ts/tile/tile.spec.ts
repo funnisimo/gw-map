@@ -150,6 +150,14 @@ describe('Tile', () => {
         expect(tw.light!.fadeTo).toEqual(50);
     });
 
+    test('Can use relative priority from another tile', () => {
+        const tile = Tile.install('TEST', {
+            extends: 'FLOOR',
+            priority: 'WALL + 5',
+        });
+        expect(tile.priority).toEqual(Tile.tiles.WALL.priority + 5);
+    });
+
     test('can add multiple from an object', () => {
         Tile.installAll({
             WALL: {

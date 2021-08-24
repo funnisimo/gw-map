@@ -182,13 +182,31 @@ export function make(options: Partial<TileOptions>) {
 
     let priority: number = -1;
     if (typeof options.priority === 'string') {
-        if (
-            options.priority.startsWith('+') ||
-            options.priority.startsWith('-')
-        ) {
-            priority = base.priority + Number.parseInt(options.priority);
+        let text = options.priority.replace(/ /g, '');
+        let index = text.search(/[+-]/);
+        if (index == 0) {
+            priority = base.priority + Number.parseInt(text);
+        } else if (index == -1) {
+            if (text.search(/[a-zA-Z]/) == 0) {
+                const tile = tiles[text];
+                if (!tile)
+                    throw new Error(
+                        'Failed to find tile for priority - ' + text + '.'
+                    );
+                priority = tile.priority;
+            } else {
+                priority = Number.parseInt(text);
+            }
         } else {
-            priority = Number.parseInt(options.priority);
+            const id = text.substring(0, index);
+            const delta = Number.parseInt(text.substring(index));
+            const tile = tiles[id];
+            if (!tile)
+                throw new Error(
+                    'Failed to find tile for priority - ' + id + '.'
+                );
+
+            priority = tile.priority + delta;
         }
     } else if (options.priority !== undefined) {
         priority = options.priority;

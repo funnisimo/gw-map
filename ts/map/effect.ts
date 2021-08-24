@@ -191,7 +191,8 @@ export class SpawnEffect implements Effect.EffectHandler {
             ctx.grid,
             map as MapType,
             tile,
-            effect.tile.volume
+            effect.tile.volume,
+            ctx.machine
         );
 
         return spawned;
@@ -252,7 +253,8 @@ export function spawnTiles(
     spawnMap: GWU.grid.NumGrid,
     map: MapType,
     tile: Tile.Tile,
-    volume = 0
+    volume = 0,
+    machine?: number
 ) {
     let i, j;
     let accomplishedSomething;
@@ -292,6 +294,7 @@ export function spawnTiles(
                     blockedByOtherLayers,
                     blockedByActors,
                     blockedByItems,
+                    machine,
                 })
             ) {
                 // if the fill won't violate the priority of the most important terrain in this cell:

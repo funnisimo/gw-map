@@ -932,7 +932,7 @@ declare class SpawnEffect implements EffectHandler {
     fireSync(effect: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx): boolean;
     mapDisruptedBy(map: MapType, blockingGrid: GWU.grid.NumGrid, blockingToMapX?: number, blockingToMapY?: number): boolean;
 }
-declare function spawnTiles(flags: number, spawnMap: GWU.grid.NumGrid, map: MapType, tile: Tile, volume?: number): boolean;
+declare function spawnTiles(flags: number, spawnMap: GWU.grid.NumGrid, map: MapType, tile: Tile, volume?: number, machine?: number): boolean;
 declare function computeSpawnMap(effect: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx): boolean;
 declare function clearCells(map: MapType, spawnMap: GWU.grid.NumGrid, flags?: number): boolean;
 declare function evacuateCreatures(map: MapType, blockingMap: GWU.grid.NumGrid): boolean;

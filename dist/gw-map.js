@@ -754,12 +754,29 @@
         }
         let priority = -1;
         if (typeof options.priority === 'string') {
-            if (options.priority.startsWith('+') ||
-                options.priority.startsWith('-')) {
-                priority = base.priority + Number.parseInt(options.priority);
+            let text = options.priority.replace(/ /g, '');
+            let index = text.search(/[+-]/);
+            if (index == 0) {
+                priority = base.priority + Number.parseInt(text);
+            }
+            else if (index == -1) {
+                if (text.search(/[a-zA-Z]/) == 0) {
+                    const tile = tiles[text];
+                    if (!tile)
+                        throw new Error('Failed to find tile for priority - ' + text + '.');
+                    priority = tile.priority;
+                }
+                else {
+                    priority = Number.parseInt(text);
+                }
             }
             else {
-                priority = Number.parseInt(options.priority);
+                const id = text.substring(0, index);
+                const delta = Number.parseInt(text.substring(index));
+                const tile = tiles[id];
+                if (!tile)
+                    throw new Error('Failed to find tile for priority - ' + id + '.');
+                priority = tile.priority + delta;
             }
         }
         else if (options.priority !== undefined) {
@@ -2965,7 +2982,7 @@
                     didSomething = true;
                 }
             }
-            const spawned = spawnTiles(effect.flags, ctx.grid, map, tile, effect.tile.volume);
+            const spawned = spawnTiles(effect.flags, ctx.grid, map, tile, effect.tile.volume, ctx.machine);
             return spawned;
         }
         mapDisruptedBy(map, blockingGrid, blockingToMapX = 0, blockingToMapY = 0) {
@@ -3007,7 +3024,7 @@
     installHandler('tile', new SpawnEffect());
     // tick
     // Spawn
-    function spawnTiles(flags, spawnMap, map, tile, volume = 0) {
+    function spawnTiles(flags, spawnMap, map, tile, volume = 0, machine) {
         let i, j;
         let accomplishedSomething;
         accomplishedSomething = false;
@@ -3031,6 +3048,7 @@
                     blockedByOtherLayers,
                     blockedByActors,
                     blockedByItems,
+                    machine,
                 })) {
                     // if the fill won't violate the priority of the most important terrain in this cell:
                     spawnMap[i][j] = 1; // so that the spawnmap reflects what actually got built
