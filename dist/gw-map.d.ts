@@ -582,6 +582,8 @@ declare type ReduceCb<T> = (out: any, t: T) => any;
 declare class CellObjects {
     cell: Cell;
     constructor(cell: Cell);
+    eachItem(cb: EachCb<Item>): void;
+    eachActor(cb: EachCb<Actor>): void;
     forEach(cb: EachCb<Entity>): void;
     some(cb: MatchCb<Entity>): boolean;
     reduce(cb: ReduceCb<Entity>, start?: any): any;

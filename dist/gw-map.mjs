@@ -1100,17 +1100,23 @@ class CellObjects {
     constructor(cell) {
         this.cell = cell;
     }
-    forEach(cb) {
+    eachItem(cb) {
         let object = this.cell._item;
         while (object) {
             cb(object);
             object = object.next;
         }
-        object = this.cell._actor;
+    }
+    eachActor(cb) {
+        let object = this.cell._actor;
         while (object) {
             cb(object);
             object = object.next;
         }
+    }
+    forEach(cb) {
+        this.eachItem(cb);
+        this.eachActor(cb);
     }
     some(cb) {
         let object = this.cell._item;
@@ -1216,12 +1222,18 @@ class Cell {
         return this.tiles.reduce((out, t) => out | (t ? t.flags.tileMech : 0), 0);
     }
     itemFlags() {
-        // @ts-ignore
-        return this._objects.reduce((out, o) => out | (o.flags.item || 0), 0);
+        let flags = 0;
+        this._objects.eachItem((i) => {
+            flags |= i.flags.item;
+        });
+        return flags;
     }
     actorFlags() {
-        // @ts-ignore
-        return this._objects.reduce((out, o) => out | (o.flags.actor || 0), 0);
+        let flags = 0;
+        this._objects.eachActor((a) => {
+            flags |= a.flags.actor;
+        });
+        return flags;
     }
     get needsRedraw() {
         return !!(this.flags.cell & Cell$1.NEEDS_REDRAW);

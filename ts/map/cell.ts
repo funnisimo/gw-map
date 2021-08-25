@@ -23,17 +23,25 @@ class CellObjects {
         this.cell = cell;
     }
 
+    eachItem(cb: EachCb<Item>): void {
+        let object: Item | null = this.cell._item;
+        while (object) {
+            cb(object);
+            object = object.next;
+        }
+    }
+
+    eachActor(cb: EachCb<Actor>): void {
+        let object: Actor | null = this.cell._actor;
+        while (object) {
+            cb(object);
+            object = object.next;
+        }
+    }
+
     forEach(cb: EachCb<Entity>): void {
-        let object: Entity | null = this.cell._item;
-        while (object) {
-            cb(object);
-            object = object.next;
-        }
-        object = this.cell._actor;
-        while (object) {
-            cb(object);
-            object = object.next;
-        }
+        this.eachItem(cb);
+        this.eachActor(cb);
     }
 
     some(cb: MatchCb<Entity>): boolean {
@@ -154,12 +162,18 @@ export class Cell implements CellType {
         );
     }
     itemFlags(): number {
-        // @ts-ignore
-        return this._objects.reduce((out, o) => out | (o.flags.item || 0), 0);
+        let flags = 0;
+        this._objects.eachItem((i) => {
+            flags |= i.flags.item;
+        });
+        return flags;
     }
     actorFlags(): number {
-        // @ts-ignore
-        return this._objects.reduce((out, o) => out | (o.flags.actor || 0), 0);
+        let flags = 0;
+        this._objects.eachActor((a) => {
+            flags |= a.flags.actor;
+        });
+        return flags;
     }
 
     get needsRedraw() {
