@@ -1,15 +1,15 @@
 {
     "name": "gw-map",
-    "version": "0.3.1",
+    "version": "0.5.0",
     "description": "Map components for Roguelikes",
-    "main": "dist/gw-map.cjs",
+    "main": "dist/gw-map.js",
     "browser": "dist/gw-map.min.js",
     "module": "dist/gw-map.mjs",
     "types": "dist/gw-map.d.ts",
     "scripts": {
         "compile": "tsc --build tsconfig.json",
         "bundle": "rollup -c",
-        "copy": "cp dist/gw-map.min.* docs/js && cp node_modules/gw-utils/dist/gw-utils.min.* docs/js",
+        "copy": "cp dist/gw-map.js* docs/js && cp node_modules/gw-utils/dist/gw-utils.min.* docs/js",
         "build": "npm run compile && npm run bundle && npm run copy && npm run version",
         "serve": "cd docs && http-server -p 8080",
         "test": "jest",
@@ -35,7 +35,8 @@
     "devDependencies": {
         "@babel/types": "^7.12.11",
         "@jest/types": "^26.6.2",
-        "gw-utils": "^0.3.0",
+        "@rollup/plugin-node-resolve": "^13.0.4",
+        "gw-utils": "^0.5.0",
         "http-server": "^0.12.3",
         "jest": "^26.6.3",
         "jest-extended": "^0.11.5",
@@ -46,7 +47,6 @@
         "ts-jest": "^26.4.4",
         "typescript": "^4.1.3"
     },
-    "dependencies": {},
     "peerDependencies": {
         "gw-utils": "^0.3.1"
     },
