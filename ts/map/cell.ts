@@ -1,15 +1,10 @@
 import * as GWU from 'gw-utils';
 
-import {
-    Cell as Flags,
-    GameObject as ObjectFlags,
-    Tile as TileFlags,
-} from './flags';
+import * as Flags from '../flags';
 import { CellType, CellFlags, MapType } from './types';
 
 import * as TILE from '../tile';
-import { Depth } from '../gameObject/flags';
-import { GameObject } from '../gameObject';
+import { Entity } from '../entity';
 import { Actor } from '../actor';
 import { Item } from '../item';
 import * as Effect from '../effect';
@@ -28,8 +23,8 @@ class CellObjects {
         this.cell = cell;
     }
 
-    forEach(cb: EachCb<GameObject>): void {
-        let object: GameObject | null = this.cell._item;
+    forEach(cb: EachCb<Entity>): void {
+        let object: Entity | null = this.cell._item;
         while (object) {
             cb(object);
             object = object.next;
@@ -41,8 +36,8 @@ class CellObjects {
         }
     }
 
-    some(cb: MatchCb<GameObject>): boolean {
-        let object: GameObject | null = this.cell._item;
+    some(cb: MatchCb<Entity>): boolean {
+        let object: Entity | null = this.cell._item;
         while (object) {
             if (cb(object)) return true;
             object = object.next;
@@ -55,8 +50,8 @@ class CellObjects {
         return false;
     }
 
-    reduce(cb: ReduceCb<GameObject>, start?: any): any {
-        let object: GameObject | null = this.cell._item;
+    reduce(cb: ReduceCb<Entity>, start?: any): any {
+        let object: Entity | null = this.cell._item;
         while (object) {
             if (start === undefined) {
                 start = object;
@@ -120,8 +115,8 @@ export class Cell implements CellType {
 
     hasObjectFlag(flag: number): boolean {
         return (
-            this.tiles.some((t) => t && t.flags.object & flag) ||
-            this._objects.some((o) => !!(o.flags.object & flag))
+            this.tiles.some((t) => t && t.flags.entity & flag) ||
+            this._objects.some((o) => !!(o.flags.entity & flag))
         );
     }
     hasAllObjectFlags(flags: number): boolean {
@@ -145,8 +140,8 @@ export class Cell implements CellType {
     }
     objectFlags(): number {
         return (
-            this.tiles.reduce((out, t) => out | (t ? t.flags.object : 0), 0) |
-            this._objects.reduce((out, o) => out | o.flags.object, 0)
+            this.tiles.reduce((out, t) => out | (t ? t.flags.entity : 0), 0) |
+            this._objects.reduce((out, o) => out | o.flags.entity, 0)
         );
     }
     tileFlags(): number {
@@ -159,20 +154,22 @@ export class Cell implements CellType {
         );
     }
     itemFlags(): number {
-        return this._objects.reduce((out, o) => out | o.itemFlags(), 0);
+        // @ts-ignore
+        return this._objects.reduce((out, o) => out | (o.flags.item || 0), 0);
     }
     actorFlags(): number {
-        return this._objects.reduce((out, o) => out | o.actorFlags(), 0);
+        // @ts-ignore
+        return this._objects.reduce((out, o) => out | (o.flags.actor || 0), 0);
     }
 
     get needsRedraw() {
-        return !!(this.flags.cell & Flags.NEEDS_REDRAW);
+        return !!(this.flags.cell & Flags.Cell.NEEDS_REDRAW);
     }
     set needsRedraw(v: boolean) {
         if (v) {
-            this.flags.cell |= Flags.NEEDS_REDRAW;
+            this.flags.cell |= Flags.Cell.NEEDS_REDRAW;
         } else {
-            this.flags.cell &= ~Flags.NEEDS_REDRAW;
+            this.flags.cell &= ~Flags.Cell.NEEDS_REDRAW;
         }
     }
 
@@ -216,7 +213,7 @@ export class Cell implements CellType {
     }
 
     tileWithObjectFlag(flag: number) {
-        return this.tiles.find((t) => t && t.flags.object & flag) || null;
+        return this.tiles.find((t) => t && t.flags.entity & flag) || null;
     }
 
     tileWithFlag(flag: number) {
@@ -273,10 +270,10 @@ export class Cell implements CellType {
         return !this.blocksMove();
     }
     isWall(): boolean {
-        return this.hasAllObjectFlags(ObjectFlags.L_WALL_FLAGS);
+        return this.hasAllObjectFlags(Flags.Entity.L_WALL_FLAGS);
     }
     isStairs(): boolean {
-        return this.hasTileFlag(TileFlags.T_HAS_STAIRS);
+        return this.hasTileFlag(Flags.Tile.T_HAS_STAIRS);
     }
 
     hasKey(): boolean {
@@ -321,7 +318,7 @@ export class Cell implements CellType {
         this._actor = null;
         this._item = null;
     }
-    clearDepth(depth: Depth): boolean {
+    clearDepth(depth: Flags.Depth): boolean {
         if (depth == 0) {
             this.tiles[0] = TILE.tiles.NULL;
             this.needsRedraw = true;
@@ -467,7 +464,7 @@ export class Cell implements CellType {
     // // Items
 
     hasItem(): boolean {
-        return this.hasCellFlag(Flags.HAS_ITEM);
+        return this.hasCellFlag(Flags.Cell.HAS_ITEM);
     }
     get item(): Item | null {
         return this._item;
@@ -475,9 +472,9 @@ export class Cell implements CellType {
     set item(val: Item | null) {
         this._item = val;
         if (val) {
-            this.setCellFlag(Flags.HAS_ITEM);
+            this.setCellFlag(Flags.Cell.HAS_ITEM);
         } else {
-            this.clearCellFlag(Flags.HAS_ITEM);
+            this.clearCellFlag(Flags.Cell.HAS_ITEM);
         }
         this.needsRedraw = true;
     }
@@ -485,10 +482,10 @@ export class Cell implements CellType {
     // // Actors
 
     hasActor(): boolean {
-        return this.hasCellFlag(Flags.HAS_ACTOR);
+        return this.hasCellFlag(Flags.Cell.HAS_ACTOR);
     }
     hasPlayer(): boolean {
-        return this.hasCellFlag(Flags.HAS_PLAYER);
+        return this.hasCellFlag(Flags.Cell.HAS_PLAYER);
     }
     get actor(): Actor | null {
         return this._actor;
@@ -496,9 +493,9 @@ export class Cell implements CellType {
     set actor(val: Actor | null) {
         this._actor = val;
         if (val) {
-            this.setCellFlag(Flags.HAS_ACTOR);
+            this.setCellFlag(Flags.Cell.HAS_ACTOR);
         } else {
-            this.clearCellFlag(Flags.HAS_ACTOR);
+            this.clearCellFlag(Flags.Cell.HAS_ACTOR);
         }
         this.needsRedraw = true;
     }

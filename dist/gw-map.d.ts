@@ -1,29 +1,103 @@
 import * as GWU from 'gw-utils';
 
-declare enum GameObject$1 {
-    L_SUPERPRIORITY,
-    L_SECRETLY_PASSABLE,
-    L_BLOCKS_MOVE,
-    L_BLOCKS_VISION,
-    L_BLOCKS_SURFACE,
-    L_BLOCKS_LIQUID,
-    L_BLOCKS_GAS,
-    L_BLOCKS_ITEMS,
-    L_BLOCKS_ACTORS,
-    L_BLOCKS_EFFECTS,
-    L_BLOCKS_DIAGONAL,
-    L_INTERRUPT_WHEN_SEEN,
-    L_LIST_IN_SIDEBAR,
-    L_VISUALLY_DISTINCT,
-    L_BRIGHT_MEMORY,
-    L_INVERT_WHEN_HIGHLIGHTED,
-    L_BLOCKED_BY_STAIRS,
-    L_BLOCKS_SCENT,
-    L_DIVIDES_LEVEL,
-    L_WAYPOINT_BLOCKER,
-    L_WALL_FLAGS,
-    L_BLOCKS_EVERYTHING
+interface FlagType$1 {
+    entity: number;
 }
+interface EntityType extends GWU.utils.Chainable<EntityType>, GWU.utils.XY {
+    sprite: GWU.sprite.Sprite;
+    depth: number;
+    light: GWU.light.LightType | null;
+    flags: FlagType$1;
+}
+
+declare abstract class Entity implements EntityType {
+    sprite: GWU.sprite.Sprite;
+    depth: number;
+    light: GWU.light.LightType | null;
+    flags: FlagType$1;
+    next: Entity | null;
+    x: number;
+    y: number;
+    constructor();
+    hasObjectFlag(flag: number): boolean;
+    hasAllObjectFlags(flags: number): boolean;
+    blocksMove(): boolean;
+    blocksVision(): boolean;
+    blocksPathing(): boolean;
+    blocksEffects(): boolean;
+    abstract getName(): string;
+    abstract getDescription(): string;
+    abstract getFlavor(): string;
+}
+
+type index_d$5_EntityType = EntityType;
+type index_d$5_Entity = Entity;
+declare const index_d$5_Entity: typeof Entity;
+declare namespace index_d$5 {
+  export {
+    FlagType$1 as FlagType,
+    index_d$5_EntityType as EntityType,
+    index_d$5_Entity as Entity,
+  };
+}
+
+interface ActorFlags extends FlagType$1 {
+    actor: number;
+}
+
+interface FlagType extends FlagType$1 {
+    item: number;
+}
+
+declare class ItemKind {
+}
+interface ItemKindOptions {
+}
+declare const kinds: Record<string, ItemKind>;
+declare function install$2(_id: string, _kind: ItemKind | ItemKindOptions): ItemKind;
+declare function get$1(id: string | ItemKind): ItemKind | null;
+declare function makeKind(_info: ItemKindOptions): ItemKind;
+
+declare class Item extends Entity {
+    flags: FlagType;
+    quantity: number;
+    kind: ItemKind;
+    next: Item | null;
+    constructor(kind: ItemKind);
+    itemFlags(): number;
+    hasItemFlag(flag: number): boolean;
+    hasAllItemFlags(flags: number): boolean;
+    forbidsCell(_cell: CellType): boolean;
+    getName(): string;
+    getDescription(): string;
+    getFlavor(): string;
+}
+declare function make$3(id: string | ItemKind): Item;
+declare function from$2(info: string | ItemKind | ItemKindOptions): Item;
+
+type index_d$4_FlagType = FlagType;
+type index_d$4_ItemKind = ItemKind;
+declare const index_d$4_ItemKind: typeof ItemKind;
+type index_d$4_ItemKindOptions = ItemKindOptions;
+declare const index_d$4_kinds: typeof kinds;
+declare const index_d$4_makeKind: typeof makeKind;
+type index_d$4_Item = Item;
+declare const index_d$4_Item: typeof Item;
+declare namespace index_d$4 {
+  export {
+    index_d$4_FlagType as FlagType,
+    index_d$4_ItemKind as ItemKind,
+    index_d$4_ItemKindOptions as ItemKindOptions,
+    index_d$4_kinds as kinds,
+    install$2 as install,
+    get$1 as get,
+    index_d$4_makeKind as makeKind,
+    index_d$4_Item as Item,
+    make$3 as make,
+    from$2 as from,
+  };
+}
+
 declare enum Depth {
     ALL_LAYERS = -1,
     GROUND = 0,
@@ -36,88 +110,6 @@ declare enum Depth {
     UI = 7
 }
 declare type DepthString = keyof typeof Depth;
-
-type flags_d$1_Depth = Depth;
-declare const flags_d$1_Depth: typeof Depth;
-type flags_d$1_DepthString = DepthString;
-declare namespace flags_d$1 {
-  export {
-    GameObject$1 as GameObject,
-    flags_d$1_Depth as Depth,
-    flags_d$1_DepthString as DepthString,
-  };
-}
-
-interface ObjectFlags {
-    object: number;
-}
-interface ObjectType extends GWU.utils.Chainable<ObjectType>, GWU.utils.XY {
-    sprite: GWU.sprite.Sprite;
-    depth: number;
-    light: GWU.light.LightType | null;
-    flags: ObjectFlags;
-}
-
-declare class GameObject implements ObjectType {
-    sprite: GWU.sprite.Sprite;
-    depth: number;
-    light: GWU.light.LightType | null;
-    flags: ObjectFlags;
-    next: GameObject | null;
-    x: number;
-    y: number;
-    constructor();
-    hasObjectFlag(flag: number): boolean;
-    hasAllObjectFlags(flags: number): boolean;
-    blocksMove(): boolean;
-    blocksVision(): boolean;
-    blocksPathing(): boolean;
-    blocksEffects(): boolean;
-    itemFlags(): number;
-    actorFlags(): number;
-}
-
-type index_d$5_ObjectFlags = ObjectFlags;
-type index_d$5_ObjectType = ObjectType;
-type index_d$5_GameObject = GameObject;
-declare const index_d$5_GameObject: typeof GameObject;
-declare namespace index_d$5 {
-  export {
-    flags_d$1 as flags,
-    index_d$5_ObjectFlags as ObjectFlags,
-    index_d$5_ObjectType as ObjectType,
-    index_d$5_GameObject as GameObject,
-  };
-}
-
-interface ActorFlags extends ObjectFlags {
-    actor: number;
-}
-
-interface ItemFlags extends ObjectFlags {
-    item: number;
-}
-
-declare class Item extends GameObject {
-    flags: ItemFlags;
-    quantity: number;
-    next: Item | null;
-    constructor();
-    itemFlags(): number;
-    hasItemFlag(flag: number): boolean;
-    hasAllItemFlags(flags: number): boolean;
-    forbidsCell(_cell: CellType): boolean;
-}
-
-type index_d$4_Item = Item;
-declare const index_d$4_Item: typeof Item;
-type index_d$4_ItemFlags = ItemFlags;
-declare namespace index_d$4 {
-  export {
-    index_d$4_Item as Item,
-    index_d$4_ItemFlags as ItemFlags,
-  };
-}
 
 declare enum Tile$1 {
     T_BRIDGE,
@@ -151,6 +143,7 @@ declare enum Tile$1 {
     T_CAN_BE_BRIDGED,
     T_IS_DEEP_LIQUID
 }
+
 declare enum TileMech {
     TM_IS_WIRED,
     TM_IS_CIRCUIT_BREAKER,
@@ -180,7 +173,7 @@ interface EffectConfig {
 }
 declare type EffectBase = Partial<EffectConfig> | Function;
 
-interface TileFlags extends ObjectFlags {
+interface TileFlags extends FlagType$1 {
     tile: number;
     tileMech: number;
 }
@@ -403,11 +396,12 @@ declare function install(id: string, options: Partial<TileOptions>): Tile;
 declare function install(id: string, base: string, options: Partial<TileOptions>): Tile;
 declare function installAll(tiles: Record<string, Partial<TileOptions>>): void;
 
-declare const flags$1: {
+declare const flags: {
     Tile: typeof Tile$1;
     TileMech: typeof TileMech;
 };
 
+declare const index_d$2_flags: typeof flags;
 type index_d$2_TileFlags = TileFlags;
 type index_d$2_NameConfig = NameConfig;
 type index_d$2_TileType = TileType;
@@ -422,7 +416,7 @@ declare const index_d$2_install: typeof install;
 declare const index_d$2_installAll: typeof installAll;
 declare namespace index_d$2 {
   export {
-    flags$1 as flags,
+    index_d$2_flags as flags,
     index_d$2_TileFlags as TileFlags,
     index_d$2_NameConfig as NameConfig,
     index_d$2_TileType as TileType,
@@ -555,21 +549,7 @@ interface MapType {
     getAppearanceAt(x: number, y: number, dest: GWU.sprite.Mixer): void;
 }
 
-declare enum Actor$1 {
-    IS_PLAYER
-}
-
-type flags_d_Depth = Depth;
-declare const flags_d_Depth: typeof Depth;
-declare namespace flags_d {
-  export {
-    Actor$1 as Actor,
-    GameObject$1 as GameObject,
-    flags_d_Depth as Depth,
-  };
-}
-
-declare class Actor extends GameObject {
+declare class Actor extends Entity {
     flags: ActorFlags;
     next: Actor | null;
     constructor();
@@ -579,64 +559,19 @@ declare class Actor extends GameObject {
     isPlayer(): boolean;
     isVisible(): boolean;
     forbidsCell(_cell: CellType): boolean;
+    getName(): string;
+    getDescription(): string;
+    getFlavor(): string;
 }
 
+type index_d$1_ActorFlags = ActorFlags;
 type index_d$1_Actor = Actor;
 declare const index_d$1_Actor: typeof Actor;
-type index_d$1_ActorFlags = ActorFlags;
 declare namespace index_d$1 {
   export {
-    index_d$1_Actor as Actor,
-    flags_d as flags,
     index_d$1_ActorFlags as ActorFlags,
+    index_d$1_Actor as Actor,
   };
-}
-
-declare enum Cell$1 {
-    SEARCHED_FROM_HERE,
-    PRESSURE_PLATE_DEPRESSED,
-    KNOWN_TO_BE_TRAP_FREE,
-    CAUGHT_FIRE_THIS_TURN,
-    EVENT_FIRED_THIS_TURN,
-    EVENT_PROTECTED,
-    IS_IN_LOOP,
-    IS_CHOKEPOINT,
-    IS_GATE_SITE,
-    IS_IN_ROOM_MACHINE,
-    IS_IN_AREA_MACHINE,
-    IS_POWERED,
-    IMPREGNABLE,
-    NEEDS_REDRAW,
-    CELL_CHANGED,
-    HAS_SURFACE,
-    HAS_LIQUID,
-    HAS_GAS,
-    HAS_PLAYER,
-    HAS_ACTOR,
-    HAS_DORMANT_MONSTER,
-    HAS_ITEM,
-    IS_IN_PATH,
-    IS_CURSOR,
-    STABLE_MEMORY,
-    IS_WIRED,
-    IS_CIRCUIT_BREAKER,
-    COLORS_DANCE,
-    IS_IN_MACHINE,
-    PERMANENT_CELL_FLAGS,
-    HAS_ANY_ACTOR,
-    HAS_ANY_OBJECT,
-    CELL_DEFAULT
-}
-declare enum Map$1 {
-    MAP_CHANGED,
-    MAP_ALWAYS_LIT,
-    MAP_SAW_WELCOME,
-    MAP_NO_LIQUID,
-    MAP_NO_GAS,
-    MAP_CALC_FOV,
-    MAP_FOV_CHANGED,
-    MAP_DANCES,
-    MAP_DEFAULT = 0
 }
 
 declare type TileData = Tile | null;
@@ -647,9 +582,9 @@ declare type ReduceCb<T> = (out: any, t: T) => any;
 declare class CellObjects {
     cell: Cell;
     constructor(cell: Cell);
-    forEach(cb: EachCb<GameObject>): void;
-    some(cb: MatchCb<GameObject>): boolean;
-    reduce(cb: ReduceCb<GameObject>, start?: any): any;
+    forEach(cb: EachCb<Entity>): void;
+    some(cb: MatchCb<Entity>): boolean;
+    reduce(cb: ReduceCb<Entity>, start?: any): any;
 }
 declare class Cell implements CellType {
     flags: CellFlags;
@@ -959,15 +894,6 @@ declare class FireLayer extends TileLayer {
     exposeToFire(x: number, y: number, alwaysIgnite?: boolean): Promise<boolean>;
 }
 
-declare const flags: {
-    Cell: typeof Cell$1;
-    Map: typeof Map$1;
-    GameObject: typeof GameObject$1;
-    Depth: typeof Depth;
-    Tile: typeof Tile$1;
-};
-
-declare const index_d_flags: typeof flags;
 type index_d_CellFlags = CellFlags;
 type index_d_MapFlags = MapFlags;
 type index_d_SetOptions = SetOptions;
@@ -1021,7 +947,6 @@ type index_d_FireLayer = FireLayer;
 declare const index_d_FireLayer: typeof FireLayer;
 declare namespace index_d {
   export {
-    index_d_flags as flags,
     index_d_CellFlags as CellFlags,
     index_d_MapFlags as MapFlags,
     index_d_SetOptions as SetOptions,

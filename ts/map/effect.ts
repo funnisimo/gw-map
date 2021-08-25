@@ -1,9 +1,8 @@
 import * as GWU from 'gw-utils';
 
 import { MapType } from './types';
-import * as Flags from './flags';
+import * as Flags from '../flags';
 import * as Tile from '../tile';
-import * as Entity from '../gameObject';
 import * as Effect from '../effect';
 
 import { Actor } from '../actor';
@@ -280,10 +279,10 @@ export function spawnTiles(
 
             if (cell.hasTile(tile)) {
                 // If the new cell already contains the fill terrain,
-                // if (tile.depth == Entity.flags.Depth.GAS) {
+                // if (tile.depth == Flags.Depth.GAS) {
                 //     spawnMap[i][j] = 1;
                 //     cell.gasVolume += volume;
-                // } else if (tile.depth == Entity.flags.Depth.LIQUID) {
+                // } else if (tile.depth == Flags.Depth.LIQUID) {
                 //     spawnMap[i][j] = 1;
                 //     cell.liquidVolume += volume;
                 // }
@@ -556,16 +555,16 @@ export function clearCells(
             cell.clear();
         } else {
             if (flags & Effect.Flags.E_CLEAR_GAS) {
-                cell.clearDepth(Entity.flags.Depth.GAS);
+                cell.clearDepth(Flags.Depth.GAS);
             }
             if (flags & Effect.Flags.E_CLEAR_LIQUID) {
-                cell.clearDepth(Entity.flags.Depth.LIQUID);
+                cell.clearDepth(Flags.Depth.LIQUID);
             }
             if (flags & Effect.Flags.E_CLEAR_SURFACE) {
-                cell.clearDepth(Entity.flags.Depth.SURFACE);
+                cell.clearDepth(Flags.Depth.SURFACE);
             }
             if (flags & Effect.Flags.E_CLEAR_GROUND) {
-                cell.clearDepth(Entity.flags.Depth.GROUND);
+                cell.clearDepth(Flags.Depth.GROUND);
             }
         }
         didSomething = true;
@@ -641,7 +640,7 @@ class ClearTileEffect implements Effect.EffectHandler {
         }
 
         if (config === true) {
-            layers = Entity.flags.Depth.ALL_LAYERS;
+            layers = Flags.Depth.ALL_LAYERS;
         } else if (typeof config === 'number') {
             layers = config;
         } else if (Array.isArray(config)) {
@@ -649,8 +648,7 @@ class ClearTileEffect implements Effect.EffectHandler {
                 if (typeof v === 'number') return out | v;
 
                 const depth: number =
-                    Entity.flags.Depth[v as keyof typeof Entity.flags.Depth] ||
-                    0;
+                    Flags.Depth[v as keyof typeof Flags.Depth] || 0;
                 return out | depth;
             }, 0);
         } else {

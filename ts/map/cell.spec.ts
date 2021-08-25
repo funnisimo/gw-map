@@ -3,7 +3,7 @@ import '../../test/matchers';
 import * as UTILS from '../../test/utils';
 import * as GWU from 'gw-utils';
 
-import * as Flags from './flags';
+import * as Flags from '../flags';
 import * as Tile from '../tile';
 import * as Map from './map';
 import { Cell } from './cell';
@@ -167,7 +167,7 @@ describe('Cell', () => {
     test('objectFlags', () => {
         const cell: Cell = new Cell('WALL');
 
-        expect(cell.objectFlags()).toEqual(Flags.GameObject.L_WALL_FLAGS);
+        expect(cell.objectFlags()).toEqual(Flags.Entity.L_WALL_FLAGS);
     });
 
     test('tileFlags', () => {
@@ -210,19 +210,17 @@ describe('Cell', () => {
     test('hasObjectFlag + hasAllObjectFlags', () => {
         const cell: Cell = new Cell('WALL');
         expect(
-            cell.hasObjectFlag(Flags.GameObject.L_SECRETLY_PASSABLE)
+            cell.hasObjectFlag(Flags.Entity.L_SECRETLY_PASSABLE)
         ).toBeFalsy();
-        expect(cell.hasObjectFlag(Flags.GameObject.L_BLOCKS_MOVE)).toBeTruthy();
+        expect(cell.hasObjectFlag(Flags.Entity.L_BLOCKS_MOVE)).toBeTruthy();
         expect(
             cell.hasAllObjectFlags(
-                Flags.GameObject.L_SECRETLY_PASSABLE |
-                    Flags.GameObject.L_BLOCKS_MOVE
+                Flags.Entity.L_SECRETLY_PASSABLE | Flags.Entity.L_BLOCKS_MOVE
             )
         ).toBeFalsy();
         expect(
             cell.hasAllObjectFlags(
-                Flags.GameObject.L_BLOCKS_VISION |
-                    Flags.GameObject.L_BLOCKS_MOVE
+                Flags.Entity.L_BLOCKS_VISION | Flags.Entity.L_BLOCKS_MOVE
             )
         ).toBeTruthy();
     });
@@ -556,7 +554,7 @@ describe('Cell', () => {
     //     });
 
     //     expect(
-    //         SECRET_DOOR.flags.layer & Flags.GameObject.L_SECRETLY_PASSABLE
+    //         SECRET_DOOR.flags.layer & Flags.Entity.L_SECRETLY_PASSABLE
     //     ).toBeTruthy();
 
     //     cell.setTile(SECRET_DOOR);
@@ -569,7 +567,7 @@ describe('Cell', () => {
     //     cell.clearFlags(Flags.Cell.ANY_KIND_OF_VISIBLE);
 
     //     expect(
-    //         cell.memory.flags.layer & Flags.GameObject.L_SECRETLY_PASSABLE
+    //         cell.memory.flags.layer & Flags.Entity.L_SECRETLY_PASSABLE
     //     ).toBeTruthy();
 
     //     expect(cell.isAnyKindOfVisible()).toBeFalsy();

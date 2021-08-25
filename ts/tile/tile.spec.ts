@@ -1,7 +1,7 @@
 import 'jest-extended';
 import * as GWU from 'gw-utils';
 import * as Tile from './index';
-import { GameObject as ObjectFlags, Depth } from '../gameObject/flags';
+import { Entity as ObjectFlags, Depth } from '../flags';
 import * as Map from '../map';
 
 const COLORS = GWU.color.colors;
@@ -29,7 +29,7 @@ describe('Tile', () => {
             fg: 'light_gray',
             bg: 'dark_gray',
             flags: {
-                object: ObjectFlags.L_BLOCKS_EVERYTHING,
+                entity: ObjectFlags.L_BLOCKS_EVERYTHING,
                 tile: 0,
                 tileMech: 0,
             },
@@ -38,7 +38,7 @@ describe('Tile', () => {
 
         expect(tile).toBeDefined();
 
-        expect(tile.flags.object).toEqual(ObjectFlags.L_BLOCKS_EVERYTHING);
+        expect(tile.flags.entity).toEqual(ObjectFlags.L_BLOCKS_EVERYTHING);
         expect(tile.flags.tileMech).toEqual(0);
         expect(tile.sprite).toMatchObject({
             ch: '#',
@@ -122,11 +122,11 @@ describe('Tile', () => {
 
         expect(glassWall).toBeDefined();
 
-        expect(glassWall.flags.object).not.toEqual(wall.flags);
+        expect(glassWall.flags.entity).not.toEqual(wall.flags);
         expect(
-            glassWall.flags.object & ObjectFlags.L_BLOCKS_VISION
+            glassWall.flags.entity & ObjectFlags.L_BLOCKS_VISION
         ).toBeFalsy();
-        expect(glassWall.flags.object & ObjectFlags.L_BLOCKS_MOVE).toBeTruthy();
+        expect(glassWall.flags.entity & ObjectFlags.L_BLOCKS_MOVE).toBeTruthy();
         expect(glassWall.flags.tile).toEqual(wall.flags.tile);
         expect(glassWall).not.toBe(wall);
         expect(glassWall.sprite).toMatchObject({
@@ -178,15 +178,15 @@ describe('Tile', () => {
         });
 
         expect(Tile.tiles.WALL.getName()).toEqual('Stone Wall');
-        expect(Tile.tiles.WALL.flags.object).toEqual(
+        expect(Tile.tiles.WALL.flags.entity).toEqual(
             ObjectFlags.L_BLOCKS_EVERYTHING
         );
         expect(Tile.tiles.GLASS_WALL.getName()).toEqual('Glass Wall');
         expect(
-            Tile.tiles.GLASS_WALL.flags.object & ObjectFlags.L_BLOCKS_VISION
+            Tile.tiles.GLASS_WALL.flags.entity & ObjectFlags.L_BLOCKS_VISION
         ).toBeFalsy();
         expect(
-            Tile.tiles.GLASS_WALL.flags.object & ObjectFlags.L_BLOCKS_MOVE
+            Tile.tiles.GLASS_WALL.flags.entity & ObjectFlags.L_BLOCKS_MOVE
         ).toBeTruthy();
     });
 

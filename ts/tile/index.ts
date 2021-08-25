@@ -1,4 +1,4 @@
-import { Tile, TileMech } from './flags';
+import { Tile, TileMech } from '../flags';
 
 export const flags = { Tile, TileMech };
 

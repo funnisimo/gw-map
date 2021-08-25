@@ -1,7 +1,7 @@
 import * as GWU from 'gw-utils';
 
 import { Actor } from '../actor';
-import { Cell as CellFlags, Tile as TileFlags } from './flags';
+import * as Flags from '../flags';
 import { Item } from '../item';
 import * as TILE from '../tile';
 import { CellInfoType } from './types';
@@ -139,7 +139,7 @@ export class CellMemory implements CellInfoType {
         return this.blocksVision() && this.blocksMove();
     }
     isStairs(): boolean {
-        return this.hasTileFlag(TileFlags.T_HAS_STAIRS);
+        return this.hasTileFlag(Flags.Tile.T_HAS_STAIRS);
     }
     hasKey(): boolean {
         return this._hasKey;
@@ -166,7 +166,7 @@ export class CellMemory implements CellInfoType {
         return !!this._actor;
     }
     hasPlayer(): boolean {
-        return !!(this.flags.cell & CellFlags.HAS_PLAYER);
+        return !!(this.flags.cell & Flags.Cell.HAS_PLAYER);
     }
     get actor(): Actor | null {
         return this._actor;

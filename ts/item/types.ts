@@ -1,5 +1,5 @@
-import { ObjectFlags } from '../gameObject/types';
+import { FlagType as ObjectFlagType } from '../entity/types';
 
-export interface ItemFlags extends ObjectFlags {
+export interface FlagType extends ObjectFlagType {
     item: number;
 }

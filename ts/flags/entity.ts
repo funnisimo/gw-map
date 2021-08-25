@@ -1,7 +1,7 @@
 import * as GWU from 'gw-utils';
 const Fl = GWU.flag.fl;
 
-export enum GameObject {
+export enum Entity {
     // L_DYNAMIC = Fl(0), // for movable things like actors or items
     L_SUPERPRIORITY = Fl(1), // will overwrite layers at same depth with higher priority
     L_SECRETLY_PASSABLE = Fl(2), // will become passable if discovered/activated/etc...
@@ -45,17 +45,3 @@ export enum GameObject {
         L_BLOCKS_ACTORS |
         L_BLOCKS_SURFACE,
 }
-
-export enum Depth {
-    ALL_LAYERS = -1,
-    GROUND = 0,
-    SURFACE,
-    ITEM,
-    ACTOR,
-    LIQUID,
-    GAS,
-    FX,
-    UI,
-}
-
-export type DepthString = keyof typeof Depth;

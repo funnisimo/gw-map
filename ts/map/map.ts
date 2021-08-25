@@ -1,13 +1,12 @@
 import * as GWU from 'gw-utils';
 
-import * as Flags from './flags';
+import * as Flags from '../flags';
 import { Cell } from './cell';
 import * as TILE from '../tile';
 import { Tile } from '../tile';
 import { TileLayer, ActorLayer, ItemLayer } from './layers';
 import { Item } from '../item';
 import { Actor } from '../actor';
-import { Depth } from '../gameObject/flags';
 import {
     MapType,
     EachCellCb,
@@ -76,33 +75,33 @@ export class Map
     // LAYERS
 
     initLayers() {
-        this.addLayer(Depth.GROUND, new TileLayer(this, 'ground'));
-        this.addLayer(Depth.SURFACE, new FireLayer(this, 'surface'));
-        this.addLayer(Depth.GAS, new GasLayer(this, 'gas'));
-        this.addLayer(Depth.ITEM, new ItemLayer(this, 'item'));
-        this.addLayer(Depth.ACTOR, new ActorLayer(this, 'actor'));
+        this.addLayer(Flags.Depth.GROUND, new TileLayer(this, 'ground'));
+        this.addLayer(Flags.Depth.SURFACE, new FireLayer(this, 'surface'));
+        this.addLayer(Flags.Depth.GAS, new GasLayer(this, 'gas'));
+        this.addLayer(Flags.Depth.ITEM, new ItemLayer(this, 'item'));
+        this.addLayer(Flags.Depth.ACTOR, new ActorLayer(this, 'actor'));
     }
 
-    addLayer(depth: number | keyof typeof Depth, layer: LayerType) {
+    addLayer(depth: number | keyof typeof Flags.Depth, layer: LayerType) {
         if (typeof depth !== 'number') {
-            depth = Depth[depth as keyof typeof Depth];
+            depth = Flags.Depth[depth as keyof typeof Flags.Depth];
         }
 
         layer.depth = depth;
         this.layers[depth] = layer;
     }
 
-    removeLayer(depth: number | keyof typeof Depth) {
+    removeLayer(depth: number | keyof typeof Flags.Depth) {
         if (typeof depth !== 'number') {
-            depth = Depth[depth as keyof typeof Depth];
+            depth = Flags.Depth[depth as keyof typeof Flags.Depth];
         }
         if (!depth) throw new Error('Cannot remove layer with depth=0.');
         delete this.layers[depth];
     }
 
-    getLayer(depth: number | keyof typeof Depth): LayerType | null {
+    getLayer(depth: number | keyof typeof Flags.Depth): LayerType | null {
         if (typeof depth !== 'number') {
-            depth = Depth[depth as keyof typeof Depth];
+            depth = Flags.Depth[depth as keyof typeof Flags.Depth];
         }
         return this.layers[depth] || null;
     }
@@ -357,7 +356,7 @@ export class Map
                             const n = this.cell(i, j);
                             if (
                                 !n.hasObjectFlag(
-                                    Flags.GameObject.L_BLOCKS_EFFECTS
+                                    Flags.Entity.L_BLOCKS_EFFECTS
                                 ) &&
                                 n.depthTile(tile.depth) !=
                                     cell.depthTile(tile.depth) &&
@@ -430,7 +429,7 @@ export class Map
                             const n = this.cell(i, j);
                             if (
                                 !n.hasObjectFlag(
-                                    Flags.GameObject.L_BLOCKS_EFFECTS
+                                    Flags.Entity.L_BLOCKS_EFFECTS
                                 ) &&
                                 n.depthTile(tile.depth) !=
                                     cell.depthTile(tile.depth) &&
@@ -551,7 +550,7 @@ export class Map
             dest.blackOut();
         }
 
-        if (cell.hasObjectFlag(Flags.GameObject.L_VISUALLY_DISTINCT)) {
+        if (cell.hasObjectFlag(Flags.Entity.L_VISUALLY_DISTINCT)) {
             GWU.color.separate(dest.fg, dest.bg);
         }
     }

@@ -1,4 +1,4 @@
-export * as gameObject from './gameObject';
+export * as gameObject from './entity';
 export * as actor from './actor';
 export * as item from './item';
 export * as tile from './tile';

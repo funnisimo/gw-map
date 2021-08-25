@@ -1,12 +1,10 @@
 import * as GWU from 'gw-utils';
 
-import * as Flags from './flags';
+import * as Flags from '../flags';
 import { TileLayer } from './layers';
 import { MapType } from './types';
 import { SetTileOptions } from './types';
 import * as Tile from '../tile';
-
-const ObjectFlags = Flags.GameObject;
 
 export class GasLayer extends TileLayer {
     volume: GWU.grid.NumGrid;
@@ -95,7 +93,7 @@ export class GasLayer extends TileLayer {
         let startingTile = cell.depthTile(this.depth);
         let highestTile = startingTile;
 
-        if (cell.hasObjectFlag(ObjectFlags.L_BLOCKS_GAS)) {
+        if (cell.hasObjectFlag(Flags.Entity.L_BLOCKS_GAS)) {
             this.volume[x][y] = 0;
             if (startingVolume[x][y]) {
                 this.clear(x, y);
@@ -114,7 +112,7 @@ export class GasLayer extends TileLayer {
                 ++j
             ) {
                 const v = startingVolume[i][j];
-                if (!cell.hasObjectFlag(ObjectFlags.L_BLOCKS_GAS)) {
+                if (!cell.hasObjectFlag(Flags.Entity.L_BLOCKS_GAS)) {
                     ++count;
                     if (v > highestVolume) {
                         highestVolume = v;

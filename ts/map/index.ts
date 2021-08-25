@@ -1,7 +1,3 @@
-import { Cell, Map, GameObject, Depth, Tile } from './flags';
-
-export const flags = { Cell, Map, GameObject, Depth, Tile };
-
 export * from './types';
 export * from './cell';
 export * from './map';

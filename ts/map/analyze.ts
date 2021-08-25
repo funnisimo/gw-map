@@ -1,8 +1,8 @@
 import * as GWU from 'gw-utils';
 
 import { MapType, CellType } from './types';
-import { GameObject as ObjectFlags } from '../gameObject/flags';
-import { Cell as CellFlags } from './flags';
+import { Entity as ObjectFlags } from '../flags/entity';
+import * as Flags from '../flags';
 
 export function analyze(map: MapType, updateChokeCounts = true) {
     updateLoopiness(map);
@@ -24,10 +24,10 @@ export function updateChokepoints(map: MapType, updateCounts: boolean) {
                 (cell.blocksPathing() || cell.blocksMove()) &&
                 !cell.hasObjectFlag(ObjectFlags.L_SECRETLY_PASSABLE)
             ) {
-                // cell.flags &= ~CellFlags.IS_IN_LOOP;
+                // cell.flags &= ~Flags.Cell.IS_IN_LOOP;
                 passMap[i][j] = 0;
             } else {
-                // cell.flags |= CellFlags.IS_IN_LOOP;
+                // cell.flags |= Flags.Cell.IS_IN_LOOP;
                 passMap[i][j] = 1;
             }
         }
@@ -38,10 +38,10 @@ export function updateChokepoints(map: MapType, updateCounts: boolean) {
     // done finding loops; now flag chokepoints
     for (let i = 1; i < passMap.width - 1; i++) {
         for (let j = 1; j < passMap.height - 1; j++) {
-            map.cell(i, j).flags.cell &= ~CellFlags.IS_CHOKEPOINT;
+            map.cell(i, j).flags.cell &= ~Flags.Cell.IS_CHOKEPOINT;
             if (
                 passMap[i][j] &&
-                !(map.cell(i, j).flags.cell & CellFlags.IS_IN_LOOP)
+                !(map.cell(i, j).flags.cell & Flags.Cell.IS_IN_LOOP)
             ) {
                 passableArcCount = 0;
                 for (let dir = 0; dir < 8; dir++) {
@@ -61,7 +61,7 @@ export function updateChokepoints(map: MapType, updateCounts: boolean) {
                                 (!passMap[i][j - 1] && !passMap[i][j + 1])
                             ) {
                                 map.cell(i, j).flags.cell |=
-                                    CellFlags.IS_CHOKEPOINT;
+                                    Flags.Cell.IS_CHOKEPOINT;
                             }
                             break;
                         }
@@ -86,7 +86,7 @@ export function updateChokepoints(map: MapType, updateCounts: boolean) {
             for (let j = 0; j < map.height; j++) {
                 map.cell(i, j).chokeCount = 30000;
                 // Not sure why this was done in Brogue
-                // if (map.cell(i, j).flags.cell & CellFlags.IS_IN_ROOM_MACHINE) {
+                // if (map.cell(i, j).flags.cell & Flags.Cell.IS_IN_ROOM_MACHINE) {
                 //     passMap[i][j] = 0;
                 // }
             }
@@ -100,7 +100,7 @@ export function updateChokepoints(map: MapType, updateCounts: boolean) {
 
                 if (
                     passMap[i][j] &&
-                    cell.flags.cell & CellFlags.IS_CHOKEPOINT
+                    cell.flags.cell & Flags.Cell.IS_CHOKEPOINT
                 ) {
                     for (let dir = 0; dir < 4; dir++) {
                         const newX = i + GWU.utils.DIRS[dir][0];
@@ -110,7 +110,7 @@ export function updateChokepoints(map: MapType, updateCounts: boolean) {
                             passMap[newX][newY] &&
                             !(
                                 map.cell(newX, newY).flags.cell &
-                                CellFlags.IS_CHOKEPOINT
+                                Flags.Cell.IS_CHOKEPOINT
                             )
                         ) {
                             // OK, (newX, newY) is an open point and (i, j) is a chokepoint.
@@ -146,7 +146,8 @@ export function updateChokepoints(map: MapType, updateCounts: boolean) {
                                             map.cell(
                                                 i2,
                                                 j2
-                                            ).flags.cell &= ~CellFlags.IS_GATE_SITE;
+                                            ).flags.cell &= ~Flags.Cell
+                                                .IS_GATE_SITE;
                                         }
                                     }
                                 }
@@ -154,7 +155,7 @@ export function updateChokepoints(map: MapType, updateCounts: boolean) {
                                 // The chokepoint itself should also take the lesser of its current value or the flood count.
                                 if (cellCount < cell.chokeCount) {
                                     cell.chokeCount = cellCount;
-                                    cell.flags.cell |= CellFlags.IS_GATE_SITE;
+                                    cell.flags.cell |= Flags.Cell.IS_GATE_SITE;
                                 }
                             }
                         }
@@ -179,7 +180,7 @@ export function floodFillCount(
 ) {
     let count = passMap[startX][startY] == 2 ? 5000 : 1;
 
-    if (map.cell(startX, startY).flags.cell & CellFlags.IS_IN_AREA_MACHINE) {
+    if (map.cell(startX, startY).flags.cell & Flags.Cell.IS_IN_AREA_MACHINE) {
         count = 10000;
     }
 
@@ -220,10 +221,10 @@ export function resetLoopiness(
         (cell.blocksPathing() || cell.blocksMove()) &&
         !cell.hasObjectFlag(ObjectFlags.L_SECRETLY_PASSABLE)
     ) {
-        cell.flags.cell &= ~CellFlags.IS_IN_LOOP;
+        cell.flags.cell &= ~Flags.Cell.IS_IN_LOOP;
         // passMap[i][j] = false;
     } else {
-        cell.flags.cell |= CellFlags.IS_IN_LOOP;
+        cell.flags.cell |= Flags.Cell.IS_IN_LOOP;
         // passMap[i][j] = true;
     }
 }
@@ -238,7 +239,7 @@ export function checkLoopiness(
     let newX, newY, dir, sdir;
     let numStrings, maxStringLength, currentStringLength;
 
-    if (!cell || !(cell.flags.cell & CellFlags.IS_IN_LOOP)) {
+    if (!cell || !(cell.flags.cell & Flags.Cell.IS_IN_LOOP)) {
         return false;
     }
 
@@ -250,7 +251,7 @@ export function checkLoopiness(
         if (!map.hasXY(newX, newY)) continue;
 
         const cell = map.get(newX, newY);
-        if (!cell || !(cell.flags.cell & CellFlags.IS_IN_LOOP)) {
+        if (!cell || !(cell.flags.cell & Flags.Cell.IS_IN_LOOP)) {
             break;
         }
     }
@@ -271,7 +272,7 @@ export function checkLoopiness(
         if (!map.hasXY(newX, newY)) continue;
 
         const newCell = map.get(newX, newY);
-        if (newCell && newCell.flags.cell & CellFlags.IS_IN_LOOP) {
+        if (newCell && newCell.flags.cell & Flags.Cell.IS_IN_LOOP) {
             currentStringLength++;
             if (!inString) {
                 if (numStrings > 0) {
@@ -293,7 +294,7 @@ export function checkLoopiness(
         maxStringLength = currentStringLength;
     }
     if (numStrings == 1 && maxStringLength <= 4) {
-        cell.flags.cell &= ~CellFlags.IS_IN_LOOP;
+        cell.flags.cell &= ~Flags.Cell.IS_IN_LOOP;
 
         for (dir = 0; dir < 8; dir++) {
             const newX = x + GWU.utils.CLOCK_DIRS[dir][0];
@@ -313,14 +314,14 @@ export function fillInnerLoopGrid(map: MapType, grid: GWU.grid.NumGrid) {
     for (let x = 0; x < map.width; ++x) {
         for (let y = 0; y < map.height; ++y) {
             const cell = map.cell(x, y);
-            if (cell.flags.cell & CellFlags.IS_IN_LOOP) {
+            if (cell.flags.cell & Flags.Cell.IS_IN_LOOP) {
                 grid[x][y] = 1;
             } else if (x > 0 && y > 0) {
                 const up = map.cell(x, y - 1);
                 const left = map.cell(x - 1, y);
                 if (
-                    up.flags.cell & CellFlags.IS_IN_LOOP &&
-                    left.flags.cell & CellFlags.IS_IN_LOOP
+                    up.flags.cell & Flags.Cell.IS_IN_LOOP &&
+                    left.flags.cell & Flags.Cell.IS_IN_LOOP
                 ) {
                     grid[x][y] = 1;
                 }
@@ -340,7 +341,7 @@ export function cleanLoopiness(map: MapType) {
     for (let i = 0; i < grid.width; i++) {
         for (let j = 0; j < grid.height; j++) {
             const cell = map.cell(i, j);
-            if (cell.flags.cell & CellFlags.IS_IN_LOOP) {
+            if (cell.flags.cell & Flags.Cell.IS_IN_LOOP) {
                 designationSurvives = false;
                 for (let dir = 0; dir < 8; dir++) {
                     let newX = i + GWU.utils.CLOCK_DIRS[dir][0];
@@ -351,7 +352,7 @@ export function cleanLoopiness(map: MapType) {
                         !grid[newX][newY] &&
                         !(
                             map.cell(newX, newY).flags.cell &
-                            CellFlags.IS_IN_LOOP
+                            Flags.Cell.IS_IN_LOOP
                         )
                     ) {
                         designationSurvives = true;
@@ -360,7 +361,7 @@ export function cleanLoopiness(map: MapType) {
                 }
                 if (!designationSurvives) {
                     grid[i][j] = 1;
-                    map.cell(i, j).flags.cell &= ~CellFlags.IS_IN_LOOP;
+                    map.cell(i, j).flags.cell &= ~Flags.Cell.IS_IN_LOOP;
                 }
             }
         }

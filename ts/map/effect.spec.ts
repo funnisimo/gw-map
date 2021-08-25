@@ -8,7 +8,7 @@ import * as Effect from '../effect';
 import * as Tile from '../tile';
 
 import * as MapEffect from './effect';
-import { Depth } from '../gameObject/flags';
+import * as Flags from '../flags';
 import { Actor } from '../actor';
 import { Item } from '../item';
 
@@ -209,12 +209,12 @@ describe('tile effect', () => {
             expect(
                 map
                     .cellInfo(ctx.x, ctx.y - 1)
-                    .hasObjectFlag(Map.flags.GameObject.L_BLOCKS_EFFECTS)
+                    .hasObjectFlag(Flags.Entity.L_BLOCKS_EFFECTS)
             ).toBeTruthy();
             expect(
                 map
                     .cellInfo(ctx.x - 1, ctx.y)
-                    .hasObjectFlag(Map.flags.GameObject.L_BLOCKS_EFFECTS)
+                    .hasObjectFlag(Flags.Entity.L_BLOCKS_EFFECTS)
             ).toBeTruthy();
 
             let cell = map.cell(ctx.x - 1, ctx.y);
@@ -538,14 +538,14 @@ describe('tile effect', () => {
             expect(effect.flags & Effect.Flags.E_CLEAR_CELL).toBeTruthy();
             map.setTile(ctx.x, ctx.y, 'BRIDGE');
             const cell = map.cell(ctx.x, ctx.y);
-            expect(cell.depthTile(Depth.SURFACE)!.id).toEqual('BRIDGE');
-            expect(cell.depthTile(Depth.GROUND)!.id).toEqual('FLOOR');
+            expect(cell.depthTile(Flags.Depth.SURFACE)!.id).toEqual('BRIDGE');
+            expect(cell.depthTile(Flags.Depth.GROUND)!.id).toEqual('FLOOR');
 
             await expect(
                 Effect.fire(effect, map, ctx.x, ctx.y, ctx)
             ).resolves.toBeTruthy();
-            expect(cell.depthTile(Depth.GROUND)!.id).toEqual('FLOOR');
-            expect(cell.depthTile(Depth.SURFACE)).toBeNull();
+            expect(cell.depthTile(Flags.Depth.GROUND)!.id).toEqual('FLOOR');
+            expect(cell.depthTile(Flags.Depth.SURFACE)).toBeNull();
         });
 
         // test('Will add liquids with volume', async () => {
@@ -632,7 +632,7 @@ describe('tile effect', () => {
             const cell = map.cell(ctx.x, ctx.y);
             map.setTile(ctx.x, ctx.y, 'ALTAR');
 
-            const item = new Item();
+            const item = new Item({});
             jest.spyOn(item, 'forbidsCell');
 
             map.addItem(ctx.x, ctx.y, item);
@@ -711,13 +711,13 @@ describe('tile effect', () => {
 
     //         await map.tick();
     //         // map.dump();
-    //         expect(map.cell(10, 10).depthTile(Depth.GROUND).id).toEqual('LAKE');
+    //         expect(map.cell(10, 10).depthTile(Flags.Depth.GROUND).id).toEqual('LAKE');
     //         expect(map.count((c) => c.hasTile('WAVE_DONE'))).toEqual(4);
     //         expect(map.count((c) => c.hasTile('WAVE'))).toEqual(8);
 
     //         await map.tick();
     //         // map.dump();
-    //         expect(map.cell(10, 10).depthTile(Depth.GROUND).id).toEqual('LAKE');
+    //         expect(map.cell(10, 10).depthTile(Flags.Depth.GROUND).id).toEqual('LAKE');
     //         expect(map.count((c) => c.hasTile('WAVE_DONE'))).toEqual(8);
     //         expect(map.count((c) => c.hasTile('WAVE'))).toEqual(12);
 

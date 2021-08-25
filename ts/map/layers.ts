@@ -2,11 +2,10 @@ import * as GWU from 'gw-utils';
 
 import * as Tile from '../tile';
 import { MapType } from './types';
-import * as Flags from './flags';
+import * as Flags from '../flags';
 import { Actor } from '../actor';
 import { Item } from '../item';
 import { SetTileOptions } from './types';
-import { Depth } from '../gameObject/flags';
 
 export class MapLayer {
     map: MapType;
@@ -124,8 +123,8 @@ export class TileLayer extends MapLayer {
         if (opts.blockedByOtherLayers && cell.highestPriority() > tile.priority)
             return false;
 
-        if (tile.depth > Depth.GROUND && tile.groundTile) {
-            const ground = cell.depthTile(Depth.GROUND);
+        if (tile.depth > Flags.Depth.GROUND && tile.groundTile) {
+            const ground = cell.depthTile(Flags.Depth.GROUND);
             if (!ground || ground === Tile.tiles.NULL) {
                 this.set(x, y, Tile.get(tile.groundTile));
             }

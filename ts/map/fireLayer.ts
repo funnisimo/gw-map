@@ -1,12 +1,12 @@
 import * as GWU from 'gw-utils';
 
-import * as Flags from './flags';
+import * as Flags from '../flags';
 import { TileLayer } from './layers';
 import { MapType } from './types';
 import * as Effect from '../effect';
 
 const Depth = Flags.Depth;
-const ObjectFlags = Flags.GameObject;
+const ObjectFlags = Flags.Entity;
 const TileFlags = Flags.Tile;
 const TileMechFlags = Flags.TileMech;
 const CellFlags = Flags.Cell;
