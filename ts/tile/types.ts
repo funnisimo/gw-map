@@ -21,11 +21,11 @@ export interface TileType {
     readonly effects: Record<string, string | EffectInfo>;
     readonly groundTile: string | null;
 
-    hasObjectFlag(flag: number): boolean;
+    hasEntityFlag(flag: number): boolean;
     hasTileFlag(flag: number): boolean;
     hasTileMechFlag(flag: number): boolean;
 
-    hasAllObjectFlags(flag: number): boolean;
+    hasAllEntityFlags(flag: number): boolean;
     hasAllTileFlags(flag: number): boolean;
     hasAllTileMechFlags(flag: number): boolean;
 

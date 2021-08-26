@@ -1,14 +1,13 @@
-import { Entity } from '../entity';
+import * as Entity from '../entity';
 import { ActorFlags } from './types';
 import * as Flags from '../flags';
-import { CellType } from '../map/types';
 
-export class Actor extends Entity {
+export class Actor extends Entity.Entity {
     flags: ActorFlags;
     next: Actor | null = null;
 
-    constructor() {
-        super();
+    constructor(kind: Entity.EntityKind) {
+        super(kind);
         // @ts-ignore
         this.flags = this.flags || {};
         this.flags.actor = 0;
@@ -30,19 +29,5 @@ export class Actor extends Entity {
     }
     isVisible() {
         return true;
-    }
-
-    forbidsCell(_cell: CellType): boolean {
-        return false;
-    }
-
-    getName(): string {
-        return '';
-    }
-    getDescription(): string {
-        return '';
-    }
-    getFlavor(): string {
-        return '';
     }
 }

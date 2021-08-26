@@ -19,7 +19,6 @@ export enum Cell {
     IS_GATE_SITE = Fl(8), // consider placing a locked door here
     IS_IN_ROOM_MACHINE = Fl(9),
     IS_IN_AREA_MACHINE = Fl(10),
-    IS_POWERED = Fl(11), // has been activated by machine power this turn (can probably be eliminate if needed)
 
     IMPREGNABLE = Fl(12), // no tunneling allowed!
     // DARKENED = Fl(13), // magical blindness?
@@ -43,6 +42,7 @@ export enum Cell {
 
     IS_WIRED = Fl(26),
     IS_CIRCUIT_BREAKER = Fl(27),
+    IS_POWERED = Fl(28), // has been activated by machine power this turn (can probably be eliminate if needed)
 
     COLORS_DANCE = Fl(30),
 

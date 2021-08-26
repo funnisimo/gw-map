@@ -9,6 +9,8 @@ import { CellInfoType } from './types';
 export class CellMemory implements CellInfoType {
     chokeCount = 0;
     machineId = 0;
+    keyId = 0;
+
     flags = {
         cell: 0,
         item: 0,
@@ -46,7 +48,6 @@ export class CellMemory implements CellInfoType {
         this.blocks.move = false;
         this.blocks.pathing = false;
         this.blocks.vision = false;
-        this._hasKey = false;
         this.machineId = 0;
         this.chokeCount = 0;
     }
@@ -64,7 +65,7 @@ export class CellMemory implements CellInfoType {
         this.flags.cell = cell.cellFlags();
         this.flags.tile = cell.tileFlags();
         this.flags.tileMech = cell.tileMechFlags();
-        this.flags.object = cell.objectFlags();
+        this.flags.object = cell.entityFlags();
         this.flags.item = cell.itemFlags();
         this.flags.actor = cell.actorFlags();
 
@@ -73,7 +74,6 @@ export class CellMemory implements CellInfoType {
         this.blocks.pathing = cell.blocksPathing();
         this.blocks.vision = cell.blocksVision();
 
-        this._hasKey = cell.hasKey();
         this.chokeCount = cell.chokeCount;
         this.machineId = cell.machineId;
     }
@@ -94,10 +94,10 @@ export class CellMemory implements CellInfoType {
     hasAllTileFlags(flags: number): boolean {
         return (this.flags.tile & flags) == flags;
     }
-    hasObjectFlag(flag: number): boolean {
+    hasEntityFlag(flag: number): boolean {
         return !!(this.flags.object & flag);
     }
-    hasAllObjectFlags(flags: number): boolean {
+    hasAllEntityFlags(flags: number): boolean {
         return (this.flags.object & flags) == flags;
     }
     hasTileMechFlag(flag: number): boolean {
@@ -107,7 +107,7 @@ export class CellMemory implements CellInfoType {
     cellFlags(): number {
         return this.flags.cell;
     }
-    objectFlags(): number {
+    entityFlags(): number {
         return this.flags.object;
     }
     tileFlags(): number {
@@ -140,9 +140,6 @@ export class CellMemory implements CellInfoType {
     }
     isStairs(): boolean {
         return this.hasTileFlag(Flags.Tile.T_HAS_STAIRS);
-    }
-    hasKey(): boolean {
-        return this._hasKey;
     }
 
     get tile(): TILE.Tile {

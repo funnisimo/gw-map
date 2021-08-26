@@ -22,7 +22,7 @@ export function updateChokepoints(map: MapType, updateCounts: boolean) {
             const cell = map.cell(i, j);
             if (
                 (cell.blocksPathing() || cell.blocksMove()) &&
-                !cell.hasObjectFlag(ObjectFlags.L_SECRETLY_PASSABLE)
+                !cell.hasEntityFlag(ObjectFlags.L_SECRETLY_PASSABLE)
             ) {
                 // cell.flags &= ~Flags.Cell.IS_IN_LOOP;
                 passMap[i][j] = 0;
@@ -219,7 +219,7 @@ export function resetLoopiness(
 ) {
     if (
         (cell.blocksPathing() || cell.blocksMove()) &&
-        !cell.hasObjectFlag(ObjectFlags.L_SECRETLY_PASSABLE)
+        !cell.hasEntityFlag(ObjectFlags.L_SECRETLY_PASSABLE)
     ) {
         cell.flags.cell &= ~Flags.Cell.IS_IN_LOOP;
         // passMap[i][j] = false;

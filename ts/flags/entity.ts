@@ -3,7 +3,7 @@ const Fl = GWU.flag.fl;
 
 export enum Entity {
     // L_DYNAMIC = Fl(0), // for movable things like actors or items
-    L_SUPERPRIORITY = Fl(1), // will overwrite layers at same depth with higher priority
+    L_DESTROYED = Fl(1), // has been destroyed
     L_SECRETLY_PASSABLE = Fl(2), // will become passable if discovered/activated/etc...
 
     L_BLOCKS_MOVE = Fl(3), // cannot be walked through

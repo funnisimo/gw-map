@@ -62,7 +62,7 @@ export class Tile implements TileType {
         }
     }
 
-    hasObjectFlag(flag: number): boolean {
+    hasEntityFlag(flag: number): boolean {
         return !!(this.flags.entity & flag);
     }
     hasTileFlag(flag: number): boolean {
@@ -72,7 +72,7 @@ export class Tile implements TileType {
         return !!(this.flags.tileMech & flag);
     }
 
-    hasAllObjectFlags(flag: number): boolean {
+    hasAllEntityFlags(flag: number): boolean {
         return (this.flags.entity & flag) === flag;
     }
     hasAllTileFlags(flag: number): boolean {
@@ -174,7 +174,7 @@ export function make(options: Partial<TileOptions>) {
             throw new Error('Failed to find base tile: ' + options.extends);
     }
 
-    let priority: number = -1;
+    let priority: number = base.priority;
     if (typeof options.priority === 'string') {
         let text = options.priority.replace(/ /g, '');
         let index = text.search(/[+-]/);
@@ -254,7 +254,7 @@ export function make(options: Partial<TileOptions>) {
         flags,
         dissipate: options.dissipate ?? base.dissipate,
         effects,
-        priority: priority != -1 ? priority : undefined,
+        priority,
         depth: depth,
         light,
         groundTile: options.groundTile || null,

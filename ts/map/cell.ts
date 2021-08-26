@@ -86,6 +86,7 @@ export class Cell implements CellType {
     chokeCount = 0;
     tiles: TileArray;
     machineId = 0;
+    keyId = 0;
     // gasVolume: number = 0;
     // liquidVolume: number = 0;
     _actor: Actor | null = null;
@@ -109,6 +110,8 @@ export class Cell implements CellType {
         this.tiles = other.tiles.slice() as TileArray;
         this._actor = other._actor;
         this._item = other._item;
+        this.keyId = other.keyId;
+        this.machineId = other.machineId;
     }
 
     hasCellFlag(flag: number): boolean {
@@ -121,14 +124,14 @@ export class Cell implements CellType {
         this.flags.cell &= ~flag;
     }
 
-    hasObjectFlag(flag: number): boolean {
+    hasEntityFlag(flag: number): boolean {
         return (
             this.tiles.some((t) => t && t.flags.entity & flag) ||
             this._objects.some((o) => !!(o.flags.entity & flag))
         );
     }
-    hasAllObjectFlags(flags: number): boolean {
-        return (this.objectFlags() & flags) == flags;
+    hasAllEntityFlags(flags: number): boolean {
+        return (this.entityFlags() & flags) == flags;
     }
     hasTileFlag(flag: number): boolean {
         return this.tiles.some((t) => t && t.flags.tile & flag);
@@ -146,7 +149,7 @@ export class Cell implements CellType {
     cellFlags(): number {
         return this.flags.cell;
     }
-    objectFlags(): number {
+    entityFlags(): number {
         return (
             this.tiles.reduce((out, t) => out | (t ? t.flags.entity : 0), 0) |
             this._objects.reduce((out, o) => out | o.flags.entity, 0)
@@ -284,14 +287,10 @@ export class Cell implements CellType {
         return !this.blocksMove();
     }
     isWall(): boolean {
-        return this.hasAllObjectFlags(Flags.Entity.L_WALL_FLAGS);
+        return this.hasAllEntityFlags(Flags.Entity.L_WALL_FLAGS);
     }
     isStairs(): boolean {
         return this.hasTileFlag(Flags.Tile.T_HAS_STAIRS);
-    }
-
-    hasKey(): boolean {
-        return false;
     }
 
     // @returns - whether or not the change results in a change to the cell lighting.

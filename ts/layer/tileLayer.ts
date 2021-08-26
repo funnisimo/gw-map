@@ -1,107 +1,17 @@
 import * as GWU from 'gw-utils';
 
 import * as Tile from '../tile';
-import { MapType } from './types';
+import { MapType } from '../map/types';
 import * as Flags from '../flags';
-import { Actor } from '../actor';
-import { Item } from '../item';
-import { SetTileOptions } from './types';
-
-export class MapLayer {
-    map: MapType;
-    depth: number;
-    properties: Record<string, any>;
-    name: string;
-
-    constructor(map: MapType, name = 'layer') {
-        this.map = map;
-        this.depth = -1;
-        this.properties = {};
-        this.name = name;
-    }
-
-    copy(_other: MapLayer) {}
-
-    async tick(_dt: number): Promise<boolean> {
-        return false;
-    }
-}
-
-export class ActorLayer extends MapLayer {
-    constructor(map: MapType, name = 'actor') {
-        super(map, name);
-    }
-
-    add(x: number, y: number, obj: Actor, _opts?: any): boolean {
-        const cell = this.map.cell(x, y);
-
-        const actor = obj as Actor;
-        if (actor.forbidsCell(cell)) return false;
-
-        if (!GWU.utils.addToChain(cell, 'actor', obj)) return false;
-
-        if (obj.isPlayer()) {
-            cell.setCellFlag(Flags.Cell.HAS_PLAYER);
-        }
-        obj.x = x;
-        obj.y = y;
-        return true;
-    }
-
-    remove(obj: Actor) {
-        const cell = this.map.cell(obj.x, obj.y);
-
-        if (!GWU.utils.removeFromChain(cell, 'actor', obj)) return false;
-
-        if (obj.isPlayer()) {
-            cell.clearCellFlag(Flags.Cell.HAS_PLAYER);
-        }
-        return true;
-    }
-
-    putAppearance(dest: GWU.sprite.Mixer, x: number, y: number) {
-        const cell = this.map.cell(x, y);
-        if (!cell.actor) return;
-        dest.drawSprite(cell.actor.sprite);
-    }
-}
-
-export class ItemLayer extends MapLayer {
-    constructor(map: MapType, name = 'item') {
-        super(map, name);
-    }
-
-    add(x: number, y: number, obj: Item, _opts?: any): boolean {
-        const cell = this.map.cell(x, y);
-
-        const item = obj as Item;
-        if (item.forbidsCell(cell)) return false;
-
-        if (!GWU.utils.addToChain(cell, 'item', obj)) return false;
-        obj.x = x;
-        obj.y = y;
-        return true;
-    }
-
-    remove(obj: Item) {
-        const cell = this.map.cell(obj.x, obj.y);
-        if (!GWU.utils.removeFromChain(cell, 'item', obj)) return false;
-        return true;
-    }
-
-    putAppearance(dest: GWU.sprite.Mixer, x: number, y: number) {
-        const cell = this.map.cell(x, y);
-        if (!cell.item) return;
-        dest.drawSprite(cell.item.sprite);
-    }
-}
+import { SetTileOptions } from '../map/types';
+import { MapLayer } from './mapLayer';
 
 export class TileLayer extends MapLayer {
     constructor(map: MapType, name = 'tile') {
         super(map, name);
     }
 
-    set(x: number, y: number, tile: Tile.Tile, opts: SetTileOptions = {}) {
+    setTile(x: number, y: number, tile: Tile.Tile, opts: SetTileOptions = {}) {
         const cell = this.map.cell(x, y);
 
         const current = cell.depthTile(tile.depth) || Tile.tiles.NULL;
@@ -126,7 +36,7 @@ export class TileLayer extends MapLayer {
         if (tile.depth > Flags.Depth.GROUND && tile.groundTile) {
             const ground = cell.depthTile(Flags.Depth.GROUND);
             if (!ground || ground === Tile.tiles.NULL) {
-                this.set(x, y, Tile.get(tile.groundTile));
+                this.setTile(x, y, Tile.get(tile.groundTile));
             }
         }
 
@@ -156,7 +66,7 @@ export class TileLayer extends MapLayer {
         return true;
     }
 
-    clear(x: number, y: number) {
+    clearTile(x: number, y: number) {
         const cell = this.map.cell(x, y);
         return cell.clearDepth(this.depth);
     }
@@ -176,7 +86,7 @@ export class TileLayer extends MapLayer {
                 ) {
                     cell.clearCellFlag(Flags.Cell.PRESSURE_PLATE_DEPRESSED);
                 }
-                if (cell.hasEffect('noKey') && !cell.hasKey()) {
+                if (cell.hasEffect('noKey') && !this.map.hasKey(x, y)) {
                     await cell.activate('noKey', this.map, x, y);
                 }
             }

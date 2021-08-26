@@ -1,8 +1,8 @@
 import * as GWU from 'gw-utils';
 
 import * as Flags from '../flags';
-import { TileLayer } from './layers';
-import { MapType } from './types';
+import { TileLayer } from './tileLayer';
+import { MapType } from '../map/types';
 import * as Effect from '../effect';
 
 const Depth = Flags.Depth;
@@ -96,7 +96,7 @@ export class FireLayer extends TileLayer {
                 GWU.utils.eachNeighbor(x, y, (x0, y0) => {
                     const n = this.map.cell(x0, y0);
                     if (
-                        n.hasObjectFlag(ObjectFlags.L_BLOCKS_GAS) ||
+                        n.hasEntityFlag(ObjectFlags.L_BLOCKS_GAS) ||
                         n.hasTileFlag(TileFlags.T_IS_FIRE) ||
                         n.hasTileMechFlag(TileMechFlags.TM_EXPLOSIVE_PROMOTE)
                     ) {

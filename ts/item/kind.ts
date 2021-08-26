@@ -1,14 +1,31 @@
-export class ItemKind {}
+import * as GWU from 'gw-utils';
+import * as Entity from '../entity';
 
-export interface ItemKindOptions {}
+import { CellType } from '../map/types';
+import { Item } from './item';
+
+export interface KindOptions extends Entity.KindOptions {}
+
+export class ItemKind extends Entity.EntityKind {
+    constructor(config: KindOptions) {
+        super(config);
+    }
+
+    forbidsCell(_item: Item, _cell: CellType): boolean {
+        return false;
+    }
+}
 
 export const kinds: Record<string, ItemKind> = {};
 
-export function install(
-    _id: string,
-    _kind: ItemKind | ItemKindOptions
-): ItemKind {
-    return new ItemKind();
+export function install(id: string, kind: ItemKind | KindOptions): ItemKind {
+    if (kind instanceof ItemKind) {
+        kinds[id] = kind;
+        return kind;
+    }
+    const made = makeKind(kind);
+    kinds[id] = made;
+    return made;
 }
 
 export function get(id: string | ItemKind): ItemKind | null {
@@ -16,6 +33,60 @@ export function get(id: string | ItemKind): ItemKind | null {
     return kinds[id];
 }
 
-export function makeKind(_info: ItemKindOptions): ItemKind {
-    return new ItemKind();
+export function makeKind(info: KindOptions): ItemKind {
+    const config: KindOptions = Object.assign({}, info);
+
+    return new ItemKind(config);
+}
+
+export interface MatchOptions {
+    tags: string | string[];
+    forbidTags: string | string[];
+}
+
+export function randomKind(
+    opts: Partial<MatchOptions> | string = {}
+): ItemKind | null {
+    const match = {
+        tags: [] as string[],
+        forbidTags: [] as string[],
+    };
+    if (typeof opts === 'string') {
+        opts = {
+            tags: opts,
+        } as Partial<MatchOptions>;
+    }
+
+    if (typeof opts.tags === 'string') {
+        opts.tags
+            .split(/[,|]/)
+            .map((t) => t.trim())
+            .forEach((t) => {
+                if (t.startsWith('!')) {
+                    match.forbidTags.push(t.substring(1));
+                } else {
+                    match.tags.push(t);
+                }
+            });
+    } else if (Array.isArray(opts.tags)) {
+        match.tags = opts.tags.slice();
+    }
+    if (typeof opts.forbidTags === 'string') {
+        match.forbidTags = opts.forbidTags.split(/[,|]/).map((t) => t.trim());
+    } else if (Array.isArray(opts.forbidTags)) {
+        match.forbidTags = opts.forbidTags.slice();
+    }
+
+    const matches = Object.values(kinds).filter((k) => {
+        if (match.tags.length && !GWU.utils.arraysIntersect(match.tags, k.tags))
+            return false;
+        if (
+            match.forbidTags &&
+            GWU.utils.arraysIntersect(match.forbidTags, k.tags)
+        )
+            return false;
+        return true;
+    });
+
+    return GWU.random.item(matches) || null;
 }

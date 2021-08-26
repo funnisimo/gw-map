@@ -138,6 +138,23 @@ describe('Tile', () => {
         // expect(glassWall.getName()).toEqual('Glass Wall');
     });
 
+    test.only('extend again', () => {
+        const locked = Tile.install('LOCKED_DOOR', {
+            extends: 'DOOR',
+            name: 'a locked door',
+            fg: 'white',
+            bg: 'teal',
+            effects: {
+                enter: null,
+                key: { tile: 'DOOR' },
+            },
+        });
+
+        const door = Tile.tiles.DOOR;
+
+        expect(locked.priority).toEqual(door.priority);
+    });
+
     test('extend with light', () => {
         const tw = Tile.install('TORCH_WALL', {
             extends: 'WALL',
@@ -259,7 +276,7 @@ describe('Tile', () => {
 
     test('hasFlag', () => {
         const tile = Tile.tiles.WALL;
-        expect(tile.hasAllObjectFlags(ObjectFlags.L_BLOCKS_MOVE)).toBeTruthy();
+        expect(tile.hasAllEntityFlags(ObjectFlags.L_BLOCKS_MOVE)).toBeTruthy();
         expect(tile.hasAllTileFlags(Tile.flags.Tile.T_BRIDGE)).toBeFalsy();
     });
 
@@ -284,7 +301,7 @@ describe('Tile', () => {
 
         expect(glassWall.name).toEqual('Stone Wall');
         expect(
-            glassWall.hasAllObjectFlags(ObjectFlags.L_BLOCKS_MOVE)
+            glassWall.hasAllEntityFlags(ObjectFlags.L_BLOCKS_MOVE)
         ).toBeTruthy();
     });
 
@@ -311,13 +328,13 @@ describe('Tile', () => {
 
         expect(glassWall.name).toEqual('glass wall');
         expect(
-            glassWall.hasAllObjectFlags(ObjectFlags.L_BLOCKS_MOVE)
+            glassWall.hasAllEntityFlags(ObjectFlags.L_BLOCKS_MOVE)
         ).toBeTruthy();
         expect(
-            glassWall.hasAllObjectFlags(ObjectFlags.L_BLOCKS_VISION)
+            glassWall.hasAllEntityFlags(ObjectFlags.L_BLOCKS_VISION)
         ).toBeFalsy();
         expect(
-            glassWall.hasAllObjectFlags(
+            glassWall.hasAllEntityFlags(
                 ObjectFlags.L_BLOCKS_VISION | ObjectFlags.L_BLOCKS_MOVE
             )
         ).toBeFalsy();

@@ -1,7 +1,6 @@
 import { Entity } from '../entity';
 import { FlagType } from './types';
 import { Depth } from '../flags';
-import { CellType } from '../map/types';
 
 import * as Kind from './kind';
 
@@ -12,7 +11,7 @@ export class Item extends Entity {
     next: Item | null = null;
 
     constructor(kind: Kind.ItemKind) {
-        super();
+        super(kind);
         // @ts-ignore
         this.flags = this.flags || {};
         this.flags.item = 0;
@@ -29,20 +28,6 @@ export class Item extends Entity {
     hasAllItemFlags(flags: number) {
         return (this.flags.item & flags) === flags;
     }
-
-    forbidsCell(_cell: CellType): boolean {
-        return false;
-    }
-
-    getName(): string {
-        return '';
-    }
-    getDescription(): string {
-        return '';
-    }
-    getFlavor(): string {
-        return '';
-    }
 }
 
 export function make(id: string | Kind.ItemKind): Item {
@@ -51,9 +36,16 @@ export function make(id: string | Kind.ItemKind): Item {
     return new Item(kind);
 }
 
-export function from(
-    info: string | Kind.ItemKind | Kind.ItemKindOptions
-): Item {
+export function makeRandom(opts: Partial<Kind.MatchOptions> | string): Item {
+    const kind = Kind.randomKind(opts);
+    if (!kind)
+        throw new Error(
+            'Failed to find item kind matching - ' + JSON.stringify(opts)
+        );
+    return new Item(kind);
+}
+
+export function from(info: string | Kind.ItemKind | Kind.KindOptions): Item {
     let kind: Kind.ItemKind;
     if (typeof info === 'string') {
         // @ts-ignore

@@ -1,9 +1,8 @@
 import * as GWU from 'gw-utils';
 
 import * as Flags from '../flags';
-import { TileLayer } from './layers';
-import { MapType } from './types';
-import { SetTileOptions } from './types';
+import { TileLayer } from './tileLayer';
+import { MapType, SetTileOptions } from '../map/types';
 import * as Tile from '../tile';
 
 export class GasLayer extends TileLayer {
@@ -15,7 +14,7 @@ export class GasLayer extends TileLayer {
         this.volume = GWU.grid.alloc(map.width, map.height, 0);
     }
 
-    set(x: number, y: number, tile: Tile.Tile, opts: SetTileOptions = {}) {
+    setTile(x: number, y: number, tile: Tile.Tile, opts: SetTileOptions = {}) {
         if (!opts.volume) return false;
         const cell = this.map.cell(x, y);
         if (cell.depthTile(tile.depth) === tile) {
@@ -23,7 +22,7 @@ export class GasLayer extends TileLayer {
             return true;
         }
 
-        if (!super.set(x, y, tile, opts)) {
+        if (!super.setTile(x, y, tile, opts)) {
             return false;
         }
 
@@ -32,7 +31,7 @@ export class GasLayer extends TileLayer {
         return true;
     }
 
-    clear(x: number, y: number) {
+    clearTile(x: number, y: number) {
         const cell = this.map.cell(x, y);
         if (cell.clearDepth(this.depth)) {
             this.volume[x][y] = 0;
@@ -73,7 +72,7 @@ export class GasLayer extends TileLayer {
             if (v) {
                 this.needsUpdate = true;
             } else {
-                this.clear(x, y);
+                this.clearTile(x, y);
             }
 
             return v;
@@ -93,10 +92,10 @@ export class GasLayer extends TileLayer {
         let startingTile = cell.depthTile(this.depth);
         let highestTile = startingTile;
 
-        if (cell.hasObjectFlag(Flags.Entity.L_BLOCKS_GAS)) {
+        if (cell.hasEntityFlag(Flags.Entity.L_BLOCKS_GAS)) {
             this.volume[x][y] = 0;
             if (startingVolume[x][y]) {
-                this.clear(x, y);
+                this.clearTile(x, y);
             }
             return;
         }
@@ -112,7 +111,7 @@ export class GasLayer extends TileLayer {
                 ++j
             ) {
                 const v = startingVolume[i][j];
-                if (!cell.hasObjectFlag(Flags.Entity.L_BLOCKS_GAS)) {
+                if (!cell.hasEntityFlag(Flags.Entity.L_BLOCKS_GAS)) {
                     ++count;
                     if (v > highestVolume) {
                         highestVolume = v;

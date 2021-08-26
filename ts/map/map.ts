@@ -4,7 +4,7 @@ import * as Flags from '../flags';
 import { Cell } from './cell';
 import * as TILE from '../tile';
 import { Tile } from '../tile';
-import { TileLayer, ActorLayer, ItemLayer } from './layers';
+import * as Layer from '../layer';
 import { Item } from '../item';
 import { Actor } from '../actor';
 import {
@@ -16,8 +16,6 @@ import {
     CellInfoType,
 } from './types';
 import { CellMemory } from './cellMemory';
-import { FireLayer } from './fireLayer';
-import { GasLayer } from './gasLayer';
 import * as Effect from '../effect';
 
 export interface MapOptions
@@ -27,7 +25,7 @@ export interface MapOptions
     boundary: string | true;
 }
 
-export type LayerType = TileLayer | ActorLayer | ItemLayer;
+export type LayerType = Layer.TileLayer | Layer.ActorLayer | Layer.ItemLayer;
 
 export interface MapDrawOptions {
     x: number;
@@ -75,11 +73,14 @@ export class Map
     // LAYERS
 
     initLayers() {
-        this.addLayer(Flags.Depth.GROUND, new TileLayer(this, 'ground'));
-        this.addLayer(Flags.Depth.SURFACE, new FireLayer(this, 'surface'));
-        this.addLayer(Flags.Depth.GAS, new GasLayer(this, 'gas'));
-        this.addLayer(Flags.Depth.ITEM, new ItemLayer(this, 'item'));
-        this.addLayer(Flags.Depth.ACTOR, new ActorLayer(this, 'actor'));
+        this.addLayer(Flags.Depth.GROUND, new Layer.TileLayer(this, 'ground'));
+        this.addLayer(
+            Flags.Depth.SURFACE,
+            new Layer.FireLayer(this, 'surface')
+        );
+        this.addLayer(Flags.Depth.GAS, new Layer.GasLayer(this, 'gas'));
+        this.addLayer(Flags.Depth.ITEM, new Layer.ItemLayer(this, 'item'));
+        this.addLayer(Flags.Depth.ACTOR, new Layer.ActorLayer(this, 'actor'));
     }
 
     addLayer(depth: number | keyof typeof Flags.Depth, layer: LayerType) {
@@ -152,18 +153,34 @@ export class Map
             GWU.utils.eachChain(cell.item, cb);
         });
     }
-    addItem(x: number, y: number, item: Item): boolean {
-        const layer = this.layers[item.depth] as ItemLayer;
-        return layer.add(x, y, item);
+    async addItem(x: number, y: number, item: Item): Promise<boolean> {
+        if (!this.hasXY(x, y)) return false;
+        for (let layer of this.layers) {
+            if (layer && (await layer.addItem(x, y, item))) {
+                return true;
+            }
+        }
+        return false;
     }
-    removeItem(item: Item): boolean {
-        const layer = this.layers[item.depth] as ItemLayer;
-        return layer.remove(item);
+    forceItem(x: number, y: number, item: Item): boolean {
+        if (!this.hasXY(x, y)) return false;
+        for (let layer of this.layers) {
+            if (layer && layer.forceItem(x, y, item)) {
+                return true;
+            }
+        }
+        return false;
     }
-    moveItem(item: Item, x: number, y: number): boolean {
-        const layer = this.layers[item.depth] as ItemLayer;
-        if (!layer.remove(item)) return false;
-        return layer.add(x, y, item);
+
+    async removeItem(item: Item): Promise<boolean> {
+        const layer = this.layers[item.depth] as Layer.ItemLayer;
+        return layer.removeItem(item);
+    }
+    async moveItem(x: number, y: number, item: Item): Promise<boolean> {
+        if (!this.hasXY(x, y)) return false;
+        const layer = this.layers[item.depth] as Layer.ItemLayer;
+        if (!(await layer.removeItem(item))) return false;
+        return this.addItem(x, y, item);
     }
 
     // Actors
@@ -179,24 +196,44 @@ export class Map
             GWU.utils.eachChain(cell.actor, cb);
         });
     }
-    addActor(x: number, y: number, item: Actor): boolean {
-        const layer = this.layers[item.depth] as ActorLayer;
-        return layer.add(x, y, item);
+    async addActor(x: number, y: number, actor: Actor): Promise<boolean> {
+        if (!this.hasXY(x, y)) return false;
+        for (let layer of this.layers) {
+            if (layer && (await layer.addActor(x, y, actor))) {
+                return true;
+            }
+        }
+        return false;
     }
-    removeActor(item: Actor): boolean {
-        const layer = this.layers[item.depth] as ActorLayer;
-        return layer.remove(item);
+    forceActor(x: number, y: number, actor: Actor): boolean {
+        if (!this.hasXY(x, y)) return false;
+        for (let layer of this.layers) {
+            if (layer && layer.forceActor(x, y, actor)) {
+                return true;
+            }
+        }
+        return false;
     }
-    moveActor(item: Actor, x: number, y: number): boolean {
-        const layer = this.layers[item.depth] as ActorLayer;
-        if (!layer.remove(item)) return false;
-        return layer.add(x, y, item);
+    async removeActor(actor: Actor): Promise<boolean> {
+        const layer = this.layers[actor.depth] as Layer.ActorLayer;
+        return layer.removeActor(actor);
+    }
+    async moveActor(x: number, y: number, actor: Actor): Promise<boolean> {
+        if (!this.hasXY(x, y)) return false;
+        const layer = this.layers[actor.depth] as Layer.ActorLayer;
+        if (!(await layer.removeActor(actor))) return false;
+        return this.addActor(x, y, actor);
     }
 
     // Information
 
     isVisible(x: number, y: number): boolean {
         return this.fov.isAnyKindOfVisible(x, y);
+    }
+    hasKey(x: number, y: number): boolean {
+        if (!this.hasXY(x, y)) return false;
+        const cell = this.cells[x][y];
+        return cell._objects.some((e) => !!e.key && e.key.matches(x, y));
     }
 
     count(cb: MapTestFn): number {
@@ -265,8 +302,8 @@ export class Map
 
         const depth = tile.depth || 0;
         const layer = this.layers[depth] || this.layers[0];
-        if (!(layer instanceof TileLayer)) return false;
-        return layer.set(x, y, tile, opts);
+        if (!(layer instanceof Layer.TileLayer)) return false;
+        return layer.setTile(x, y, tile, opts);
     }
 
     async tick(dt: number): Promise<boolean> {
@@ -355,7 +392,7 @@ export class Map
                         (i, j) => {
                             const n = this.cell(i, j);
                             if (
-                                !n.hasObjectFlag(
+                                !n.hasEntityFlag(
                                     Flags.Entity.L_BLOCKS_EFFECTS
                                 ) &&
                                 n.depthTile(tile.depth) !=
@@ -428,7 +465,7 @@ export class Map
                         (i, j) => {
                             const n = this.cell(i, j);
                             if (
-                                !n.hasObjectFlag(
+                                !n.hasEntityFlag(
                                     Flags.Entity.L_BLOCKS_EFFECTS
                                 ) &&
                                 n.depthTile(tile.depth) !=
@@ -550,7 +587,7 @@ export class Map
             dest.blackOut();
         }
 
-        if (cell.hasObjectFlag(Flags.Entity.L_VISUALLY_DISTINCT)) {
+        if (cell.hasEntityFlag(Flags.Entity.L_VISUALLY_DISTINCT)) {
             GWU.color.separate(dest.fg, dest.bg);
         }
     }

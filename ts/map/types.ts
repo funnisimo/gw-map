@@ -27,18 +27,19 @@ export type SetTileOptions = Partial<SetOptions>;
 export interface CellInfoType {
     chokeCount: number;
     machineId: number;
+    keyId: number;
 
     // Flags
 
     hasCellFlag(flag: number): boolean;
     hasTileFlag(flag: number): boolean;
     hasAllTileFlags(flags: number): boolean;
-    hasObjectFlag(flag: number): boolean;
-    hasAllObjectFlags(flags: number): boolean;
+    hasEntityFlag(flag: number): boolean;
+    hasAllEntityFlags(flags: number): boolean;
     hasTileMechFlag(flag: number): boolean;
 
     cellFlags(): number;
-    objectFlags(): number;
+    entityFlags(): number;
     tileFlags(): number;
     tileMechFlags(): number;
     itemFlags(): number;
@@ -51,7 +52,6 @@ export interface CellInfoType {
 
     isWall(): boolean;
     isStairs(): boolean;
-    hasKey(): boolean;
 
     // Tiles
 
@@ -78,6 +78,8 @@ export interface CellInfoType {
 
 export interface CellType extends CellInfoType {
     flags: CellFlags;
+    actor: Actor | null;
+    item: Item | null;
 
     setCellFlag(flag: number): void;
     clearCellFlag(flag: number): void;
@@ -168,21 +170,23 @@ export interface MapType {
 
     // itemAt(x: number, y: number): Item | null;
     eachItem(cb: EachItemCb): void;
-    addItem(x: number, y: number, actor: Item): boolean;
-    removeItem(actor: Item): boolean;
-    moveItem(item: Item, x: number, y: number): boolean;
+    addItem(x: number, y: number, actor: Item): Promise<boolean>;
+    forceItem(x: number, y: number, actor: Item): boolean;
+    removeItem(actor: Item): Promise<boolean>;
+    moveItem(x: number, y: number, item: Item): Promise<boolean>;
 
     // Actors
 
     // actorAt(x: number, y: number): Actor | null;
     eachActor(cb: EachActorCb): void;
-    addActor(x: number, y: number, actor: Actor): boolean;
-    removeActor(actor: Actor): boolean;
-    moveActor(actor: Actor, x: number, y: number): boolean;
+    addActor(x: number, y: number, actor: Actor): Promise<boolean>;
+    removeActor(actor: Actor): Promise<boolean>;
+    moveActor(x: number, y: number, actor: Actor): Promise<boolean>;
 
     // Information
 
     isVisible(x: number, y: number): boolean;
+    hasKey(x: number, y: number): boolean;
 
     // hasCellFlag(x: number, y: number, flag: number): boolean;
     // hasObjectFlag(x: number, y: number, flag: number): boolean;

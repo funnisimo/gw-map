@@ -164,10 +164,10 @@ describe('Cell', () => {
     //     expect(cell.lightChanged).toBeFalsy();
     // });
 
-    test('objectFlags', () => {
+    test('entityFlags', () => {
         const cell: Cell = new Cell('WALL');
 
-        expect(cell.objectFlags()).toEqual(Flags.Entity.L_WALL_FLAGS);
+        expect(cell.entityFlags()).toEqual(Flags.Entity.L_WALL_FLAGS);
     });
 
     test('tileFlags', () => {
@@ -207,19 +207,19 @@ describe('Cell', () => {
     // );
     // });
 
-    test('hasObjectFlag + hasAllObjectFlags', () => {
+    test('hasEntityFlag + hasAllEntityFlags', () => {
         const cell: Cell = new Cell('WALL');
         expect(
-            cell.hasObjectFlag(Flags.Entity.L_SECRETLY_PASSABLE)
+            cell.hasEntityFlag(Flags.Entity.L_SECRETLY_PASSABLE)
         ).toBeFalsy();
-        expect(cell.hasObjectFlag(Flags.Entity.L_BLOCKS_MOVE)).toBeTruthy();
+        expect(cell.hasEntityFlag(Flags.Entity.L_BLOCKS_MOVE)).toBeTruthy();
         expect(
-            cell.hasAllObjectFlags(
+            cell.hasAllEntityFlags(
                 Flags.Entity.L_SECRETLY_PASSABLE | Flags.Entity.L_BLOCKS_MOVE
             )
         ).toBeFalsy();
         expect(
-            cell.hasAllObjectFlags(
+            cell.hasAllEntityFlags(
                 Flags.Entity.L_BLOCKS_VISION | Flags.Entity.L_BLOCKS_MOVE
             )
         ).toBeTruthy();

@@ -3,6 +3,7 @@ import '../../test/matchers';
 // import * as UTILS from '../test/utils';
 // import * as GW from 'gw-utils';
 import * as MAP from '.';
+import * as Flags from '../flags';
 
 describe('analyze', () => {
     let map: MAP.Map;
@@ -32,12 +33,12 @@ describe('analyze', () => {
             MAP.updateLoopiness(map);
 
             // map.dump((c) =>
-            //     c.hasCellFlag(MAP.flags.Cell.IS_IN_LOOP) ? '*' : ' '
+            //     c.hasCellFlag(Flags.Cell.IS_IN_LOOP) ? '*' : ' '
             // );
 
             expect(
                 map.count((c) =>
-                    c.hasCellFlag(MAP.flags.Cell.IS_IN_LOOP) ? true : false
+                    c.hasCellFlag(Flags.Cell.IS_IN_LOOP) ? true : false
                 )
             ).toEqual(16);
         });
@@ -64,10 +65,10 @@ describe('analyze', () => {
             MAP.updateChokepoints(map, true);
 
             expect(
-                map.count((c) => c.hasCellFlag(MAP.flags.Cell.IS_GATE_SITE))
+                map.count((c) => c.hasCellFlag(Flags.Cell.IS_GATE_SITE))
             ).toEqual(0);
             expect(
-                map.count((c) => c.hasCellFlag(MAP.flags.Cell.IS_CHOKEPOINT))
+                map.count((c) => c.hasCellFlag(Flags.Cell.IS_CHOKEPOINT))
             ).toEqual(0);
         });
 
@@ -102,13 +103,13 @@ describe('analyze', () => {
             MAP.updateChokepoints(map, true);
 
             // map.dump((c) =>
-            //     c.hasCellFlag(MAP.flags.Cell.IS_GATE_SITE) ? '*' : ' '
+            //     c.hasCellFlag(Flags.Cell.IS_GATE_SITE) ? '*' : ' '
             // );
             expect(
-                map.count((c) => c.hasCellFlag(MAP.flags.Cell.IS_GATE_SITE))
+                map.count((c) => c.hasCellFlag(Flags.Cell.IS_GATE_SITE))
             ).toEqual(5);
             expect(
-                map.count((c) => c.hasCellFlag(MAP.flags.Cell.IS_CHOKEPOINT))
+                map.count((c) => c.hasCellFlag(Flags.Cell.IS_CHOKEPOINT))
             ).toEqual(5);
 
             expect(map.cell(1, 1).chokeCount).toEqual(12);

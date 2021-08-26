@@ -1,6 +1,6 @@
 import 'jest-extended';
 import '../../test/matchers';
-// import * as UTILS from '../../test/utils';
+import * as UTILS from '../../test/utils';
 import * as GWU from 'gw-utils';
 
 import * as Map from '.';
@@ -9,8 +9,6 @@ import * as Tile from '../tile';
 
 import * as MapEffect from './effect';
 import * as Flags from '../flags';
-import { Actor } from '../actor';
-import { Item } from '../item';
 
 describe('tile effect', () => {
     let map: Map.Map;
@@ -209,12 +207,12 @@ describe('tile effect', () => {
             expect(
                 map
                     .cellInfo(ctx.x, ctx.y - 1)
-                    .hasObjectFlag(Flags.Entity.L_BLOCKS_EFFECTS)
+                    .hasEntityFlag(Flags.Entity.L_BLOCKS_EFFECTS)
             ).toBeTruthy();
             expect(
                 map
                     .cellInfo(ctx.x - 1, ctx.y)
-                    .hasObjectFlag(Flags.Entity.L_BLOCKS_EFFECTS)
+                    .hasEntityFlag(Flags.Entity.L_BLOCKS_EFFECTS)
             ).toBeTruthy();
 
             let cell = map.cell(ctx.x - 1, ctx.y);
@@ -604,10 +602,9 @@ describe('tile effect', () => {
 
             const cell = map.cell(ctx.x, ctx.y);
             map.setTile(ctx.x, ctx.y, 'ALTAR');
-            const actor = new Actor();
-            jest.spyOn(actor, 'forbidsCell');
+            const actor = UTILS.mockActor();
 
-            map.addActor(ctx.x, ctx.y, actor);
+            await map.addActor(ctx.x, ctx.y, actor);
             expect(actor).toBeAtXY(ctx.x, ctx.y);
             expect(cell.hasActor()).toBeTruthy();
             grid[ctx.x][ctx.y] = 1;
@@ -632,10 +629,9 @@ describe('tile effect', () => {
             const cell = map.cell(ctx.x, ctx.y);
             map.setTile(ctx.x, ctx.y, 'ALTAR');
 
-            const item = new Item({});
-            jest.spyOn(item, 'forbidsCell');
+            const item = UTILS.mockItem();
 
-            map.addItem(ctx.x, ctx.y, item);
+            await map.addItem(ctx.x, ctx.y, item);
             expect(item).toBeAtXY(ctx.x, ctx.y);
             expect(cell.hasItem()).toBeTruthy();
             grid[ctx.x][ctx.y] = 1;
