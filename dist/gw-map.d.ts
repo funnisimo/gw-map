@@ -162,7 +162,7 @@ interface KeyInfoType {
 interface FlagType$1 {
     entity: number;
 }
-interface EntityType extends GWU.utils.XY {
+interface EntityType extends GWU.xy.XY {
     readonly sprite: GWU.sprite.Sprite;
     depth: number;
     light: GWU.light.LightType | null;

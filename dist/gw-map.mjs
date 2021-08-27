@@ -229,7 +229,7 @@ var Map$1;
     Map[Map["MAP_DEFAULT"] = 0] = "MAP_DEFAULT";
 })(Map$1 || (Map$1 = {}));
 
-var index$7 = {
+var index$7 = /*#__PURE__*/Object.freeze({
     __proto__: null,
     get Depth () { return Depth$1; },
     get Entity () { return Entity$1; },
@@ -239,7 +239,7 @@ var index$7 = {
     get TileMech () { return TileMech; },
     get Cell () { return Cell$1; },
     get Map () { return Map$1; }
-};
+});
 
 // TODO - Do we need the machine?
 class KeyInfo {
@@ -347,13 +347,13 @@ class Entity {
     }
 }
 
-var index$6 = {
+var index$6 = /*#__PURE__*/Object.freeze({
     __proto__: null,
     KeyInfo: KeyInfo,
     makeKeyInfo: makeKeyInfo,
     EntityKind: EntityKind,
     Entity: Entity
-};
+});
 
 class ActorKind extends EntityKind {
     constructor(opts) {
@@ -387,11 +387,11 @@ class Actor extends Entity {
     }
 }
 
-var index$5 = {
+var index$5 = /*#__PURE__*/Object.freeze({
     __proto__: null,
     ActorKind: ActorKind,
     Actor: Actor
-};
+});
 
 class ItemKind extends EntityKind {
     constructor(config) {
@@ -513,7 +513,7 @@ function from$2(info) {
     return new Item(kind);
 }
 
-var index$4 = {
+var index$4 = /*#__PURE__*/Object.freeze({
     __proto__: null,
     ItemKind: ItemKind,
     kinds: kinds,
@@ -525,7 +525,7 @@ var index$4 = {
     make: make$3,
     makeRandom: makeRandom,
     from: from$2
-};
+});
 
 const Fl = GWU.flag.fl;
 ///////////////////////////////////////////////////////
@@ -851,7 +851,7 @@ class ActivateMachineEffect {
 }
 installHandler('activateMachine', new ActivateMachineEffect());
 
-var index$3 = {
+var index$3 = /*#__PURE__*/Object.freeze({
     __proto__: null,
     get Flags () { return Effect; },
     reset: reset,
@@ -869,7 +869,7 @@ var index$3 = {
     EmitEffect: EmitEffect,
     FnEffect: FnEffect,
     ActivateMachineEffect: ActivateMachineEffect
-};
+});
 
 class Tile {
     constructor(config) {
@@ -1225,7 +1225,7 @@ install('BRIDGE', {
 
 const flags = { Tile: Tile$1, TileMech };
 
-var index$2 = {
+var index$2 = /*#__PURE__*/Object.freeze({
     __proto__: null,
     flags: flags,
     Tile: Tile,
@@ -1235,7 +1235,7 @@ var index$2 = {
     get: get,
     install: install,
     installAll: installAll
-};
+});
 
 class MapLayer {
     constructor(map, name = 'layer') {
@@ -1618,7 +1618,7 @@ class FireLayer extends TileLayer {
                     !(cell.flags.cell & CellFlags.CAUGHT_FIRE_THIS_TURN)) {
                     await this.exposeToFire(x, y, false);
                     for (let d = 0; d < 4; ++d) {
-                        const dir = GWU.utils.DIRS[d];
+                        const dir = GWU.xy.DIRS[d];
                         await this.exposeToFire(x + dir[0], y + dir[1]);
                     }
                 }
@@ -1657,7 +1657,7 @@ class FireLayer extends TileLayer {
             fireIgnited = true;
             // Count explosive neighbors.
             if (cell.hasTileMechFlag(TileMechFlags.TM_EXPLOSIVE_PROMOTE)) {
-                GWU.utils.eachNeighbor(x, y, (x0, y0) => {
+                GWU.xy.eachNeighbor(x, y, (x0, y0) => {
                     const n = this.map.cell(x0, y0);
                     if (n.hasEntityFlag(ObjectFlags.L_BLOCKS_GAS) ||
                         n.hasTileFlag(TileFlags.T_IS_FIRE) ||
@@ -1691,7 +1691,7 @@ class FireLayer extends TileLayer {
     }
 }
 
-var index$1 = {
+var index$1 = /*#__PURE__*/Object.freeze({
     __proto__: null,
     MapLayer: MapLayer,
     TileLayer: TileLayer,
@@ -1699,7 +1699,7 @@ var index$1 = {
     ItemLayer: ItemLayer,
     GasLayer: GasLayer,
     FireLayer: FireLayer
-};
+});
 
 class CellObjects {
     constructor(cell) {
@@ -2577,7 +2577,7 @@ class Map {
                 // < 0 means try to fire my neighbors...
                 if (effect.chance < 0) {
                     promoteChance = 0;
-                    GWU.utils.eachNeighbor(x, y, (i, j) => {
+                    GWU.xy.eachNeighbor(x, y, (i, j) => {
                         const n = this.cell(i, j);
                         if (!n.hasEntityFlag(Entity$1.L_BLOCKS_EFFECTS) &&
                             n.depthTile(tile.depth) !=
@@ -2635,7 +2635,7 @@ class Map {
                 // < 0 means try to fire my neighbors...
                 if (effect.chance < 0) {
                     promoteChance = 0;
-                    GWU.utils.eachNeighbor(x, y, (i, j) => {
+                    GWU.xy.eachNeighbor(x, y, (i, j) => {
                         const n = this.cell(i, j);
                         if (!n.hasEntityFlag(Entity$1.L_BLOCKS_EFFECTS) &&
                             n.depthTile(tile.depth) !=
@@ -2914,10 +2914,10 @@ function updateChokepoints(map, updateCounts) {
                 !(map.cell(i, j).flags.cell & Cell$1.IS_IN_LOOP)) {
                 passableArcCount = 0;
                 for (let dir = 0; dir < 8; dir++) {
-                    const oldX = i + GWU.utils.CLOCK_DIRS[(dir + 7) % 8][0];
-                    const oldY = j + GWU.utils.CLOCK_DIRS[(dir + 7) % 8][1];
-                    const newX = i + GWU.utils.CLOCK_DIRS[dir][0];
-                    const newY = j + GWU.utils.CLOCK_DIRS[dir][1];
+                    const oldX = i + GWU.xy.CLOCK_DIRS[(dir + 7) % 8][0];
+                    const oldY = j + GWU.xy.CLOCK_DIRS[(dir + 7) % 8][1];
+                    const newX = i + GWU.xy.CLOCK_DIRS[dir][0];
+                    const newY = j + GWU.xy.CLOCK_DIRS[dir][1];
                     if ((map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
                         passMap[newX][newY]) !=
                         (map.hasXY(oldX, oldY) && // RUT.Map.makeValidXy(map, oldXy) &&
@@ -2960,8 +2960,8 @@ function updateChokepoints(map, updateCounts) {
                 if (passMap[i][j] &&
                     cell.flags.cell & Cell$1.IS_CHOKEPOINT) {
                     for (let dir = 0; dir < 4; dir++) {
-                        const newX = i + GWU.utils.DIRS[dir][0];
-                        const newY = j + GWU.utils.DIRS[dir][1];
+                        const newX = i + GWU.xy.DIRS[dir][0];
+                        const newY = j + GWU.xy.DIRS[dir][1];
                         if (map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
                             passMap[newX][newY] &&
                             !(map.cell(newX, newY).flags.cell &
@@ -3012,8 +3012,8 @@ function floodFillCount(map, results, passMap, startX, startY) {
     }
     results[startX][startY] = 1;
     for (let dir = 0; dir < 4; dir++) {
-        const newX = startX + GWU.utils.DIRS[dir][0];
-        const newY = startY + GWU.utils.DIRS[dir][1];
+        const newX = startX + GWU.xy.DIRS[dir][0];
+        const newY = startY + GWU.xy.DIRS[dir][1];
         if (map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
             passMap[newX][newY] &&
             !results[newX][newY]) {
@@ -3050,8 +3050,8 @@ function checkLoopiness(cell, x, y, map) {
     }
     // find an unloopy neighbor to start on
     for (sdir = 0; sdir < 8; sdir++) {
-        newX = x + GWU.utils.CLOCK_DIRS[sdir][0];
-        newY = y + GWU.utils.CLOCK_DIRS[sdir][1];
+        newX = x + GWU.xy.CLOCK_DIRS[sdir][0];
+        newY = y + GWU.xy.CLOCK_DIRS[sdir][1];
         if (!map.hasXY(newX, newY))
             continue;
         const cell = map.get(newX, newY);
@@ -3070,8 +3070,8 @@ function checkLoopiness(cell, x, y, map) {
     numStrings = maxStringLength = currentStringLength = 0;
     inString = false;
     for (dir = sdir; dir < sdir + 8; dir++) {
-        newX = x + GWU.utils.CLOCK_DIRS[dir % 8][0];
-        newY = y + GWU.utils.CLOCK_DIRS[dir % 8][1];
+        newX = x + GWU.xy.CLOCK_DIRS[dir % 8][0];
+        newY = y + GWU.xy.CLOCK_DIRS[dir % 8][1];
         if (!map.hasXY(newX, newY))
             continue;
         const newCell = map.get(newX, newY);
@@ -3099,8 +3099,8 @@ function checkLoopiness(cell, x, y, map) {
     if (numStrings == 1 && maxStringLength <= 4) {
         cell.flags.cell &= ~Cell$1.IS_IN_LOOP;
         for (dir = 0; dir < 8; dir++) {
-            const newX = x + GWU.utils.CLOCK_DIRS[dir][0];
-            const newY = y + GWU.utils.CLOCK_DIRS[dir][1];
+            const newX = x + GWU.xy.CLOCK_DIRS[dir][0];
+            const newY = y + GWU.xy.CLOCK_DIRS[dir][1];
             if (map.hasXY(newX, newY)) {
                 const newCell = map.cell(newX, newY);
                 checkLoopiness(newCell, newX, newY, map);
@@ -3142,8 +3142,8 @@ function cleanLoopiness(map) {
             if (cell.flags.cell & Cell$1.IS_IN_LOOP) {
                 designationSurvives = false;
                 for (let dir = 0; dir < 8; dir++) {
-                    let newX = i + GWU.utils.CLOCK_DIRS[dir][0];
-                    let newY = j + GWU.utils.CLOCK_DIRS[dir][1];
+                    let newX = i + GWU.xy.CLOCK_DIRS[dir][0];
+                    let newY = j + GWU.xy.CLOCK_DIRS[dir][1];
                     if (map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, xy, newX, newY) &&
                         !grid[newX][newY] &&
                         !(map.cell(newX, newY).flags.cell &
@@ -3288,7 +3288,7 @@ class SpawnEffect {
         const walkableGrid = GWU.grid.alloc(map.width, map.height);
         let disrupts = false;
         // Get all walkable locations after lake added
-        GWU.utils.forRect(map.width, map.height, (i, j) => {
+        GWU.xy.forRect(map.width, map.height, (i, j) => {
             const lakeX = i + blockingToMapX;
             const lakeY = j + blockingToMapY;
             if (blockingGrid.get(lakeX, lakeY)) {
@@ -3385,7 +3385,7 @@ function cellIsOk(effect, map, x, y, isStart) {
     }
     else if (effect.flags & Effect.E_MUST_TOUCH_WALLS) {
         let ok = false;
-        GWU.utils.eachNeighbor(x, y, (i, j) => {
+        GWU.xy.eachNeighbor(x, y, (i, j) => {
             if (map.cellInfo(i, j).isWall()) {
                 ok = true;
             }
@@ -3397,7 +3397,7 @@ function cellIsOk(effect, map, x, y, isStart) {
         let ok = true;
         if (map.cellInfo(x, y).isWall())
             return false; // or on wall
-        GWU.utils.eachNeighbor(x, y, (i, j) => {
+        GWU.xy.eachNeighbor(x, y, (i, j) => {
             if (map.cellInfo(i, j).isWall()) {
                 ok = false;
             }
@@ -3445,8 +3445,8 @@ function computeSpawnMap(effect, map, x, y, ctx) {
                 for (j = 0; j < map.height; j++) {
                     if (spawnMap[i][j] == t - 1) {
                         for (dir = 0; dir < 4; dir++) {
-                            x2 = i + GWU.utils.DIRS[dir][0];
-                            y2 = j + GWU.utils.DIRS[dir][1];
+                            x2 = i + GWU.xy.DIRS[dir][0];
+                            y2 = j + GWU.xy.DIRS[dir][1];
                             if (spawnMap.hasXY(x2, y2) &&
                                 !spawnMap[x2][y2] &&
                                 GWU.random.chance(startProb) &&
@@ -3519,7 +3519,7 @@ function computeSpawnMap(effect, map, x, y, ctx) {
 //         }
 //         x2 = x;
 //         y2 = y;
-//         const dir = GWU.utils.DIRS[GW.random.number(4)];
+//         const dir = GWU.xy.DIRS[GW.random.number(4)];
 //         while (madeChange) {
 //             madeChange = false;
 //             x2 = x2 + dir[0];
@@ -3673,7 +3673,7 @@ class ClearTileEffect {
 }
 installHandler('clear', new ClearTileEffect());
 
-var index = {
+var index = /*#__PURE__*/Object.freeze({
     __proto__: null,
     Cell: Cell,
     Map: Map,
@@ -3694,6 +3694,6 @@ var index = {
     evacuateCreatures: evacuateCreatures,
     evacuateItems: evacuateItems,
     CellMemory: CellMemory
-};
+});
 
 export { index$5 as actor, index$3 as effect, index$6 as entity, index$7 as flags, index$4 as item, index$1 as layer, index as map, index$2 as tile };

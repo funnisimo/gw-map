@@ -386,7 +386,7 @@ export class Map
                 // < 0 means try to fire my neighbors...
                 if (effect.chance < 0) {
                     promoteChance = 0;
-                    GWU.utils.eachNeighbor(
+                    GWU.xy.eachNeighbor(
                         x,
                         y,
                         (i, j) => {
@@ -459,7 +459,7 @@ export class Map
                 // < 0 means try to fire my neighbors...
                 if (effect.chance < 0) {
                     promoteChance = 0;
-                    GWU.utils.eachNeighbor(
+                    GWU.xy.eachNeighbor(
                         x,
                         y,
                         (i, j) => {

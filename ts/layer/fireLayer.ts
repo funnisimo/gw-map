@@ -37,7 +37,7 @@ export class FireLayer extends TileLayer {
                 ) {
                     await this.exposeToFire(x, y, false);
                     for (let d = 0; d < 4; ++d) {
-                        const dir = GWU.utils.DIRS[d];
+                        const dir = GWU.xy.DIRS[d];
                         await this.exposeToFire(x + dir[0], y + dir[1]);
                     }
                 }
@@ -93,7 +93,7 @@ export class FireLayer extends TileLayer {
 
             // Count explosive neighbors.
             if (cell.hasTileMechFlag(TileMechFlags.TM_EXPLOSIVE_PROMOTE)) {
-                GWU.utils.eachNeighbor(x, y, (x0, y0) => {
+                GWU.xy.eachNeighbor(x, y, (x0, y0) => {
                     const n = this.map.cell(x0, y0);
                     if (
                         n.hasEntityFlag(ObjectFlags.L_BLOCKS_GAS) ||

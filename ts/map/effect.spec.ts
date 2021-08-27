@@ -414,12 +414,12 @@ describe('tile effect', () => {
         test('will fill a map with a spawn map', async () => {
             grid.fillRect(5, 5, 3, 3, 1);
 
-            GWU.utils.forRect(5, 5, 3, 3, (x, y) => {
+            GWU.xy.forRect(5, 5, 3, 3, (x, y) => {
                 const cell = map.cell(x, y);
                 expect(cell.hasTile('WALL')).toBeFalsy();
             });
             MapEffect.spawnTiles(0, grid, map, Tile.tiles.WALL);
-            GWU.utils.forRect(5, 5, 3, 3, (x, y) => {
+            GWU.xy.forRect(5, 5, 3, 3, (x, y) => {
                 const cell = map.cell(x, y);
                 expect(cell.hasTile('WALL')).toBeTruthy();
                 // expect(cell.mechFlags & Map.cell.MechFlags.EVENT_FIRED_THIS_TURN).toBeTruthy();
@@ -433,18 +433,18 @@ describe('tile effect', () => {
         //         depth: 'GAS',
         //     });
 
-        //     GWU.utils.forRect(5, 5, 3, 3, (x, y) => {
+        //     GWU.xy.forRect(5, 5, 3, 3, (x, y) => {
         //         const cell = map.cell(x, y);
         //         expect(cell.hasTile('RED_GAS')).toBeFalsy();
         //     });
         //     MapEffect.spawnTiles(0, grid, map, Tile.tiles.RED_GAS, 10);
-        //     GWU.utils.forRect(5, 5, 3, 3, (x, y) => {
+        //     GWU.xy.forRect(5, 5, 3, 3, (x, y) => {
         //         const cell = map.cell(x, y);
         //         expect(cell.hasTile('RED_GAS')).toBeTruthy();
         //         expect(cell.gasVolume).toEqual(10);
         //     });
         //     MapEffect.spawnTiles(0, grid, map, Tile.tiles.RED_GAS, 10);
-        //     GWU.utils.forRect(5, 5, 3, 3, (x, y) => {
+        //     GWU.xy.forRect(5, 5, 3, 3, (x, y) => {
         //         const cell = map.cell(x, y);
         //         expect(cell.hasTile('RED_GAS')).toBeTruthy();
         //         expect(cell.gasVolume).toEqual(20);
@@ -458,18 +458,18 @@ describe('tile effect', () => {
         //         depth: 'LIQUID',
         //     });
 
-        //     GWU.utils.forRect(5, 5, 3, 3, (x, y) => {
+        //     GWU.xy.forRect(5, 5, 3, 3, (x, y) => {
         //         const cell = map.cell(x, y);
         //         expect(cell.hasTile('RED_LIQUID')).toBeFalsy();
         //     });
         //     MapEffect.spawnTiles(0, grid, map, Tile.tiles.RED_LIQUID, 10);
-        //     GWU.utils.forRect(5, 5, 3, 3, (x, y) => {
+        //     GWU.xy.forRect(5, 5, 3, 3, (x, y) => {
         //         const cell = map.cell(x, y);
         //         expect(cell.hasTile('RED_LIQUID')).toBeTruthy();
         //         expect(cell.liquidVolume).toEqual(10);
         //     });
         //     MapEffect.spawnTiles(0, grid, map, Tile.tiles.RED_LIQUID, 10);
-        //     GWU.utils.forRect(5, 5, 3, 3, (x, y) => {
+        //     GWU.xy.forRect(5, 5, 3, 3, (x, y) => {
         //         const cell = map.cell(x, y);
         //         expect(cell.hasTile('RED_LIQUID')).toBeTruthy();
         //         expect(cell.liquidVolume).toEqual(20);
@@ -485,7 +485,7 @@ describe('tile effect', () => {
                 Effect.fire(effect, map, ctx.x, ctx.y, ctx)
             ).resolves.toBeTruthy();
             expect(map.cellInfo(ctx.x, ctx.y).hasTile('WALL')).toBeTruthy();
-            GWU.utils.eachNeighbor(ctx.x, ctx.y, (x, y) => {
+            GWU.xy.eachNeighbor(ctx.x, ctx.y, (x, y) => {
                 const cell = map.cell(x, y);
                 expect(cell.hasTile('WALL')).toBeFalsy();
             });
@@ -498,7 +498,7 @@ describe('tile effect', () => {
                 Effect.fire(effect, map, ctx.x, ctx.y, ctx)
             ).resolves.toBeTruthy();
             expect(map.cellInfo(ctx.x, ctx.y).hasTile('WALL')).toBeTruthy();
-            GWU.utils.eachNeighbor(
+            GWU.xy.eachNeighbor(
                 ctx.x,
                 ctx.y,
                 (x, y) => {
@@ -519,7 +519,7 @@ describe('tile effect', () => {
                 Effect.fire(effect, map, ctx.x, ctx.y, ctx)
             ).resolves.toBeTruthy();
             expect(map.cellInfo(ctx.x, ctx.y).hasTile('WALL')).toBeTruthy();
-            GWU.utils.eachNeighbor(
+            GWU.xy.eachNeighbor(
                 ctx.x,
                 ctx.y,
                 (x, y) => {

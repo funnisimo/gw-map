@@ -45,10 +45,10 @@ export function updateChokepoints(map: MapType, updateCounts: boolean) {
             ) {
                 passableArcCount = 0;
                 for (let dir = 0; dir < 8; dir++) {
-                    const oldX = i + GWU.utils.CLOCK_DIRS[(dir + 7) % 8][0];
-                    const oldY = j + GWU.utils.CLOCK_DIRS[(dir + 7) % 8][1];
-                    const newX = i + GWU.utils.CLOCK_DIRS[dir][0];
-                    const newY = j + GWU.utils.CLOCK_DIRS[dir][1];
+                    const oldX = i + GWU.xy.CLOCK_DIRS[(dir + 7) % 8][0];
+                    const oldY = j + GWU.xy.CLOCK_DIRS[(dir + 7) % 8][1];
+                    const newX = i + GWU.xy.CLOCK_DIRS[dir][0];
+                    const newY = j + GWU.xy.CLOCK_DIRS[dir][1];
                     if (
                         (map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
                             passMap[newX][newY]) !=
@@ -103,8 +103,8 @@ export function updateChokepoints(map: MapType, updateCounts: boolean) {
                     cell.flags.cell & Flags.Cell.IS_CHOKEPOINT
                 ) {
                     for (let dir = 0; dir < 4; dir++) {
-                        const newX = i + GWU.utils.DIRS[dir][0];
-                        const newY = j + GWU.utils.DIRS[dir][1];
+                        const newX = i + GWU.xy.DIRS[dir][0];
+                        const newY = j + GWU.xy.DIRS[dir][1];
                         if (
                             map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
                             passMap[newX][newY] &&
@@ -187,8 +187,8 @@ export function floodFillCount(
     results[startX][startY] = 1;
 
     for (let dir = 0; dir < 4; dir++) {
-        const newX = startX + GWU.utils.DIRS[dir][0];
-        const newY = startY + GWU.utils.DIRS[dir][1];
+        const newX = startX + GWU.xy.DIRS[dir][0];
+        const newY = startY + GWU.xy.DIRS[dir][1];
 
         if (
             map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
@@ -245,8 +245,8 @@ export function checkLoopiness(
 
     // find an unloopy neighbor to start on
     for (sdir = 0; sdir < 8; sdir++) {
-        newX = x + GWU.utils.CLOCK_DIRS[sdir][0];
-        newY = y + GWU.utils.CLOCK_DIRS[sdir][1];
+        newX = x + GWU.xy.CLOCK_DIRS[sdir][0];
+        newY = y + GWU.xy.CLOCK_DIRS[sdir][1];
 
         if (!map.hasXY(newX, newY)) continue;
 
@@ -267,8 +267,8 @@ export function checkLoopiness(
     numStrings = maxStringLength = currentStringLength = 0;
     inString = false;
     for (dir = sdir; dir < sdir + 8; dir++) {
-        newX = x + GWU.utils.CLOCK_DIRS[dir % 8][0];
-        newY = y + GWU.utils.CLOCK_DIRS[dir % 8][1];
+        newX = x + GWU.xy.CLOCK_DIRS[dir % 8][0];
+        newY = y + GWU.xy.CLOCK_DIRS[dir % 8][1];
         if (!map.hasXY(newX, newY)) continue;
 
         const newCell = map.get(newX, newY);
@@ -297,8 +297,8 @@ export function checkLoopiness(
         cell.flags.cell &= ~Flags.Cell.IS_IN_LOOP;
 
         for (dir = 0; dir < 8; dir++) {
-            const newX = x + GWU.utils.CLOCK_DIRS[dir][0];
-            const newY = y + GWU.utils.CLOCK_DIRS[dir][1];
+            const newX = x + GWU.xy.CLOCK_DIRS[dir][0];
+            const newY = y + GWU.xy.CLOCK_DIRS[dir][1];
             if (map.hasXY(newX, newY)) {
                 const newCell = map.cell(newX, newY);
                 checkLoopiness(newCell, newX, newY, map);
@@ -344,8 +344,8 @@ export function cleanLoopiness(map: MapType) {
             if (cell.flags.cell & Flags.Cell.IS_IN_LOOP) {
                 designationSurvives = false;
                 for (let dir = 0; dir < 8; dir++) {
-                    let newX = i + GWU.utils.CLOCK_DIRS[dir][0];
-                    let newY = j + GWU.utils.CLOCK_DIRS[dir][1];
+                    let newX = i + GWU.xy.CLOCK_DIRS[dir][0];
+                    let newY = j + GWU.xy.CLOCK_DIRS[dir][1];
 
                     if (
                         map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, xy, newX, newY) &&

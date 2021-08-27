@@ -12,7 +12,7 @@ export interface FlagType {
     entity: number;
 }
 
-export interface EntityType extends GWU.utils.XY {
+export interface EntityType extends GWU.xy.XY {
     readonly sprite: GWU.sprite.Sprite;
     depth: number;
     light: GWU.light.LightType | null;

@@ -17,7 +17,7 @@ export default [
                 file: 'dist/gw-map.min.js',
                 format: 'umd',
                 name: 'GWM',
-                freeze: false,
+                // freeze: false,
                 // extend: true,
                 sourcemap: true,
                 globals: {
@@ -29,7 +29,7 @@ export default [
                 file: 'dist/gw-map.js',
                 format: 'umd',
                 name: 'GWM',
-                freeze: false,
+                // freeze: false,
                 // extend: true,
                 sourcemap: true,
                 globals: {
@@ -39,7 +39,7 @@ export default [
             {
                 file: 'dist/gw-map.mjs',
                 format: 'es',
-                freeze: false,
+                // freeze: false,
                 globals: {
                     'gw-utils': 'GWU',
                 },

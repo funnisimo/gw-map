@@ -207,7 +207,7 @@ export class SpawnEffect implements Effect.EffectHandler {
         let disrupts = false;
 
         // Get all walkable locations after lake added
-        GWU.utils.forRect(map.width, map.height, (i, j) => {
+        GWU.xy.forRect(map.width, map.height, (i, j) => {
             const lakeX = i + blockingToMapX;
             const lakeY = j + blockingToMapY;
             if (blockingGrid.get(lakeX, lakeY)) {
@@ -339,7 +339,7 @@ function cellIsOk(
         if (!map.cellInfo(x, y).isWall()) return false;
     } else if (effect.flags & Effect.Flags.E_MUST_TOUCH_WALLS) {
         let ok = false;
-        GWU.utils.eachNeighbor(
+        GWU.xy.eachNeighbor(
             x,
             y,
             (i, j) => {
@@ -353,7 +353,7 @@ function cellIsOk(
     } else if (effect.flags & Effect.Flags.E_NO_TOUCH_WALLS) {
         let ok = true;
         if (map.cellInfo(x, y).isWall()) return false; // or on wall
-        GWU.utils.eachNeighbor(
+        GWU.xy.eachNeighbor(
             x,
             y,
             (i, j) => {
@@ -424,8 +424,8 @@ export function computeSpawnMap(
                 for (j = 0; j < map.height; j++) {
                     if (spawnMap[i][j] == t - 1) {
                         for (dir = 0; dir < 4; dir++) {
-                            x2 = i + GWU.utils.DIRS[dir][0];
-                            y2 = j + GWU.utils.DIRS[dir][1];
+                            x2 = i + GWU.xy.DIRS[dir][0];
+                            y2 = j + GWU.xy.DIRS[dir][1];
                             if (
                                 spawnMap.hasXY(x2, y2) &&
                                 !spawnMap[x2][y2] &&
@@ -514,7 +514,7 @@ export function computeSpawnMap(
 
 //         x2 = x;
 //         y2 = y;
-//         const dir = GWU.utils.DIRS[GW.random.number(4)];
+//         const dir = GWU.xy.DIRS[GW.random.number(4)];
 //         while (madeChange) {
 //             madeChange = false;
 //             x2 = x2 + dir[0];
