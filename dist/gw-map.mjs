@@ -1368,7 +1368,7 @@ class ActorLayer extends MapLayer {
         const cell = this.map.cell(x, y);
         if (actor.forbidsCell(cell))
             return false;
-        if (!GWU.utils.addToChain(cell, 'actor', obj))
+        if (!GWU.list.push(cell, 'actor', obj))
             return false;
         if (obj.isPlayer()) {
             cell.setCellFlag(Cell$1.HAS_PLAYER);
@@ -1384,7 +1384,7 @@ class ActorLayer extends MapLayer {
         if (actor.isDestroyed)
             return false;
         const cell = this.map.cell(x, y);
-        if (!GWU.utils.addToChain(cell, 'actor', actor))
+        if (!GWU.list.push(cell, 'actor', actor))
             return false;
         if (actor.isPlayer()) {
             cell.setCellFlag(Cell$1.HAS_PLAYER);
@@ -1397,7 +1397,7 @@ class ActorLayer extends MapLayer {
         const x = obj.x;
         const y = obj.y;
         const cell = this.map.cell(x, y);
-        if (!GWU.utils.removeFromChain(cell, 'actor', obj))
+        if (!GWU.list.remove(cell, 'actor', obj))
             return false;
         if (obj.isPlayer()) {
             cell.clearCellFlag(Cell$1.HAS_PLAYER);
@@ -1433,7 +1433,7 @@ class ItemLayer extends MapLayer {
                 return true; // ??? didSomething?
             }
         }
-        if (!GWU.utils.addToChain(cell, 'item', obj))
+        if (!GWU.list.push(cell, 'item', obj))
             return false;
         obj.x = x;
         obj.y = y;
@@ -1442,7 +1442,7 @@ class ItemLayer extends MapLayer {
     }
     forceItem(x, y, obj, _opts) {
         const cell = this.map.cell(x, y);
-        if (!GWU.utils.addToChain(cell, 'item', obj))
+        if (!GWU.list.push(cell, 'item', obj))
             return false;
         obj.x = x;
         obj.y = y;
@@ -1453,7 +1453,7 @@ class ItemLayer extends MapLayer {
         const x = obj.x;
         const y = obj.y;
         const cell = this.map.cell(x, y);
-        if (!GWU.utils.removeFromChain(cell, 'item', obj))
+        if (!GWU.list.remove(cell, 'item', obj))
             return false;
         if (obj.key && obj.key.matches(x, y) && cell.hasEffect('nokey')) {
             await cell.activate('key', this.map, x, y);
@@ -2381,7 +2381,7 @@ class Map {
     }
     eachItem(cb) {
         this.cells.forEach((cell) => {
-            GWU.utils.eachChain(cell.item, cb);
+            GWU.list.forEach(cell.item, cb);
         });
     }
     async addItem(x, y, item) {
@@ -2425,7 +2425,7 @@ class Map {
     }
     eachActor(cb) {
         this.cells.forEach((cell) => {
-            GWU.utils.eachChain(cell.actor, cb);
+            GWU.list.forEach(cell.actor, cb);
         });
     }
     async addActor(x, y, actor) {
@@ -3579,7 +3579,7 @@ function evacuateCreatures(map, blockingMap) {
             const cell = map.cell(i, j);
             if (!cell.hasActor())
                 continue;
-            GWU.utils.eachChain(cell.actor, (obj) => {
+            GWU.list.forEach(cell.actor, (obj) => {
                 if (!(obj instanceof Actor))
                     return;
                 const monst = obj;
@@ -3609,7 +3609,7 @@ function evacuateItems(map, blockingMap) {
         const cell = map.cell(i, j);
         if (!cell.hasItem())
             return;
-        GWU.utils.eachChain(cell.item, (obj) => {
+        GWU.list.forEach(cell.item, (obj) => {
             if (!(obj instanceof Item))
                 return;
             const item = obj;

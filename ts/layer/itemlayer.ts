@@ -29,7 +29,7 @@ export class ItemLayer extends MapLayer {
             }
         }
 
-        if (!GWU.utils.addToChain(cell, 'item', obj)) return false;
+        if (!GWU.list.push(cell, 'item', obj)) return false;
         obj.x = x;
         obj.y = y;
         obj.depth = this.depth;
@@ -39,7 +39,7 @@ export class ItemLayer extends MapLayer {
 
     forceItem(x: number, y: number, obj: Item, _opts?: any): boolean {
         const cell = this.map.cell(x, y);
-        if (!GWU.utils.addToChain(cell, 'item', obj)) return false;
+        if (!GWU.list.push(cell, 'item', obj)) return false;
         obj.x = x;
         obj.y = y;
         obj.depth = this.depth;
@@ -50,7 +50,7 @@ export class ItemLayer extends MapLayer {
         const x = obj.x;
         const y = obj.y;
         const cell = this.map.cell(x, y);
-        if (!GWU.utils.removeFromChain(cell, 'item', obj)) return false;
+        if (!GWU.list.remove(cell, 'item', obj)) return false;
 
         if (obj.key && obj.key.matches(x, y) && cell.hasEffect('nokey')) {
             await cell.activate('key', this.map, x, y);

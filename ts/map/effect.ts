@@ -583,7 +583,7 @@ export function evacuateCreatures(map: MapType, blockingMap: GWU.grid.NumGrid) {
             const cell = map.cell(i, j);
             if (!cell.hasActor()) continue;
 
-            GWU.utils.eachChain(cell.actor, (obj) => {
+            GWU.list.forEach(cell.actor, (obj) => {
                 if (!(obj instanceof Actor)) return;
                 const monst: Actor = obj;
                 const loc = GWU.random.matchingLocNear(i, j, (x, y) => {
@@ -610,7 +610,7 @@ export function evacuateItems(map: MapType, blockingMap: GWU.grid.NumGrid) {
         const cell = map.cell(i, j);
         if (!cell.hasItem()) return;
 
-        GWU.utils.eachChain(cell.item, (obj) => {
+        GWU.list.forEach(cell.item, (obj) => {
             if (!(obj instanceof Item)) return;
             const item: Item = obj;
             const loc = GWU.random.matchingLocNear(i, j, (x, y) => {

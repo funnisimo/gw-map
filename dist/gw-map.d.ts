@@ -162,11 +162,12 @@ interface KeyInfoType {
 interface FlagType$1 {
     entity: number;
 }
-interface EntityType extends GWU.utils.Chainable<EntityType>, GWU.utils.XY {
+interface EntityType extends GWU.utils.XY {
     readonly sprite: GWU.sprite.Sprite;
     depth: number;
     light: GWU.light.LightType | null;
     flags: FlagType$1;
+    next: EntityType | null;
 }
 
 declare class KeyInfo implements KeyInfoType {

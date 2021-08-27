@@ -150,7 +150,7 @@ export class Map
     }
     eachItem(cb: GWU.types.EachCb<Item>): void {
         this.cells.forEach((cell) => {
-            GWU.utils.eachChain(cell.item, cb);
+            GWU.list.forEach(cell.item, cb);
         });
     }
     async addItem(x: number, y: number, item: Item): Promise<boolean> {
@@ -193,7 +193,7 @@ export class Map
     }
     eachActor(cb: GWU.types.EachCb<Actor>): void {
         this.cells.forEach((cell) => {
-            GWU.utils.eachChain(cell.actor, cb);
+            GWU.list.forEach(cell.actor, cb);
         });
     }
     async addActor(x: number, y: number, actor: Actor): Promise<boolean> {

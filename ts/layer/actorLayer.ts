@@ -22,7 +22,7 @@ export class ActorLayer extends MapLayer {
         const cell = this.map.cell(x, y);
         if (actor.forbidsCell(cell)) return false;
 
-        if (!GWU.utils.addToChain(cell, 'actor', obj)) return false;
+        if (!GWU.list.push(cell, 'actor', obj)) return false;
 
         if (obj.isPlayer()) {
             cell.setCellFlag(Flags.Cell.HAS_PLAYER);
@@ -40,7 +40,7 @@ export class ActorLayer extends MapLayer {
     forceActor(x: number, y: number, actor: Actor, _opts?: any): boolean {
         if (actor.isDestroyed) return false;
         const cell = this.map.cell(x, y);
-        if (!GWU.utils.addToChain(cell, 'actor', actor)) return false;
+        if (!GWU.list.push(cell, 'actor', actor)) return false;
 
         if (actor.isPlayer()) {
             cell.setCellFlag(Flags.Cell.HAS_PLAYER);
@@ -55,7 +55,7 @@ export class ActorLayer extends MapLayer {
         const y = obj.y;
         const cell = this.map.cell(x, y);
 
-        if (!GWU.utils.removeFromChain(cell, 'actor', obj)) return false;
+        if (!GWU.list.remove(cell, 'actor', obj)) return false;
 
         if (obj.isPlayer()) {
             cell.clearCellFlag(Flags.Cell.HAS_PLAYER);

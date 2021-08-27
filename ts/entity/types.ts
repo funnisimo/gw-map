@@ -12,11 +12,10 @@ export interface FlagType {
     entity: number;
 }
 
-export interface EntityType
-    extends GWU.utils.Chainable<EntityType>,
-        GWU.utils.XY {
+export interface EntityType extends GWU.utils.XY {
     readonly sprite: GWU.sprite.Sprite;
     depth: number;
     light: GWU.light.LightType | null;
     flags: FlagType;
+    next: EntityType | null;
 }
