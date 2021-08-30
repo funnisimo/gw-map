@@ -1,15 +1,15 @@
 import * as GWU from 'gw-utils';
 
-import * as EFFECT from './effect';
-import * as TYPES from './types';
-import { EffectHandler } from './handler';
-import { Effect as Flags } from './flags';
-import { MapType } from '../map/types';
+import * as EFFECT from '../install';
+import * as TYPES from '../types';
+import { Handler } from '../handler';
+import { Effect as Flags } from '../../flags';
+import { MapType } from '../../map/types';
 
 //////////////////////////////////////////////
 // MESSAGE
 
-export class MessageEffect implements EffectHandler {
+export class MessageEffect implements Handler {
     make(src: Partial<TYPES.EffectConfig>, dest: TYPES.EffectInfo): boolean {
         if (!src.message) return true;
 

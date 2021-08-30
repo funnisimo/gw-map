@@ -1,10 +1,10 @@
 import * as GWU from 'gw-utils';
 
 import { EffectInfo, EffectBase } from './types';
-import { EffectHandler } from './handler';
-import { Effect as Flags } from './flags';
+import { Handler } from './handler';
+import { Effect as Flags } from '../flags';
 
-import { handlers, effects } from './effect';
+import { handlers, effects } from './install';
 
 export function make(opts: EffectBase): EffectInfo {
     if (!opts) throw new Error('opts required to make effect.');
@@ -34,7 +34,7 @@ export function make(opts: EffectBase): EffectInfo {
     }
 
     // and all the handlers
-    Object.values(handlers).forEach((v: EffectHandler) => v.make(opts, info));
+    Object.values(handlers).forEach((v: Handler) => v.make(opts, info));
 
     return info;
 }

@@ -1,14 +1,14 @@
 import 'jest-extended';
-import '../../test/matchers';
-import * as UTILS from '../../test/utils';
+import '../../../test/matchers';
+import * as UTILS from '../../../test/utils';
 import * as GWU from 'gw-utils';
 
-import * as Map from '.';
-import * as Effect from '../effect';
-import * as Tile from '../tile';
+import * as Map from '../../map';
+import * as Effect from '..';
+import * as Tile from '../../tile';
 
-import * as MapEffect from './effect';
-import * as Flags from '../flags';
+import * as MapEffect from './tile';
+import * as Flags from '../../flags';
 
 describe('tile effect', () => {
     let map: Map.Map;
@@ -91,7 +91,7 @@ describe('tile effect', () => {
                 tile: { id: 'WALL' },
                 flags: 'E_BUILD_IN_WALLS',
             });
-            expect(effect.flags & Effect.Flags.E_BUILD_IN_WALLS).toBeTruthy();
+            expect(effect.flags & Flags.Effect.E_BUILD_IN_WALLS).toBeTruthy();
             expect(
                 MapEffect.computeSpawnMap(effect, map, ctx.x, ctx.y, ctx)
             ).toBeFalsy();
@@ -116,7 +116,7 @@ describe('tile effect', () => {
                 tile: { id: 'WALL' },
                 flags: 'E_MUST_TOUCH_WALLS',
             })!;
-            expect(effect.flags & Effect.Flags.E_MUST_TOUCH_WALLS).toBeTruthy();
+            expect(effect.flags & Flags.Effect.E_MUST_TOUCH_WALLS).toBeTruthy();
             expect(
                 MapEffect.computeSpawnMap(effect, map, ctx.x, ctx.y, ctx)
             ).toBeFalsy();
@@ -148,7 +148,7 @@ describe('tile effect', () => {
                 tile: { id: 'WALL', grow: 100, decrement: 100 },
                 flags: 'E_NO_TOUCH_WALLS',
             });
-            expect(effect.flags & Effect.Flags.E_NO_TOUCH_WALLS).toBeTruthy();
+            expect(effect.flags & Flags.Effect.E_NO_TOUCH_WALLS).toBeTruthy();
 
             // no walls - ok
             expect(
@@ -533,7 +533,7 @@ describe('tile effect', () => {
         test('can clear extra tiles from the cell', async () => {
             effect = Effect.make({ flags: 'E_CLEAR_CELL', tile: 'FLOOR' })!;
 
-            expect(effect.flags & Effect.Flags.E_CLEAR_CELL).toBeTruthy();
+            expect(effect.flags & Flags.Effect.E_CLEAR_CELL).toBeTruthy();
             map.setTile(ctx.x, ctx.y, 'BRIDGE');
             const cell = map.cell(ctx.x, ctx.y);
             expect(cell.depthTile(Flags.Depth.SURFACE)!.id).toEqual('BRIDGE');
@@ -736,4 +736,95 @@ describe('tile effect', () => {
     //         // expect(map.count( (c) => c.hasTile(WAVE)).toEqual(0);
     //     });
     // });
+
+    test('abort if blocking', () => {
+        Tile.install('PRESSURE_PLATE', {
+            extends: 'FLOOR',
+            priority: '+10',
+            ch: '^',
+            fg: 0x00f,
+            flags: 'T_IS_TRAP, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT',
+            effects: {
+                enter: {
+                    activateMachine: true,
+                    message: 'the pressure plate clicks.',
+                    tile: 'PRESSURE_PLATE_DEPRESSED',
+                },
+            },
+        });
+
+        Tile.install('PRESSURE_PLATE_DEPRESSED', {
+            extends: 'FLOOR',
+            priority: '+10',
+            ch: 'v',
+            fg: 0x00f,
+            effects: {
+                exit: { tile: 'PRESSURE_PLATE' },
+            },
+        });
+
+        Tile.install('CHASM', {
+            extends: 'FLOOR',
+            priority: '+2',
+            ch: ' ',
+            flavor: 'a chasm',
+            flags: 'T_AUTO_DESCENT',
+        });
+
+        Tile.install('CHASM_EDGE', {
+            extends: 'FLOOR',
+            priority: '+1',
+            ch: ':',
+            fg: 0x777,
+            flavor: 'a chasm edge',
+        });
+
+        Effect.install('CHASM_EDGE', { tile: 'CHASM_EDGE,100' });
+        Effect.install('CHASM_MEDIUM', {
+            tile: 'CHASM,150,50',
+            flags: 'E_NEXT_EVERYWHERE, E_ABORT_IF_BLOCKS_MAP',
+            next: 'CHASM_EDGE',
+        });
+        const holeEffect = Effect.install('HOLE_WITH_PLATE', {
+            effect: 'CHASM_MEDIUM',
+            next: { tile: 'PRESSURE_PLATE' },
+        });
+
+        const map = Map.make(21, 11, { visible: true, tile: 'WALL' });
+
+        GWU.xy.forRect(1, 1, 9, 9, (x, y) => map.forceTile(x, y, 'FLOOR'));
+        GWU.xy.forRect(11, 1, 9, 9, (x, y) => map.forceTile(x, y, 'FLOOR'));
+        map.forceTile(10, 3, 'FLOOR');
+
+        jest.spyOn(Effect.handlers.effect, 'fireSync');
+
+        expect(holeEffect.effect).toEqual('CHASM_MEDIUM');
+
+        GWU.random.seed(12345);
+        let result = Effect.fireSync('HOLE_WITH_PLATE', map, 9, 4);
+
+        expect(Effect.handlers.effect.fireSync).toHaveBeenCalledTimes(2); // HOLE_WITH_PLATE -> CHASM_MEDIUM
+        expect(result).toBeFalsy();
+        expect(Effect.handlers.effect.fireSync).toHaveBeenCalledWith(
+            Effect.effects.CHASM_MEDIUM,
+            map,
+            9,
+            4,
+            expect.any(Object)
+        );
+        expect(map.cells.count((c) => c.hasTile('CHASM'))).toEqual(0);
+        expect(map.cells.count((c) => c.hasTile('CHASM_EDGE'))).toEqual(0);
+        expect(map.cells.count((c) => c.hasTile('PRESSURE_PLATE'))).toEqual(0);
+
+        result = Effect.fireSync('HOLE_WITH_PLATE', map, 3, 8);
+
+        // map.dump();
+
+        expect(result).toBeTruthy();
+        expect(map.cells.count((c) => c.hasTile('CHASM'))).toBeGreaterThan(0);
+        expect(map.cells.count((c) => c.hasTile('CHASM_EDGE'))).toBeGreaterThan(
+            0
+        );
+        expect(map.cells.count((c) => c.hasTile('PRESSURE_PLATE'))).toEqual(1);
+    });
 });

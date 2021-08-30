@@ -2,9 +2,9 @@ import * as GWU from 'gw-utils';
 import { MapType } from '../map/types';
 
 import { EffectInfo, EffectCtx } from './types';
-import { Effect as Flags } from './flags';
+import { Effect as Flags } from '../flags';
 
-import { handlers } from './effect';
+import { handlers } from './install';
 import { from } from './make';
 
 export async function fire(
@@ -13,7 +13,7 @@ export async function fire(
     x: number,
     y: number,
     ctx_: Partial<EffectCtx> = {}
-) {
+): Promise<boolean> {
     if (!effect) return false;
     if (typeof effect === 'string') {
         const name = effect;
@@ -27,21 +27,12 @@ export async function fire(
 
     const grid = (ctx.grid = GWU.grid.alloc(map.width, map.height));
 
-    let didSomething = true;
+    let didSomething = false;
     const allHandlers = Object.values(handlers);
     for (let h of allHandlers) {
         if (await h.fire(effect, map, x, y, ctx)) {
             didSomething = true;
         }
-    }
-
-    // bookkeeping
-    if (
-        didSomething &&
-        map.isVisible(x, y) &&
-        !(effect.flags & Flags.E_NO_MARK_FIRED)
-    ) {
-        effect.flags |= Flags.E_FIRED;
     }
 
     // do the next effect - if applicable
@@ -55,12 +46,22 @@ export async function fire(
         if (effect.flags & Flags.E_NEXT_EVERYWHERE) {
             await grid.forEachAsync(async (v, i, j) => {
                 if (!v) return;
-                // @ts-ignore
-                await fire(nextInfo, map, i, j, ctx);
+                didSomething =
+                    (await fire(nextInfo, map, i, j, ctx)) || didSomething;
             });
         } else {
-            await fire(nextInfo, map, x, y, ctx);
+            didSomething =
+                (await fire(nextInfo, map, x, y, ctx)) || didSomething;
         }
+    }
+
+    // bookkeeping
+    if (
+        didSomething &&
+        map.isVisible(x, y) &&
+        !(effect.flags & Flags.E_NO_MARK_FIRED)
+    ) {
+        effect.flags |= Flags.E_FIRED;
     }
 
     GWU.grid.free(grid);
@@ -87,7 +88,7 @@ export function fireSync(
 
     const grid = (ctx.grid = GWU.grid.alloc(map.width, map.height));
 
-    let didSomething = true;
+    let didSomething = false;
     const allHandlers = Object.values(handlers);
     for (let h of allHandlers) {
         if (h.fireSync(effect, map, x, y, ctx)) {

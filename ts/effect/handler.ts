@@ -1,7 +1,7 @@
 import { EffectConfig, EffectInfo, EffectCtx } from './types';
 import { MapType } from '../map/types';
 
-export interface EffectHandler {
+export interface Handler {
     make: (src: Partial<EffectConfig>, dest: EffectInfo) => boolean;
     fire: (
         config: EffectInfo,

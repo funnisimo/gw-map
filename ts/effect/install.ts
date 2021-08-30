@@ -1,6 +1,6 @@
 import { EffectInfo, EffectConfig } from './types';
-import { EffectHandler } from './handler';
-import { Effect as Flags } from './flags';
+import { Handler } from './handler';
+import { Effect as Flags } from '../flags';
 
 import { make } from './make';
 
@@ -28,8 +28,8 @@ export function installAll(effects: Record<string, Partial<EffectConfig>>) {
     });
 }
 
-export const handlers: Record<string, EffectHandler> = {};
+export const handlers: Record<string, Handler> = {};
 
-export function installHandler(id: string, handler: EffectHandler) {
+export function installHandler(id: string, handler: Handler) {
     handlers[id] = handler;
 }

@@ -134,11 +134,45 @@ declare enum Map$1 {
     MAP_DEFAULT = 0
 }
 
+declare enum Effect {
+    E_NEXT_ALWAYS,
+    E_NEXT_EVERYWHERE,
+    E_FIRED,
+    E_NO_MARK_FIRED,
+    E_PROTECTED,
+    E_TREAT_AS_BLOCKING,
+    E_PERMIT_BLOCKING,
+    E_ABORT_IF_BLOCKS_MAP,
+    E_BLOCKED_BY_ITEMS,
+    E_BLOCKED_BY_ACTORS,
+    E_BLOCKED_BY_OTHER_LAYERS,
+    E_SUPERPRIORITY,
+    E_SPREAD_CIRCLE,
+    E_SPREAD_LINE,
+    E_EVACUATE_CREATURES,
+    E_EVACUATE_ITEMS,
+    E_BUILD_IN_WALLS,
+    E_MUST_TOUCH_WALLS,
+    E_NO_TOUCH_WALLS,
+    E_CLEAR_GROUND,
+    E_CLEAR_SURFACE,
+    E_CLEAR_LIQUID,
+    E_CLEAR_GAS,
+    E_CLEAR_TILE,
+    E_CLEAR_CELL,
+    E_ONLY_IF_EMPTY,
+    E_ACTIVATE_DORMANT_MONSTER,
+    E_AGGRAVATES_MONSTERS,
+    E_RESURRECT_ALLY
+}
+
 type index_d$7_Depth = Depth;
 declare const index_d$7_Depth: typeof Depth;
 type index_d$7_DepthString = DepthString;
 type index_d$7_TileMech = TileMech;
 declare const index_d$7_TileMech: typeof TileMech;
+type index_d$7_Effect = Effect;
+declare const index_d$7_Effect: typeof Effect;
 declare namespace index_d$7 {
   export {
     index_d$7_Depth as Depth,
@@ -150,6 +184,7 @@ declare namespace index_d$7 {
     index_d$7_TileMech as TileMech,
     Cell$1 as Cell,
     Map$1 as Map,
+    index_d$7_Effect as Effect,
   };
 }
 
@@ -327,39 +362,7 @@ interface TileType {
     getFlavor(): string;
 }
 
-declare enum Effect {
-    E_NEXT_ALWAYS,
-    E_NEXT_EVERYWHERE,
-    E_FIRED,
-    E_NO_MARK_FIRED,
-    E_PROTECTED,
-    E_TREAT_AS_BLOCKING,
-    E_PERMIT_BLOCKING,
-    E_ABORT_IF_BLOCKS_MAP,
-    E_BLOCKED_BY_ITEMS,
-    E_BLOCKED_BY_ACTORS,
-    E_BLOCKED_BY_OTHER_LAYERS,
-    E_SUPERPRIORITY,
-    E_SPREAD_CIRCLE,
-    E_SPREAD_LINE,
-    E_EVACUATE_CREATURES,
-    E_EVACUATE_ITEMS,
-    E_BUILD_IN_WALLS,
-    E_MUST_TOUCH_WALLS,
-    E_NO_TOUCH_WALLS,
-    E_CLEAR_GROUND,
-    E_CLEAR_SURFACE,
-    E_CLEAR_LIQUID,
-    E_CLEAR_GAS,
-    E_CLEAR_TILE,
-    E_CLEAR_CELL,
-    E_ONLY_IF_EMPTY,
-    E_ACTIVATE_DORMANT_MONSTER,
-    E_AGGRAVATES_MONSTERS,
-    E_RESURRECT_ALLY
-}
-
-interface EffectHandler {
+interface Handler {
     make: (src: Partial<EffectConfig>, dest: EffectInfo) => boolean;
     fire: (config: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx) => boolean | Promise<boolean>;
     fireSync: (config: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx) => boolean;
@@ -370,8 +373,8 @@ declare function resetAll(): void;
 declare const effects: Record<string, EffectInfo>;
 declare function install$1(id: string, config: Partial<EffectConfig>): EffectInfo;
 declare function installAll$1(effects: Record<string, Partial<EffectConfig>>): void;
-declare const handlers: Record<string, EffectHandler>;
-declare function installHandler(id: string, handler: EffectHandler): void;
+declare const handlers: Record<string, Handler>;
+declare function installHandler(id: string, handler: Handler): void;
 
 declare function make$2(opts: EffectBase): EffectInfo;
 declare function from$1(opts: EffectBase | string): EffectInfo;
@@ -379,35 +382,71 @@ declare function from$1(opts: EffectBase | string): EffectInfo;
 declare function fire(effect: EffectInfo | string, map: MapType, x: number, y: number, ctx_?: Partial<EffectCtx>): Promise<boolean>;
 declare function fireSync(effect: EffectInfo | string, map: MapType, x: number, y: number, ctx_?: Partial<EffectCtx>): boolean;
 
-declare class MessageEffect implements EffectHandler {
-    make(src: Partial<EffectConfig>, dest: EffectInfo): boolean;
-    fire(config: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx): Promise<boolean>;
-    fireSync(config: EffectInfo, _map: MapType, _x: number, _y: number, _ctx: EffectCtx): boolean;
-}
-
-declare class EmitEffect implements EffectHandler {
+declare class EmitEffect implements Handler {
     make(src: Partial<EffectConfig>, dest: EffectInfo): boolean;
     fire(config: any, _map: MapType, x: number, y: number, ctx: EffectCtx): Promise<boolean>;
     fireSync(config: EffectInfo, _map: MapType, _x: number, _y: number, _ctx: EffectCtx): boolean;
 }
 
-declare class FnEffect implements EffectHandler {
+declare class FnEffect implements Handler {
     make(src: Partial<EffectConfig>, dest: EffectInfo): boolean;
     fire(config: any, map: MapType, x: number, y: number, ctx: Partial<EffectCtx>): Promise<any>;
     fireSync(config: any, map: MapType, x: number, y: number, ctx: Partial<EffectCtx>): any;
 }
 
-declare class ActivateMachineEffect implements EffectHandler {
+declare class MessageEffect implements Handler {
+    make(src: Partial<EffectConfig>, dest: EffectInfo): boolean;
+    fire(config: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx): Promise<boolean>;
+    fireSync(config: EffectInfo, _map: MapType, _x: number, _y: number, _ctx: EffectCtx): boolean;
+}
+
+declare class ActivateMachineEffect implements Handler {
     make(src: Partial<EffectConfig>, dest: EffectInfo): boolean;
     fire(config: any, map: MapType, x: number, y: number, ctx: Partial<EffectCtx>): Promise<boolean>;
     fireSync(config: any, map: MapType, x: number, y: number, ctx: Partial<EffectCtx>): boolean;
 }
 
+declare class EffectEffect implements Handler {
+    make(src: Partial<EffectConfig>, dest: EffectInfo): boolean;
+    fire(config: any, map: MapType, x: number, y: number, ctx: EffectCtx): Promise<boolean>;
+    fireSync(config: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx): boolean;
+}
+
+interface SpawnConfig {
+    tile: string;
+    grow: number;
+    decrement: number;
+    matchTile: string;
+    flags: GWU.flag.FlagBase;
+    volume: number;
+    next: string;
+}
+interface SpawnInfo {
+    tile: string;
+    grow: number;
+    decrement: number;
+    matchTile: string;
+    flags: number;
+    volume: number;
+    next: string | null;
+}
+declare class SpawnEffect implements Handler {
+    make(src: Partial<EffectConfig>, dest: EffectInfo): boolean;
+    fire(effect: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx): Promise<boolean>;
+    fireSync(effect: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx): boolean;
+    mapDisruptedBy(map: MapType, blockingGrid: GWU.grid.NumGrid, blockingToMapX?: number, blockingToMapY?: number): boolean;
+}
+declare function spawnTiles(flags: number, spawnMap: GWU.grid.NumGrid, map: MapType, tile: Tile, volume?: number, machine?: number): boolean;
+declare function computeSpawnMap(effect: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx): boolean;
+declare function clearCells(map: MapType, spawnMap: GWU.grid.NumGrid, flags?: number): boolean;
+declare function evacuateCreatures(map: MapType, blockingMap: GWU.grid.NumGrid): boolean;
+declare function evacuateItems(map: MapType, blockingMap: GWU.grid.NumGrid): boolean;
+
 type index_d$4_EffectInfo = EffectInfo;
 type index_d$4_EffectCtx = EffectCtx;
 type index_d$4_EffectConfig = EffectConfig;
 type index_d$4_EffectBase = EffectBase;
-type index_d$4_EffectHandler = EffectHandler;
+type index_d$4_Handler = Handler;
 declare const index_d$4_reset: typeof reset;
 declare const index_d$4_resetAll: typeof resetAll;
 declare const index_d$4_effects: typeof effects;
@@ -415,22 +454,32 @@ declare const index_d$4_handlers: typeof handlers;
 declare const index_d$4_installHandler: typeof installHandler;
 declare const index_d$4_fire: typeof fire;
 declare const index_d$4_fireSync: typeof fireSync;
-type index_d$4_MessageEffect = MessageEffect;
-declare const index_d$4_MessageEffect: typeof MessageEffect;
 type index_d$4_EmitEffect = EmitEffect;
 declare const index_d$4_EmitEffect: typeof EmitEffect;
 type index_d$4_FnEffect = FnEffect;
 declare const index_d$4_FnEffect: typeof FnEffect;
+type index_d$4_MessageEffect = MessageEffect;
+declare const index_d$4_MessageEffect: typeof MessageEffect;
 type index_d$4_ActivateMachineEffect = ActivateMachineEffect;
 declare const index_d$4_ActivateMachineEffect: typeof ActivateMachineEffect;
+type index_d$4_EffectEffect = EffectEffect;
+declare const index_d$4_EffectEffect: typeof EffectEffect;
+type index_d$4_SpawnConfig = SpawnConfig;
+type index_d$4_SpawnInfo = SpawnInfo;
+type index_d$4_SpawnEffect = SpawnEffect;
+declare const index_d$4_SpawnEffect: typeof SpawnEffect;
+declare const index_d$4_spawnTiles: typeof spawnTiles;
+declare const index_d$4_computeSpawnMap: typeof computeSpawnMap;
+declare const index_d$4_clearCells: typeof clearCells;
+declare const index_d$4_evacuateCreatures: typeof evacuateCreatures;
+declare const index_d$4_evacuateItems: typeof evacuateItems;
 declare namespace index_d$4 {
   export {
-    Effect as Flags,
     index_d$4_EffectInfo as EffectInfo,
     index_d$4_EffectCtx as EffectCtx,
     index_d$4_EffectConfig as EffectConfig,
     index_d$4_EffectBase as EffectBase,
-    index_d$4_EffectHandler as EffectHandler,
+    index_d$4_Handler as Handler,
     index_d$4_reset as reset,
     index_d$4_resetAll as resetAll,
     index_d$4_effects as effects,
@@ -442,10 +491,19 @@ declare namespace index_d$4 {
     from$1 as from,
     index_d$4_fire as fire,
     index_d$4_fireSync as fireSync,
-    index_d$4_MessageEffect as MessageEffect,
     index_d$4_EmitEffect as EmitEffect,
     index_d$4_FnEffect as FnEffect,
+    index_d$4_MessageEffect as MessageEffect,
     index_d$4_ActivateMachineEffect as ActivateMachineEffect,
+    index_d$4_EffectEffect as EffectEffect,
+    index_d$4_SpawnConfig as SpawnConfig,
+    index_d$4_SpawnInfo as SpawnInfo,
+    index_d$4_SpawnEffect as SpawnEffect,
+    index_d$4_spawnTiles as spawnTiles,
+    index_d$4_computeSpawnMap as computeSpawnMap,
+    index_d$4_clearCells as clearCells,
+    index_d$4_evacuateCreatures as evacuateCreatures,
+    index_d$4_evacuateItems as evacuateItems,
   };
 }
 
@@ -1002,6 +1060,7 @@ declare class Map implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType
     fov: GWU.fov.FovSystemType;
     properties: Record<string, any>;
     memory: GWU.grid.Grid<CellMemory>;
+    seed: number;
     constructor(width: number, height: number, opts?: Partial<MapOptions>);
     cellInfo(x: number, y: number, useMemory?: boolean): CellInfoType;
     initLayers(): void;
@@ -1041,6 +1100,7 @@ declare class Map implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType
     clearCellFlag(x: number, y: number, flag: number): void;
     fill(tile: string | number | Tile, boundary?: string | number | Tile): void;
     hasTile(x: number, y: number, tile: string | number | Tile, useMemory?: boolean): boolean;
+    forceTile(x: number, y: number, tile: string | number | Tile): boolean;
     setTile(x: number, y: number, tile: string | number | Tile, opts?: SetTileOptions): boolean;
     tick(dt: number): Promise<boolean>;
     copy(src: Map): void;
@@ -1078,36 +1138,6 @@ declare function checkLoopiness(cell: CellType, x: number, y: number, map: MapTy
 declare function fillInnerLoopGrid(map: MapType, grid: GWU.grid.NumGrid): void;
 declare function cleanLoopiness(map: MapType): void;
 
-interface SpawnConfig {
-    tile: string;
-    grow: number;
-    decrement: number;
-    matchTile: string;
-    flags: GWU.flag.FlagBase;
-    volume: number;
-    next: string;
-}
-interface SpawnInfo {
-    tile: string;
-    grow: number;
-    decrement: number;
-    matchTile: string;
-    flags: number;
-    volume: number;
-    next: string | null;
-}
-declare class SpawnEffect implements EffectHandler {
-    make(src: Partial<EffectConfig>, dest: EffectInfo): boolean;
-    fire(effect: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx): Promise<boolean>;
-    fireSync(effect: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx): boolean;
-    mapDisruptedBy(map: MapType, blockingGrid: GWU.grid.NumGrid, blockingToMapX?: number, blockingToMapY?: number): boolean;
-}
-declare function spawnTiles(flags: number, spawnMap: GWU.grid.NumGrid, map: MapType, tile: Tile, volume?: number, machine?: number): boolean;
-declare function computeSpawnMap(effect: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx): boolean;
-declare function clearCells(map: MapType, spawnMap: GWU.grid.NumGrid, flags?: number): boolean;
-declare function evacuateCreatures(map: MapType, blockingMap: GWU.grid.NumGrid): boolean;
-declare function evacuateItems(map: MapType, blockingMap: GWU.grid.NumGrid): boolean;
-
 type index_d_CellFlags = CellFlags;
 type index_d_MapFlags = MapFlags;
 type index_d_SetOptions = SetOptions;
@@ -1136,15 +1166,6 @@ declare const index_d_resetLoopiness: typeof resetLoopiness;
 declare const index_d_checkLoopiness: typeof checkLoopiness;
 declare const index_d_fillInnerLoopGrid: typeof fillInnerLoopGrid;
 declare const index_d_cleanLoopiness: typeof cleanLoopiness;
-type index_d_SpawnConfig = SpawnConfig;
-type index_d_SpawnInfo = SpawnInfo;
-type index_d_SpawnEffect = SpawnEffect;
-declare const index_d_SpawnEffect: typeof SpawnEffect;
-declare const index_d_spawnTiles: typeof spawnTiles;
-declare const index_d_computeSpawnMap: typeof computeSpawnMap;
-declare const index_d_clearCells: typeof clearCells;
-declare const index_d_evacuateCreatures: typeof evacuateCreatures;
-declare const index_d_evacuateItems: typeof evacuateItems;
 type index_d_CellMemory = CellMemory;
 declare const index_d_CellMemory: typeof CellMemory;
 declare namespace index_d {
@@ -1175,14 +1196,6 @@ declare namespace index_d {
     index_d_checkLoopiness as checkLoopiness,
     index_d_fillInnerLoopGrid as fillInnerLoopGrid,
     index_d_cleanLoopiness as cleanLoopiness,
-    index_d_SpawnConfig as SpawnConfig,
-    index_d_SpawnInfo as SpawnInfo,
-    index_d_SpawnEffect as SpawnEffect,
-    index_d_spawnTiles as spawnTiles,
-    index_d_computeSpawnMap as computeSpawnMap,
-    index_d_clearCells as clearCells,
-    index_d_evacuateCreatures as evacuateCreatures,
-    index_d_evacuateItems as evacuateItems,
     index_d_CellMemory as CellMemory,
   };
 }

@@ -1,6 +1,6 @@
 import 'jest-extended';
-import '../../test/matchers';
-import * as UTILS from '../../test/utils';
+import '../../../test/matchers';
+import * as UTILS from '../../../test/utils';
 
 jest.mock('gw-utils', () => ({
     __esModule: true,
@@ -14,7 +14,7 @@ jest.mock('gw-utils', () => ({
 }));
 
 import * as GWU from 'gw-utils';
-import * as Effect from '.';
+import * as Effect from '..';
 
 describe('message', () => {
     afterEach(() => {

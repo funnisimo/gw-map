@@ -1,7 +1,7 @@
 import 'jest-extended';
-import '../../test/matchers';
-import * as UTILS from '../../test/utils';
-import * as Effect from '.';
+import '../../../test/matchers';
+import * as UTILS from '../../../test/utils';
+import * as Effect from '..';
 
 describe('fn', () => {
     test('fn', async () => {

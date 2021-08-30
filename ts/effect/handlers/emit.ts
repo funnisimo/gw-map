@@ -1,14 +1,14 @@
 import * as GWU from 'gw-utils';
 
-import * as EFFECT from './effect';
-import * as TYPES from './types';
-import { EffectHandler } from './handler';
-import { MapType } from '../map/types';
+import * as EFFECT from '../install';
+import * as TYPES from '../types';
+import { Handler } from '../handler';
+import { MapType } from '../../map/types';
 
 //////////////////////////////////////////////
 // EMIT
 
-export class EmitEffect implements EffectHandler {
+export class EmitEffect implements Handler {
     make(src: Partial<TYPES.EffectConfig>, dest: TYPES.EffectInfo): boolean {
         if (!src.emit) return true;
 
@@ -29,7 +29,8 @@ export class EmitEffect implements EffectHandler {
         ctx: TYPES.EffectCtx
     ) {
         if (config.emit) {
-            return await GWU.events.emit(config.emit, x, y, ctx);
+            await GWU.events.emit(config.emit, x, y, ctx);
+            return true;
         }
         return false;
     }

@@ -1,12 +1,12 @@
 import * as GWU from 'gw-utils';
 
-import { MapType } from './types';
-import * as Flags from '../flags';
-import * as Tile from '../tile';
-import * as Effect from '../effect';
+import { MapType } from '../../map/types';
+import * as Flags from '../../flags';
+import * as Tile from '../../tile';
+import * as Effect from '..';
 
-import { Actor } from '../actor';
-import { Item } from '../item';
+import { Actor } from '../../actor';
+import { Item } from '../../item';
 
 export interface SpawnConfig {
     tile: string;
@@ -28,7 +28,7 @@ export interface SpawnInfo {
     next: string | null;
 }
 
-export class SpawnEffect implements Effect.EffectHandler {
+export class SpawnEffect implements Effect.Handler {
     make(src: Partial<Effect.EffectConfig>, dest: Effect.EffectInfo): boolean {
         if (!src.tile) return true; // no error
 
@@ -45,7 +45,7 @@ export class SpawnEffect implements Effect.EffectHandler {
         const info = {
             grow: config.grow ?? config.spread ?? 0,
             decrement: config.decrement ?? 0,
-            flags: GWU.flag.from(Effect.Flags, config.flags),
+            flags: GWU.flag.from(Flags.Effect, config.flags),
             volume: config.volume ?? 0,
             next: config.next ?? null,
         } as SpawnInfo;
@@ -138,13 +138,13 @@ export class SpawnEffect implements Effect.EffectHandler {
         }
 
         const abortIfBlocking = !!(
-            effect.flags & Effect.Flags.E_ABORT_IF_BLOCKS_MAP
+            effect.flags & Flags.Effect.E_ABORT_IF_BLOCKS_MAP
         );
         const isBlocking = !!(
             abortIfBlocking &&
-            !(effect.flags & Effect.Flags.E_PERMIT_BLOCKING) &&
+            !(effect.flags & Flags.Effect.E_PERMIT_BLOCKING) &&
             (tile.blocksPathing() ||
-                effect.flags & Effect.Flags.E_TREAT_AS_BLOCKING)
+                effect.flags & Flags.Effect.E_TREAT_AS_BLOCKING)
         );
 
         let didSomething = false;
@@ -158,27 +158,27 @@ export class SpawnEffect implements Effect.EffectHandler {
         if (
             abortIfBlocking &&
             isBlocking &&
-            this.mapDisruptedBy(map, effect.grid)
+            this.mapDisruptedBy(map, ctx.grid)
         ) {
             // GWU.grid.free(spawnMap);
             return false;
         }
 
-        if (effect.flags & Effect.Flags.E_EVACUATE_CREATURES) {
+        if (effect.flags & Flags.Effect.E_EVACUATE_CREATURES) {
             // first, evacuate creatures, so that they do not re-trigger the tile.
             if (evacuateCreatures(map, ctx.grid!)) {
                 didSomething = true;
             }
         }
 
-        if (effect.flags & Effect.Flags.E_EVACUATE_ITEMS) {
+        if (effect.flags & Flags.Effect.E_EVACUATE_ITEMS) {
             // first, evacuate items, so that they do not re-trigger the tile.
             if (evacuateItems(map, ctx.grid!)) {
                 didSomething = true;
             }
         }
 
-        if (effect.flags & Effect.Flags.E_CLEAR_CELL) {
+        if (effect.flags & Flags.Effect.E_CLEAR_CELL) {
             // first, clear other tiles (not base/ground)
             if (clearCells(map, ctx.grid!, effect.flags)) {
                 didSomething = true;
@@ -261,11 +261,11 @@ export function spawnTiles(
     accomplishedSomething = false;
 
     const blockedByOtherLayers = !!(
-        flags & Effect.Flags.E_BLOCKED_BY_OTHER_LAYERS
+        flags & Flags.Effect.E_BLOCKED_BY_OTHER_LAYERS
     );
-    const superpriority = !!(flags & Effect.Flags.E_SUPERPRIORITY);
-    const blockedByActors = !!(flags & Effect.Flags.E_BLOCKED_BY_ACTORS);
-    const blockedByItems = !!(flags & Effect.Flags.E_BLOCKED_BY_ITEMS);
+    const superpriority = !!(flags & Flags.Effect.E_SUPERPRIORITY);
+    const blockedByActors = !!(flags & Flags.Effect.E_BLOCKED_BY_ACTORS);
+    const blockedByItems = !!(flags & Flags.Effect.E_BLOCKED_BY_ITEMS);
     // const applyEffects = ctx.refreshCell;
     volume = volume || 0; // (tile ? tile.volume : 0);
 
@@ -303,7 +303,7 @@ export function spawnTiles(
                 //     cell.volume += (feat.volume || 0);
                 // }
                 cell.flags.cell |= Flags.Cell.EVENT_FIRED_THIS_TURN;
-                if (flags & Effect.Flags.E_PROTECTED) {
+                if (flags & Flags.Effect.E_PROTECTED) {
                     cell.flags.cell |= Flags.Cell.EVENT_PROTECTED;
                 }
                 accomplishedSomething = true;
@@ -335,9 +335,9 @@ function cellIsOk(
         return false;
     }
 
-    if (effect.flags & Effect.Flags.E_BUILD_IN_WALLS) {
+    if (effect.flags & Flags.Effect.E_BUILD_IN_WALLS) {
         if (!map.cellInfo(x, y).isWall()) return false;
-    } else if (effect.flags & Effect.Flags.E_MUST_TOUCH_WALLS) {
+    } else if (effect.flags & Flags.Effect.E_MUST_TOUCH_WALLS) {
         let ok = false;
         GWU.xy.eachNeighbor(
             x,
@@ -350,7 +350,7 @@ function cellIsOk(
             true
         );
         if (!ok) return false;
-    } else if (effect.flags & Effect.Flags.E_NO_TOUCH_WALLS) {
+    } else if (effect.flags & Flags.Effect.E_NO_TOUCH_WALLS) {
         let ok = true;
         if (map.cellInfo(x, y).isWall()) return false; // or on wall
         GWU.xy.eachNeighbor(
@@ -546,7 +546,7 @@ export function clearCells(
 ) {
     let didSomething = false;
     const clearAll =
-        (flags & Effect.Flags.E_CLEAR_CELL) === Effect.Flags.E_CLEAR_CELL;
+        (flags & Flags.Effect.E_CLEAR_CELL) === Flags.Effect.E_CLEAR_CELL;
     spawnMap.forEach((v, i, j) => {
         if (!v) return;
 
@@ -554,16 +554,16 @@ export function clearCells(
         if (clearAll) {
             cell.clear();
         } else {
-            if (flags & Effect.Flags.E_CLEAR_GAS) {
+            if (flags & Flags.Effect.E_CLEAR_GAS) {
                 cell.clearDepth(Flags.Depth.GAS);
             }
-            if (flags & Effect.Flags.E_CLEAR_LIQUID) {
+            if (flags & Flags.Effect.E_CLEAR_LIQUID) {
                 cell.clearDepth(Flags.Depth.LIQUID);
             }
-            if (flags & Effect.Flags.E_CLEAR_SURFACE) {
+            if (flags & Flags.Effect.E_CLEAR_SURFACE) {
                 cell.clearDepth(Flags.Depth.SURFACE);
             }
-            if (flags & Effect.Flags.E_CLEAR_GROUND) {
+            if (flags & Flags.Effect.E_CLEAR_GROUND) {
                 cell.clearDepth(Flags.Depth.GROUND);
             }
         }
@@ -629,7 +629,7 @@ export function evacuateItems(map: MapType, blockingMap: GWU.grid.NumGrid) {
     return didSomething;
 }
 
-class ClearTileEffect implements Effect.EffectHandler {
+class ClearTileEffect implements Effect.Handler {
     make(src: Partial<Effect.EffectConfig>, dest: Effect.EffectInfo): boolean {
         if (!src.clear) return true;
         let config = src.clear;

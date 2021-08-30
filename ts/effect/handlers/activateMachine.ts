@@ -1,12 +1,12 @@
-import * as EFFECT from './effect';
-import * as TYPES from './types';
-import { EffectHandler } from './handler';
-import { MapType } from '../map/types';
+import * as EFFECT from '../install';
+import * as TYPES from '../types';
+import { Handler } from '../handler';
+import { MapType } from '../../map/types';
 
 //////////////////////////////////////////////
 // ActivateMachine
 
-export class ActivateMachineEffect implements EffectHandler {
+export class ActivateMachineEffect implements Handler {
     make(src: Partial<TYPES.EffectConfig>, dest: TYPES.EffectInfo): boolean {
         if (!src.activateMachine) return true;
 

@@ -1,12 +1,12 @@
-import * as EFFECT from './effect';
-import * as TYPES from './types';
-import { EffectHandler } from './handler';
-import { MapType } from '../map/types';
+import * as EFFECT from '../install';
+import * as TYPES from '../types';
+import { Handler } from '../handler';
+import { MapType } from '../../map/types';
 
 //////////////////////////////////////////////
 // FN
 
-export class FnEffect implements EffectHandler {
+export class FnEffect implements Handler {
     make(src: Partial<TYPES.EffectConfig>, dest: TYPES.EffectInfo): boolean {
         if (!src.fn) return true;
 

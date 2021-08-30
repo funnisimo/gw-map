@@ -48,6 +48,7 @@ export class Map
     fov: GWU.fov.FovSystemType;
     properties: Record<string, any>;
     memory: GWU.grid.Grid<CellMemory>;
+    seed = 0;
 
     constructor(width: number, height: number, opts: Partial<MapOptions> = {}) {
         this.width = width;
@@ -284,6 +285,10 @@ export class Map
         useMemory = false
     ): boolean {
         return this.cellInfo(x, y, useMemory).hasTile(tile);
+    }
+
+    forceTile(x: number, y: number, tile: string | number | Tile) {
+        return this.setTile(x, y, tile, { superpriority: true });
     }
 
     setTile(

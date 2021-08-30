@@ -6,3 +6,4 @@ export * from './tile';
 export * from './tileMech';
 export * from './cell';
 export * from './map';
+export * from './effect';

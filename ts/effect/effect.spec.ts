@@ -17,6 +17,7 @@ import * as GWU from 'gw-utils';
 
 import * as Effect from '.';
 import { MapType } from '../map/types';
+import * as Flags from '../flags';
 
 describe('Effect', () => {
     afterEach(() => {
@@ -25,7 +26,7 @@ describe('Effect', () => {
     });
 
     test('flags', () => {
-        expect(Effect.Flags.E_BUILD_IN_WALLS).toBeGreaterThan(0);
+        expect(Flags.Effect.E_BUILD_IN_WALLS).toBeGreaterThan(0);
     });
 
     test('install', () => {
@@ -97,13 +98,13 @@ describe('Effect', () => {
             TEST2: { emit: 'WALL' },
         });
 
-        Effect.effects.TEST.flags |= Effect.Flags.E_FIRED;
-        Effect.effects.TEST2.flags |= Effect.Flags.E_FIRED;
+        Effect.effects.TEST.flags |= Flags.Effect.E_FIRED;
+        Effect.effects.TEST2.flags |= Flags.Effect.E_FIRED;
 
         Effect.resetAll();
 
-        expect(Effect.effects.TEST.flags & Effect.Flags.E_FIRED).toBeFalsy();
-        expect(Effect.effects.TEST2.flags & Effect.Flags.E_FIRED).toBeFalsy();
+        expect(Effect.effects.TEST.flags & Flags.Effect.E_FIRED).toBeFalsy();
+        expect(Effect.effects.TEST2.flags & Flags.Effect.E_FIRED).toBeFalsy();
     });
 
     describe('next', () => {
@@ -243,9 +244,8 @@ describe('Effect', () => {
             // @ts-ignore
             eff.next = next;
 
-            await expect(
-                Effect.fire(eff, UTILS.mockMap(), 5, 5)
-            ).resolves.toBeTruthy();
+            const result = await Effect.fire(eff, UTILS.mockMap(), 5, 5);
+            expect(result).toBeTruthy();
             expect(next.fn).toHaveBeenCalled();
         });
 
@@ -264,13 +264,11 @@ describe('Effect', () => {
             const eff = Effect.make({
                 fn: effectFn,
                 flags: 'E_NEXT_EVERYWHERE',
+                next,
             });
-            // @ts-ignore
-            eff.next = next;
 
-            await expect(
-                Effect.fire(eff, UTILS.mockMap(), 5, 5)
-            ).resolves.toBeTruthy();
+            const result = await Effect.fire(eff, UTILS.mockMap(), 5, 5);
+            expect(result).toBeTruthy();
             expect(next.fn).toHaveBeenCalled();
         });
     });
