@@ -22,7 +22,7 @@ describe('tile effect', () => {
         GWU.data.gameHasEnded = false;
         effect = {} as Effect.EffectInfo;
 
-        GWU.random.seed(12345);
+        GWU.rng.random.seed(12345);
         GWU.events.removeAllListeners();
         grid = GWU.grid.alloc(20, 20);
         ctx = { x: 10, y: 10, grid };
@@ -236,7 +236,7 @@ describe('tile effect', () => {
 
         // { spread: 50 }
         test('{ spread: 50 }', () => {
-            GWU.random.seed(12345);
+            GWU.rng.random.seed(12345);
             effect = Effect.make({
                 tile: 'WALL, 50, 0',
             });
@@ -254,7 +254,7 @@ describe('tile effect', () => {
 
         // { spread: 100, decrement: 100, matchTile: "DOOR" }
         test('{ spread: 100, decrement: 100, matchTile: "DOOR" }', () => {
-            GWU.random.seed(12345);
+            GWU.rng.random.seed(12345);
             effect = Effect.make({
                 tile: {
                     id: 'WALL',
@@ -289,7 +289,7 @@ describe('tile effect', () => {
 
         // { spread: 50, decrement: 10 }
         test('{ spread: 50, decrement: 10 }', () => {
-            GWU.random.seed(12345);
+            GWU.rng.random.seed(12345);
             effect = Effect.make({
                 tile: { id: 'WALL', grow: 50, decrement: 10 },
             });
@@ -306,7 +306,7 @@ describe('tile effect', () => {
 
         // // DFF_SPREAD_CIRCLE
         // test('{ spread: 90, decrement: 10, spread circle }', () => {
-        //     GWU.random.seed(1234567);
+        //     GWU.rng.random.seed(1234567);
         //     feat = GW.make.tileEvent({
         //         tile: 'WALL',
         //         spread: 90,
@@ -323,7 +323,7 @@ describe('tile effect', () => {
 
         // // DFF_SPREAD_CIRCLE - big spread
         // test('{ spread: 150, decrement: 50, spread circle }', () => {
-        //     GWU.random.seed(1234567);
+        //     GWU.rng.random.seed(1234567);
         //     feat = GW.make.tileEvent({
         //         tile: 'WALL',
         //         spread: 150,
@@ -344,7 +344,7 @@ describe('tile effect', () => {
 
         // // { radius: 3 }
         // test('{ radius: 3 }', () => {
-        //     GWU.random.seed(12345);
+        //     GWU.rng.random.seed(12345);
         //     feat = GW.make.tileEvent({ tile: 'WALL', radius: 3 })!;
         //     // console.log(feat);
         //     Map.tileEvent.computeSpawnMap(feat, grid, ctx);
@@ -356,7 +356,7 @@ describe('tile effect', () => {
 
         // // { radius: 3, spread: 75 }
         // test('{ radius: 3, spread: 75 }', () => {
-        //     GWU.random.seed(12345);
+        //     GWU.rng.random.seed(12345);
         //     feat = GW.make.tileEvent({ tile: 'WALL', radius: 3, spread: 75 })!;
         //     // console.log(feat);
 
@@ -370,7 +370,7 @@ describe('tile effect', () => {
 
         // // { radius: 3, spread: 75, decrement: 20 }
         // test('{ radius: 3, spread: 75, decrement: 20 }', () => {
-        //     GWU.random.seed(12345);
+        //     GWU.rng.random.seed(12345);
         //     feat = GW.make.tileEvent({
         //         tile: 'WALL',
         //         radius: 3,
@@ -388,7 +388,7 @@ describe('tile effect', () => {
 
         // // { tile: 'DOOR', line }
         // test('{ tile: "DOOR", line }', async () => {
-        //     GWU.random.seed(12345);
+        //     GWU.rng.random.seed(12345);
         //     const feat = GW.make.tileEvent({
         //         tile: 'DOOR',
         //         flags: 'DFF_SPREAD_LINE',
@@ -800,7 +800,7 @@ describe('tile effect', () => {
 
         expect(holeEffect.effect).toEqual('CHASM_MEDIUM');
 
-        GWU.random.seed(12345);
+        GWU.rng.random.seed(12345);
         let result = Effect.fireSync('HOLE_WITH_PLATE', map, 9, 4);
 
         expect(Effect.handlers.effect.fireSync).toHaveBeenCalledTimes(2); // HOLE_WITH_PLATE -> CHASM_MEDIUM

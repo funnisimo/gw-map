@@ -22,7 +22,11 @@ export async function fire(
     }
 
     const ctx = ctx_ as EffectCtx;
-    if (!ctx.force && effect.chance && !GWU.random.chance(effect.chance, 10000))
+    if (
+        !ctx.force &&
+        effect.chance &&
+        !GWU.rng.random.chance(effect.chance, 10000)
+    )
         return false;
 
     const grid = (ctx.grid = GWU.grid.alloc(map.width, map.height));
@@ -83,7 +87,11 @@ export function fireSync(
     }
 
     const ctx = ctx_ as EffectCtx;
-    if (!ctx.force && effect.chance && !GWU.random.chance(effect.chance, 10000))
+    if (
+        !ctx.force &&
+        effect.chance &&
+        !GWU.rng.random.chance(effect.chance, 10000)
+    )
         return false;
 
     const grid = (ctx.grid = GWU.grid.alloc(map.width, map.height));

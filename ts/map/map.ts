@@ -415,7 +415,7 @@ export class Map
                 }
                 if (
                     !cell.hasCellFlag(Flags.Cell.CAUGHT_FIRE_THIS_TURN) &&
-                    GWU.random.chance(promoteChance, 10000)
+                    GWU.rng.random.chance(promoteChance, 10000)
                 ) {
                     willFire[x][y] |= GWU.flag.fl(tile.depth);
                     // cell.flags.cellMech |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
@@ -488,7 +488,7 @@ export class Map
                 }
                 if (
                     !cell.hasCellFlag(Flags.Cell.CAUGHT_FIRE_THIS_TURN) &&
-                    GWU.random.chance(promoteChance, 10000)
+                    GWU.rng.random.chance(promoteChance, 10000)
                 ) {
                     willFire[x][y] |= GWU.flag.fl(tile.depth);
                     // cell.flags.cellMech |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;

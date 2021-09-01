@@ -4,6 +4,7 @@ import { CellType } from '../map/types';
 import { Entity } from './entity';
 
 export interface KindOptions extends Partial<GWU.sprite.SpriteConfig> {
+    id?: string;
     name: string;
     flavor?: string;
     description?: string;
@@ -12,6 +13,7 @@ export interface KindOptions extends Partial<GWU.sprite.SpriteConfig> {
 }
 
 export class EntityKind {
+    id: string;
     name: string;
     flavor: string;
     description: string;
@@ -19,6 +21,7 @@ export class EntityKind {
     tags: string[] = [];
 
     constructor(config: KindOptions) {
+        this.id = config.id || config.name;
         this.name = config.name;
         this.flavor = config.flavor || this.name;
         this.description = config.description || this.flavor;

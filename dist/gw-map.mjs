@@ -305,6 +305,7 @@ function makeKeyInfo(x, y, disposable) {
 class EntityKind {
     constructor(config) {
         this.tags = [];
+        this.id = config.id || config.name;
         this.name = config.name;
         this.flavor = config.flavor || this.name;
         this.description = config.description || this.flavor;
@@ -454,6 +455,7 @@ function install$2(id, kind) {
         return kind;
     }
     const made = makeKind(kind);
+    made.id = id;
     kinds[id] = made;
     return made;
 }
@@ -499,14 +501,13 @@ function randomKind(opts = {}) {
         match.forbidTags = opts.forbidTags.slice();
     }
     const matches = Object.values(kinds).filter((k) => {
-        if (match.tags.length && !GWU.utils.arraysIntersect(match.tags, k.tags))
+        if (match.tags.length && !GWU.arraysIntersect(match.tags, k.tags))
             return false;
-        if (match.forbidTags &&
-            GWU.utils.arraysIntersect(match.forbidTags, k.tags))
+        if (match.forbidTags && GWU.arraysIntersect(match.forbidTags, k.tags))
             return false;
         return true;
     });
-    return GWU.random.item(matches) || null;
+    return GWU.rng.random.item(matches) || null;
 }
 
 class Item extends Entity {
@@ -648,7 +649,9 @@ async function fire(effect, map, x, y, ctx_ = {}) {
             throw new Error('Failed to find effect: ' + name);
     }
     const ctx = ctx_;
-    if (!ctx.force && effect.chance && !GWU.random.chance(effect.chance, 10000))
+    if (!ctx.force &&
+        effect.chance &&
+        !GWU.rng.random.chance(effect.chance, 10000))
         return false;
     const grid = (ctx.grid = GWU.grid.alloc(map.width, map.height));
     let didSomething = false;
@@ -695,7 +698,9 @@ function fireSync(effect, map, x, y, ctx_ = {}) {
             throw new Error('Failed to find effect: ' + name);
     }
     const ctx = ctx_;
-    if (!ctx.force && effect.chance && !GWU.random.chance(effect.chance, 10000))
+    if (!ctx.force &&
+        effect.chance &&
+        !GWU.rng.random.chance(effect.chance, 10000))
         return false;
     const grid = (ctx.grid = GWU.grid.alloc(map.width, map.height));
     let didSomething = false;
@@ -1163,7 +1168,7 @@ function computeSpawnMap(effect, map, x, y, ctx) {
                             y2 = j + GWU.xy.DIRS[dir][1];
                             if (spawnMap.hasXY(x2, y2) &&
                                 !spawnMap[x2][y2] &&
-                                GWU.random.chance(startProb) &&
+                                GWU.rng.random.chance(startProb) &&
                                 cellIsOk(effect, map, x2, y2, false)) {
                                 spawnMap[x2][y2] = t;
                                 madeChange = true;
@@ -1297,7 +1302,7 @@ function evacuateCreatures(map, blockingMap) {
                 if (!(obj instanceof Actor))
                     return;
                 const monst = obj;
-                const loc = GWU.random.matchingLocNear(i, j, (x, y) => {
+                const loc = GWU.rng.random.matchingLocNear(i, j, (x, y) => {
                     if (!map.hasXY(x, y))
                         return false;
                     if (blockingMap[x][y])
@@ -1327,7 +1332,7 @@ function evacuateItems(map, blockingMap) {
             if (!(obj instanceof Item))
                 return;
             const item = obj;
-            const loc = GWU.random.matchingLocNear(i, j, (x, y) => {
+            const loc = GWU.rng.random.matchingLocNear(i, j, (x, y) => {
                 if (!map.hasXY(x, y))
                     return false;
                 if (blockingMap[x][y])
@@ -2194,7 +2199,7 @@ class FireLayer extends TileLayer {
             }
         });
         if (alwaysIgnite ||
-            (ignitionChance && GWU.random.chance(ignitionChance, 10000))) {
+            (ignitionChance && GWU.rng.random.chance(ignitionChance, 10000))) {
             // If it ignites...
             fireIgnited = true;
             // Count explosive neighbors.
@@ -3138,7 +3143,7 @@ class Map {
                     promoteChance = effect.chance || 100 * 100; // 100%
                 }
                 if (!cell.hasCellFlag(Cell$1.CAUGHT_FIRE_THIS_TURN) &&
-                    GWU.random.chance(promoteChance, 10000)) {
+                    GWU.rng.random.chance(promoteChance, 10000)) {
                     willFire[x][y] |= GWU.flag.fl(tile.depth);
                     // cell.flags.cellMech |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
                 }
@@ -3196,7 +3201,7 @@ class Map {
                     promoteChance = effect.chance || 100 * 100; // 100%
                 }
                 if (!cell.hasCellFlag(Cell$1.CAUGHT_FIRE_THIS_TURN) &&
-                    GWU.random.chance(promoteChance, 10000)) {
+                    GWU.rng.random.chance(promoteChance, 10000)) {
                     willFire[x][y] |= GWU.flag.fl(tile.depth);
                     // cell.flags.cellMech |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
                 }

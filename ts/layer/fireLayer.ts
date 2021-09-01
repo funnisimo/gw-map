@@ -86,7 +86,7 @@ export class FireLayer extends TileLayer {
 
         if (
             alwaysIgnite ||
-            (ignitionChance && GWU.random.chance(ignitionChance, 10000))
+            (ignitionChance && GWU.rng.random.chance(ignitionChance, 10000))
         ) {
             // If it ignites...
             fireIgnited = true;

@@ -763,12 +763,14 @@ declare class Entity implements EntityType {
 }
 
 interface KindOptions extends Partial<GWU.sprite.SpriteConfig> {
+    id?: string;
     name: string;
     flavor?: string;
     description?: string;
     tags?: string | string[];
 }
 declare class EntityKind {
+    id: string;
     name: string;
     flavor: string;
     description: string;

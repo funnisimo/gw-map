@@ -24,6 +24,7 @@ export function install(id: string, kind: ItemKind | KindOptions): ItemKind {
         return kind;
     }
     const made = makeKind(kind);
+    made.id = id;
     kinds[id] = made;
     return made;
 }
@@ -78,15 +79,12 @@ export function randomKind(
     }
 
     const matches = Object.values(kinds).filter((k) => {
-        if (match.tags.length && !GWU.utils.arraysIntersect(match.tags, k.tags))
+        if (match.tags.length && !GWU.arraysIntersect(match.tags, k.tags))
             return false;
-        if (
-            match.forbidTags &&
-            GWU.utils.arraysIntersect(match.forbidTags, k.tags)
-        )
+        if (match.forbidTags && GWU.arraysIntersect(match.forbidTags, k.tags))
             return false;
         return true;
     });
 
-    return GWU.random.item(matches) || null;
+    return GWU.rng.random.item(matches) || null;
 }

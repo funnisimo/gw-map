@@ -775,7 +775,7 @@ describe('Cell', () => {
         const map: Map.Map = Map.make(10, 10);
         const cell: Cell = new Cell('LOW_CHANCE');
         // UTILS.mockRandom();
-        GWU.random.seed(12345);
+        GWU.rng.random.seed(12345);
         expect(await cell.activate('enter', map, 5, 5, {})).toBeFalsy();
     });
 
