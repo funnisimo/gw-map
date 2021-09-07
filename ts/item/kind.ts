@@ -43,6 +43,7 @@ export function makeKind(info: KindOptions): ItemKind {
 export interface MatchOptions {
     tags: string | string[];
     forbidTags: string | string[];
+    rng: GWU.rng.Random;
 }
 
 export function randomKind(
@@ -86,5 +87,6 @@ export function randomKind(
         return true;
     });
 
-    return GWU.rng.random.item(matches) || null;
+    const rng = opts.rng || GWU.rng.random;
+    return rng.item(matches) || null;
 }

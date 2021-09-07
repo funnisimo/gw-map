@@ -100,7 +100,8 @@ declare enum Cell$1 {
     IS_IN_AREA_MACHINE,
     IMPREGNABLE,
     NEEDS_REDRAW,
-    CELL_CHANGED,
+    LIGHT_CHANGED,
+    FOV_CHANGED,
     HAS_SURFACE,
     HAS_LIQUID,
     HAS_GAS,
@@ -115,6 +116,7 @@ declare enum Cell$1 {
     IS_CIRCUIT_BREAKER,
     IS_POWERED,
     COLORS_DANCE,
+    CHANGED,
     IS_IN_MACHINE,
     PERMANENT_CELL_FLAGS,
     HAS_ANY_ACTOR,
@@ -280,6 +282,7 @@ declare function makeKind(info: KindOptions$1): ItemKind;
 interface MatchOptions {
     tags: string | string[];
     forbidTags: string | string[];
+    rng: GWU.rng.Random;
 }
 declare function randomKind(opts?: Partial<MatchOptions> | string): ItemKind | null;
 
@@ -632,7 +635,7 @@ declare type SetTileOptions = Partial<SetOptions>;
 interface CellInfoType {
     chokeCount: number;
     machineId: number;
-    keyId: number;
+    readonly needsRedraw: boolean;
     hasCellFlag(flag: number): boolean;
     hasTileFlag(flag: number): boolean;
     hasAllTileFlags(flags: number): boolean;
@@ -684,9 +687,11 @@ interface CellType extends CellInfoType {
     isWall(): boolean;
     eachGlowLight(cb: (light: GWU.light.LightType) => any): void;
     activate(event: string, map: MapType, x: number, y: number, ctx?: Partial<EffectCtx>): Promise<boolean> | boolean;
-    activateSync(event: string, map: MapType, x: number, y: number, ctx?: Partial<EffectCtx>): boolean;
+    build(event: string, map: MapType, x: number, y: number, ctx?: Partial<EffectCtx>): boolean;
     hasEffect(name: string): boolean;
+    copy(other: CellType): void;
     needsRedraw: boolean;
+    readonly changed: boolean;
 }
 declare type EachCellCb = (cell: CellType, x: number, y: number, map: MapType) => any;
 declare type EachItemCb = (item: Item) => any;
@@ -695,6 +700,7 @@ declare type MapTestFn = (cell: CellType, x: number, y: number, map: MapType) =>
 interface MapType {
     readonly width: number;
     readonly height: number;
+    readonly rng: GWU.rng.Random;
     light: GWU.light.LightSystemType;
     fov: GWU.fov.FovSystemType;
     properties: Record<string, any>;
@@ -812,8 +818,10 @@ declare class MapLayer {
     depth: number;
     properties: Record<string, any>;
     name: string;
+    changed: boolean;
     constructor(map: MapType, name?: string);
     copy(_other: MapLayer): void;
+    clear(): void;
     setTile(_x: number, _y: number, _tile: Tile): boolean;
     clearTile(_x: number, _y: number): boolean;
     addActor(_x: number, _y: number, _actor: Actor): Promise<boolean> | boolean;
@@ -851,8 +859,8 @@ declare class ItemLayer extends MapLayer {
 
 declare class GasLayer extends TileLayer {
     volume: GWU.grid.NumGrid;
-    needsUpdate: boolean;
     constructor(map: MapType, name?: string);
+    clear(): void;
     setTile(x: number, y: number, tile: Tile, opts?: SetTileOptions): boolean;
     clearTile(x: number, y: number): boolean;
     copy(other: GasLayer): void;
@@ -912,7 +920,6 @@ declare class Cell implements CellType {
     chokeCount: number;
     tiles: TileArray;
     machineId: number;
-    keyId: number;
     _actor: Actor | null;
     _item: Item | null;
     _objects: CellObjects;
@@ -935,6 +942,7 @@ declare class Cell implements CellType {
     actorFlags(): number;
     get needsRedraw(): boolean;
     set needsRedraw(v: boolean);
+    get changed(): boolean;
     depthPriority(depth: number): number;
     highestPriority(): number;
     depthTile(depth: number): Tile | null;
@@ -961,9 +969,9 @@ declare class Cell implements CellType {
     clearDepthsWithFlags(tileFlag: number, tileMechFlag?: number): void;
     eachGlowLight(cb: (light: GWU.light.LightType) => any): void;
     activate(event: string, map: MapType, x: number, y: number, ctx?: Partial<EffectCtx>): Promise<boolean>;
-    activateSync(event: string, map: MapType, x: number, y: number, ctx?: Partial<EffectCtx>): boolean;
-    _fire(effect: string | EffectInfo, map: MapType, x: number, y: number, ctx: Partial<EffectCtx>): Promise<boolean>;
-    _fireSync(effect: string | EffectInfo, map: MapType, x: number, y: number, ctx: Partial<EffectCtx>): boolean;
+    build(event: string, map: MapType, x: number, y: number, ctx?: Partial<EffectCtx>): boolean;
+    _activate(effect: string | EffectInfo, map: MapType, x: number, y: number, ctx: Partial<EffectCtx>): Promise<boolean>;
+    _build(effect: string | EffectInfo, map: MapType, x: number, y: number, ctx: Partial<EffectCtx>): boolean;
     hasEffect(name: string): boolean;
     hasItem(): boolean;
     get item(): Item | null;
@@ -1006,6 +1014,7 @@ declare class CellMemory implements CellInfoType {
     store(cell: CellInfoType): void;
     getSnapshot(dest: GWU.sprite.Mixer): void;
     putSnapshot(src: GWU.sprite.Mixer): void;
+    get needsRedraw(): boolean;
     hasCellFlag(flag: number): boolean;
     hasTileFlag(flag: number): boolean;
     hasAllTileFlags(flags: number): boolean;
@@ -1039,6 +1048,7 @@ declare class CellMemory implements CellInfoType {
 interface MapOptions extends GWU.light.LightSystemOptions, GWU.fov.FovSystemOptions {
     tile: string | true;
     boundary: string | true;
+    seed: number;
 }
 declare type LayerType = TileLayer | ActorLayer | ItemLayer;
 interface MapDrawOptions {
@@ -1062,8 +1072,11 @@ declare class Map implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType
     fov: GWU.fov.FovSystemType;
     properties: Record<string, any>;
     memory: GWU.grid.Grid<CellMemory>;
-    seed: number;
+    _seed: number;
+    rng: GWU.rng.Random;
     constructor(width: number, height: number, opts?: Partial<MapOptions>);
+    get seed(): number;
+    set seed(v: number);
     cellInfo(x: number, y: number, useMemory?: boolean): CellInfoType;
     initLayers(): void;
     addLayer(depth: number | keyof typeof Depth, layer: LayerType): void;
@@ -1100,6 +1113,7 @@ declare class Map implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType
     clearMapFlag(flag: number): void;
     setCellFlag(x: number, y: number, flag: number): void;
     clearCellFlag(x: number, y: number, flag: number): void;
+    clear(): void;
     fill(tile: string | number | Tile, boundary?: string | number | Tile): void;
     hasTile(x: number, y: number, tile: string | number | Tile, useMemory?: boolean): boolean;
     forceTile(x: number, y: number, tile: string | number | Tile): boolean;
@@ -1136,9 +1150,28 @@ declare function updateChokepoints(map: MapType, updateCounts: boolean): void;
 declare function floodFillCount(map: MapType, results: GWU.grid.NumGrid, passMap: GWU.grid.NumGrid, startX: number, startY: number): number;
 declare function updateLoopiness(map: MapType): void;
 declare function resetLoopiness(cell: CellType, _x: number, _y: number, _map: MapType): void;
-declare function checkLoopiness(cell: CellType, x: number, y: number, map: MapType): boolean;
+declare function checkLoopiness(map: MapType): void;
 declare function fillInnerLoopGrid(map: MapType, grid: GWU.grid.NumGrid): void;
 declare function cleanLoopiness(map: MapType): void;
+
+declare class Snapshot {
+    map: Map;
+    version: number;
+    constructor(map: Map);
+}
+declare class SnapshotManager {
+    map: Map;
+    version: number;
+    cellVersion: GWU.grid.NumGrid;
+    layerVersion: number[];
+    lightVersion: number;
+    fovVersion: number;
+    free: Snapshot[];
+    constructor(map: Map);
+    takeNew(): Snapshot;
+    revertMapTo(snap: Snapshot): void;
+    release(snap: Snapshot): void;
+}
 
 type index_d_CellFlags = CellFlags;
 type index_d_MapFlags = MapFlags;
@@ -1170,6 +1203,10 @@ declare const index_d_fillInnerLoopGrid: typeof fillInnerLoopGrid;
 declare const index_d_cleanLoopiness: typeof cleanLoopiness;
 type index_d_CellMemory = CellMemory;
 declare const index_d_CellMemory: typeof CellMemory;
+type index_d_Snapshot = Snapshot;
+declare const index_d_Snapshot: typeof Snapshot;
+type index_d_SnapshotManager = SnapshotManager;
+declare const index_d_SnapshotManager: typeof SnapshotManager;
 declare namespace index_d {
   export {
     index_d_CellFlags as CellFlags,
@@ -1199,7 +1236,29 @@ declare namespace index_d {
     index_d_fillInnerLoopGrid as fillInnerLoopGrid,
     index_d_cleanLoopiness as cleanLoopiness,
     index_d_CellMemory as CellMemory,
+    index_d_Snapshot as Snapshot,
+    index_d_SnapshotManager as SnapshotManager,
   };
 }
 
-export { index_d$6 as actor, index_d$4 as effect, index_d$2 as entity, index_d$7 as flags, index_d$5 as item, index_d$1 as layer, index_d as map, index_d$3 as tile };
+declare function getCellPathCost(map: Map, x: number, y: number): number;
+declare function fillCostMap(map: Map, costMap: GWU.grid.NumGrid): void;
+interface PathOptions {
+    eightWays: boolean;
+}
+declare function getPathBetween(map: Map, x0: number, y0: number, x1: number, y1: number, options?: Partial<PathOptions>): GWU.xy.Loc[] | null;
+
+declare const path_d_getCellPathCost: typeof getCellPathCost;
+declare const path_d_fillCostMap: typeof fillCostMap;
+type path_d_PathOptions = PathOptions;
+declare const path_d_getPathBetween: typeof getPathBetween;
+declare namespace path_d {
+  export {
+    path_d_getCellPathCost as getCellPathCost,
+    path_d_fillCostMap as fillCostMap,
+    path_d_PathOptions as PathOptions,
+    path_d_getPathBetween as getPathBetween,
+  };
+}
+
+export { index_d$6 as actor, index_d$4 as effect, index_d$2 as entity, index_d$7 as flags, index_d$5 as item, index_d$1 as layer, index_d as map, path_d as path, index_d$3 as tile };

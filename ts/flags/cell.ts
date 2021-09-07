@@ -20,11 +20,11 @@ export enum Cell {
     IS_IN_ROOM_MACHINE = Fl(9),
     IS_IN_AREA_MACHINE = Fl(10),
 
-    IMPREGNABLE = Fl(12), // no tunneling allowed!
-    // DARKENED = Fl(13), // magical blindness?
+    IMPREGNABLE = Fl(11), // no tunneling allowed!
 
-    NEEDS_REDRAW = Fl(14), // needs to be redrawn (maybe in path, etc...)
-    CELL_CHANGED = Fl(15), // one of the tiles or sprites (item, actor, fx) changed
+    NEEDS_REDRAW = Fl(13), // needs to be redrawn (maybe in path, etc...)
+    LIGHT_CHANGED = Fl(14), // one of the tiles changed the cell lighting
+    FOV_CHANGED = Fl(15),
 
     // These are to help memory
     HAS_SURFACE = Fl(16),
@@ -46,6 +46,8 @@ export enum Cell {
 
     COLORS_DANCE = Fl(30),
 
+    CHANGED = NEEDS_REDRAW | LIGHT_CHANGED | FOV_CHANGED, // Cell has changed
+
     IS_IN_MACHINE = IS_IN_ROOM_MACHINE | IS_IN_AREA_MACHINE, // sacred ground; don't generate items here, or teleport randomly to it
 
     PERMANENT_CELL_FLAGS = HAS_ITEM |
@@ -63,5 +65,5 @@ export enum Cell {
     HAS_ANY_ACTOR = HAS_PLAYER | HAS_ACTOR,
     HAS_ANY_OBJECT = HAS_ITEM | HAS_ANY_ACTOR,
 
-    CELL_DEFAULT = NEEDS_REDRAW | CELL_CHANGED,
+    CELL_DEFAULT = NEEDS_REDRAW | LIGHT_CHANGED,
 }

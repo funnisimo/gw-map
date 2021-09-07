@@ -166,14 +166,14 @@ export class SpawnEffect implements Effect.Handler {
 
         if (effect.flags & Flags.Effect.E_EVACUATE_CREATURES) {
             // first, evacuate creatures, so that they do not re-trigger the tile.
-            if (evacuateCreatures(map, ctx.grid!)) {
+            if (evacuateCreatures(map, ctx.grid)) {
                 didSomething = true;
             }
         }
 
         if (effect.flags & Flags.Effect.E_EVACUATE_ITEMS) {
             // first, evacuate items, so that they do not re-trigger the tile.
-            if (evacuateItems(map, ctx.grid!)) {
+            if (evacuateItems(map, ctx.grid)) {
                 didSomething = true;
             }
         }
@@ -429,7 +429,7 @@ export function computeSpawnMap(
                             if (
                                 spawnMap.hasXY(x2, y2) &&
                                 !spawnMap[x2][y2] &&
-                                GWU.rng.random.chance(startProb) &&
+                                map.rng.chance(startProb) &&
                                 cellIsOk(effect, map, x2, y2, false)
                             ) {
                                 spawnMap[x2][y2] = t;
@@ -465,7 +465,7 @@ export function computeSpawnMap(
 //     if (startProb >= 100) {
 //         probDec = probDec || 100;
 //     }
-//     while (GW.random.chance(startProb)) {
+//     while (map.rng.chance(startProb)) {
 //         startProb -= probDec;
 //         ++radius;
 //     }
@@ -477,7 +477,7 @@ export function computeSpawnMap(
 
 //         // const dist = Math.floor(GWU.utils.distanceBetween(x, y, i, j));
 //         // const prob = startProb - dist * probDec;
-//         // if (!random.chance(prob)) return 0;
+//         // if (!map.rng.chance(prob)) return 0;
 //         return 1;
 //     });
 //     // spawnMap[x][y] = 1;
@@ -514,7 +514,7 @@ export function computeSpawnMap(
 
 //         x2 = x;
 //         y2 = y;
-//         const dir = GWU.xy.DIRS[GW.random.number(4)];
+//         const dir = GWU.xy.DIRS[map.rng.number(4)];
 //         while (madeChange) {
 //             madeChange = false;
 //             x2 = x2 + dir[0];
@@ -523,7 +523,7 @@ export function computeSpawnMap(
 //                 spawnMap.hasXY(x2, y2) &&
 //                 !spawnMap[x2][y2] &&
 //                 cellIsOk(this, x2, y2, ctx) &&
-//                 GW.random.chance(startProb)
+//                 map.rng.chance(startProb)
 //             ) {
 //                 spawnMap[x2][y2] = 1;
 //                 madeChange = true;
@@ -586,7 +586,7 @@ export function evacuateCreatures(map: MapType, blockingMap: GWU.grid.NumGrid) {
             GWU.list.forEach(cell.actor, (obj) => {
                 if (!(obj instanceof Actor)) return;
                 const monst: Actor = obj;
-                const loc = GWU.rng.random.matchingLocNear(i, j, (x, y) => {
+                const loc = map.rng.matchingLocNear(i, j, (x, y) => {
                     if (!map.hasXY(x, y)) return false;
                     if (blockingMap[x][y]) return false;
                     const c = map.cell(x, y);
@@ -613,7 +613,7 @@ export function evacuateItems(map: MapType, blockingMap: GWU.grid.NumGrid) {
         GWU.list.forEach(cell.item, (obj) => {
             if (!(obj instanceof Item)) return;
             const item: Item = obj;
-            const loc = GWU.rng.random.matchingLocNear(i, j, (x, y) => {
+            const loc = map.rng.matchingLocNear(i, j, (x, y) => {
                 if (!map.hasXY(x, y)) return false;
                 if (blockingMap[x][y]) return false;
                 const dest = map.cell(x, y);

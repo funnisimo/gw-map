@@ -8,6 +8,7 @@ export class MapLayer {
     depth: number;
     properties: Record<string, any>;
     name: string;
+    changed: boolean = false;
 
     constructor(map: MapType, name = 'layer') {
         this.map = map;
@@ -17,6 +18,7 @@ export class MapLayer {
     }
 
     copy(_other: MapLayer) {}
+    clear() {}
 
     setTile(_x: number, _y: number, _tile: Tile.Tile): boolean {
         return false;

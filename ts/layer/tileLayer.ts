@@ -40,6 +40,7 @@ export class TileLayer extends MapLayer {
             }
         }
 
+        // if nothing changed... return false
         if (!cell.setTile(tile)) return false;
 
         if (opts.machine) {

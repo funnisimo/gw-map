@@ -30,11 +30,11 @@ describe('analyze', () => {
                 TILES
             );
 
+            // map.dump();
+
             MAP.updateLoopiness(map);
 
-            // map.dump((c) =>
-            //     c.hasCellFlag(Flags.Cell.IS_IN_LOOP) ? '*' : ' '
-            // );
+            // map.dump((c) => (c.hasCellFlag(Flags.Cell.IS_IN_LOOP) ? '*' : ' '));
 
             expect(
                 map.count((c) =>

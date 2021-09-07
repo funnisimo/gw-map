@@ -7,11 +7,14 @@ import * as Tile from '../tile';
 
 export class GasLayer extends TileLayer {
     volume: GWU.grid.NumGrid;
-    needsUpdate = false;
 
     constructor(map: MapType, name = 'gas') {
         super(map, name);
         this.volume = GWU.grid.alloc(map.width, map.height, 0);
+    }
+
+    clear() {
+        this.volume.fill(0);
     }
 
     setTile(x: number, y: number, tile: Tile.Tile, opts: SetTileOptions = {}) {
@@ -27,7 +30,7 @@ export class GasLayer extends TileLayer {
         }
 
         this.volume[x][y] = opts.volume;
-        this.needsUpdate = true;
+        this.changed = true;
         return true;
     }
 
@@ -42,11 +45,12 @@ export class GasLayer extends TileLayer {
 
     copy(other: GasLayer) {
         this.volume.copy(other.volume);
+        this.changed = other.changed;
     }
 
     async tick(_dt: number): Promise<boolean> {
-        if (!this.needsUpdate) return false;
-        this.needsUpdate = false;
+        if (!this.changed) return false;
+        this.changed = false;
 
         const startingVolume = this.volume;
         this.volume = GWU.grid.alloc(this.map.width, this.map.height);
@@ -70,7 +74,7 @@ export class GasLayer extends TileLayer {
                 v = Math.max(0, v - d);
             }
             if (v) {
-                this.needsUpdate = true;
+                this.changed = true;
             } else {
                 this.clearTile(x, y);
             }

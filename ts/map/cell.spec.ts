@@ -16,6 +16,13 @@ describe('Cell', () => {
             fg: [80, 80, 80],
             bg: [20, 20, 20],
         });
+        Tile.install('GRASS', {
+            name: 'grass',
+            ch: '"',
+            fg: 'green',
+            depth: 'SURFACE',
+        });
+
         Tile.install('RED_LIQUID', {
             name: 'red liquid',
             article: 'some',
@@ -96,34 +103,28 @@ describe('Cell', () => {
         expect(cell.getName('the')).toEqual('the stone wall');
     });
 
-    // test('changed', () => {
-    //     const cell: Cell = new Cell('FLOOR');
-    //     expect(cell.changed).toBeTruthy();
-    //     expect(cell.flags.cell & Flags.Cell.CELL_CHANGED).toBeTruthy();
-    //     cell.changed = false;
-    //     expect(cell.changed).toBeFalsy();
-    //     expect(cell.flags.cell & Flags.Cell.CELL_CHANGED).toBeFalsy();
-    //     cell.changed = true;
-    //     expect(cell.changed).toBeTruthy();
-    //     expect(cell.flags.cell & Flags.Cell.CELL_CHANGED).toBeTruthy();
-    // });
-
     test('copy + clear', () => {
         const cell: Cell = new Cell('LAKE');
         cell.setTile(Tile.tiles.BRIDGE);
+        expect(cell.changed).toBeTrue();
 
         const other: Cell = new Cell();
         expect(other.hasTile('LAKE')).toBeFalsy();
         expect(other.hasTile('BRIDGE')).toBeFalsy();
+        expect(other.changed).toBeFalse();
 
         other.copy(cell);
         expect(other.hasTile('LAKE')).toBeTruthy();
         expect(other.hasTile('BRIDGE')).toBeTruthy();
         expect(other.isEmpty()).toBeFalsy();
+        expect(other.changed).toBeTrue();
 
+        other.clearCellFlag(Flags.Cell.CHANGED);
         other.clear();
         expect(other.hasTile('LAKE')).toBeFalsy();
         expect(other.isEmpty()).toBeTruthy();
+        expect(other.changed).toBeTrue();
+        expect(other.needsRedraw).toBeTrue();
     });
 
     // test('listInSidebar', () => {
@@ -277,6 +278,8 @@ describe('Cell', () => {
 
     test('hasCellFlag', () => {
         const cell: Cell = new Cell('FLOOR');
+        cell.clearCellFlag(Flags.Cell.CHANGED);
+
         expect(cell.hasCellFlag(Flags.Cell.HAS_DORMANT_MONSTER)).toBeFalsy();
         cell.setCellFlag(Flags.Cell.HAS_DORMANT_MONSTER);
         expect(cell.hasCellFlag(Flags.Cell.HAS_DORMANT_MONSTER)).toBeTruthy();
@@ -678,8 +681,13 @@ describe('Cell', () => {
     test('setTile(BRIDGE) will also set ground if null', () => {
         const cell: Cell = new Cell();
         expect(cell.isEmpty()).toBeTruthy();
+        expect(cell.needsRedraw).toBeFalse();
+        expect(cell.changed).toBeFalse();
 
         cell.setTile('BRIDGE');
+        expect(cell.needsRedraw).toBeTrue();
+        expect(cell.changed).toBeTrue();
+
         // groundTile not handled in cell - look in layer
         expect(cell.depthTile(Flags.Depth.GROUND)).toEqual(Tile.tiles.NULL);
         expect(cell.depthTile(Flags.Depth.SURFACE)).toEqual(Tile.tiles.BRIDGE);
@@ -718,13 +726,15 @@ describe('Cell', () => {
         const floor = 'FLOOR';
         const wall = 'WALL';
 
-        c.setTile(floor);
+        expect(c.setTile(floor)).toBeTruthy();
+        expect(c.setTile(floor)).toBeFalsy();
         expect(c.depthTile(Flags.Depth.GROUND)).toBe(Tile.tiles.FLOOR);
-        c.setTile(wall);
+        expect(c.setTile(wall)).toBeTruthy();
+        expect(c.setTile(wall)).toBeFalsy();
         expect(c.depthTile(Flags.Depth.GROUND)).toBe(Tile.tiles.WALL);
         // c.setTile(floor, true); // checks priority
         // expect(c.ground).toEqual(wall);  // 2 has better priority
-        c.setTile(floor);
+        expect(c.setTile(floor)).toBeTruthy();
         expect(c.depthTile(Flags.Depth.GROUND)).toBe(Tile.tiles.FLOOR); // ignored priority
     });
 
@@ -735,16 +745,20 @@ describe('Cell', () => {
         const item = UTILS.mockItem();
 
         cell.needsRedraw = false;
+        cell.clearCellFlag(Flags.Cell.CHANGED);
         expect(cell.hasItem()).toBeFalsy();
 
         cell.item = item;
         expect(cell.hasItem()).toBeTruthy();
         expect(cell.needsRedraw).toBeTruthy();
+        expect(cell.changed).toBeTruthy();
 
         cell.needsRedraw = false;
+        cell.clearCellFlag(Flags.Cell.CHANGED);
         cell.item = null;
         expect(cell.hasItem()).toBeFalsy();
         expect(cell.needsRedraw).toBeTruthy();
+        expect(cell.changed).toBeTruthy();
     });
 
     test('actor', () => {
@@ -753,16 +767,20 @@ describe('Cell', () => {
 
         const actor = UTILS.mockActor();
         cell.needsRedraw = false;
+        cell.clearCellFlag(Flags.Cell.CHANGED);
         expect(cell.hasActor()).toBeFalsy();
 
         cell.actor = actor;
         expect(cell.hasActor()).toBeTruthy();
         expect(cell.needsRedraw).toBeTruthy();
+        expect(cell.changed).toBeTruthy();
 
         cell.needsRedraw = false;
+        cell.clearCellFlag(Flags.Cell.CHANGED);
         cell.actor = null;
         expect(cell.hasActor()).toBeFalsy();
         expect(cell.needsRedraw).toBeTruthy();
+        expect(cell.changed).toBeTruthy();
     });
 
     test('activatesOn', () => {
@@ -779,25 +797,18 @@ describe('Cell', () => {
         expect(await cell.activate('enter', map, 5, 5, {})).toBeFalsy();
     });
 
-    // test('clearLayer', () => {
-    //     const cell: Cell = new Cell('FLOOR');
-    //     cell.setTile('RED_LIQUID', 100);
-    //     expect(cell.ground).toEqual('FLOOR');
-    //     expect(cell.liquid).toEqual('RED_LIQUID');
-    //     expect(cell.liquidVolume).toEqual(100);
-    //     cell.clearLayer(Map.entity.Layer.LIQUID);
-    //     expect(cell.ground).toEqual('FLOOR');
-    //     expect(cell.liquid).toBeNull();
-    //     expect(cell.liquidVolume).toEqual(0);
+    test('clearDepth', () => {
+        const cell: Cell = new Cell('FLOOR');
+        cell.setTile('GRASS');
 
-    //     cell.setTile('RED_GAS', 100);
-    //     expect(cell.gas).toEqual('RED_GAS');
-    //     expect(cell.gasVolume).toEqual(100);
-    //     cell.clearLayer(Map.entity.Layer.GAS);
-    //     expect(cell.ground).toEqual('FLOOR');
-    //     expect(cell.gas).toBeNull();
-    //     expect(cell.gasVolume).toEqual(0);
-    // });
+        expect(cell.depthTile(Flags.Depth.SURFACE)).toBe(Tile.tiles.GRASS);
+        cell.clearCellFlag(Flags.Cell.CHANGED);
+        cell.needsRedraw = false;
+        cell.clearDepth(Flags.Depth.SURFACE);
+        expect(cell.depthTile(Flags.Depth.SURFACE)).toBeNull();
+        expect(cell.changed).toBeTrue();
+        expect(cell.needsRedraw).toBeTrue();
+    });
 
     // test('clearLayersExcept', () => {
     //     const cell: Cell = new Cell('ENTER');

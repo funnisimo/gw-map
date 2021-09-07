@@ -3,3 +3,4 @@ export * from './cell';
 export * from './map';
 export * from './analyze';
 export * from './cellMemory';
+export * from './snapshot';

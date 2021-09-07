@@ -27,7 +27,8 @@ export type SetTileOptions = Partial<SetOptions>;
 export interface CellInfoType {
     chokeCount: number;
     machineId: number;
-    keyId: number;
+    // keyId: number;
+    readonly needsRedraw: boolean;
 
     // Flags
 
@@ -119,7 +120,7 @@ export interface CellType extends CellInfoType {
         y: number,
         ctx?: Partial<EffectCtx>
     ): Promise<boolean> | boolean;
-    activateSync(
+    build(
         event: string,
         map: MapType,
         x: number,
@@ -129,8 +130,9 @@ export interface CellType extends CellInfoType {
 
     hasEffect(name: string): boolean;
 
-    // redraw(): void;
+    copy(other: CellType): void;
     needsRedraw: boolean;
+    readonly changed: boolean;
 }
 
 export type EachCellCb = (
@@ -153,6 +155,7 @@ export type MapTestFn = (
 export interface MapType {
     readonly width: number;
     readonly height: number;
+    readonly rng: GWU.rng.Random;
 
     light: GWU.light.LightSystemType;
     fov: GWU.fov.FovSystemType;

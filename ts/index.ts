@@ -6,3 +6,4 @@ export * as tile from './tile';
 export * as layer from './layer';
 export * as map from './map';
 export * as effect from './effect';
+export * as path from './path';

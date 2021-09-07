@@ -85,6 +85,10 @@ export class CellMemory implements CellInfoType {
         this.snapshot.copy(src);
     }
 
+    get needsRedraw() {
+        return this.hasCellFlag(Flags.Cell.NEEDS_REDRAW);
+    }
+
     hasCellFlag(flag: number): boolean {
         return !!(this.flags.cell & flag);
     }

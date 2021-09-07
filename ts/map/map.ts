@@ -23,6 +23,7 @@ export interface MapOptions
         GWU.fov.FovSystemOptions {
     tile: string | true;
     boundary: string | true;
+    seed: number;
 }
 
 export type LayerType = Layer.TileLayer | Layer.ActorLayer | Layer.ItemLayer;
@@ -48,7 +49,8 @@ export class Map
     fov: GWU.fov.FovSystemType;
     properties: Record<string, any>;
     memory: GWU.grid.Grid<CellMemory>;
-    seed = 0;
+    _seed = 0;
+    rng: GWU.rng.Random = GWU.rng.random;
 
     constructor(width: number, height: number, opts: Partial<MapOptions> = {}) {
         this.width = width;
@@ -59,11 +61,24 @@ export class Map
         this.cells = GWU.grid.make(width, height, () => new Cell());
         this.memory = GWU.grid.make(width, height, () => new CellMemory());
 
+        if (opts.seed) {
+            this._seed = opts.seed;
+            this.rng = GWU.rng.make(opts.seed);
+        }
+
         this.light = new GWU.light.LightSystem(this, opts);
         this.fov = new GWU.fov.FovSystem(this, opts);
         this.properties = {};
 
         this.initLayers();
+    }
+
+    get seed(): number {
+        return this._seed;
+    }
+    set seed(v: number) {
+        this._seed = v;
+        this.rng = GWU.rng.make(v);
     }
 
     cellInfo(x: number, y: number, useMemory = false): CellInfoType {
@@ -138,8 +153,15 @@ export class Map
         const mixer = new GWU.sprite.Mixer();
         for (let x = 0; x < buffer.width; ++x) {
             for (let y = 0; y < buffer.height; ++y) {
+                // const cell = this.cell(x, y);
+                // if (
+                //     cell.needsRedraw ||
+                //     this.light.lightChanged(x, y) ||
+                //     this.fov.fovChanged(x, y)
+                // ) {
                 this.getAppearanceAt(x, y, mixer);
                 buffer.drawSprite(x, y, mixer);
+                // }
             }
         }
     }
@@ -263,6 +285,12 @@ export class Map
         this.cell(x, y).clearCellFlag(flag);
     }
 
+    clear() {
+        this.light.glowLightChanged = true;
+        this.fov.needsUpdate = true;
+        this.layers.forEach((l) => l.clear());
+    }
+
     // Skips all the logic checks and just forces a clean cell with the given tile
     fill(tile: string | number | Tile, boundary?: string | number | Tile) {
         tile = TILE.get(tile);
@@ -337,7 +365,10 @@ export class Map
         });
 
         this.flags.map = src.flags.map;
-        this.light.setAmbient(src.light.getAmbient());
+        this.fov.needsUpdate = true;
+        this.light.copy(src.light);
+        this.rng = src.rng;
+        Object.assign(this.properties, src.properties);
     }
 
     clone(): Map {
@@ -364,7 +395,7 @@ export class Map
         ctx: Partial<Effect.EffectCtx> = {}
     ): boolean {
         const cell = this.cell(x, y);
-        return cell.activateSync(event, this, x, y, ctx);
+        return cell.build(event, this, x, y, ctx);
     }
 
     async fireAll(
@@ -415,7 +446,7 @@ export class Map
                 }
                 if (
                     !cell.hasCellFlag(Flags.Cell.CAUGHT_FIRE_THIS_TURN) &&
-                    GWU.rng.random.chance(promoteChance, 10000)
+                    this.rng.chance(promoteChance, 10000)
                 ) {
                     willFire[x][y] |= GWU.flag.fl(tile.depth);
                     // cell.flags.cellMech |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
@@ -488,7 +519,7 @@ export class Map
                 }
                 if (
                     !cell.hasCellFlag(Flags.Cell.CAUGHT_FIRE_THIS_TURN) &&
-                    GWU.rng.random.chance(promoteChance, 10000)
+                    this.rng.chance(promoteChance, 10000)
                 ) {
                     willFire[x][y] |= GWU.flag.fl(tile.depth);
                     // cell.flags.cellMech |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
@@ -554,8 +585,7 @@ export class Map
                 if (cell.machineId !== machineId) continue;
                 if (cell.hasEffect('machine')) {
                     didSomething =
-                        cell.activateSync('machine', this, x, y, ctx) ||
-                        didSomething;
+                        cell.build('machine', this, x, y, ctx) || didSomething;
                 }
             }
         }
@@ -605,6 +635,7 @@ export class Map
     eachGlowLight(cb: GWU.light.LightCb): void {
         this.cells.forEach((cell, x, y) => {
             cell.eachGlowLight((light) => cb(x, y, light));
+            cell.clearCellFlag(Flags.Cell.LIGHT_CHANGED);
         });
     }
     eachDynamicLight(_cb: GWU.light.LightCb): void {}

@@ -86,7 +86,7 @@ export class Cell implements CellType {
     chokeCount = 0;
     tiles: TileArray;
     machineId = 0;
-    keyId = 0;
+    // keyId = 0;
     // gasVolume: number = 0;
     // liquidVolume: number = 0;
     _actor: Actor | null = null;
@@ -107,10 +107,13 @@ export class Cell implements CellType {
     copy(other: Cell) {
         Object.assign(this.flags, other.flags);
         this.chokeCount = other.chokeCount;
-        this.tiles = other.tiles.slice() as TileArray;
+        this.tiles.length = other.tiles.length;
+        for (let i = 0; i < this.tiles.length; ++i) {
+            this.tiles[i] = other.tiles[i];
+        }
         this._actor = other._actor;
         this._item = other._item;
-        this.keyId = other.keyId;
+        // this.keyId = other.keyId;
         this.machineId = other.machineId;
     }
 
@@ -188,6 +191,10 @@ export class Cell implements CellType {
         } else {
             this.flags.cell &= ~Flags.Cell.NEEDS_REDRAW;
         }
+    }
+
+    get changed() {
+        return !!(this.flags.cell & Flags.Cell.CHANGED);
     }
 
     depthPriority(depth: number): number {
@@ -293,24 +300,27 @@ export class Cell implements CellType {
         return this.hasTileFlag(Flags.Tile.T_HAS_STAIRS);
     }
 
-    // @returns - whether or not the change results in a change to the cell lighting.
+    // @returns - whether or not the change results in a change to the cell tiles.
+    //          - If there is a change to cell lighting, the cell will have the
+    //          - LIGHT_CHANGED flag set.
     setTile(tile: string | number | TILE.Tile): boolean {
         if (!(tile instanceof TILE.Tile)) {
             tile = TILE.get(tile);
             if (!tile) return false;
         }
 
-        // const current = this.tiles[tile.depth] || TILE.tiles.NULL;
-
-        // if (current !== tile) {
-        //     this.gasVolume = 0;
-        //     this.liquidVolume = 0;
-        // }
-
-        // Check priority, etc...
+        const current = this.tiles[tile.depth] || TILE.tiles.NULL;
+        if (current === tile) return false;
 
         this.tiles[tile.depth] = tile;
         this.needsRedraw = true;
+
+        if (current.light !== tile.light) {
+            this.setCellFlag(Flags.Cell.LIGHT_CHANGED);
+        }
+        if (current.blocksVision() !== tile.blocksVision()) {
+            this.setCellFlag(Flags.Cell.FOV_CHANGED);
+        }
 
         // if (volume) {
         //     if (tile.depth === Depth.GAS) {
@@ -325,9 +335,10 @@ export class Cell implements CellType {
     }
     clear() {
         this.tiles = [TILE.tiles.NULL];
-        this.needsRedraw = true;
         this.flags.cell = 0;
+        this.needsRedraw = true;
         this.chokeCount = 0;
+        this.machineId = 0;
         this._actor = null;
         this._item = null;
     }
@@ -377,7 +388,7 @@ export class Cell implements CellType {
             const tile = (ctx.tile = this.depthTile(ctx.depth));
             if (tile && tile.effects) {
                 const ev = tile.effects[event];
-                didSomething = await this._fire(ev, map, x, y, ctx);
+                didSomething = await this._activate(ev, map, x, y, ctx);
             }
         } else {
             // console.log('fire event - %s', event);
@@ -386,7 +397,7 @@ export class Cell implements CellType {
                 const ev = ctx.tile.effects[event];
                 // console.log(' - ', ev);
 
-                if (await this._fire(ev, map, x, y, ctx)) {
+                if (await this._activate(ev, map, x, y, ctx)) {
                     didSomething = true;
                     break;
                 }
@@ -396,7 +407,7 @@ export class Cell implements CellType {
         return didSomething;
     }
 
-    activateSync(
+    build(
         event: string,
         map: MapType,
         x: number,
@@ -410,7 +421,7 @@ export class Cell implements CellType {
             const tile = (ctx.tile = this.depthTile(ctx.depth));
             if (tile && tile.effects) {
                 const ev = tile.effects[event];
-                didSomething = this._fireSync(ev, map, x, y, ctx);
+                didSomething = this._build(ev, map, x, y, ctx);
             }
         } else {
             // console.log('fire event - %s', event);
@@ -419,7 +430,7 @@ export class Cell implements CellType {
                 const ev = ctx.tile.effects[event];
                 // console.log(' - ', ev);
 
-                if (this._fireSync(ev, map, x, y, ctx)) {
+                if (this._build(ev, map, x, y, ctx)) {
                     didSomething = true;
                     break;
                 }
@@ -429,7 +440,7 @@ export class Cell implements CellType {
         return didSomething;
     }
 
-    async _fire(
+    async _activate(
         effect: string | Effect.EffectInfo,
         map: MapType,
         x: number,
@@ -448,7 +459,7 @@ export class Cell implements CellType {
         return didSomething;
     }
 
-    _fireSync(
+    _build(
         effect: string | Effect.EffectInfo,
         map: MapType,
         x: number,

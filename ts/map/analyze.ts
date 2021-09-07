@@ -178,26 +178,46 @@ export function floodFillCount(
     startX: number,
     startY: number
 ) {
-    let count = passMap[startX][startY] == 2 ? 5000 : 1;
+    function getCount(x: number, y: number): number {
+        let count = passMap[x][y] == 2 ? 5000 : 1;
 
-    if (map.cell(startX, startY).flags.cell & Flags.Cell.IS_IN_AREA_MACHINE) {
-        count = 10000;
+        if (map.cell(x, y).flags.cell & Flags.Cell.IS_IN_AREA_MACHINE) {
+            count = 10000;
+        }
+        return count;
     }
 
-    results[startX][startY] = 1;
+    let count = 0;
+    const todo: GWU.xy.Loc[] = [[startX, startY]];
+    const free: GWU.xy.Loc[] = [];
 
-    for (let dir = 0; dir < 4; dir++) {
-        const newX = startX + GWU.xy.DIRS[dir][0];
-        const newY = startY + GWU.xy.DIRS[dir][1];
+    while (todo.length) {
+        const item = todo.pop()!;
+        free.push(item);
+        const x = item[0];
+        const y = item[1];
+        if (results[x][y]) continue;
 
-        if (
-            map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
-            passMap[newX][newY] &&
-            !results[newX][newY]
-        ) {
-            count += floodFillCount(map, results, passMap, newX, newY);
+        results[x][y] = 1;
+        count += getCount(x, y);
+
+        for (let dir = 0; dir < 4; dir++) {
+            const newX = x + GWU.xy.DIRS[dir][0];
+            const newY = y + GWU.xy.DIRS[dir][1];
+
+            if (
+                map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
+                passMap[newX][newY] &&
+                !results[newX][newY]
+            ) {
+                const item = free.pop() || [-1, -1];
+                item[0] = newX;
+                item[1] = newY;
+                todo.push(item);
+            }
         }
     }
+
     return Math.min(count, 10000);
 }
 
@@ -207,7 +227,7 @@ export function floodFillCount(
 
 export function updateLoopiness(map: MapType) {
     map.eachCell(resetLoopiness);
-    map.eachCell(checkLoopiness);
+    checkLoopiness(map);
     cleanLoopiness(map);
 }
 
@@ -229,84 +249,96 @@ export function resetLoopiness(
     }
 }
 
-export function checkLoopiness(
-    cell: CellType,
-    x: number,
-    y: number,
-    map: MapType
-) {
+export function checkLoopiness(map: MapType) {
     let inString;
     let newX, newY, dir, sdir;
     let numStrings, maxStringLength, currentStringLength;
 
-    if (!cell || !(cell.flags.cell & Flags.Cell.IS_IN_LOOP)) {
-        return false;
-    }
+    const todo = GWU.grid.alloc(map.width, map.height, 1);
+    let tryAgain = true;
 
-    // find an unloopy neighbor to start on
-    for (sdir = 0; sdir < 8; sdir++) {
-        newX = x + GWU.xy.CLOCK_DIRS[sdir][0];
-        newY = y + GWU.xy.CLOCK_DIRS[sdir][1];
+    while (tryAgain) {
+        tryAgain = false;
+        todo.forEach((v, x, y) => {
+            if (!v) return;
+            const cell = map.cell(x, y);
 
-        if (!map.hasXY(newX, newY)) continue;
+            todo[x][y] = 0;
 
-        const cell = map.get(newX, newY);
-        if (!cell || !(cell.flags.cell & Flags.Cell.IS_IN_LOOP)) {
-            break;
-        }
-    }
-    if (sdir == 8) {
-        // no unloopy neighbors
-        return false; // leave cell loopy
-    }
-
-    // starting on this unloopy neighbor,
-    // work clockwise and count up:
-    // (a) the number of strings of loopy neighbors, and
-    // (b) the length of the longest such string.
-    numStrings = maxStringLength = currentStringLength = 0;
-    inString = false;
-    for (dir = sdir; dir < sdir + 8; dir++) {
-        newX = x + GWU.xy.CLOCK_DIRS[dir % 8][0];
-        newY = y + GWU.xy.CLOCK_DIRS[dir % 8][1];
-        if (!map.hasXY(newX, newY)) continue;
-
-        const newCell = map.get(newX, newY);
-        if (newCell && newCell.flags.cell & Flags.Cell.IS_IN_LOOP) {
-            currentStringLength++;
-            if (!inString) {
-                if (numStrings > 0) {
-                    return false; // more than one string here; leave loopy
-                }
-                numStrings++;
-                inString = true;
+            if (!cell.hasCellFlag(Flags.Cell.IS_IN_LOOP)) {
+                return;
             }
-        } else if (inString) {
-            if (currentStringLength > maxStringLength) {
+
+            // find an unloopy neighbor to start on
+            for (sdir = 0; sdir < 8; sdir++) {
+                newX = x + GWU.xy.CLOCK_DIRS[sdir][0];
+                newY = y + GWU.xy.CLOCK_DIRS[sdir][1];
+
+                if (!map.hasXY(newX, newY)) continue;
+
+                const cell = map.cell(newX, newY);
+                if (!cell.hasCellFlag(Flags.Cell.IS_IN_LOOP)) {
+                    break;
+                }
+            }
+            if (sdir == 8) {
+                // no unloopy neighbors
+                return; // leave cell loopy
+            }
+
+            // starting on this unloopy neighbor,
+            // work clockwise and count up:
+            // (a) the number of strings of loopy neighbors, and
+            // (b) the length of the longest such string.
+            numStrings = maxStringLength = currentStringLength = 0;
+            inString = false;
+            for (dir = sdir; dir < sdir + 8; dir++) {
+                newX = x + GWU.xy.CLOCK_DIRS[dir % 8][0];
+                newY = y + GWU.xy.CLOCK_DIRS[dir % 8][1];
+                if (!map.hasXY(newX, newY)) continue;
+
+                const newCell = map.cell(newX, newY);
+                if (newCell.hasCellFlag(Flags.Cell.IS_IN_LOOP)) {
+                    currentStringLength++;
+                    if (!inString) {
+                        numStrings++;
+                        inString = true;
+                        if (numStrings > 1) {
+                            break; // more than one string here; leave loopy
+                        }
+                    }
+                } else if (inString) {
+                    if (currentStringLength > maxStringLength) {
+                        maxStringLength = currentStringLength;
+                    }
+                    currentStringLength = 0;
+                    inString = false;
+                }
+            }
+
+            if (inString && currentStringLength > maxStringLength) {
                 maxStringLength = currentStringLength;
             }
-            currentStringLength = 0;
-            inString = false;
-        }
-    }
+            if (numStrings == 1 && maxStringLength <= 4) {
+                cell.clearCellFlag(Flags.Cell.IS_IN_LOOP);
+                // console.log(x, y, numStrings, maxStringLength);
+                // map.dump((c) =>
+                //     c.hasCellFlag(Flags.Cell.IS_IN_LOOP) ? '*' : ' '
+                // );
 
-    if (inString && currentStringLength > maxStringLength) {
-        maxStringLength = currentStringLength;
-    }
-    if (numStrings == 1 && maxStringLength <= 4) {
-        cell.flags.cell &= ~Flags.Cell.IS_IN_LOOP;
-
-        for (dir = 0; dir < 8; dir++) {
-            const newX = x + GWU.xy.CLOCK_DIRS[dir][0];
-            const newY = y + GWU.xy.CLOCK_DIRS[dir][1];
-            if (map.hasXY(newX, newY)) {
-                const newCell = map.cell(newX, newY);
-                checkLoopiness(newCell, newX, newY, map);
+                for (dir = 0; dir < 8; dir++) {
+                    newX = x + GWU.xy.CLOCK_DIRS[dir][0];
+                    newY = y + GWU.xy.CLOCK_DIRS[dir][1];
+                    if (
+                        map.hasXY(newX, newY) &&
+                        map.cell(newX, newY).hasCellFlag(Flags.Cell.IS_IN_LOOP)
+                    ) {
+                        todo[newX][newY] = 1;
+                        tryAgain = true;
+                    }
+                }
             }
-        }
-        return true;
-    } else {
-        return false;
+        });
     }
 }
 
