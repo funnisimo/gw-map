@@ -104,8 +104,11 @@ export interface CellType extends CellInfoType {
     hasDepthTile(depth: number): boolean;
     highestPriorityTile(): Tile;
 
+    clearTiles(tile?: string | number | Tile): void;
+
     isEmpty(): boolean;
     isWall(): boolean;
+    isGateSite(): boolean;
 
     // Lights
 

@@ -683,8 +683,10 @@ interface CellType extends CellInfoType {
     hasTile(tile?: string | number | Tile): boolean;
     hasDepthTile(depth: number): boolean;
     highestPriorityTile(): Tile;
+    clearTiles(tile?: string | number | Tile): void;
     isEmpty(): boolean;
     isWall(): boolean;
+    isGateSite(): boolean;
     eachGlowLight(cb: (light: GWU.light.LightType) => any): void;
     activate(event: string, map: MapType, x: number, y: number, ctx?: Partial<EffectCtx>): Promise<boolean> | boolean;
     build(event: string, map: MapType, x: number, y: number, ctx?: Partial<EffectCtx>): boolean;
@@ -963,7 +965,9 @@ declare class Cell implements CellType {
     isPassable(): boolean;
     isWall(): boolean;
     isStairs(): boolean;
+    isGateSite(): boolean;
     setTile(tile: string | number | Tile): boolean;
+    clearTiles(tile: string | number | Tile): void;
     clear(tile?: number | string | Tile): void;
     clearDepth(depth: Depth): boolean;
     clearDepthsWithFlags(tileFlag: number, tileMechFlag?: number): void;
@@ -1119,6 +1123,7 @@ declare class Map implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType
     hasTile(x: number, y: number, tile: string | number | Tile, useMemory?: boolean): boolean;
     forceTile(x: number, y: number, tile: string | number | Tile): boolean;
     setTile(x: number, y: number, tile: string | number | Tile, opts?: SetTileOptions): boolean;
+    clearTiles(x: number, y: number, tile?: number | string | Tile): void;
     tick(dt: number): Promise<boolean>;
     copy(src: Map): void;
     clone(): Map;

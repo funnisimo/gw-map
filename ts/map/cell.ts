@@ -299,6 +299,9 @@ export class Cell implements CellType {
     isStairs(): boolean {
         return this.hasTileFlag(Flags.Tile.T_HAS_STAIRS);
     }
+    isGateSite(): boolean {
+        return this.hasCellFlag(Flags.Cell.IS_GATE_SITE);
+    }
 
     // @returns - whether or not the change results in a change to the cell tiles.
     //          - If there is a change to cell lighting, the cell will have the
@@ -333,6 +336,16 @@ export class Cell implements CellType {
 
         return true;
     }
+    clearTiles(tile: string | number | TILE.Tile) {
+        this.tiles[0] = TILE.tiles.NULL;
+        for (let i = 1; i < this.tiles.length; ++i) {
+            this.tiles[i] = null;
+        }
+        if (tile) {
+            this.setTile(tile);
+        }
+    }
+
     clear(tile?: number | string | TILE.Tile) {
         this.tiles = [TILE.tiles.NULL];
         this.flags.cell = 0;

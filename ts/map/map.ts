@@ -343,6 +343,11 @@ export class Map
         return layer.setTile(x, y, tile, opts);
     }
 
+    clearTiles(x: number, y: number, tile?: number | string | Tile) {
+        const cell = this.cell(x, y);
+        cell.clearTiles(tile);
+    }
+
     async tick(dt: number): Promise<boolean> {
         let didSomething = await this.fireAll('tick');
         for (let layer of this.layers) {
