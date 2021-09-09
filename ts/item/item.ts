@@ -10,13 +10,15 @@ export class Item extends Entity {
     kind: Kind.ItemKind;
     next: Item | null = null;
 
-    constructor(kind: Kind.ItemKind) {
+    constructor(kind: Kind.ItemKind, options?: any) {
         super(kind);
         // @ts-ignore
         this.flags = this.flags || {};
         this.flags.item = 0;
         this.depth = Depth.ITEM;
         this.kind = kind;
+
+        this.kind.make(this, options);
     }
 
     itemFlags(): number {
@@ -30,22 +32,28 @@ export class Item extends Entity {
     }
 }
 
-export function make(id: string | Kind.ItemKind): Item {
+export function make(id: string | Kind.ItemKind, makeOptions?: any): Item {
     const kind = Kind.get(id);
     if (!kind) throw new Error('Failed to find item kind - ' + id);
-    return new Item(kind);
+    return new Item(kind, makeOptions);
 }
 
-export function makeRandom(opts: Partial<Kind.MatchOptions> | string): Item {
+export function makeRandom(
+    opts: Partial<Kind.MatchOptions> | string,
+    makeOptions?: any
+): Item {
     const kind = Kind.randomKind(opts);
     if (!kind)
         throw new Error(
             'Failed to find item kind matching - ' + JSON.stringify(opts)
         );
-    return new Item(kind);
+    return new Item(kind, makeOptions);
 }
 
-export function from(info: string | Kind.ItemKind | Kind.KindOptions): Item {
+export function from(
+    info: string | Kind.ItemKind | Kind.KindOptions,
+    makeOptions?: any
+): Item {
     let kind: Kind.ItemKind;
     if (typeof info === 'string') {
         // @ts-ignore
@@ -56,5 +64,5 @@ export function from(info: string | Kind.ItemKind | Kind.KindOptions): Item {
     } else {
         kind = Kind.makeKind(info);
     }
-    return new Item(kind);
+    return new Item(kind, makeOptions);
 }

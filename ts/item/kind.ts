@@ -11,6 +11,8 @@ export class ItemKind extends Entity.EntityKind {
         super(config);
     }
 
+    make(_item: Item, _options?: any) {}
+
     forbidsCell(_item: Item, _cell: CellType): boolean {
         return false;
     }

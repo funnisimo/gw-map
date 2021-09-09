@@ -260,19 +260,20 @@ declare class Item extends Entity {
     quantity: number;
     kind: ItemKind;
     next: Item | null;
-    constructor(kind: ItemKind);
+    constructor(kind: ItemKind, options?: any);
     itemFlags(): number;
     hasItemFlag(flag: number): boolean;
     hasAllItemFlags(flags: number): boolean;
 }
-declare function make$3(id: string | ItemKind): Item;
-declare function makeRandom(opts: Partial<MatchOptions> | string): Item;
-declare function from$2(info: string | ItemKind | KindOptions$1): Item;
+declare function make$3(id: string | ItemKind, makeOptions?: any): Item;
+declare function makeRandom(opts: Partial<MatchOptions> | string, makeOptions?: any): Item;
+declare function from$2(info: string | ItemKind | KindOptions$1, makeOptions?: any): Item;
 
 interface KindOptions$1 extends KindOptions {
 }
 declare class ItemKind extends EntityKind {
     constructor(config: KindOptions$1);
+    make(_item: Item, _options?: any): void;
     forbidsCell(_item: Item, _cell: CellType): boolean;
 }
 declare const kinds: Record<string, ItemKind>;

@@ -27,4 +27,30 @@ describe('ItemKind', () => {
 
         expect(Item.randomKind('FLAG')).toBeNull();
     });
+
+    test('subclass', () => {
+        interface MyKindMakeOptions {
+            quantity?: number;
+        }
+
+        class MyItem extends Item.ItemKind {
+            constructor(config: Item.KindOptions) {
+                super(config);
+            }
+
+            make(item: Item.Item, config?: Partial<MyKindMakeOptions>) {
+                super.make(item, config);
+                if (config && config.quantity) {
+                    item.quantity = config.quantity;
+                }
+            }
+        }
+
+        const kind = Item.install('MY_ITEM', new MyItem({ name: 'MyItem' }));
+        expect(kind).toBeInstanceOf(MyItem);
+
+        const item = Item.make('MY_ITEM', { quantity: 4 });
+        expect(item.kind).toBe(kind);
+        expect(item.quantity).toEqual(4);
+    });
 });
