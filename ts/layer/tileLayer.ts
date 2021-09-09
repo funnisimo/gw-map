@@ -33,6 +33,8 @@ export class TileLayer extends MapLayer {
         if (opts.blockedByOtherLayers && cell.highestPriority() > tile.priority)
             return false;
 
+        // TODO - Are we blocked by other layer (L_BLOCKS_SURFACE on an already present tile)?
+
         if (tile.depth > Flags.Depth.GROUND && tile.groundTile) {
             const ground = cell.depthTile(Flags.Depth.GROUND);
             if (!ground || ground === Tile.tiles.NULL) {
@@ -42,6 +44,10 @@ export class TileLayer extends MapLayer {
 
         // if nothing changed... return false
         if (!cell.setTile(tile)) return false;
+
+        if (tile.hasEntityFlag(Flags.Entity.L_BLOCKS_SURFACE)) {
+            cell.clearDepth(Flags.Depth.SURFACE);
+        }
 
         if (opts.machine) {
             cell.machineId = opts.machine;

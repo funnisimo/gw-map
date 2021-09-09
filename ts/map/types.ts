@@ -97,7 +97,7 @@ export interface CellType extends CellInfoType {
 
     // @returns - whether or not the change results in a change to the cell lighting.
     setTile(tile: Tile): boolean;
-    clear(): void;
+    clear(tile?: number | string | Tile): void;
     clearDepth(depth: number): boolean;
 
     hasTile(tile?: string | number | Tile): boolean;

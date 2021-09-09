@@ -481,11 +481,11 @@ function randomKind(opts = {}) {
     }
     if (typeof opts.tags === 'string') {
         opts.tags
-            .split(/[,|]/)
+            .split(/[,|&]/)
             .map((t) => t.trim())
             .forEach((t) => {
             if (t.startsWith('!')) {
-                match.forbidTags.push(t.substring(1));
+                match.forbidTags.push(t.substring(1).trim());
             }
             else {
                 match.tags.push(t);
@@ -496,7 +496,7 @@ function randomKind(opts = {}) {
         match.tags = opts.tags.slice();
     }
     if (typeof opts.forbidTags === 'string') {
-        match.forbidTags = opts.forbidTags.split(/[,|]/).map((t) => t.trim());
+        match.forbidTags = opts.forbidTags.split(/[,|&]/).map((t) => t.trim());
     }
     else if (Array.isArray(opts.forbidTags)) {
         match.forbidTags = opts.forbidTags.slice();
@@ -1856,6 +1856,9 @@ class TileLayer extends MapLayer {
         // if nothing changed... return false
         if (!cell.setTile(tile))
             return false;
+        if (tile.hasEntityFlag(Entity$1.L_BLOCKS_SURFACE)) {
+            cell.clearDepth(Depth$1.SURFACE);
+        }
         if (opts.machine) {
             cell.machineId = opts.machine;
         }
@@ -2004,7 +2007,7 @@ class ItemLayer extends MapLayer {
         if (!GWU.list.remove(cell, 'item', obj))
             return false;
         if (obj.key && obj.key.matches(x, y) && cell.hasEffect('nokey')) {
-            await cell.activate('key', this.map, x, y);
+            await cell.activate('nokey', this.map, x, y);
         }
         return true;
     }
@@ -2523,7 +2526,7 @@ class Cell {
         // }
         return true;
     }
-    clear() {
+    clear(tile) {
         this.tiles = [tiles.NULL];
         this.flags.cell = 0;
         this.needsRedraw = true;
@@ -2531,6 +2534,9 @@ class Cell {
         this.machineId = 0;
         this._actor = null;
         this._item = null;
+        if (tile) {
+            this.setTile(tile);
+        }
     }
     clearDepth(depth) {
         if (depth == 0) {
@@ -3083,6 +3089,10 @@ class Map {
         this.fov.needsUpdate = true;
         this.layers.forEach((l) => l.clear());
     }
+    clearCell(x, y, tile) {
+        const cell = this.cell(x, y);
+        cell.clear(tile);
+    }
     // Skips all the logic checks and just forces a clean cell with the given tile
     fill(tile, boundary) {
         tile = get(tile);
@@ -3091,8 +3101,7 @@ class Map {
         for (i = 0; i < this.width; ++i) {
             for (j = 0; j < this.height; ++j) {
                 const cell = this.cell(i, j);
-                cell.clear();
-                cell.setTile(this.isBoundaryXY(i, j) ? boundary : tile);
+                cell.clear(this.isBoundaryXY(i, j) ? boundary : tile);
             }
         }
     }

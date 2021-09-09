@@ -53,7 +53,7 @@ export class ItemLayer extends MapLayer {
         if (!GWU.list.remove(cell, 'item', obj)) return false;
 
         if (obj.key && obj.key.matches(x, y) && cell.hasEffect('nokey')) {
-            await cell.activate('key', this.map, x, y);
+            await cell.activate('nokey', this.map, x, y);
         }
 
         return true;

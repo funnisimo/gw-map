@@ -333,7 +333,7 @@ export class Cell implements CellType {
 
         return true;
     }
-    clear() {
+    clear(tile?: number | string | TILE.Tile) {
         this.tiles = [TILE.tiles.NULL];
         this.flags.cell = 0;
         this.needsRedraw = true;
@@ -341,6 +341,9 @@ export class Cell implements CellType {
         this.machineId = 0;
         this._actor = null;
         this._item = null;
+        if (tile) {
+            this.setTile(tile);
+        }
     }
     clearDepth(depth: Flags.Depth): boolean {
         if (depth == 0) {

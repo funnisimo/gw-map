@@ -678,7 +678,7 @@ interface CellType extends CellInfoType {
     eachTile(cb: GWU.types.EachCb<Tile>): void;
     isPassable(): boolean;
     setTile(tile: Tile): boolean;
-    clear(): void;
+    clear(tile?: number | string | Tile): void;
     clearDepth(depth: number): boolean;
     hasTile(tile?: string | number | Tile): boolean;
     hasDepthTile(depth: number): boolean;
@@ -964,7 +964,7 @@ declare class Cell implements CellType {
     isWall(): boolean;
     isStairs(): boolean;
     setTile(tile: string | number | Tile): boolean;
-    clear(): void;
+    clear(tile?: number | string | Tile): void;
     clearDepth(depth: Depth): boolean;
     clearDepthsWithFlags(tileFlag: number, tileMechFlag?: number): void;
     eachGlowLight(cb: (light: GWU.light.LightType) => any): void;
@@ -1114,6 +1114,7 @@ declare class Map implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType
     setCellFlag(x: number, y: number, flag: number): void;
     clearCellFlag(x: number, y: number, flag: number): void;
     clear(): void;
+    clearCell(x: number, y: number, tile?: number | string | Tile): void;
     fill(tile: string | number | Tile, boundary?: string | number | Tile): void;
     hasTile(x: number, y: number, tile: string | number | Tile, useMemory?: boolean): boolean;
     forceTile(x: number, y: number, tile: string | number | Tile): boolean;

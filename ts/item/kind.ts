@@ -61,11 +61,11 @@ export function randomKind(
 
     if (typeof opts.tags === 'string') {
         opts.tags
-            .split(/[,|]/)
+            .split(/[,|&]/)
             .map((t) => t.trim())
             .forEach((t) => {
                 if (t.startsWith('!')) {
-                    match.forbidTags.push(t.substring(1));
+                    match.forbidTags.push(t.substring(1).trim());
                 } else {
                     match.tags.push(t);
                 }
@@ -74,7 +74,7 @@ export function randomKind(
         match.tags = opts.tags.slice();
     }
     if (typeof opts.forbidTags === 'string') {
-        match.forbidTags = opts.forbidTags.split(/[,|]/).map((t) => t.trim());
+        match.forbidTags = opts.forbidTags.split(/[,|&]/).map((t) => t.trim());
     } else if (Array.isArray(opts.forbidTags)) {
         match.forbidTags = opts.forbidTags.slice();
     }

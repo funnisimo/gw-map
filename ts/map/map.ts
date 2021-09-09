@@ -291,6 +291,11 @@ export class Map
         this.layers.forEach((l) => l.clear());
     }
 
+    clearCell(x: number, y: number, tile?: number | string | Tile) {
+        const cell = this.cell(x, y);
+        cell.clear(tile);
+    }
+
     // Skips all the logic checks and just forces a clean cell with the given tile
     fill(tile: string | number | Tile, boundary?: string | number | Tile) {
         tile = TILE.get(tile);
@@ -300,8 +305,7 @@ export class Map
         for (i = 0; i < this.width; ++i) {
             for (j = 0; j < this.height; ++j) {
                 const cell = this.cell(i, j);
-                cell.clear();
-                cell.setTile(this.isBoundaryXY(i, j) ? boundary : tile);
+                cell.clear(this.isBoundaryXY(i, j) ? boundary : tile);
             }
         }
     }
