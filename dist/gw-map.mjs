@@ -578,6 +578,16 @@ var index$4 = /*#__PURE__*/Object.freeze({
     from: from$2
 });
 
+// @ts-nocheck
+class Handler {
+    make(src, dest) {
+        return true;
+    }
+    fire(config, map, x, y, ctx) {
+        return false;
+    }
+}
+
 function make$2(opts) {
     var _a;
     if (!opts)
@@ -690,55 +700,13 @@ async function fire(effect, map, x, y, ctx_ = {}) {
     GWU.grid.free(grid);
     return didSomething;
 }
-function fireSync(effect, map, x, y, ctx_ = {}) {
-    if (!effect)
-        return false;
-    if (typeof effect === 'string') {
-        const name = effect;
-        effect = from$1(name);
-        if (!effect)
-            throw new Error('Failed to find effect: ' + name);
-    }
-    const ctx = ctx_;
-    if (!ctx.force && effect.chance && !map.rng.chance(effect.chance, 10000))
-        return false;
-    const grid = (ctx.grid = GWU.grid.alloc(map.width, map.height));
-    let didSomething = false;
-    const allHandlers = Object.values(handlers);
-    for (let h of allHandlers) {
-        if (h.fireSync(effect, map, x, y, ctx)) {
-            didSomething = true;
-        }
-    }
-    // bookkeeping
-    if (didSomething &&
-        map.isVisible(x, y) &&
-        !(effect.flags & Effect.E_NO_MARK_FIRED)) {
-        effect.flags |= Effect.E_FIRED;
-    }
-    // do the next effect - if applicable
-    if (effect.next &&
-        (didSomething || effect.flags & Effect.E_NEXT_ALWAYS) &&
-        !GWU.data.gameHasEnded) {
-        const nextInfo = typeof effect.next === 'string' ? from$1(effect.next) : effect.next;
-        if (effect.flags & Effect.E_NEXT_EVERYWHERE) {
-            grid.forEach(async (v, i, j) => {
-                if (!v)
-                    return;
-                fireSync(nextInfo, map, i, j, ctx);
-            });
-        }
-        else {
-            fireSync(nextInfo, map, x, y, ctx);
-        }
-    }
-    GWU.grid.free(grid);
-    return didSomething;
-}
 
 //////////////////////////////////////////////
 // EMIT
-class EmitEffect {
+class EmitEffect extends Handler {
+    constructor() {
+        super();
+    }
     make(src, dest) {
         if (!src.emit)
             return true;
@@ -755,17 +723,15 @@ class EmitEffect {
         }
         return false;
     }
-    fireSync(config, _map, _x, _y, _ctx) {
-        if (!config.emit)
-            return false;
-        throw new Error('Cannot use "emit" effects in build steps.');
-    }
 }
 installHandler('emit', new EmitEffect());
 
 //////////////////////////////////////////////
 // FN
-class FnEffect {
+class FnEffect extends Handler {
+    constructor() {
+        super();
+    }
     make(src, dest) {
         if (!src.fn)
             return true;
@@ -781,22 +747,15 @@ class FnEffect {
         }
         return false;
     }
-    fireSync(config, map, x, y, ctx) {
-        if (config.fn) {
-            const result = config.fn(config, map, x, y, ctx);
-            if (result === true || result === false) {
-                return result;
-            }
-            throw new Error('Cannot use async function effects in build steps.');
-        }
-        return false;
-    }
 }
 installHandler('fn', new FnEffect());
 
 //////////////////////////////////////////////
 // MESSAGE
-class MessageEffect {
+class MessageEffect extends Handler {
+    constructor() {
+        super();
+    }
     make(src, dest) {
         if (!src.message)
             return true;
@@ -819,17 +778,15 @@ class MessageEffect {
         }
         return false;
     }
-    fireSync(config, _map, _x, _y, _ctx) {
-        if (!config.message)
-            return false;
-        throw new Error('Cannot use "message" effects in build steps.');
-    }
 }
 installHandler('message', new MessageEffect());
 
 //////////////////////////////////////////////
 // ActivateMachine
-class ActivateMachineEffect {
+class ActivateMachineEffect extends Handler {
+    constructor() {
+        super();
+    }
     make(src, dest) {
         if (!src.activateMachine)
             return true;
@@ -846,22 +803,15 @@ class ActivateMachineEffect {
         }
         return false;
     }
-    fireSync(config, map, x, y, ctx) {
-        if (config.activateMachine) {
-            const cell = map.cell(x, y);
-            const machine = cell.machineId;
-            if (!machine)
-                return false;
-            return map.activateMachineSync(machine, x, y, ctx);
-        }
-        return false;
-    }
 }
 installHandler('activateMachine', new ActivateMachineEffect());
 
 //////////////////////////////////////////////
 // EMIT
-class EffectEffect {
+class EffectEffect extends Handler {
+    constructor() {
+        super();
+    }
     make(src, dest) {
         if (!src.effect)
             return true;
@@ -874,16 +824,13 @@ class EffectEffect {
         }
         return false;
     }
-    fireSync(config, map, x, y, ctx) {
-        if (config.effect) {
-            return fireSync(config.effect, map, x, y, ctx);
-        }
-        return false;
-    }
 }
 installHandler('effect', new EffectEffect());
 
-class SpawnEffect {
+class SpawnEffect extends Handler {
+    constructor() {
+        super();
+    }
     make(src, dest) {
         var _a, _b, _c, _d, _e, _f, _g;
         if (!src.tile)
@@ -924,41 +871,7 @@ class SpawnEffect {
         dest.tile = info;
         return true;
     }
-    async fire(effect, map, x, y, ctx) {
-        let didSomething = false;
-        const spawned = this.fireSync(effect, map, x, y, ctx);
-        if (spawned) {
-            didSomething = true;
-            // await spawnMap.forEachAsync( (v, x, y) => {
-            //     if (!v) return;
-            //     await map.applyInstantEffects(x, y);
-            // });
-            // if (applyEffects) {
-            // if (PLAYER.xLoc == i && PLAYER.yLoc == j && !PLAYER.status.levitating && refresh) {
-            // 	flavorMessage(tileFlavor(PLAYER.xLoc, PLAYER.yLoc));
-            // }
-            // if (cell.actor || cell.item) {
-            // 	for(let t of cell.tiles()) {
-            // 		await t.applyInstantEffects(map, i, j, cell);
-            // 		if (Data.gameHasEnded) {
-            // 			return true;
-            // 		}
-            // 	}
-            // }
-            // if (tile.flags & TileFlags.T_IS_FIRE) {
-            // 	if (cell.flags & CellFlags.HAS_ITEM) {
-            // 		theItem = map.itemAt(i, j);
-            // 		if (theItem.flags & Flags.Item.ITEM_FLAMMABLE) {
-            // 			await burnItem(theItem);
-            // 		}
-            // 	}
-            // }
-            // }
-        }
-        // GWU.grid.free(spawnMap);
-        return didSomething;
-    }
-    fireSync(effect, map, x, y, ctx) {
+    fire(effect, map, x, y, ctx) {
         if (!effect.tile)
             return false; // did nothing
         const id = effect.tile.tile;
@@ -1349,7 +1262,10 @@ function evacuateItems(map, blockingMap) {
     });
     return didSomething;
 }
-class ClearTileEffect {
+class ClearTileEffect extends Handler {
+    constructor() {
+        super();
+    }
     make(src, dest) {
         if (!src.clear)
             return true;
@@ -1378,7 +1294,7 @@ class ClearTileEffect {
         dest.clear = layers;
         return layers > 0;
     }
-    fire(config, map, x, y, ctx) {
+    async fire(config, map, x, y, ctx) {
         return this.fireSync(config, map, x, y, ctx);
     }
     fireSync(config, map, x, y, _ctx) {
@@ -1394,6 +1310,7 @@ installHandler('clear', new ClearTileEffect());
 
 var index$3 = /*#__PURE__*/Object.freeze({
     __proto__: null,
+    Handler: Handler,
     reset: reset,
     resetAll: resetAll,
     effects: effects,
@@ -1404,7 +1321,6 @@ var index$3 = /*#__PURE__*/Object.freeze({
     make: make$2,
     from: from$1,
     fire: fire,
-    fireSync: fireSync,
     EmitEffect: EmitEffect,
     FnEffect: FnEffect,
     MessageEffect: MessageEffect,
@@ -1896,7 +1812,7 @@ class TileLayer extends MapLayer {
                     cell.clearCellFlag(Cell$1.PRESSURE_PLATE_DEPRESSED);
                 }
                 if (cell.hasEffect('noKey') && !this.map.hasKey(x, y)) {
-                    await cell.activate('noKey', this.map, x, y);
+                    await cell.fire('noKey', this.map, x, y);
                 }
             }
         }
@@ -1930,7 +1846,7 @@ class ActorLayer extends MapLayer {
         obj.x = x;
         obj.y = y;
         if (obj.key && obj.key.matches(x, y) && cell.hasEffect('key')) {
-            await cell.activate('key', this.map, x, y);
+            await cell.fire('key', this.map, x, y);
         }
         return true;
     }
@@ -1957,7 +1873,7 @@ class ActorLayer extends MapLayer {
             cell.clearCellFlag(Cell$1.HAS_PLAYER);
         }
         if (obj.key && obj.key.matches(x, y) && cell.hasEffect('nokey')) {
-            await cell.activate('key', this.map, x, y);
+            await cell.fire('key', this.map, x, y);
         }
         return true;
     }
@@ -1981,7 +1897,7 @@ class ItemLayer extends MapLayer {
         if (item.forbidsCell(cell))
             return false;
         if (obj.key && obj.key.matches(x, y) && cell.hasEffect('key')) {
-            await cell.activate('key', this.map, x, y);
+            await cell.fire('key', this.map, x, y);
             if (obj.key.disposable) {
                 obj.destroy();
                 return true; // ??? didSomething?
@@ -1992,9 +1908,20 @@ class ItemLayer extends MapLayer {
         obj.x = x;
         obj.y = y;
         obj.depth = this.depth;
+        if (cell.hasEffect('addItem')) {
+            await cell.fire('addItem', this.map, x, y, { item });
+        }
         return true;
     }
     forceItem(x, y, obj, _opts) {
+        if (!this.map.hasXY(x, y))
+            return false;
+        if (this.map.hasXY(obj.x, obj.y)) {
+            const oldCell = this.map.cell(obj.x, obj.y);
+            GWU.list.remove(oldCell, 'item', obj);
+            obj.x = -1;
+            obj.y = -1;
+        }
         const cell = this.map.cell(x, y);
         if (!GWU.list.push(cell, 'item', obj))
             return false;
@@ -2010,7 +1937,10 @@ class ItemLayer extends MapLayer {
         if (!GWU.list.remove(cell, 'item', obj))
             return false;
         if (obj.key && obj.key.matches(x, y) && cell.hasEffect('nokey')) {
-            await cell.activate('nokey', this.map, x, y);
+            await cell.fire('nokey', this.map, x, y);
+        }
+        else if (cell.hasEffect('removeItem')) {
+            await cell.fire('removeItem', this.map, x, y);
         }
         return true;
     }
@@ -2239,7 +2169,7 @@ class FireLayer extends TileLayer {
             //         }
             //     }
             // });
-            await cell.activate(event, this.map, x, y, {
+            await cell.fire(event, this.map, x, y, {
                 force: true,
             });
             cell.needsRedraw = true;
@@ -2586,7 +2516,7 @@ class Cell {
         });
     }
     // Effects
-    async activate(event, map, x, y, ctx = {}) {
+    async fire(event, map, x, y, ctx = {}) {
         ctx.cell = this;
         let didSomething = false;
         if (ctx.depth !== undefined) {
@@ -2612,32 +2542,6 @@ class Cell {
         }
         return didSomething;
     }
-    build(event, map, x, y, ctx = {}) {
-        ctx.cell = this;
-        let didSomething = false;
-        if (ctx.depth !== undefined) {
-            const tile = (ctx.tile = this.depthTile(ctx.depth));
-            if (tile && tile.effects) {
-                const ev = tile.effects[event];
-                didSomething = this._build(ev, map, x, y, ctx);
-            }
-        }
-        else {
-            // console.log('fire event - %s', event);
-            for (ctx.tile of this.tiles) {
-                if (!ctx.tile || !ctx.tile.effects)
-                    continue;
-                const ev = ctx.tile.effects[event];
-                // console.log(' - ', ev);
-                if (this._build(ev, map, x, y, ctx)) {
-                    didSomething = true;
-                    break;
-                }
-                // }
-            }
-        }
-        return didSomething;
-    }
     async _activate(effect, map, x, y, ctx) {
         if (typeof effect === 'string') {
             effect = effects[effect];
@@ -2646,18 +2550,6 @@ class Cell {
         if (effect) {
             // console.log(' - spawn event @%d,%d - %s', x, y, name);
             didSomething = await fire(effect, map, x, y, ctx);
-            // cell.debug(" - spawned");
-        }
-        return didSomething;
-    }
-    _build(effect, map, x, y, ctx) {
-        if (typeof effect === 'string') {
-            effect = effects[effect];
-        }
-        let didSomething = false;
-        if (effect) {
-            // console.log(' - spawn event @%d,%d - %s', x, y, name);
-            didSomething = fireSync(effect, map, x, y, ctx);
             // cell.debug(" - spawned");
         }
         return didSomething;
@@ -2983,6 +2875,9 @@ class Map {
         }
     }
     // items
+    hasItem(x, y) {
+        return this.cell(x, y).hasItem();
+    }
     itemAt(x, y) {
         return this.cell(x, y).item;
     }
@@ -3081,7 +2976,12 @@ class Map {
         return this.cells.count((cell, x, y) => cb(cell, x, y, this));
     }
     dump(fmt, log = console.log) {
-        this.cells.dump(fmt || ((c) => c.dump()), log);
+        const mixer = new GWU.sprite.Mixer();
+        const getCh = (_cell, x, y) => {
+            this.getAppearanceAt(x, y, mixer);
+            return mixer.ch;
+        };
+        this.cells.dump(fmt || getCh, log);
     }
     // flags
     hasMapFlag(flag) {
@@ -3179,11 +3079,7 @@ class Map {
     }
     async fire(event, x, y, ctx = {}) {
         const cell = this.cell(x, y);
-        return cell.activate(event, this, x, y, ctx);
-    }
-    fireSync(event, x, y, ctx = {}) {
-        const cell = this.cell(x, y);
-        return cell.build(event, this, x, y, ctx);
+        return cell.fire(event, this, x, y, ctx);
     }
     async fireAll(event, ctx = {}) {
         let didSomething = false;
@@ -3233,65 +3129,7 @@ class Map {
                 return;
             for (let depth = 0; depth <= Depth$1.GAS; ++depth) {
                 if (w & GWU.flag.fl(depth)) {
-                    await cell.activate(event, this, x, y, {
-                        force: true,
-                        depth,
-                    });
-                }
-            }
-        });
-        GWU.grid.free(willFire);
-        return didSomething;
-    }
-    fireAllSync(event, ctx = {}) {
-        let didSomething = false;
-        const willFire = GWU.grid.alloc(this.width, this.height);
-        // Figure out which tiles will fire - before we change everything...
-        this.cells.forEach((cell, x, y) => {
-            cell.clearCellFlag(Cell$1.EVENT_FIRED_THIS_TURN | Cell$1.EVENT_PROTECTED);
-            cell.eachTile((tile) => {
-                const ev = tile.effects[event];
-                if (!ev)
-                    return;
-                const effect = from$1(ev);
-                if (!effect)
-                    return;
-                let promoteChance = 0;
-                // < 0 means try to fire my neighbors...
-                if (effect.chance < 0) {
-                    promoteChance = 0;
-                    GWU.xy.eachNeighbor(x, y, (i, j) => {
-                        const n = this.cell(i, j);
-                        if (!n.hasEntityFlag(Entity$1.L_BLOCKS_EFFECTS) &&
-                            n.depthTile(tile.depth) !=
-                                cell.depthTile(tile.depth) &&
-                            !n.hasCellFlag(Cell$1.CAUGHT_FIRE_THIS_TURN)) {
-                            // TODO - Should this break from the loop after doing this once or keep going?
-                            promoteChance += -1 * effect.chance;
-                        }
-                    }, true);
-                }
-                else {
-                    promoteChance = effect.chance || 100 * 100; // 100%
-                }
-                if (!cell.hasCellFlag(Cell$1.CAUGHT_FIRE_THIS_TURN) &&
-                    this.rng.chance(promoteChance, 10000)) {
-                    willFire[x][y] |= GWU.flag.fl(tile.depth);
-                    // cell.flags.cellMech |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
-                }
-            });
-        });
-        // Then activate them - so that we don't activate the next generation as part of the forEach
-        ctx.force = true;
-        willFire.forEach((w, x, y) => {
-            if (!w)
-                return;
-            const cell = this.cell(x, y);
-            if (cell.hasCellFlag(Cell$1.EVENT_FIRED_THIS_TURN))
-                return;
-            for (let depth = 0; depth <= Depth$1.GAS; ++depth) {
-                if (w & GWU.flag.fl(depth)) {
-                    cell.activate(event, this, x, y, {
+                    await cell.fire(event, this, x, y, {
                         force: true,
                         depth,
                     });
@@ -3312,25 +3150,8 @@ class Map {
                     continue;
                 if (cell.hasEffect('machine')) {
                     didSomething =
-                        (await cell.activate('machine', this, x, y, ctx)) ||
+                        (await cell.fire('machine', this, x, y, ctx)) ||
                             didSomething;
-                }
-            }
-        }
-        return didSomething;
-    }
-    activateMachineSync(machineId, originX, originY, ctx = {}) {
-        let didSomething = false;
-        ctx.originX = originX;
-        ctx.originY = originY;
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
-                const cell = this.cells[x][y];
-                if (cell.machineId !== machineId)
-                    continue;
-                if (cell.hasEffect('machine')) {
-                    didSomething =
-                        cell.build('machine', this, x, y, ctx) || didSomething;
                 }
             }
         }

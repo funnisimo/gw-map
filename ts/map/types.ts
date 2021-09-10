@@ -116,20 +116,13 @@ export interface CellType extends CellInfoType {
 
     // Effects
 
-    activate(
+    fire(
         event: string,
         map: MapType,
         x: number,
         y: number,
         ctx?: Partial<EffectCtx>
     ): Promise<boolean> | boolean;
-    build(
-        event: string,
-        map: MapType,
-        x: number,
-        y: number,
-        ctx?: Partial<EffectCtx>
-    ): boolean;
 
     hasEffect(name: string): boolean;
 
@@ -261,14 +254,7 @@ export interface MapType {
         y: number,
         ctx?: Partial<EffectCtx>
     ): Promise<boolean>;
-    fireSync(
-        event: string,
-        x: number,
-        y: number,
-        ctx?: Partial<EffectCtx>
-    ): boolean;
     fireAll(event: string, ctx?: Partial<EffectCtx>): Promise<boolean>;
-    fireAllSync(event: string, ctx?: Partial<EffectCtx>): boolean;
 
     activateMachine(
         machineId: number,
@@ -276,12 +262,6 @@ export interface MapType {
         originY: number,
         ctx?: Partial<EffectCtx>
     ): Promise<boolean>;
-    activateMachineSync(
-        machineId: number,
-        originX: number,
-        originY: number,
-        ctx?: Partial<EffectCtx>
-    ): boolean;
 
     count(cb: MapTestFn): number;
     dump(fmt?: (cell: CellType) => string): void;

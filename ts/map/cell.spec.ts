@@ -789,12 +789,12 @@ describe('Cell', () => {
         expect(cell.hasEffect('fire')).toBeFalsy();
     });
 
-    test('activate', async () => {
+    test('fire', async () => {
         const map: Map.Map = Map.make(10, 10);
         const cell: Cell = new Cell('LOW_CHANCE');
         // UTILS.mockRandom();
         GWU.rng.random.seed(12345);
-        expect(await cell.activate('enter', map, 5, 5, {})).toBeFalsy();
+        expect(await cell.fire('enter', map, 5, 5, {})).toBeFalsy();
     });
 
     test('clearDepth', () => {

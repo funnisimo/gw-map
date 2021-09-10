@@ -390,7 +390,7 @@ export class Cell implements CellType {
 
     // Effects
 
-    async activate(
+    async fire(
         event: string,
         map: MapType,
         x: number,
@@ -423,39 +423,6 @@ export class Cell implements CellType {
         return didSomething;
     }
 
-    build(
-        event: string,
-        map: MapType,
-        x: number,
-        y: number,
-        ctx: Partial<Effect.EffectCtx> = {}
-    ): boolean {
-        ctx.cell = this;
-        let didSomething = false;
-
-        if (ctx.depth !== undefined) {
-            const tile = (ctx.tile = this.depthTile(ctx.depth));
-            if (tile && tile.effects) {
-                const ev = tile.effects[event];
-                didSomething = this._build(ev, map, x, y, ctx);
-            }
-        } else {
-            // console.log('fire event - %s', event);
-            for (ctx.tile of this.tiles) {
-                if (!ctx.tile || !ctx.tile.effects) continue;
-                const ev = ctx.tile.effects[event];
-                // console.log(' - ', ev);
-
-                if (this._build(ev, map, x, y, ctx)) {
-                    didSomething = true;
-                    break;
-                }
-                // }
-            }
-        }
-        return didSomething;
-    }
-
     async _activate(
         effect: string | Effect.EffectInfo,
         map: MapType,
@@ -470,25 +437,6 @@ export class Cell implements CellType {
         if (effect) {
             // console.log(' - spawn event @%d,%d - %s', x, y, name);
             didSomething = await Effect.fire(effect, map, x, y, ctx);
-            // cell.debug(" - spawned");
-        }
-        return didSomething;
-    }
-
-    _build(
-        effect: string | Effect.EffectInfo,
-        map: MapType,
-        x: number,
-        y: number,
-        ctx: Partial<Effect.EffectCtx>
-    ): boolean {
-        if (typeof effect === 'string') {
-            effect = Effect.effects[effect];
-        }
-        let didSomething = false;
-        if (effect) {
-            // console.log(' - spawn event @%d,%d - %s', x, y, name);
-            didSomething = Effect.fireSync(effect, map, x, y, ctx);
             // cell.debug(" - spawned");
         }
         return didSomething;

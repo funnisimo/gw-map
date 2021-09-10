@@ -584,7 +584,7 @@ describe('tile effect', () => {
             map.setTile(ctx.x, ctx.y, 'ALTAR');
 
             await expect(
-                cell.activate('fire', map, ctx.x, ctx.y, ctx)
+                cell.fire('fire', map, ctx.x, ctx.y, ctx)
             ).resolves.toBeTruthy();
             expect(fn).toHaveBeenCalledTimes(1);
         });
@@ -609,7 +609,7 @@ describe('tile effect', () => {
             expect(cell.hasActor()).toBeTruthy();
             grid[ctx.x][ctx.y] = 1;
 
-            await cell.activate('fire', map, ctx.x, ctx.y);
+            await cell.fire('fire', map, ctx.x, ctx.y);
             expect(actor.forbidsCell).toHaveBeenCalled();
             expect(actor).not.toBeAtXY(ctx.x, ctx.y);
             expect(cell.hasActor()).toBeFalsy();
@@ -636,7 +636,7 @@ describe('tile effect', () => {
             expect(cell.hasItem()).toBeTruthy();
             grid[ctx.x][ctx.y] = 1;
 
-            await cell.activate('fire', map, ctx.x, ctx.y, ctx);
+            await cell.fire('fire', map, ctx.x, ctx.y, ctx);
             expect(item.forbidsCell).toHaveBeenCalled();
             expect(item).not.toBeAtXY(ctx.x, ctx.y);
             expect(cell.hasItem()).toBeFalsy();
@@ -737,7 +737,7 @@ describe('tile effect', () => {
     //     });
     // });
 
-    test('abort if blocking', () => {
+    test('abort if blocking', async () => {
         Tile.install('PRESSURE_PLATE', {
             extends: 'FLOOR',
             priority: '+10',
@@ -796,16 +796,16 @@ describe('tile effect', () => {
         GWU.xy.forRect(11, 1, 9, 9, (x, y) => map.forceTile(x, y, 'FLOOR'));
         map.forceTile(10, 3, 'FLOOR');
 
-        jest.spyOn(Effect.handlers.effect, 'fireSync');
+        jest.spyOn(Effect.handlers.effect, 'fire');
 
         expect(holeEffect.effect).toEqual('CHASM_MEDIUM');
 
         GWU.rng.random.seed(12345);
-        let result = Effect.fireSync('HOLE_WITH_PLATE', map, 9, 4);
+        let result = await Effect.fire('HOLE_WITH_PLATE', map, 9, 4);
 
-        expect(Effect.handlers.effect.fireSync).toHaveBeenCalledTimes(2); // HOLE_WITH_PLATE -> CHASM_MEDIUM
+        expect(Effect.handlers.effect.fire).toHaveBeenCalledTimes(2); // HOLE_WITH_PLATE -> CHASM_MEDIUM
         expect(result).toBeFalsy();
-        expect(Effect.handlers.effect.fireSync).toHaveBeenCalledWith(
+        expect(Effect.handlers.effect.fire).toHaveBeenCalledWith(
             Effect.effects.CHASM_MEDIUM,
             map,
             9,
@@ -816,7 +816,7 @@ describe('tile effect', () => {
         expect(map.cells.count((c) => c.hasTile('CHASM_EDGE'))).toEqual(0);
         expect(map.cells.count((c) => c.hasTile('PRESSURE_PLATE'))).toEqual(0);
 
-        result = Effect.fireSync('HOLE_WITH_PLATE', map, 3, 8);
+        result = await Effect.fire('HOLE_WITH_PLATE', map, 3, 8);
 
         // map.dump();
 

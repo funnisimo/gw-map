@@ -28,7 +28,11 @@ export interface SpawnInfo {
     next: string | null;
 }
 
-export class SpawnEffect implements Effect.Handler {
+export class SpawnEffect extends Effect.Handler {
+    constructor() {
+        super();
+    }
+
     make(src: Partial<Effect.EffectConfig>, dest: Effect.EffectInfo): boolean {
         if (!src.tile) return true; // no error
 
@@ -76,59 +80,13 @@ export class SpawnEffect implements Effect.Handler {
         return true;
     }
 
-    async fire(
+    fire(
         effect: Effect.EffectInfo,
         map: MapType,
         x: number,
         y: number,
         ctx: Effect.EffectCtx
-    ): Promise<boolean> {
-        let didSomething = false;
-
-        const spawned = this.fireSync(effect, map, x, y, ctx);
-
-        if (spawned) {
-            didSomething = true;
-            // await spawnMap.forEachAsync( (v, x, y) => {
-            //     if (!v) return;
-            //     await map.applyInstantEffects(x, y);
-            // });
-
-            // if (applyEffects) {
-            // if (PLAYER.xLoc == i && PLAYER.yLoc == j && !PLAYER.status.levitating && refresh) {
-            // 	flavorMessage(tileFlavor(PLAYER.xLoc, PLAYER.yLoc));
-            // }
-            // if (cell.actor || cell.item) {
-            // 	for(let t of cell.tiles()) {
-            // 		await t.applyInstantEffects(map, i, j, cell);
-            // 		if (Data.gameHasEnded) {
-            // 			return true;
-            // 		}
-            // 	}
-            // }
-            // if (tile.flags & TileFlags.T_IS_FIRE) {
-            // 	if (cell.flags & CellFlags.HAS_ITEM) {
-            // 		theItem = map.itemAt(i, j);
-            // 		if (theItem.flags & Flags.Item.ITEM_FLAMMABLE) {
-            // 			await burnItem(theItem);
-            // 		}
-            // 	}
-            // }
-            // }
-        }
-
-        // GWU.grid.free(spawnMap);
-
-        return didSomething;
-    }
-
-    fireSync(
-        effect: Effect.EffectInfo,
-        map: MapType,
-        x: number,
-        y: number,
-        ctx: Effect.EffectCtx
-    ) {
+    ): boolean {
         if (!effect.tile) return false; // did nothing
 
         const id = effect.tile.tile;
@@ -629,7 +587,11 @@ export function evacuateItems(map: MapType, blockingMap: GWU.grid.NumGrid) {
     return didSomething;
 }
 
-class ClearTileEffect implements Effect.Handler {
+class ClearTileEffect extends Effect.Handler {
+    constructor() {
+        super();
+    }
+
     make(src: Partial<Effect.EffectConfig>, dest: Effect.EffectInfo): boolean {
         if (!src.clear) return true;
         let config = src.clear;
@@ -659,13 +621,13 @@ class ClearTileEffect implements Effect.Handler {
         return layers > 0;
     }
 
-    fire(
+    async fire(
         config: Effect.EffectInfo,
         map: MapType,
         x: number,
         y: number,
         ctx: Effect.EffectCtx
-    ): boolean {
+    ): Promise<boolean> {
         return this.fireSync(config, map, x, y, ctx);
     }
 

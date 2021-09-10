@@ -7,7 +7,11 @@ import * as FIRE from '../fire';
 //////////////////////////////////////////////
 // EMIT
 
-export class EffectEffect implements Handler {
+export class EffectEffect extends Handler {
+    constructor() {
+        super();
+    }
+
     make(src: Partial<TYPES.EffectConfig>, dest: TYPES.EffectInfo): boolean {
         if (!src.effect) return true;
 
@@ -24,19 +28,6 @@ export class EffectEffect implements Handler {
     ) {
         if (config.effect) {
             return await FIRE.fire(config.effect, map, x, y, ctx);
-        }
-        return false;
-    }
-
-    fireSync(
-        config: TYPES.EffectInfo,
-        map: MapType,
-        x: number,
-        y: number,
-        ctx: TYPES.EffectCtx
-    ) {
-        if (config.effect) {
-            return FIRE.fireSync(config.effect, map, x, y, ctx);
         }
         return false;
     }

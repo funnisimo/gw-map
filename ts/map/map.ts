@@ -168,6 +168,9 @@ export class Map
 
     // items
 
+    hasItem(x: number, y: number): boolean {
+        return this.cell(x, y).hasItem();
+    }
     itemAt(x: number, y: number): Item | null {
         return this.cell(x, y).item;
     }
@@ -262,8 +265,14 @@ export class Map
     count(cb: MapTestFn): number {
         return this.cells.count((cell, x, y) => cb(cell, x, y, this));
     }
-    dump(fmt?: (cell: CellType) => string, log = console.log) {
-        this.cells.dump(fmt || ((c: Cell) => c.dump()), log);
+    dump(fmt?: GWU.grid.GridFormat<Cell>, log = console.log) {
+        const mixer = new GWU.sprite.Mixer();
+
+        const getCh = (_cell: Cell, x: number, y: number) => {
+            this.getAppearanceAt(x, y, mixer);
+            return mixer.ch as string;
+        };
+        this.cells.dump(fmt || getCh, log);
     }
 
     // flags
@@ -394,17 +403,7 @@ export class Map
         ctx: Partial<Effect.EffectCtx> = {}
     ): Promise<boolean> {
         const cell = this.cell(x, y);
-        return cell.activate(event, this, x, y, ctx);
-    }
-
-    fireSync(
-        event: string,
-        x: number,
-        y: number,
-        ctx: Partial<Effect.EffectCtx> = {}
-    ): boolean {
-        const cell = this.cell(x, y);
-        return cell.build(event, this, x, y, ctx);
+        return cell.fire(event, this, x, y, ctx);
     }
 
     async fireAll(
@@ -471,80 +470,7 @@ export class Map
             if (cell.hasCellFlag(Flags.Cell.EVENT_FIRED_THIS_TURN)) return;
             for (let depth = 0; depth <= Flags.Depth.GAS; ++depth) {
                 if (w & GWU.flag.fl(depth)) {
-                    await cell.activate(event, this, x, y, {
-                        force: true,
-                        depth,
-                    });
-                }
-            }
-        });
-
-        GWU.grid.free(willFire);
-        return didSomething;
-    }
-
-    fireAllSync(event: string, ctx: Partial<Effect.EffectCtx> = {}): boolean {
-        let didSomething = false;
-        const willFire = GWU.grid.alloc(this.width, this.height);
-
-        // Figure out which tiles will fire - before we change everything...
-        this.cells.forEach((cell, x, y) => {
-            cell.clearCellFlag(
-                Flags.Cell.EVENT_FIRED_THIS_TURN | Flags.Cell.EVENT_PROTECTED
-            );
-            cell.eachTile((tile) => {
-                const ev = tile.effects[event];
-                if (!ev) return;
-
-                const effect = Effect.from(ev);
-                if (!effect) return;
-
-                let promoteChance = 0;
-
-                // < 0 means try to fire my neighbors...
-                if (effect.chance < 0) {
-                    promoteChance = 0;
-                    GWU.xy.eachNeighbor(
-                        x,
-                        y,
-                        (i, j) => {
-                            const n = this.cell(i, j);
-                            if (
-                                !n.hasEntityFlag(
-                                    Flags.Entity.L_BLOCKS_EFFECTS
-                                ) &&
-                                n.depthTile(tile.depth) !=
-                                    cell.depthTile(tile.depth) &&
-                                !n.hasCellFlag(Flags.Cell.CAUGHT_FIRE_THIS_TURN)
-                            ) {
-                                // TODO - Should this break from the loop after doing this once or keep going?
-                                promoteChance += -1 * effect.chance;
-                            }
-                        },
-                        true
-                    );
-                } else {
-                    promoteChance = effect.chance || 100 * 100; // 100%
-                }
-                if (
-                    !cell.hasCellFlag(Flags.Cell.CAUGHT_FIRE_THIS_TURN) &&
-                    this.rng.chance(promoteChance, 10000)
-                ) {
-                    willFire[x][y] |= GWU.flag.fl(tile.depth);
-                    // cell.flags.cellMech |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
-                }
-            });
-        });
-
-        // Then activate them - so that we don't activate the next generation as part of the forEach
-        ctx.force = true;
-        willFire.forEach((w, x, y) => {
-            if (!w) return;
-            const cell = this.cell(x, y);
-            if (cell.hasCellFlag(Flags.Cell.EVENT_FIRED_THIS_TURN)) return;
-            for (let depth = 0; depth <= Flags.Depth.GAS; ++depth) {
-                if (w & GWU.flag.fl(depth)) {
-                    cell.activate(event, this, x, y, {
+                    await cell.fire(event, this, x, y, {
                         force: true,
                         depth,
                     });
@@ -571,30 +497,8 @@ export class Map
                 if (cell.machineId !== machineId) continue;
                 if (cell.hasEffect('machine')) {
                     didSomething =
-                        (await cell.activate('machine', this, x, y, ctx)) ||
+                        (await cell.fire('machine', this, x, y, ctx)) ||
                         didSomething;
-                }
-            }
-        }
-        return didSomething;
-    }
-
-    activateMachineSync(
-        machineId: number,
-        originX: number,
-        originY: number,
-        ctx: Partial<Effect.EffectCtx> = {}
-    ): boolean {
-        let didSomething = false;
-        ctx.originX = originX;
-        ctx.originY = originY;
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
-                const cell = this.cells[x][y];
-                if (cell.machineId !== machineId) continue;
-                if (cell.hasEffect('machine')) {
-                    didSomething =
-                        cell.build('machine', this, x, y, ctx) || didSomething;
                 }
             }
         }

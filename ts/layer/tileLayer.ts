@@ -94,7 +94,7 @@ export class TileLayer extends MapLayer {
                     cell.clearCellFlag(Flags.Cell.PRESSURE_PLATE_DEPRESSED);
                 }
                 if (cell.hasEffect('noKey') && !this.map.hasKey(x, y)) {
-                    await cell.activate('noKey', this.map, x, y);
+                    await cell.fire('noKey', this.map, x, y);
                 }
             }
         }

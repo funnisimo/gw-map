@@ -22,7 +22,7 @@ export class ItemLayer extends MapLayer {
         if (item.forbidsCell(cell)) return false;
 
         if (obj.key && obj.key.matches(x, y) && cell.hasEffect('key')) {
-            await cell.activate('key', this.map, x, y);
+            await cell.fire('key', this.map, x, y);
             if (obj.key.disposable) {
                 obj.destroy();
                 return true; // ??? didSomething?
@@ -34,10 +34,23 @@ export class ItemLayer extends MapLayer {
         obj.y = y;
         obj.depth = this.depth;
 
+        if (cell.hasEffect('addItem')) {
+            await cell.fire('addItem', this.map, x, y, { item });
+        }
+
         return true;
     }
 
     forceItem(x: number, y: number, obj: Item, _opts?: any): boolean {
+        if (!this.map.hasXY(x, y)) return false;
+
+        if (this.map.hasXY(obj.x, obj.y)) {
+            const oldCell = this.map.cell(obj.x, obj.y);
+            GWU.list.remove(oldCell, 'item', obj);
+            obj.x = -1;
+            obj.y = -1;
+        }
+
         const cell = this.map.cell(x, y);
         if (!GWU.list.push(cell, 'item', obj)) return false;
         obj.x = x;
@@ -53,7 +66,9 @@ export class ItemLayer extends MapLayer {
         if (!GWU.list.remove(cell, 'item', obj)) return false;
 
         if (obj.key && obj.key.matches(x, y) && cell.hasEffect('nokey')) {
-            await cell.activate('nokey', this.map, x, y);
+            await cell.fire('nokey', this.map, x, y);
+        } else if (cell.hasEffect('removeItem')) {
+            await cell.fire('removeItem', this.map, x, y);
         }
 
         return true;

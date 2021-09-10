@@ -8,7 +8,11 @@ import { MapType } from '../../map/types';
 //////////////////////////////////////////////
 // EMIT
 
-export class EmitEffect implements Handler {
+export class EmitEffect extends Handler {
+    constructor() {
+        super();
+    }
+
     make(src: Partial<TYPES.EffectConfig>, dest: TYPES.EffectInfo): boolean {
         if (!src.emit) return true;
 
@@ -33,17 +37,6 @@ export class EmitEffect implements Handler {
             return true;
         }
         return false;
-    }
-
-    fireSync(
-        config: TYPES.EffectInfo,
-        _map: MapType,
-        _x: number,
-        _y: number,
-        _ctx: TYPES.EffectCtx
-    ) {
-        if (!config.emit) return false;
-        throw new Error('Cannot use "emit" effects in build steps.');
     }
 }
 

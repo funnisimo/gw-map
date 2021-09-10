@@ -366,10 +366,9 @@ interface TileType {
     getFlavor(): string;
 }
 
-interface Handler {
-    make: (src: Partial<EffectConfig>, dest: EffectInfo) => boolean;
-    fire: (config: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx) => boolean | Promise<boolean>;
-    fireSync: (config: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx) => boolean;
+declare class Handler {
+    make(src: Partial<EffectConfig>, dest: EffectInfo): boolean;
+    fire(config: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx): Promise<boolean> | boolean;
 }
 
 declare function reset(effect: EffectInfo): void;
@@ -384,36 +383,35 @@ declare function make$2(opts: EffectBase): EffectInfo;
 declare function from$1(opts: EffectBase | string): EffectInfo;
 
 declare function fire(effect: EffectInfo | string, map: MapType, x: number, y: number, ctx_?: Partial<EffectCtx>): Promise<boolean>;
-declare function fireSync(effect: EffectInfo | string, map: MapType, x: number, y: number, ctx_?: Partial<EffectCtx>): boolean;
 
-declare class EmitEffect implements Handler {
+declare class EmitEffect extends Handler {
+    constructor();
     make(src: Partial<EffectConfig>, dest: EffectInfo): boolean;
     fire(config: any, _map: MapType, x: number, y: number, ctx: EffectCtx): Promise<boolean>;
-    fireSync(config: EffectInfo, _map: MapType, _x: number, _y: number, _ctx: EffectCtx): boolean;
 }
 
-declare class FnEffect implements Handler {
+declare class FnEffect extends Handler {
+    constructor();
     make(src: Partial<EffectConfig>, dest: EffectInfo): boolean;
     fire(config: any, map: MapType, x: number, y: number, ctx: Partial<EffectCtx>): Promise<any>;
-    fireSync(config: any, map: MapType, x: number, y: number, ctx: Partial<EffectCtx>): any;
 }
 
-declare class MessageEffect implements Handler {
+declare class MessageEffect extends Handler {
+    constructor();
     make(src: Partial<EffectConfig>, dest: EffectInfo): boolean;
     fire(config: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx): Promise<boolean>;
-    fireSync(config: EffectInfo, _map: MapType, _x: number, _y: number, _ctx: EffectCtx): boolean;
 }
 
-declare class ActivateMachineEffect implements Handler {
+declare class ActivateMachineEffect extends Handler {
+    constructor();
     make(src: Partial<EffectConfig>, dest: EffectInfo): boolean;
     fire(config: any, map: MapType, x: number, y: number, ctx: Partial<EffectCtx>): Promise<boolean>;
-    fireSync(config: any, map: MapType, x: number, y: number, ctx: Partial<EffectCtx>): boolean;
 }
 
-declare class EffectEffect implements Handler {
+declare class EffectEffect extends Handler {
+    constructor();
     make(src: Partial<EffectConfig>, dest: EffectInfo): boolean;
     fire(config: any, map: MapType, x: number, y: number, ctx: EffectCtx): Promise<boolean>;
-    fireSync(config: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx): boolean;
 }
 
 interface SpawnConfig {
@@ -434,10 +432,10 @@ interface SpawnInfo {
     volume: number;
     next: string | null;
 }
-declare class SpawnEffect implements Handler {
+declare class SpawnEffect extends Handler {
+    constructor();
     make(src: Partial<EffectConfig>, dest: EffectInfo): boolean;
-    fire(effect: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx): Promise<boolean>;
-    fireSync(effect: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx): boolean;
+    fire(effect: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx): boolean;
     mapDisruptedBy(map: MapType, blockingGrid: GWU.grid.NumGrid, blockingToMapX?: number, blockingToMapY?: number): boolean;
 }
 declare function spawnTiles(flags: number, spawnMap: GWU.grid.NumGrid, map: MapType, tile: Tile, volume?: number, machine?: number): boolean;
@@ -451,13 +449,13 @@ type index_d$4_EffectCtx = EffectCtx;
 type index_d$4_EffectConfig = EffectConfig;
 type index_d$4_EffectBase = EffectBase;
 type index_d$4_Handler = Handler;
+declare const index_d$4_Handler: typeof Handler;
 declare const index_d$4_reset: typeof reset;
 declare const index_d$4_resetAll: typeof resetAll;
 declare const index_d$4_effects: typeof effects;
 declare const index_d$4_handlers: typeof handlers;
 declare const index_d$4_installHandler: typeof installHandler;
 declare const index_d$4_fire: typeof fire;
-declare const index_d$4_fireSync: typeof fireSync;
 type index_d$4_EmitEffect = EmitEffect;
 declare const index_d$4_EmitEffect: typeof EmitEffect;
 type index_d$4_FnEffect = FnEffect;
@@ -494,7 +492,6 @@ declare namespace index_d$4 {
     make$2 as make,
     from$1 as from,
     index_d$4_fire as fire,
-    index_d$4_fireSync as fireSync,
     index_d$4_EmitEffect as EmitEffect,
     index_d$4_FnEffect as FnEffect,
     index_d$4_MessageEffect as MessageEffect,
@@ -689,8 +686,7 @@ interface CellType extends CellInfoType {
     isWall(): boolean;
     isGateSite(): boolean;
     eachGlowLight(cb: (light: GWU.light.LightType) => any): void;
-    activate(event: string, map: MapType, x: number, y: number, ctx?: Partial<EffectCtx>): Promise<boolean> | boolean;
-    build(event: string, map: MapType, x: number, y: number, ctx?: Partial<EffectCtx>): boolean;
+    fire(event: string, map: MapType, x: number, y: number, ctx?: Partial<EffectCtx>): Promise<boolean> | boolean;
     hasEffect(name: string): boolean;
     copy(other: CellType): void;
     needsRedraw: boolean;
@@ -734,11 +730,8 @@ interface MapType {
     setTile(x: number, y: number, tile: string | number | Tile, opts?: SetTileOptions): boolean;
     tick(dt: number): Promise<boolean>;
     fire(event: string, x: number, y: number, ctx?: Partial<EffectCtx>): Promise<boolean>;
-    fireSync(event: string, x: number, y: number, ctx?: Partial<EffectCtx>): boolean;
     fireAll(event: string, ctx?: Partial<EffectCtx>): Promise<boolean>;
-    fireAllSync(event: string, ctx?: Partial<EffectCtx>): boolean;
     activateMachine(machineId: number, originX: number, originY: number, ctx?: Partial<EffectCtx>): Promise<boolean>;
-    activateMachineSync(machineId: number, originX: number, originY: number, ctx?: Partial<EffectCtx>): boolean;
     count(cb: MapTestFn): number;
     dump(fmt?: (cell: CellType) => string): void;
     getAppearanceAt(x: number, y: number, dest: GWU.sprite.Mixer): void;
@@ -973,10 +966,8 @@ declare class Cell implements CellType {
     clearDepth(depth: Depth): boolean;
     clearDepthsWithFlags(tileFlag: number, tileMechFlag?: number): void;
     eachGlowLight(cb: (light: GWU.light.LightType) => any): void;
-    activate(event: string, map: MapType, x: number, y: number, ctx?: Partial<EffectCtx>): Promise<boolean>;
-    build(event: string, map: MapType, x: number, y: number, ctx?: Partial<EffectCtx>): boolean;
+    fire(event: string, map: MapType, x: number, y: number, ctx?: Partial<EffectCtx>): Promise<boolean>;
     _activate(effect: string | EffectInfo, map: MapType, x: number, y: number, ctx: Partial<EffectCtx>): Promise<boolean>;
-    _build(effect: string | EffectInfo, map: MapType, x: number, y: number, ctx: Partial<EffectCtx>): boolean;
     hasEffect(name: string): boolean;
     hasItem(): boolean;
     get item(): Item | null;
@@ -1093,6 +1084,7 @@ declare class Map implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType
     get(x: number, y: number): Cell | undefined;
     eachCell(cb: EachCellCb): void;
     drawInto(dest: GWU.canvas.Canvas | GWU.canvas.DataBuffer, opts?: Partial<MapDrawOptions> | boolean): void;
+    hasItem(x: number, y: number): boolean;
     itemAt(x: number, y: number): Item | null;
     eachItem(cb: GWU.types.EachCb<Item>): void;
     addItem(x: number, y: number, item: Item): Promise<boolean>;
@@ -1109,7 +1101,7 @@ declare class Map implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType
     isVisible(x: number, y: number): boolean;
     hasKey(x: number, y: number): boolean;
     count(cb: MapTestFn): number;
-    dump(fmt?: (cell: CellType) => string, log?: {
+    dump(fmt?: GWU.grid.GridFormat<Cell>, log?: {
         (...data: any[]): void;
         (message?: any, ...optionalParams: any[]): void;
     }): void;
@@ -1129,11 +1121,8 @@ declare class Map implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType
     copy(src: Map): void;
     clone(): Map;
     fire(event: string, x: number, y: number, ctx?: Partial<EffectCtx>): Promise<boolean>;
-    fireSync(event: string, x: number, y: number, ctx?: Partial<EffectCtx>): boolean;
     fireAll(event: string, ctx?: Partial<EffectCtx>): Promise<boolean>;
-    fireAllSync(event: string, ctx?: Partial<EffectCtx>): boolean;
     activateMachine(machineId: number, originX: number, originY: number, ctx?: Partial<EffectCtx>): Promise<boolean>;
-    activateMachineSync(machineId: number, originX: number, originY: number, ctx?: Partial<EffectCtx>): boolean;
     getAppearanceAt(x: number, y: number, dest: GWU.sprite.Mixer): void;
     hasActor(x: number, y: number): boolean;
     eachGlowLight(cb: GWU.light.LightCb): void;

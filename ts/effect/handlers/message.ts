@@ -9,7 +9,11 @@ import { MapType } from '../../map/types';
 //////////////////////////////////////////////
 // MESSAGE
 
-export class MessageEffect implements Handler {
+export class MessageEffect extends Handler {
+    constructor() {
+        super();
+    }
+
     make(src: Partial<TYPES.EffectConfig>, dest: TYPES.EffectInfo): boolean {
         if (!src.message) return true;
 
@@ -43,18 +47,6 @@ export class MessageEffect implements Handler {
             return true;
         }
         return false;
-    }
-
-    fireSync(
-        config: TYPES.EffectInfo,
-        _map: MapType,
-        _x: number,
-        _y: number,
-        _ctx: TYPES.EffectCtx
-    ): boolean {
-        if (!config.message) return false;
-
-        throw new Error('Cannot use "message" effects in build steps.');
     }
 }
 

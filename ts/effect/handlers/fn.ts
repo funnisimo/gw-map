@@ -6,7 +6,11 @@ import { MapType } from '../../map/types';
 //////////////////////////////////////////////
 // FN
 
-export class FnEffect implements Handler {
+export class FnEffect extends Handler {
+    constructor() {
+        super();
+    }
+
     make(src: Partial<TYPES.EffectConfig>, dest: TYPES.EffectInfo): boolean {
         if (!src.fn) return true;
 
@@ -26,25 +30,6 @@ export class FnEffect implements Handler {
     ) {
         if (config.fn) {
             return await config.fn(config, map, x, y, ctx);
-        }
-        return false;
-    }
-
-    fireSync(
-        config: any,
-        map: MapType,
-        x: number,
-        y: number,
-        ctx: Partial<TYPES.EffectCtx>
-    ) {
-        if (config.fn) {
-            const result = config.fn(config, map, x, y, ctx);
-            if (result === true || result === false) {
-                return result;
-            }
-            throw new Error(
-                'Cannot use async function effects in build steps.'
-            );
         }
         return false;
     }
