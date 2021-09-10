@@ -1,8 +1,8 @@
 import * as GWU from 'gw-utils';
 
 import { MapType, CellType } from './types';
-import { GameObject as ObjectFlags } from '../gameObject/flags';
-import { Cell as CellFlags } from './flags';
+import { Entity as ObjectFlags } from '../flags/entity';
+import * as Flags from '../flags';
 
 export function analyze(map: MapType, updateChokeCounts = true) {
     updateLoopiness(map);
@@ -22,12 +22,12 @@ export function updateChokepoints(map: MapType, updateCounts: boolean) {
             const cell = map.cell(i, j);
             if (
                 (cell.blocksPathing() || cell.blocksMove()) &&
-                !cell.hasObjectFlag(ObjectFlags.L_SECRETLY_PASSABLE)
+                !cell.hasEntityFlag(ObjectFlags.L_SECRETLY_PASSABLE)
             ) {
-                // cell.flags &= ~CellFlags.IS_IN_LOOP;
+                // cell.flags &= ~Flags.Cell.IS_IN_LOOP;
                 passMap[i][j] = 0;
             } else {
-                // cell.flags |= CellFlags.IS_IN_LOOP;
+                // cell.flags |= Flags.Cell.IS_IN_LOOP;
                 passMap[i][j] = 1;
             }
         }
@@ -38,17 +38,17 @@ export function updateChokepoints(map: MapType, updateCounts: boolean) {
     // done finding loops; now flag chokepoints
     for (let i = 1; i < passMap.width - 1; i++) {
         for (let j = 1; j < passMap.height - 1; j++) {
-            map.cell(i, j).flags.cell &= ~CellFlags.IS_CHOKEPOINT;
+            map.cell(i, j).flags.cell &= ~Flags.Cell.IS_CHOKEPOINT;
             if (
                 passMap[i][j] &&
-                !(map.cell(i, j).flags.cell & CellFlags.IS_IN_LOOP)
+                !(map.cell(i, j).flags.cell & Flags.Cell.IS_IN_LOOP)
             ) {
                 passableArcCount = 0;
                 for (let dir = 0; dir < 8; dir++) {
-                    const oldX = i + GWU.utils.CLOCK_DIRS[(dir + 7) % 8][0];
-                    const oldY = j + GWU.utils.CLOCK_DIRS[(dir + 7) % 8][1];
-                    const newX = i + GWU.utils.CLOCK_DIRS[dir][0];
-                    const newY = j + GWU.utils.CLOCK_DIRS[dir][1];
+                    const oldX = i + GWU.xy.CLOCK_DIRS[(dir + 7) % 8][0];
+                    const oldY = j + GWU.xy.CLOCK_DIRS[(dir + 7) % 8][1];
+                    const newX = i + GWU.xy.CLOCK_DIRS[dir][0];
+                    const newY = j + GWU.xy.CLOCK_DIRS[dir][1];
                     if (
                         (map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
                             passMap[newX][newY]) !=
@@ -61,7 +61,7 @@ export function updateChokepoints(map: MapType, updateCounts: boolean) {
                                 (!passMap[i][j - 1] && !passMap[i][j + 1])
                             ) {
                                 map.cell(i, j).flags.cell |=
-                                    CellFlags.IS_CHOKEPOINT;
+                                    Flags.Cell.IS_CHOKEPOINT;
                             }
                             break;
                         }
@@ -86,7 +86,7 @@ export function updateChokepoints(map: MapType, updateCounts: boolean) {
             for (let j = 0; j < map.height; j++) {
                 map.cell(i, j).chokeCount = 30000;
                 // Not sure why this was done in Brogue
-                // if (map.cell(i, j).flags.cell & CellFlags.IS_IN_ROOM_MACHINE) {
+                // if (map.cell(i, j).flags.cell & Flags.Cell.IS_IN_ROOM_MACHINE) {
                 //     passMap[i][j] = 0;
                 // }
             }
@@ -100,17 +100,17 @@ export function updateChokepoints(map: MapType, updateCounts: boolean) {
 
                 if (
                     passMap[i][j] &&
-                    cell.flags.cell & CellFlags.IS_CHOKEPOINT
+                    cell.flags.cell & Flags.Cell.IS_CHOKEPOINT
                 ) {
                     for (let dir = 0; dir < 4; dir++) {
-                        const newX = i + GWU.utils.DIRS[dir][0];
-                        const newY = j + GWU.utils.DIRS[dir][1];
+                        const newX = i + GWU.xy.DIRS[dir][0];
+                        const newY = j + GWU.xy.DIRS[dir][1];
                         if (
                             map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
                             passMap[newX][newY] &&
                             !(
                                 map.cell(newX, newY).flags.cell &
-                                CellFlags.IS_CHOKEPOINT
+                                Flags.Cell.IS_CHOKEPOINT
                             )
                         ) {
                             // OK, (newX, newY) is an open point and (i, j) is a chokepoint.
@@ -146,7 +146,8 @@ export function updateChokepoints(map: MapType, updateCounts: boolean) {
                                             map.cell(
                                                 i2,
                                                 j2
-                                            ).flags.cell &= ~CellFlags.IS_GATE_SITE;
+                                            ).flags.cell &= ~Flags.Cell
+                                                .IS_GATE_SITE;
                                         }
                                     }
                                 }
@@ -154,7 +155,7 @@ export function updateChokepoints(map: MapType, updateCounts: boolean) {
                                 // The chokepoint itself should also take the lesser of its current value or the flood count.
                                 if (cellCount < cell.chokeCount) {
                                     cell.chokeCount = cellCount;
-                                    cell.flags.cell |= CellFlags.IS_GATE_SITE;
+                                    cell.flags.cell |= Flags.Cell.IS_GATE_SITE;
                                 }
                             }
                         }
@@ -177,26 +178,46 @@ export function floodFillCount(
     startX: number,
     startY: number
 ) {
-    let count = passMap[startX][startY] == 2 ? 5000 : 1;
+    function getCount(x: number, y: number): number {
+        let count = passMap[x][y] == 2 ? 5000 : 1;
 
-    if (map.cell(startX, startY).flags.cell & CellFlags.IS_IN_AREA_MACHINE) {
-        count = 10000;
+        if (map.cell(x, y).flags.cell & Flags.Cell.IS_IN_AREA_MACHINE) {
+            count = 10000;
+        }
+        return count;
     }
 
-    results[startX][startY] = 1;
+    let count = 0;
+    const todo: GWU.xy.Loc[] = [[startX, startY]];
+    const free: GWU.xy.Loc[] = [];
 
-    for (let dir = 0; dir < 4; dir++) {
-        const newX = startX + GWU.utils.DIRS[dir][0];
-        const newY = startY + GWU.utils.DIRS[dir][1];
+    while (todo.length) {
+        const item = todo.pop()!;
+        free.push(item);
+        const x = item[0];
+        const y = item[1];
+        if (results[x][y]) continue;
 
-        if (
-            map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
-            passMap[newX][newY] &&
-            !results[newX][newY]
-        ) {
-            count += floodFillCount(map, results, passMap, newX, newY);
+        results[x][y] = 1;
+        count += getCount(x, y);
+
+        for (let dir = 0; dir < 4; dir++) {
+            const newX = x + GWU.xy.DIRS[dir][0];
+            const newY = y + GWU.xy.DIRS[dir][1];
+
+            if (
+                map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, newXy) &&
+                passMap[newX][newY] &&
+                !results[newX][newY]
+            ) {
+                const item = free.pop() || [-1, -1];
+                item[0] = newX;
+                item[1] = newY;
+                todo.push(item);
+            }
         }
     }
+
     return Math.min(count, 10000);
 }
 
@@ -206,7 +227,7 @@ export function floodFillCount(
 
 export function updateLoopiness(map: MapType) {
     map.eachCell(resetLoopiness);
-    map.eachCell(checkLoopiness);
+    checkLoopiness(map);
     cleanLoopiness(map);
 }
 
@@ -218,94 +239,106 @@ export function resetLoopiness(
 ) {
     if (
         (cell.blocksPathing() || cell.blocksMove()) &&
-        !cell.hasObjectFlag(ObjectFlags.L_SECRETLY_PASSABLE)
+        !cell.hasEntityFlag(ObjectFlags.L_SECRETLY_PASSABLE)
     ) {
-        cell.flags.cell &= ~CellFlags.IS_IN_LOOP;
+        cell.flags.cell &= ~Flags.Cell.IS_IN_LOOP;
         // passMap[i][j] = false;
     } else {
-        cell.flags.cell |= CellFlags.IS_IN_LOOP;
+        cell.flags.cell |= Flags.Cell.IS_IN_LOOP;
         // passMap[i][j] = true;
     }
 }
 
-export function checkLoopiness(
-    cell: CellType,
-    x: number,
-    y: number,
-    map: MapType
-) {
+export function checkLoopiness(map: MapType) {
     let inString;
     let newX, newY, dir, sdir;
     let numStrings, maxStringLength, currentStringLength;
 
-    if (!cell || !(cell.flags.cell & CellFlags.IS_IN_LOOP)) {
-        return false;
-    }
+    const todo = GWU.grid.alloc(map.width, map.height, 1);
+    let tryAgain = true;
 
-    // find an unloopy neighbor to start on
-    for (sdir = 0; sdir < 8; sdir++) {
-        newX = x + GWU.utils.CLOCK_DIRS[sdir][0];
-        newY = y + GWU.utils.CLOCK_DIRS[sdir][1];
+    while (tryAgain) {
+        tryAgain = false;
+        todo.forEach((v, x, y) => {
+            if (!v) return;
+            const cell = map.cell(x, y);
 
-        if (!map.hasXY(newX, newY)) continue;
+            todo[x][y] = 0;
 
-        const cell = map.get(newX, newY);
-        if (!cell || !(cell.flags.cell & CellFlags.IS_IN_LOOP)) {
-            break;
-        }
-    }
-    if (sdir == 8) {
-        // no unloopy neighbors
-        return false; // leave cell loopy
-    }
-
-    // starting on this unloopy neighbor,
-    // work clockwise and count up:
-    // (a) the number of strings of loopy neighbors, and
-    // (b) the length of the longest such string.
-    numStrings = maxStringLength = currentStringLength = 0;
-    inString = false;
-    for (dir = sdir; dir < sdir + 8; dir++) {
-        newX = x + GWU.utils.CLOCK_DIRS[dir % 8][0];
-        newY = y + GWU.utils.CLOCK_DIRS[dir % 8][1];
-        if (!map.hasXY(newX, newY)) continue;
-
-        const newCell = map.get(newX, newY);
-        if (newCell && newCell.flags.cell & CellFlags.IS_IN_LOOP) {
-            currentStringLength++;
-            if (!inString) {
-                if (numStrings > 0) {
-                    return false; // more than one string here; leave loopy
-                }
-                numStrings++;
-                inString = true;
+            if (!cell.hasCellFlag(Flags.Cell.IS_IN_LOOP)) {
+                return;
             }
-        } else if (inString) {
-            if (currentStringLength > maxStringLength) {
+
+            // find an unloopy neighbor to start on
+            for (sdir = 0; sdir < 8; sdir++) {
+                newX = x + GWU.xy.CLOCK_DIRS[sdir][0];
+                newY = y + GWU.xy.CLOCK_DIRS[sdir][1];
+
+                if (!map.hasXY(newX, newY)) continue;
+
+                const cell = map.cell(newX, newY);
+                if (!cell.hasCellFlag(Flags.Cell.IS_IN_LOOP)) {
+                    break;
+                }
+            }
+            if (sdir == 8) {
+                // no unloopy neighbors
+                return; // leave cell loopy
+            }
+
+            // starting on this unloopy neighbor,
+            // work clockwise and count up:
+            // (a) the number of strings of loopy neighbors, and
+            // (b) the length of the longest such string.
+            numStrings = maxStringLength = currentStringLength = 0;
+            inString = false;
+            for (dir = sdir; dir < sdir + 8; dir++) {
+                newX = x + GWU.xy.CLOCK_DIRS[dir % 8][0];
+                newY = y + GWU.xy.CLOCK_DIRS[dir % 8][1];
+                if (!map.hasXY(newX, newY)) continue;
+
+                const newCell = map.cell(newX, newY);
+                if (newCell.hasCellFlag(Flags.Cell.IS_IN_LOOP)) {
+                    currentStringLength++;
+                    if (!inString) {
+                        numStrings++;
+                        inString = true;
+                        if (numStrings > 1) {
+                            break; // more than one string here; leave loopy
+                        }
+                    }
+                } else if (inString) {
+                    if (currentStringLength > maxStringLength) {
+                        maxStringLength = currentStringLength;
+                    }
+                    currentStringLength = 0;
+                    inString = false;
+                }
+            }
+
+            if (inString && currentStringLength > maxStringLength) {
                 maxStringLength = currentStringLength;
             }
-            currentStringLength = 0;
-            inString = false;
-        }
-    }
+            if (numStrings == 1 && maxStringLength <= 4) {
+                cell.clearCellFlag(Flags.Cell.IS_IN_LOOP);
+                // console.log(x, y, numStrings, maxStringLength);
+                // map.dump((c) =>
+                //     c.hasCellFlag(Flags.Cell.IS_IN_LOOP) ? '*' : ' '
+                // );
 
-    if (inString && currentStringLength > maxStringLength) {
-        maxStringLength = currentStringLength;
-    }
-    if (numStrings == 1 && maxStringLength <= 4) {
-        cell.flags.cell &= ~CellFlags.IS_IN_LOOP;
-
-        for (dir = 0; dir < 8; dir++) {
-            const newX = x + GWU.utils.CLOCK_DIRS[dir][0];
-            const newY = y + GWU.utils.CLOCK_DIRS[dir][1];
-            if (map.hasXY(newX, newY)) {
-                const newCell = map.cell(newX, newY);
-                checkLoopiness(newCell, newX, newY, map);
+                for (dir = 0; dir < 8; dir++) {
+                    newX = x + GWU.xy.CLOCK_DIRS[dir][0];
+                    newY = y + GWU.xy.CLOCK_DIRS[dir][1];
+                    if (
+                        map.hasXY(newX, newY) &&
+                        map.cell(newX, newY).hasCellFlag(Flags.Cell.IS_IN_LOOP)
+                    ) {
+                        todo[newX][newY] = 1;
+                        tryAgain = true;
+                    }
+                }
             }
-        }
-        return true;
-    } else {
-        return false;
+        });
     }
 }
 
@@ -313,14 +346,14 @@ export function fillInnerLoopGrid(map: MapType, grid: GWU.grid.NumGrid) {
     for (let x = 0; x < map.width; ++x) {
         for (let y = 0; y < map.height; ++y) {
             const cell = map.cell(x, y);
-            if (cell.flags.cell & CellFlags.IS_IN_LOOP) {
+            if (cell.flags.cell & Flags.Cell.IS_IN_LOOP) {
                 grid[x][y] = 1;
             } else if (x > 0 && y > 0) {
                 const up = map.cell(x, y - 1);
                 const left = map.cell(x - 1, y);
                 if (
-                    up.flags.cell & CellFlags.IS_IN_LOOP &&
-                    left.flags.cell & CellFlags.IS_IN_LOOP
+                    up.flags.cell & Flags.Cell.IS_IN_LOOP &&
+                    left.flags.cell & Flags.Cell.IS_IN_LOOP
                 ) {
                     grid[x][y] = 1;
                 }
@@ -340,18 +373,18 @@ export function cleanLoopiness(map: MapType) {
     for (let i = 0; i < grid.width; i++) {
         for (let j = 0; j < grid.height; j++) {
             const cell = map.cell(i, j);
-            if (cell.flags.cell & CellFlags.IS_IN_LOOP) {
+            if (cell.flags.cell & Flags.Cell.IS_IN_LOOP) {
                 designationSurvives = false;
                 for (let dir = 0; dir < 8; dir++) {
-                    let newX = i + GWU.utils.CLOCK_DIRS[dir][0];
-                    let newY = j + GWU.utils.CLOCK_DIRS[dir][1];
+                    let newX = i + GWU.xy.CLOCK_DIRS[dir][0];
+                    let newY = j + GWU.xy.CLOCK_DIRS[dir][1];
 
                     if (
                         map.hasXY(newX, newY) && // RUT.Map.makeValidXy(map, xy, newX, newY) &&
                         !grid[newX][newY] &&
                         !(
                             map.cell(newX, newY).flags.cell &
-                            CellFlags.IS_IN_LOOP
+                            Flags.Cell.IS_IN_LOOP
                         )
                     ) {
                         designationSurvives = true;
@@ -360,7 +393,7 @@ export function cleanLoopiness(map: MapType) {
                 }
                 if (!designationSurvives) {
                     grid[i][j] = 1;
-                    map.cell(i, j).flags.cell &= ~CellFlags.IS_IN_LOOP;
+                    map.cell(i, j).flags.cell &= ~Flags.Cell.IS_IN_LOOP;
                 }
             }
         }

@@ -5,7 +5,7 @@ import * as UTILS from '../../test/utils';
 import { CellMemory } from './cellMemory';
 import { Cell } from './cell';
 import * as Tile from '../tile';
-import * as Flags from './flags';
+import * as Flags from '../flags';
 
 describe('CellMemory', () => {
     test('Snapshot', () => {

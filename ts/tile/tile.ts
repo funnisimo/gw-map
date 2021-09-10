@@ -1,14 +1,8 @@
 import * as GWU from 'gw-utils';
 
 import * as Effect from '../effect';
-import {
-    Depth,
-    GameObject as ObjectFlags,
-    DepthString,
-} from '../gameObject/flags';
-
 import { TileFlags, TileType, NameConfig } from './types';
-import * as Flags from './flags';
+import * as Flags from '../flags';
 
 export interface TileConfig extends GWU.sprite.SpriteConfig {
     id: string;
@@ -57,7 +51,7 @@ export class Tile implements TileType {
         this.flavor = config.flavor || this.name;
         this.article = config.article ?? null;
 
-        this.flags = config.flags || { object: 0, tile: 0, tileMech: 0 };
+        this.flags = config.flags || { entity: 0, tile: 0, tileMech: 0 };
 
         if (config.effects) {
             Object.assign(this.effects, config.effects);
@@ -68,8 +62,8 @@ export class Tile implements TileType {
         }
     }
 
-    hasObjectFlag(flag: number): boolean {
-        return !!(this.flags.object & flag);
+    hasEntityFlag(flag: number): boolean {
+        return !!(this.flags.entity & flag);
     }
     hasTileFlag(flag: number): boolean {
         return !!(this.flags.tile & flag);
@@ -78,8 +72,8 @@ export class Tile implements TileType {
         return !!(this.flags.tileMech & flag);
     }
 
-    hasAllObjectFlags(flag: number): boolean {
-        return (this.flags.object & flag) === flag;
+    hasAllEntityFlags(flag: number): boolean {
+        return (this.flags.entity & flag) === flag;
     }
     hasAllTileFlags(flag: number): boolean {
         return (this.flags.tile & flag) === flag;
@@ -89,10 +83,10 @@ export class Tile implements TileType {
     }
 
     blocksVision(): boolean {
-        return !!(this.flags.object & ObjectFlags.L_BLOCKS_VISION);
+        return !!(this.flags.entity & Flags.Entity.L_BLOCKS_VISION);
     }
     blocksMove(): boolean {
-        return !!(this.flags.object & ObjectFlags.L_BLOCKS_MOVE);
+        return !!(this.flags.entity & Flags.Entity.L_BLOCKS_MOVE);
     }
     blocksPathing(): boolean {
         return (
@@ -100,7 +94,7 @@ export class Tile implements TileType {
         );
     }
     blocksEffects(): boolean {
-        return !!(this.flags.object & ObjectFlags.L_BLOCKS_EFFECTS);
+        return !!(this.flags.entity & Flags.Entity.L_BLOCKS_EFFECTS);
     }
 
     hasEffect(name: string): boolean {
@@ -164,7 +158,7 @@ export interface TileOptions extends GWU.sprite.SpriteConfig {
     flags: GWU.flag.FlagBase;
     priority: number | string;
     dissipate: number;
-    depth: Depth | DepthString;
+    depth: Flags.Depth | Flags.DepthString;
 
     effects: Record<string, Partial<Effect.EffectConfig> | string | null>;
     groundTile: string;
@@ -180,7 +174,7 @@ export function make(options: Partial<TileOptions>) {
             throw new Error('Failed to find base tile: ' + options.extends);
     }
 
-    let priority: number = -1;
+    let priority: number = base.priority;
     if (typeof options.priority === 'string') {
         let text = options.priority.replace(/ /g, '');
         let index = text.search(/[+-]/);
@@ -231,7 +225,7 @@ export function make(options: Partial<TileOptions>) {
     }
 
     const flags: TileFlags = {
-        object: GWU.flag.from(ObjectFlags, base.flags.object, options.flags),
+        entity: GWU.flag.from(Flags.Entity, base.flags.entity, options.flags),
         tile: GWU.flag.from(Flags.Tile, base.flags.tile, options.flags),
         tileMech: GWU.flag.from(
             Flags.TileMech,
@@ -243,7 +237,7 @@ export function make(options: Partial<TileOptions>) {
     let depth: number = base.depth || 0;
     if (options.depth) {
         if (typeof options.depth === 'string') {
-            depth = Depth[options.depth];
+            depth = Flags.Depth[options.depth];
         } else {
             depth = options.depth;
         }
@@ -260,7 +254,7 @@ export function make(options: Partial<TileOptions>) {
         flags,
         dissipate: options.dissipate ?? base.dissipate,
         effects,
-        priority: priority != -1 ? priority : undefined,
+        priority,
         depth: depth,
         light,
         groundTile: options.groundTile || null,

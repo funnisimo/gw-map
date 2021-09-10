@@ -1,13 +1,12 @@
 import * as GWU from 'gw-utils';
 
-import * as Flags from './flags';
+import * as Flags from '../flags';
 import { Cell } from './cell';
 import * as TILE from '../tile';
 import { Tile } from '../tile';
-import { TileLayer, ActorLayer, ItemLayer } from './layers';
+import * as Layer from '../layer';
 import { Item } from '../item';
 import { Actor } from '../actor';
-import { Depth } from '../gameObject/flags';
 import {
     MapType,
     EachCellCb,
@@ -17,8 +16,6 @@ import {
     CellInfoType,
 } from './types';
 import { CellMemory } from './cellMemory';
-import { FireLayer } from './fireLayer';
-import { GasLayer } from './gasLayer';
 import * as Effect from '../effect';
 
 export interface MapOptions
@@ -26,9 +23,10 @@ export interface MapOptions
         GWU.fov.FovSystemOptions {
     tile: string | true;
     boundary: string | true;
+    seed: number;
 }
 
-export type LayerType = TileLayer | ActorLayer | ItemLayer;
+export type LayerType = Layer.TileLayer | Layer.ActorLayer | Layer.ItemLayer;
 
 export interface MapDrawOptions {
     x: number;
@@ -51,6 +49,8 @@ export class Map
     fov: GWU.fov.FovSystemType;
     properties: Record<string, any>;
     memory: GWU.grid.Grid<CellMemory>;
+    _seed = 0;
+    rng: GWU.rng.Random = GWU.rng.random;
 
     constructor(width: number, height: number, opts: Partial<MapOptions> = {}) {
         this.width = width;
@@ -61,11 +61,24 @@ export class Map
         this.cells = GWU.grid.make(width, height, () => new Cell());
         this.memory = GWU.grid.make(width, height, () => new CellMemory());
 
+        if (opts.seed) {
+            this._seed = opts.seed;
+            this.rng = GWU.rng.make(opts.seed);
+        }
+
         this.light = new GWU.light.LightSystem(this, opts);
         this.fov = new GWU.fov.FovSystem(this, opts);
         this.properties = {};
 
         this.initLayers();
+    }
+
+    get seed(): number {
+        return this._seed;
+    }
+    set seed(v: number) {
+        this._seed = v;
+        this.rng = GWU.rng.make(v);
     }
 
     cellInfo(x: number, y: number, useMemory = false): CellInfoType {
@@ -76,33 +89,36 @@ export class Map
     // LAYERS
 
     initLayers() {
-        this.addLayer(Depth.GROUND, new TileLayer(this, 'ground'));
-        this.addLayer(Depth.SURFACE, new FireLayer(this, 'surface'));
-        this.addLayer(Depth.GAS, new GasLayer(this, 'gas'));
-        this.addLayer(Depth.ITEM, new ItemLayer(this, 'item'));
-        this.addLayer(Depth.ACTOR, new ActorLayer(this, 'actor'));
+        this.addLayer(Flags.Depth.GROUND, new Layer.TileLayer(this, 'ground'));
+        this.addLayer(
+            Flags.Depth.SURFACE,
+            new Layer.FireLayer(this, 'surface')
+        );
+        this.addLayer(Flags.Depth.GAS, new Layer.GasLayer(this, 'gas'));
+        this.addLayer(Flags.Depth.ITEM, new Layer.ItemLayer(this, 'item'));
+        this.addLayer(Flags.Depth.ACTOR, new Layer.ActorLayer(this, 'actor'));
     }
 
-    addLayer(depth: number | keyof typeof Depth, layer: LayerType) {
+    addLayer(depth: number | keyof typeof Flags.Depth, layer: LayerType) {
         if (typeof depth !== 'number') {
-            depth = Depth[depth as keyof typeof Depth];
+            depth = Flags.Depth[depth as keyof typeof Flags.Depth];
         }
 
         layer.depth = depth;
         this.layers[depth] = layer;
     }
 
-    removeLayer(depth: number | keyof typeof Depth) {
+    removeLayer(depth: number | keyof typeof Flags.Depth) {
         if (typeof depth !== 'number') {
-            depth = Depth[depth as keyof typeof Depth];
+            depth = Flags.Depth[depth as keyof typeof Flags.Depth];
         }
         if (!depth) throw new Error('Cannot remove layer with depth=0.');
         delete this.layers[depth];
     }
 
-    getLayer(depth: number | keyof typeof Depth): LayerType | null {
+    getLayer(depth: number | keyof typeof Flags.Depth): LayerType | null {
         if (typeof depth !== 'number') {
-            depth = Depth[depth as keyof typeof Depth];
+            depth = Flags.Depth[depth as keyof typeof Flags.Depth];
         }
         return this.layers[depth] || null;
     }
@@ -137,34 +153,60 @@ export class Map
         const mixer = new GWU.sprite.Mixer();
         for (let x = 0; x < buffer.width; ++x) {
             for (let y = 0; y < buffer.height; ++y) {
+                // const cell = this.cell(x, y);
+                // if (
+                //     cell.needsRedraw ||
+                //     this.light.lightChanged(x, y) ||
+                //     this.fov.fovChanged(x, y)
+                // ) {
                 this.getAppearanceAt(x, y, mixer);
                 buffer.drawSprite(x, y, mixer);
+                // }
             }
         }
     }
 
     // items
 
+    hasItem(x: number, y: number): boolean {
+        return this.cell(x, y).hasItem();
+    }
     itemAt(x: number, y: number): Item | null {
         return this.cell(x, y).item;
     }
     eachItem(cb: GWU.types.EachCb<Item>): void {
         this.cells.forEach((cell) => {
-            GWU.utils.eachChain(cell.item, cb);
+            GWU.list.forEach(cell.item, cb);
         });
     }
-    addItem(x: number, y: number, item: Item): boolean {
-        const layer = this.layers[item.depth] as ItemLayer;
-        return layer.add(x, y, item);
+    async addItem(x: number, y: number, item: Item): Promise<boolean> {
+        if (!this.hasXY(x, y)) return false;
+        for (let layer of this.layers) {
+            if (layer && (await layer.addItem(x, y, item))) {
+                return true;
+            }
+        }
+        return false;
     }
-    removeItem(item: Item): boolean {
-        const layer = this.layers[item.depth] as ItemLayer;
-        return layer.remove(item);
+    forceItem(x: number, y: number, item: Item): boolean {
+        if (!this.hasXY(x, y)) return false;
+        for (let layer of this.layers) {
+            if (layer && layer.forceItem(x, y, item)) {
+                return true;
+            }
+        }
+        return false;
     }
-    moveItem(item: Item, x: number, y: number): boolean {
-        const layer = this.layers[item.depth] as ItemLayer;
-        if (!layer.remove(item)) return false;
-        return layer.add(x, y, item);
+
+    async removeItem(item: Item): Promise<boolean> {
+        const layer = this.layers[item.depth] as Layer.ItemLayer;
+        return layer.removeItem(item);
+    }
+    async moveItem(x: number, y: number, item: Item): Promise<boolean> {
+        if (!this.hasXY(x, y)) return false;
+        const layer = this.layers[item.depth] as Layer.ItemLayer;
+        if (!(await layer.removeItem(item))) return false;
+        return this.addItem(x, y, item);
     }
 
     // Actors
@@ -177,21 +219,36 @@ export class Map
     }
     eachActor(cb: GWU.types.EachCb<Actor>): void {
         this.cells.forEach((cell) => {
-            GWU.utils.eachChain(cell.actor, cb);
+            GWU.list.forEach(cell.actor, cb);
         });
     }
-    addActor(x: number, y: number, item: Actor): boolean {
-        const layer = this.layers[item.depth] as ActorLayer;
-        return layer.add(x, y, item);
+    async addActor(x: number, y: number, actor: Actor): Promise<boolean> {
+        if (!this.hasXY(x, y)) return false;
+        for (let layer of this.layers) {
+            if (layer && (await layer.addActor(x, y, actor))) {
+                return true;
+            }
+        }
+        return false;
     }
-    removeActor(item: Actor): boolean {
-        const layer = this.layers[item.depth] as ActorLayer;
-        return layer.remove(item);
+    forceActor(x: number, y: number, actor: Actor): boolean {
+        if (!this.hasXY(x, y)) return false;
+        for (let layer of this.layers) {
+            if (layer && layer.forceActor(x, y, actor)) {
+                return true;
+            }
+        }
+        return false;
     }
-    moveActor(item: Actor, x: number, y: number): boolean {
-        const layer = this.layers[item.depth] as ActorLayer;
-        if (!layer.remove(item)) return false;
-        return layer.add(x, y, item);
+    async removeActor(actor: Actor): Promise<boolean> {
+        const layer = this.layers[actor.depth] as Layer.ActorLayer;
+        return layer.removeActor(actor);
+    }
+    async moveActor(x: number, y: number, actor: Actor): Promise<boolean> {
+        if (!this.hasXY(x, y)) return false;
+        const layer = this.layers[actor.depth] as Layer.ActorLayer;
+        if (!(await layer.removeActor(actor))) return false;
+        return this.addActor(x, y, actor);
     }
 
     // Information
@@ -199,12 +256,23 @@ export class Map
     isVisible(x: number, y: number): boolean {
         return this.fov.isAnyKindOfVisible(x, y);
     }
+    hasKey(x: number, y: number): boolean {
+        if (!this.hasXY(x, y)) return false;
+        const cell = this.cells[x][y];
+        return cell._objects.some((e) => !!e.key && e.key.matches(x, y));
+    }
 
     count(cb: MapTestFn): number {
         return this.cells.count((cell, x, y) => cb(cell, x, y, this));
     }
-    dump(fmt?: (cell: CellType) => string, log = console.log) {
-        this.cells.dump(fmt || ((c: Cell) => c.dump()), log);
+    dump(fmt?: GWU.grid.GridFormat<Cell>, log = console.log) {
+        const mixer = new GWU.sprite.Mixer();
+
+        const getCh = (_cell: Cell, x: number, y: number) => {
+            this.getAppearanceAt(x, y, mixer);
+            return mixer.ch as string;
+        };
+        this.cells.dump(fmt || getCh, log);
     }
 
     // flags
@@ -226,6 +294,17 @@ export class Map
         this.cell(x, y).clearCellFlag(flag);
     }
 
+    clear() {
+        this.light.glowLightChanged = true;
+        this.fov.needsUpdate = true;
+        this.layers.forEach((l) => l.clear());
+    }
+
+    clearCell(x: number, y: number, tile?: number | string | Tile) {
+        const cell = this.cell(x, y);
+        cell.clear(tile);
+    }
+
     // Skips all the logic checks and just forces a clean cell with the given tile
     fill(tile: string | number | Tile, boundary?: string | number | Tile) {
         tile = TILE.get(tile);
@@ -235,8 +314,7 @@ export class Map
         for (i = 0; i < this.width; ++i) {
             for (j = 0; j < this.height; ++j) {
                 const cell = this.cell(i, j);
-                cell.clear();
-                cell.setTile(this.isBoundaryXY(i, j) ? boundary : tile);
+                cell.clear(this.isBoundaryXY(i, j) ? boundary : tile);
             }
         }
     }
@@ -248,6 +326,10 @@ export class Map
         useMemory = false
     ): boolean {
         return this.cellInfo(x, y, useMemory).hasTile(tile);
+    }
+
+    forceTile(x: number, y: number, tile: string | number | Tile) {
+        return this.setTile(x, y, tile, { superpriority: true });
     }
 
     setTile(
@@ -266,8 +348,13 @@ export class Map
 
         const depth = tile.depth || 0;
         const layer = this.layers[depth] || this.layers[0];
-        if (!(layer instanceof TileLayer)) return false;
-        return layer.set(x, y, tile, opts);
+        if (!(layer instanceof Layer.TileLayer)) return false;
+        return layer.setTile(x, y, tile, opts);
+    }
+
+    clearTiles(x: number, y: number, tile?: number | string | Tile) {
+        const cell = this.cell(x, y);
+        cell.clearTiles(tile);
     }
 
     async tick(dt: number): Promise<boolean> {
@@ -296,7 +383,10 @@ export class Map
         });
 
         this.flags.map = src.flags.map;
-        this.light.setAmbient(src.light.getAmbient());
+        this.fov.needsUpdate = true;
+        this.light.copy(src.light);
+        this.rng = src.rng;
+        Object.assign(this.properties, src.properties);
     }
 
     clone(): Map {
@@ -313,17 +403,7 @@ export class Map
         ctx: Partial<Effect.EffectCtx> = {}
     ): Promise<boolean> {
         const cell = this.cell(x, y);
-        return cell.activate(event, this, x, y, ctx);
-    }
-
-    fireSync(
-        event: string,
-        x: number,
-        y: number,
-        ctx: Partial<Effect.EffectCtx> = {}
-    ): boolean {
-        const cell = this.cell(x, y);
-        return cell.activateSync(event, this, x, y, ctx);
+        return cell.fire(event, this, x, y, ctx);
     }
 
     async fireAll(
@@ -350,14 +430,14 @@ export class Map
                 // < 0 means try to fire my neighbors...
                 if (effect.chance < 0) {
                     promoteChance = 0;
-                    GWU.utils.eachNeighbor(
+                    GWU.xy.eachNeighbor(
                         x,
                         y,
                         (i, j) => {
                             const n = this.cell(i, j);
                             if (
-                                !n.hasObjectFlag(
-                                    Flags.GameObject.L_BLOCKS_EFFECTS
+                                !n.hasEntityFlag(
+                                    Flags.Entity.L_BLOCKS_EFFECTS
                                 ) &&
                                 n.depthTile(tile.depth) !=
                                     cell.depthTile(tile.depth) &&
@@ -374,7 +454,7 @@ export class Map
                 }
                 if (
                     !cell.hasCellFlag(Flags.Cell.CAUGHT_FIRE_THIS_TURN) &&
-                    GWU.random.chance(promoteChance, 10000)
+                    this.rng.chance(promoteChance, 10000)
                 ) {
                     willFire[x][y] |= GWU.flag.fl(tile.depth);
                     // cell.flags.cellMech |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
@@ -390,80 +470,7 @@ export class Map
             if (cell.hasCellFlag(Flags.Cell.EVENT_FIRED_THIS_TURN)) return;
             for (let depth = 0; depth <= Flags.Depth.GAS; ++depth) {
                 if (w & GWU.flag.fl(depth)) {
-                    await cell.activate(event, this, x, y, {
-                        force: true,
-                        depth,
-                    });
-                }
-            }
-        });
-
-        GWU.grid.free(willFire);
-        return didSomething;
-    }
-
-    fireAllSync(event: string, ctx: Partial<Effect.EffectCtx> = {}): boolean {
-        let didSomething = false;
-        const willFire = GWU.grid.alloc(this.width, this.height);
-
-        // Figure out which tiles will fire - before we change everything...
-        this.cells.forEach((cell, x, y) => {
-            cell.clearCellFlag(
-                Flags.Cell.EVENT_FIRED_THIS_TURN | Flags.Cell.EVENT_PROTECTED
-            );
-            cell.eachTile((tile) => {
-                const ev = tile.effects[event];
-                if (!ev) return;
-
-                const effect = Effect.from(ev);
-                if (!effect) return;
-
-                let promoteChance = 0;
-
-                // < 0 means try to fire my neighbors...
-                if (effect.chance < 0) {
-                    promoteChance = 0;
-                    GWU.utils.eachNeighbor(
-                        x,
-                        y,
-                        (i, j) => {
-                            const n = this.cell(i, j);
-                            if (
-                                !n.hasObjectFlag(
-                                    Flags.GameObject.L_BLOCKS_EFFECTS
-                                ) &&
-                                n.depthTile(tile.depth) !=
-                                    cell.depthTile(tile.depth) &&
-                                !n.hasCellFlag(Flags.Cell.CAUGHT_FIRE_THIS_TURN)
-                            ) {
-                                // TODO - Should this break from the loop after doing this once or keep going?
-                                promoteChance += -1 * effect.chance;
-                            }
-                        },
-                        true
-                    );
-                } else {
-                    promoteChance = effect.chance || 100 * 100; // 100%
-                }
-                if (
-                    !cell.hasCellFlag(Flags.Cell.CAUGHT_FIRE_THIS_TURN) &&
-                    GWU.random.chance(promoteChance, 10000)
-                ) {
-                    willFire[x][y] |= GWU.flag.fl(tile.depth);
-                    // cell.flags.cellMech |= Cell.MechFlags.EVENT_FIRED_THIS_TURN;
-                }
-            });
-        });
-
-        // Then activate them - so that we don't activate the next generation as part of the forEach
-        ctx.force = true;
-        willFire.forEach((w, x, y) => {
-            if (!w) return;
-            const cell = this.cell(x, y);
-            if (cell.hasCellFlag(Flags.Cell.EVENT_FIRED_THIS_TURN)) return;
-            for (let depth = 0; depth <= Flags.Depth.GAS; ++depth) {
-                if (w & GWU.flag.fl(depth)) {
-                    cell.activate(event, this, x, y, {
+                    await cell.fire(event, this, x, y, {
                         force: true,
                         depth,
                     });
@@ -490,30 +497,7 @@ export class Map
                 if (cell.machineId !== machineId) continue;
                 if (cell.hasEffect('machine')) {
                     didSomething =
-                        (await cell.activate('machine', this, x, y, ctx)) ||
-                        didSomething;
-                }
-            }
-        }
-        return didSomething;
-    }
-
-    activateMachineSync(
-        machineId: number,
-        originX: number,
-        originY: number,
-        ctx: Partial<Effect.EffectCtx> = {}
-    ): boolean {
-        let didSomething = false;
-        ctx.originX = originX;
-        ctx.originY = originY;
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
-                const cell = this.cells[x][y];
-                if (cell.machineId !== machineId) continue;
-                if (cell.hasEffect('machine')) {
-                    didSomething =
-                        cell.activateSync('machine', this, x, y, ctx) ||
+                        (await cell.fire('machine', this, x, y, ctx)) ||
                         didSomething;
                 }
             }
@@ -551,7 +535,7 @@ export class Map
             dest.blackOut();
         }
 
-        if (cell.hasObjectFlag(Flags.GameObject.L_VISUALLY_DISTINCT)) {
+        if (cell.hasEntityFlag(Flags.Entity.L_VISUALLY_DISTINCT)) {
             GWU.color.separate(dest.fg, dest.bg);
         }
     }
@@ -564,6 +548,7 @@ export class Map
     eachGlowLight(cb: GWU.light.LightCb): void {
         this.cells.forEach((cell, x, y) => {
             cell.eachGlowLight((light) => cb(x, y, light));
+            cell.clearCellFlag(Flags.Cell.LIGHT_CHANGED);
         });
     }
     eachDynamicLight(_cb: GWU.light.LightCb): void {}

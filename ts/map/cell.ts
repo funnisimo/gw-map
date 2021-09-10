@@ -1,15 +1,10 @@
 import * as GWU from 'gw-utils';
 
-import {
-    Cell as Flags,
-    GameObject as ObjectFlags,
-    Tile as TileFlags,
-} from './flags';
+import * as Flags from '../flags';
 import { CellType, CellFlags, MapType } from './types';
 
 import * as TILE from '../tile';
-import { Depth } from '../gameObject/flags';
-import { GameObject } from '../gameObject';
+import { Entity } from '../entity';
 import { Actor } from '../actor';
 import { Item } from '../item';
 import * as Effect from '../effect';
@@ -28,21 +23,29 @@ class CellObjects {
         this.cell = cell;
     }
 
-    forEach(cb: EachCb<GameObject>): void {
-        let object: GameObject | null = this.cell._item;
-        while (object) {
-            cb(object);
-            object = object.next;
-        }
-        object = this.cell._actor;
+    eachItem(cb: EachCb<Item>): void {
+        let object: Item | null = this.cell._item;
         while (object) {
             cb(object);
             object = object.next;
         }
     }
 
-    some(cb: MatchCb<GameObject>): boolean {
-        let object: GameObject | null = this.cell._item;
+    eachActor(cb: EachCb<Actor>): void {
+        let object: Actor | null = this.cell._actor;
+        while (object) {
+            cb(object);
+            object = object.next;
+        }
+    }
+
+    forEach(cb: EachCb<Entity>): void {
+        this.eachItem(cb);
+        this.eachActor(cb);
+    }
+
+    some(cb: MatchCb<Entity>): boolean {
+        let object: Entity | null = this.cell._item;
         while (object) {
             if (cb(object)) return true;
             object = object.next;
@@ -55,8 +58,8 @@ class CellObjects {
         return false;
     }
 
-    reduce(cb: ReduceCb<GameObject>, start?: any): any {
-        let object: GameObject | null = this.cell._item;
+    reduce(cb: ReduceCb<Entity>, start?: any): any {
+        let object: Entity | null = this.cell._item;
         while (object) {
             if (start === undefined) {
                 start = object;
@@ -83,6 +86,7 @@ export class Cell implements CellType {
     chokeCount = 0;
     tiles: TileArray;
     machineId = 0;
+    // keyId = 0;
     // gasVolume: number = 0;
     // liquidVolume: number = 0;
     _actor: Actor | null = null;
@@ -103,9 +107,14 @@ export class Cell implements CellType {
     copy(other: Cell) {
         Object.assign(this.flags, other.flags);
         this.chokeCount = other.chokeCount;
-        this.tiles = other.tiles.slice() as TileArray;
+        this.tiles.length = other.tiles.length;
+        for (let i = 0; i < this.tiles.length; ++i) {
+            this.tiles[i] = other.tiles[i];
+        }
         this._actor = other._actor;
         this._item = other._item;
+        // this.keyId = other.keyId;
+        this.machineId = other.machineId;
     }
 
     hasCellFlag(flag: number): boolean {
@@ -118,14 +127,14 @@ export class Cell implements CellType {
         this.flags.cell &= ~flag;
     }
 
-    hasObjectFlag(flag: number): boolean {
+    hasEntityFlag(flag: number): boolean {
         return (
-            this.tiles.some((t) => t && t.flags.object & flag) ||
-            this._objects.some((o) => !!(o.flags.object & flag))
+            this.tiles.some((t) => t && t.flags.entity & flag) ||
+            this._objects.some((o) => !!(o.flags.entity & flag))
         );
     }
-    hasAllObjectFlags(flags: number): boolean {
-        return (this.objectFlags() & flags) == flags;
+    hasAllEntityFlags(flags: number): boolean {
+        return (this.entityFlags() & flags) == flags;
     }
     hasTileFlag(flag: number): boolean {
         return this.tiles.some((t) => t && t.flags.tile & flag);
@@ -143,10 +152,10 @@ export class Cell implements CellType {
     cellFlags(): number {
         return this.flags.cell;
     }
-    objectFlags(): number {
+    entityFlags(): number {
         return (
-            this.tiles.reduce((out, t) => out | (t ? t.flags.object : 0), 0) |
-            this._objects.reduce((out, o) => out | o.flags.object, 0)
+            this.tiles.reduce((out, t) => out | (t ? t.flags.entity : 0), 0) |
+            this._objects.reduce((out, o) => out | o.flags.entity, 0)
         );
     }
     tileFlags(): number {
@@ -159,21 +168,33 @@ export class Cell implements CellType {
         );
     }
     itemFlags(): number {
-        return this._objects.reduce((out, o) => out | o.itemFlags(), 0);
+        let flags = 0;
+        this._objects.eachItem((i) => {
+            flags |= i.flags.item;
+        });
+        return flags;
     }
     actorFlags(): number {
-        return this._objects.reduce((out, o) => out | o.actorFlags(), 0);
+        let flags = 0;
+        this._objects.eachActor((a) => {
+            flags |= a.flags.actor;
+        });
+        return flags;
     }
 
     get needsRedraw() {
-        return !!(this.flags.cell & Flags.NEEDS_REDRAW);
+        return !!(this.flags.cell & Flags.Cell.NEEDS_REDRAW);
     }
     set needsRedraw(v: boolean) {
         if (v) {
-            this.flags.cell |= Flags.NEEDS_REDRAW;
+            this.flags.cell |= Flags.Cell.NEEDS_REDRAW;
         } else {
-            this.flags.cell &= ~Flags.NEEDS_REDRAW;
+            this.flags.cell &= ~Flags.Cell.NEEDS_REDRAW;
         }
+    }
+
+    get changed() {
+        return !!(this.flags.cell & Flags.Cell.CHANGED);
     }
 
     depthPriority(depth: number): number {
@@ -216,7 +237,7 @@ export class Cell implements CellType {
     }
 
     tileWithObjectFlag(flag: number) {
-        return this.tiles.find((t) => t && t.flags.object & flag) || null;
+        return this.tiles.find((t) => t && t.flags.entity & flag) || null;
     }
 
     tileWithFlag(flag: number) {
@@ -273,34 +294,36 @@ export class Cell implements CellType {
         return !this.blocksMove();
     }
     isWall(): boolean {
-        return this.hasAllObjectFlags(ObjectFlags.L_WALL_FLAGS);
+        return this.hasAllEntityFlags(Flags.Entity.L_WALL_FLAGS);
     }
     isStairs(): boolean {
-        return this.hasTileFlag(TileFlags.T_HAS_STAIRS);
+        return this.hasTileFlag(Flags.Tile.T_HAS_STAIRS);
+    }
+    isGateSite(): boolean {
+        return this.hasCellFlag(Flags.Cell.IS_GATE_SITE);
     }
 
-    hasKey(): boolean {
-        return false;
-    }
-
-    // @returns - whether or not the change results in a change to the cell lighting.
+    // @returns - whether or not the change results in a change to the cell tiles.
+    //          - If there is a change to cell lighting, the cell will have the
+    //          - LIGHT_CHANGED flag set.
     setTile(tile: string | number | TILE.Tile): boolean {
         if (!(tile instanceof TILE.Tile)) {
             tile = TILE.get(tile);
             if (!tile) return false;
         }
 
-        // const current = this.tiles[tile.depth] || TILE.tiles.NULL;
-
-        // if (current !== tile) {
-        //     this.gasVolume = 0;
-        //     this.liquidVolume = 0;
-        // }
-
-        // Check priority, etc...
+        const current = this.tiles[tile.depth] || TILE.tiles.NULL;
+        if (current === tile) return false;
 
         this.tiles[tile.depth] = tile;
         this.needsRedraw = true;
+
+        if (current.light !== tile.light) {
+            this.setCellFlag(Flags.Cell.LIGHT_CHANGED);
+        }
+        if (current.blocksVision() !== tile.blocksVision()) {
+            this.setCellFlag(Flags.Cell.FOV_CHANGED);
+        }
 
         // if (volume) {
         //     if (tile.depth === Depth.GAS) {
@@ -313,15 +336,29 @@ export class Cell implements CellType {
 
         return true;
     }
-    clear() {
+    clearTiles(tile: string | number | TILE.Tile) {
+        this.tiles[0] = TILE.tiles.NULL;
+        for (let i = 1; i < this.tiles.length; ++i) {
+            this.tiles[i] = null;
+        }
+        if (tile) {
+            this.setTile(tile);
+        }
+    }
+
+    clear(tile?: number | string | TILE.Tile) {
         this.tiles = [TILE.tiles.NULL];
-        this.needsRedraw = true;
         this.flags.cell = 0;
+        this.needsRedraw = true;
         this.chokeCount = 0;
+        this.machineId = 0;
         this._actor = null;
         this._item = null;
+        if (tile) {
+            this.setTile(tile);
+        }
     }
-    clearDepth(depth: Depth): boolean {
+    clearDepth(depth: Flags.Depth): boolean {
         if (depth == 0) {
             this.tiles[0] = TILE.tiles.NULL;
             this.needsRedraw = true;
@@ -353,7 +390,7 @@ export class Cell implements CellType {
 
     // Effects
 
-    async activate(
+    async fire(
         event: string,
         map: MapType,
         x: number,
@@ -367,7 +404,7 @@ export class Cell implements CellType {
             const tile = (ctx.tile = this.depthTile(ctx.depth));
             if (tile && tile.effects) {
                 const ev = tile.effects[event];
-                didSomething = await this._fire(ev, map, x, y, ctx);
+                didSomething = await this._activate(ev, map, x, y, ctx);
             }
         } else {
             // console.log('fire event - %s', event);
@@ -376,7 +413,7 @@ export class Cell implements CellType {
                 const ev = ctx.tile.effects[event];
                 // console.log(' - ', ev);
 
-                if (await this._fire(ev, map, x, y, ctx)) {
+                if (await this._activate(ev, map, x, y, ctx)) {
                     didSomething = true;
                     break;
                 }
@@ -386,40 +423,7 @@ export class Cell implements CellType {
         return didSomething;
     }
 
-    activateSync(
-        event: string,
-        map: MapType,
-        x: number,
-        y: number,
-        ctx: Partial<Effect.EffectCtx> = {}
-    ): boolean {
-        ctx.cell = this;
-        let didSomething = false;
-
-        if (ctx.depth !== undefined) {
-            const tile = (ctx.tile = this.depthTile(ctx.depth));
-            if (tile && tile.effects) {
-                const ev = tile.effects[event];
-                didSomething = this._fireSync(ev, map, x, y, ctx);
-            }
-        } else {
-            // console.log('fire event - %s', event);
-            for (ctx.tile of this.tiles) {
-                if (!ctx.tile || !ctx.tile.effects) continue;
-                const ev = ctx.tile.effects[event];
-                // console.log(' - ', ev);
-
-                if (this._fireSync(ev, map, x, y, ctx)) {
-                    didSomething = true;
-                    break;
-                }
-                // }
-            }
-        }
-        return didSomething;
-    }
-
-    async _fire(
+    async _activate(
         effect: string | Effect.EffectInfo,
         map: MapType,
         x: number,
@@ -438,25 +442,6 @@ export class Cell implements CellType {
         return didSomething;
     }
 
-    _fireSync(
-        effect: string | Effect.EffectInfo,
-        map: MapType,
-        x: number,
-        y: number,
-        ctx: Partial<Effect.EffectCtx>
-    ): boolean {
-        if (typeof effect === 'string') {
-            effect = Effect.effects[effect];
-        }
-        let didSomething = false;
-        if (effect) {
-            // console.log(' - spawn event @%d,%d - %s', x, y, name);
-            didSomething = Effect.fireSync(effect, map, x, y, ctx);
-            // cell.debug(" - spawned");
-        }
-        return didSomething;
-    }
-
     hasEffect(name: string) {
         for (let tile of this.tiles) {
             if (tile && tile.hasEffect(name)) return true;
@@ -467,7 +452,7 @@ export class Cell implements CellType {
     // // Items
 
     hasItem(): boolean {
-        return this.hasCellFlag(Flags.HAS_ITEM);
+        return this.hasCellFlag(Flags.Cell.HAS_ITEM);
     }
     get item(): Item | null {
         return this._item;
@@ -475,9 +460,9 @@ export class Cell implements CellType {
     set item(val: Item | null) {
         this._item = val;
         if (val) {
-            this.setCellFlag(Flags.HAS_ITEM);
+            this.setCellFlag(Flags.Cell.HAS_ITEM);
         } else {
-            this.clearCellFlag(Flags.HAS_ITEM);
+            this.clearCellFlag(Flags.Cell.HAS_ITEM);
         }
         this.needsRedraw = true;
     }
@@ -485,10 +470,10 @@ export class Cell implements CellType {
     // // Actors
 
     hasActor(): boolean {
-        return this.hasCellFlag(Flags.HAS_ACTOR);
+        return this.hasCellFlag(Flags.Cell.HAS_ACTOR);
     }
     hasPlayer(): boolean {
-        return this.hasCellFlag(Flags.HAS_PLAYER);
+        return this.hasCellFlag(Flags.Cell.HAS_PLAYER);
     }
     get actor(): Actor | null {
         return this._actor;
@@ -496,9 +481,9 @@ export class Cell implements CellType {
     set actor(val: Actor | null) {
         this._actor = val;
         if (val) {
-            this.setCellFlag(Flags.HAS_ACTOR);
+            this.setCellFlag(Flags.Cell.HAS_ACTOR);
         } else {
-            this.clearCellFlag(Flags.HAS_ACTOR);
+            this.clearCellFlag(Flags.Cell.HAS_ACTOR);
         }
         this.needsRedraw = true;
     }

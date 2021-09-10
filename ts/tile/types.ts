@@ -1,8 +1,8 @@
 import * as GWU from 'gw-utils';
-import * as ObjectTypes from '../gameObject/types';
+import * as ObjectTypes from '../entity/types';
 import { EffectInfo } from '../effect/types';
 
-export interface TileFlags extends ObjectTypes.ObjectFlags {
+export interface TileFlags extends ObjectTypes.FlagType {
     tile: number;
     tileMech: number;
 }
@@ -21,11 +21,11 @@ export interface TileType {
     readonly effects: Record<string, string | EffectInfo>;
     readonly groundTile: string | null;
 
-    hasObjectFlag(flag: number): boolean;
+    hasEntityFlag(flag: number): boolean;
     hasTileFlag(flag: number): boolean;
     hasTileMechFlag(flag: number): boolean;
 
-    hasAllObjectFlags(flag: number): boolean;
+    hasAllEntityFlags(flag: number): boolean;
     hasAllTileFlags(flag: number): boolean;
     hasAllTileMechFlags(flag: number): boolean;
 

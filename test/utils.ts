@@ -1,6 +1,6 @@
 import * as Map from '../ts/map';
-import { Actor } from '../ts/actor';
-import { Item } from '../ts/item';
+import { Actor, ActorKind } from '../ts/actor';
+import { Item, ItemKind } from '../ts/item';
 
 // export const rnd = jest.fn();
 // export const counts = new Array(100).fill(0);
@@ -57,7 +57,8 @@ export function mockMap(w = 10, h = 10): Map.Map {
 }
 
 export function mockActor(): Actor {
-    const actor = new Actor();
+    const kind = new ActorKind({ name: 'mock' });
+    const actor = new Actor(kind);
     actor.sprite.ch = 'a';
     jest.spyOn(actor, 'isPlayer').mockReturnValue(false);
     jest.spyOn(actor, 'forbidsCell').mockReturnValue(false);
@@ -74,8 +75,8 @@ export function mockPlayer(): Actor {
 }
 
 export function mockItem(): Item {
-    const item = new Item();
-    item.sprite.ch = '!';
+    const kind = new ItemKind({ name: 'mock', ch: '!' });
+    const item = new Item(kind);
     jest.spyOn(item, 'forbidsCell').mockReturnValue(false);
     jest.spyOn(item, 'blocksVision').mockReturnValue(false);
     return item;
