@@ -1,10 +1,8 @@
 import * as GWU from 'gw-utils';
 
-import { EffectInfo, EffectBase } from './types';
-import { Handler } from './handler';
+import { EffectInfo, EffectBase, EffectConfig } from './types';
+import { Handler, handlers } from './handler';
 import { Effect as Flags } from '../flags';
-
-import { handlers, effects } from './install';
 
 export function make(opts: EffectBase): EffectInfo {
     if (!opts) throw new Error('opts required to make effect.');
@@ -47,4 +45,28 @@ export function from(opts: EffectBase | string): EffectInfo {
         throw new Error('Unknown effect - ' + opts);
     }
     return make(opts);
+}
+
+// resetMessageDisplayed
+export function reset(effect: EffectInfo) {
+    effect.flags &= ~Flags.E_FIRED;
+}
+
+export function resetAll() {
+    Object.values(effects).forEach((e) => reset(e));
+}
+
+export const effects: Record<string, EffectInfo> = {};
+
+export function install(id: string, config: Partial<EffectConfig>): EffectInfo {
+    const effect = make(config);
+    effects[id] = effect;
+    effect.id = id;
+    return effect;
+}
+
+export function installAll(effects: Record<string, Partial<EffectConfig>>) {
+    Object.entries(effects).forEach(([id, config]) => {
+        install(id, config);
+    });
 }

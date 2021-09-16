@@ -145,6 +145,18 @@ export class CellMemory implements CellInfoType {
     isStairs(): boolean {
         return this.hasTileFlag(Flags.Tile.T_HAS_STAIRS);
     }
+    isFloor(): boolean {
+        return (
+            !this.hasEntityFlag(Flags.Entity.L_BLOCKS_EVERYTHING) &&
+            !this.hasTileFlag(Flags.Tile.T_PATHING_BLOCKER)
+        );
+    }
+    isPassable(): boolean {
+        return !this.hasEntityFlag(Flags.Entity.L_BLOCKS_MOVE);
+    }
+    isSecretlyPassable(): boolean {
+        return this.hasEntityFlag(Flags.Entity.L_SECRETLY_PASSABLE);
+    }
 
     get tile(): TILE.Tile {
         return this._tile;

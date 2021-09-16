@@ -7,3 +7,4 @@ export * from './tileMech';
 export * from './cell';
 export * from './map';
 export * from './effect';
+export * from './horde';

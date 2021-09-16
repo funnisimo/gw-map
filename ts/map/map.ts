@@ -49,7 +49,8 @@ export class Map
     fov: GWU.fov.FovSystemType;
     properties: Record<string, any>;
     memory: GWU.grid.Grid<CellMemory>;
-    _seed = 0;
+    machineCount = 0;
+    private _seed = 0;
     rng: GWU.rng.Random = GWU.rng.random;
 
     constructor(width: number, height: number, opts: Partial<MapOptions> = {}) {
@@ -58,7 +59,11 @@ export class Map
         this.flags = { map: 0 };
         this.layers = [];
 
-        this.cells = GWU.grid.make(width, height, () => new Cell());
+        this.cells = GWU.grid.make(
+            width,
+            height,
+            (x, y) => new Cell(this, x, y)
+        );
         this.memory = GWU.grid.make(width, height, () => new CellMemory());
 
         if (opts.seed) {
@@ -270,6 +275,7 @@ export class Map
 
         const getCh = (_cell: Cell, x: number, y: number) => {
             this.getAppearanceAt(x, y, mixer);
+            if (mixer.ch < 0) return ' ';
             return mixer.ch as string;
         };
         this.cells.dump(fmt || getCh, log);
@@ -386,7 +392,9 @@ export class Map
         this.fov.needsUpdate = true;
         this.light.copy(src.light);
         this.rng = src.rng;
-        Object.assign(this.properties, src.properties);
+        this.machineCount = src.machineCount;
+        this._seed = src._seed;
+        this.properties = Object.assign({}, src.properties);
     }
 
     clone(): Map {

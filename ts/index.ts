@@ -7,3 +7,4 @@ export * as layer from './layer';
 export * as map from './map';
 export * as effect from './effect';
 export * as path from './path';
+export * as horde from './horde';

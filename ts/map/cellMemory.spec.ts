@@ -6,8 +6,15 @@ import { CellMemory } from './cellMemory';
 import { Cell } from './cell';
 import * as Tile from '../tile';
 import * as Flags from '../flags';
+import { Map } from './map';
 
 describe('CellMemory', () => {
+    let map: Map;
+
+    beforeEach(() => {
+        map = new Map(10, 10);
+    });
+
     test('Snapshot', () => {
         const a = new CellMemory();
         const b = new CellMemory();
@@ -26,13 +33,13 @@ describe('CellMemory', () => {
         expect(a.snapshot.ch).toEqual('b');
 
         a.clear();
-        expect(a.snapshot.ch).toEqual(0);
+        expect(a.snapshot.ch).toEqual(-1); // blacked out
         expect(a.snapshot.fg.toInt()).toEqual(0);
         expect(a.snapshot.bg.toInt()).toEqual(0);
     });
 
     test('memory', () => {
-        const c: Cell = new Cell('FLOOR');
+        const c: Cell = new Cell(map, 1, 1, 'FLOOR');
         expect(c.flags.cell).toEqual(Flags.Cell.NEEDS_REDRAW);
         expect(c.hasTile('FLOOR')).toBeTruthy();
 

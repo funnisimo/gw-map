@@ -77,6 +77,14 @@ describe('Map', () => {
         expect(clone.hasMapFlag(Flags.Map.MAP_SAW_WELCOME)).toBeTruthy();
     });
 
+    test('make', () => {
+        const map = Map.make(10, 10);
+        expect(map.cell(0, 0).needsRedraw).toBeTruthy();
+        expect(map.fov.isAnyKindOfVisible(0, 0)).toBeTrue(); // by default the map is visible
+
+        // map.dump();
+    });
+
     test('rng', () => {
         const map = Map.make(20, 20, {
             tile: 'FLOOR',

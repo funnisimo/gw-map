@@ -105,7 +105,7 @@ export class TileLayer extends MapLayer {
     putAppearance(dest: GWU.sprite.Mixer, x: number, y: number) {
         const cell = this.map.cell(x, y);
         const tile = cell.depthTile(this.depth);
-        if (tile && tile !== Tile.tiles.NULL) {
+        if (tile) {
             dest.drawSprite(tile.sprite);
         }
     }

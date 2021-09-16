@@ -53,6 +53,9 @@ export interface CellInfoType {
 
     isWall(): boolean;
     isStairs(): boolean;
+    isFloor(): boolean;
+    isPassable(): boolean;
+    isSecretlyPassable(): boolean;
 
     // Tiles
 
@@ -93,21 +96,21 @@ export interface CellType extends CellInfoType {
     blocksLayer(depth: number): boolean;
     eachTile(cb: GWU.types.EachCb<Tile>): void;
 
-    isPassable(): boolean;
-
     // @returns - whether or not the change results in a change to the cell lighting.
     setTile(tile: Tile): boolean;
     clear(tile?: number | string | Tile): void;
     clearDepth(depth: number): boolean;
 
-    hasTile(tile?: string | number | Tile): boolean;
     hasDepthTile(depth: number): boolean;
     highestPriorityTile(): Tile;
+
+    hasTileTag(tag: string): boolean;
+    hasAllTileTags(tags: string[]): boolean;
+    hasAnyTileTag(tags: string[]): boolean;
 
     clearTiles(tile?: string | number | Tile): void;
 
     isEmpty(): boolean;
-    isWall(): boolean;
     isGateSite(): boolean;
 
     // Lights

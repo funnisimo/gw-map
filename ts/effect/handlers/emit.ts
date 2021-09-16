@@ -1,8 +1,7 @@
 import * as GWU from 'gw-utils';
 
-import * as EFFECT from '../install';
 import * as TYPES from '../types';
-import { Handler } from '../handler';
+import { Handler, installHandler } from '../handler';
 import { MapType } from '../../map/types';
 
 //////////////////////////////////////////////
@@ -40,4 +39,4 @@ export class EmitEffect extends Handler {
     }
 }
 
-EFFECT.installHandler('emit', new EmitEffect());
+installHandler('emit', new EmitEffect());

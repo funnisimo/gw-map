@@ -29,7 +29,7 @@ describe('ItemKind', () => {
     });
 
     test('subclass', () => {
-        interface MyKindMakeOptions {
+        interface MyKindMakeOptions extends Item.MakeOptions {
             quantity?: number;
         }
 
@@ -38,8 +38,8 @@ describe('ItemKind', () => {
                 super(config);
             }
 
-            make(item: Item.Item, config?: Partial<MyKindMakeOptions>) {
-                super.make(item, config);
+            init(item: Item.Item, config?: Partial<MyKindMakeOptions>) {
+                super.init(item, config);
                 if (config && config.quantity) {
                     item.quantity = config.quantity;
                 }

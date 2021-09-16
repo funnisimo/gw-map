@@ -2,7 +2,7 @@ import * as GWU from 'gw-utils';
 
 import { FlagType, EntityType, KeyInfoType } from './types';
 import * as Flags from '../flags/entity';
-import { CellType } from '../map/types';
+import { CellType, MapType } from '../map/types';
 import { EntityKind } from './kind';
 
 export class Entity implements EntityType {
@@ -12,8 +12,10 @@ export class Entity implements EntityType {
     next: Entity | null;
     x: number;
     y: number;
+    map: MapType | null = null;
     kind: EntityKind;
     key: KeyInfoType | null = null;
+    machineHome = 0;
 
     constructor(kind: EntityKind) {
         this.depth = 1; // default - TODO - enum/const
@@ -62,7 +64,11 @@ export class Entity implements EntityType {
     }
 
     forbidsCell(cell: CellType): boolean {
-        return this.kind.forbidsCell(this, cell);
+        return this.kind.forbidsCell(cell, this);
+    }
+
+    avoidsCell(cell: CellType): boolean {
+        return this.kind.avoidsCell(cell, this);
     }
 
     getName(): string {

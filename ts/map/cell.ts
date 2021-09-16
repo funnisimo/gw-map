@@ -92,11 +92,22 @@ export class Cell implements CellType {
     _actor: Actor | null = null;
     _item: Item | null = null;
     _objects: CellObjects;
+    map: MapType;
+    x = -1;
+    y = -1;
 
-    constructor(groundTile?: number | string | TILE.Tile) {
+    constructor(
+        map: MapType,
+        x: number,
+        y: number,
+        groundTile?: number | string | TILE.Tile
+    ) {
         this._objects = new CellObjects(this);
-        this.flags = { cell: 0 };
+        this.flags = { cell: Flags.Cell.NEEDS_REDRAW };
         this.tiles = [TILE.tiles.NULL];
+        this.map = map;
+        this.x = x;
+        this.y = y;
 
         if (groundTile) {
             const tile = TILE.get(groundTile);
@@ -147,6 +158,20 @@ export class Cell implements CellType {
     }
     hasAllTileMechFlags(flags: number): boolean {
         return (this.tileMechFlags() & flags) == flags;
+    }
+
+    hasTileTag(tag: string): boolean {
+        return this.tiles.some((tile) => tile && tile.hasTag(tag));
+    }
+    hasAllTileTags(tags: string[]): boolean {
+        return this.tiles.some((tile) => {
+            return tile && tile.hasAllTags(tags);
+        });
+    }
+    hasAnyTileTag(tags: string[]): boolean {
+        return this.tiles.some((tile) => {
+            return tile && tile.hasAnyTag(tags);
+        });
     }
 
     cellFlags(): number {
@@ -299,8 +324,18 @@ export class Cell implements CellType {
     isStairs(): boolean {
         return this.hasTileFlag(Flags.Tile.T_HAS_STAIRS);
     }
+    isFloor(): boolean {
+        // Floor tiles do not block anything...
+        return (
+            !this.hasEntityFlag(Flags.Entity.L_BLOCKS_EVERYTHING) &&
+            !this.hasTileFlag(Flags.Tile.T_PATHING_BLOCKER)
+        );
+    }
     isGateSite(): boolean {
         return this.hasCellFlag(Flags.Cell.IS_GATE_SITE);
+    }
+    isSecretlyPassable(): boolean {
+        return this.hasEntityFlag(Flags.Entity.L_SECRETLY_PASSABLE);
     }
 
     // @returns - whether or not the change results in a change to the cell tiles.

@@ -1,8 +1,7 @@
 import * as GWU from 'gw-utils';
 
-import * as EFFECT from '../install';
 import * as TYPES from '../types';
-import { Handler } from '../handler';
+import { Handler, installHandler } from '../handler';
 import { Effect as Flags } from '../../flags';
 import { MapType } from '../../map/types';
 
@@ -50,4 +49,4 @@ export class MessageEffect extends Handler {
     }
 }
 
-EFFECT.installHandler('message', new MessageEffect());
+installHandler('message', new MessageEffect());

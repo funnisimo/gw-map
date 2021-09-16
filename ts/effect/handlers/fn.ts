@@ -1,6 +1,5 @@
-import * as EFFECT from '../install';
 import * as TYPES from '../types';
-import { Handler } from '../handler';
+import { Handler, installHandler } from '../handler';
 import { MapType } from '../../map/types';
 
 //////////////////////////////////////////////
@@ -35,4 +34,4 @@ export class FnEffect extends Handler {
     }
 }
 
-EFFECT.installHandler('fn', new FnEffect());
+installHandler('fn', new FnEffect());

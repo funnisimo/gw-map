@@ -4,8 +4,8 @@ import { MapType } from '../map/types';
 import { EffectInfo, EffectCtx } from './types';
 import { Effect as Flags } from '../flags';
 
-import { handlers } from './install';
 import { from } from './make';
+import { handlers } from './handler';
 
 export async function fire(
     effect: EffectInfo | string,

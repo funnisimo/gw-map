@@ -33,6 +33,7 @@ export class ItemLayer extends MapLayer {
         obj.x = x;
         obj.y = y;
         obj.depth = this.depth;
+        obj.map = this.map;
 
         if (cell.hasEffect('addItem')) {
             await cell.fire('addItem', this.map, x, y, { item });
@@ -56,6 +57,7 @@ export class ItemLayer extends MapLayer {
         obj.x = x;
         obj.y = y;
         obj.depth = this.depth;
+        obj.map = this.map;
         return true;
     }
 

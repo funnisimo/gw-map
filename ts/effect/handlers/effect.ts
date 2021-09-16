@@ -1,6 +1,5 @@
-import * as EFFECT from '../install';
 import * as TYPES from '../types';
-import { Handler } from '../handler';
+import { Handler, installHandler } from '../handler';
 import { MapType } from '../../map/types';
 import * as FIRE from '../fire';
 
@@ -33,4 +32,4 @@ export class EffectEffect extends Handler {
     }
 }
 
-EFFECT.installHandler('effect', new EffectEffect());
+installHandler('effect', new EffectEffect());

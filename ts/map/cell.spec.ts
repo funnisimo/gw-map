@@ -9,6 +9,8 @@ import * as Map from './map';
 import { Cell } from './cell';
 
 describe('Cell', () => {
+    let map: Map.Map;
+
     beforeAll(() => {
         Tile.install('TEST_FLOOR', {
             name: 'floor',
@@ -78,8 +80,12 @@ describe('Cell', () => {
         delete Tile.tiles.LOW_CHANCE;
     });
 
+    beforeEach(() => {
+        map = Map.make(10, 10);
+    });
+
     test('dump', () => {
-        const cell: Cell = new Cell('WALL');
+        const cell: Cell = new Cell(map, 1, 1, 'WALL');
         expect(cell.dump()).toEqual('#');
 
         cell.item = UTILS.mockItem();
@@ -88,12 +94,12 @@ describe('Cell', () => {
         cell.actor = UTILS.mockActor();
         expect(cell.dump()).toEqual('a');
 
-        const empty: Cell = new Cell();
+        const empty: Cell = new Cell(map, 1, 1);
         expect(empty.dump()).toEqual(Tile.tiles.NULL.sprite.ch);
     });
 
     test('description + flavor + name', () => {
-        const cell: Cell = new Cell('WALL');
+        const cell: Cell = new Cell(map, 1, 1, 'WALL');
         expect(cell.getDescription()).toEqual(
             'A wall made from rough cut stone.'
         );
@@ -104,11 +110,12 @@ describe('Cell', () => {
     });
 
     test('copy + clear', () => {
-        const cell: Cell = new Cell('LAKE');
+        const cell: Cell = new Cell(map, 1, 1, 'LAKE');
         cell.setTile(Tile.tiles.BRIDGE);
         expect(cell.changed).toBeTrue();
 
-        const other: Cell = new Cell();
+        const other: Cell = new Cell(map, 1, 1);
+        other.needsRedraw = false;
         expect(other.hasTile('LAKE')).toBeFalsy();
         expect(other.hasTile('BRIDGE')).toBeFalsy();
         expect(other.changed).toBeFalse();
@@ -166,7 +173,7 @@ describe('Cell', () => {
     // });
 
     test('entityFlags', () => {
-        const cell: Cell = new Cell('WALL');
+        const cell: Cell = new Cell(map, 1, 1, 'WALL');
 
         expect(cell.entityFlags()).toEqual(Flags.Entity.L_WALL_FLAGS);
     });
@@ -182,7 +189,7 @@ describe('Cell', () => {
         expect(tile.flags.tile).toEqual(
             Flags.Tile.T_SPONTANEOUSLY_IGNITES | Flags.Tile.T_IS_FLAMMABLE
         );
-        const cell: Cell = new Cell(tile);
+        const cell: Cell = new Cell(map, 1, 1, tile);
 
         expect(cell.tileFlags()).toEqual(
             Flags.Tile.T_SPONTANEOUSLY_IGNITES | Flags.Tile.T_IS_FLAMMABLE
@@ -209,7 +216,7 @@ describe('Cell', () => {
     // });
 
     test('hasEntityFlag + hasAllEntityFlags', () => {
-        const cell: Cell = new Cell('WALL');
+        const cell: Cell = new Cell(map, 1, 1, 'WALL');
         expect(
             cell.hasEntityFlag(Flags.Entity.L_SECRETLY_PASSABLE)
         ).toBeFalsy();
@@ -237,7 +244,7 @@ describe('Cell', () => {
         expect(tile.flags.tile).toEqual(
             Flags.Tile.T_SPONTANEOUSLY_IGNITES | Flags.Tile.T_IS_FLAMMABLE
         );
-        const cell: Cell = new Cell(tile);
+        const cell: Cell = new Cell(map, 1, 1, tile);
         expect(
             cell.hasTileFlag(Flags.Tile.T_SPONTANEOUSLY_IGNITES)
         ).toBeTruthy();
@@ -277,7 +284,7 @@ describe('Cell', () => {
     // });
 
     test('hasCellFlag', () => {
-        const cell: Cell = new Cell('FLOOR');
+        const cell: Cell = new Cell(map, 1, 1, 'FLOOR');
         cell.clearCellFlag(Flags.Cell.CHANGED);
 
         expect(cell.hasCellFlag(Flags.Cell.HAS_DORMANT_MONSTER)).toBeFalsy();
@@ -288,14 +295,14 @@ describe('Cell', () => {
     });
 
     test('hasTile', () => {
-        const cell: Cell = new Cell('BRIDGE');
+        const cell: Cell = new Cell(map, 1, 1, 'BRIDGE');
         expect(cell.hasTile('WALL')).toBeFalsy();
         expect(cell.hasTile('LAKE')).toBeFalsy(); // groundTile not handled in Cell (see TileLayer);
         expect(cell.hasTile(Tile.tiles.BRIDGE)).toBeTruthy();
     });
 
     test('tileWithFlag', () => {
-        const cell: Cell = new Cell('FLOOR');
+        const cell: Cell = new Cell(map, 1, 1, 'FLOOR');
         expect(cell.tileWithFlag(Flags.Tile.T_BRIDGE)).toBeNull();
         cell.setTile('BRIDGE');
         expect(cell.tileWithFlag(Flags.Tile.T_BRIDGE)).toBe(Tile.tiles.BRIDGE);
@@ -313,7 +320,7 @@ describe('Cell', () => {
     // });
 
     test('isEmpty - actor, item', () => {
-        const cell: Cell = new Cell();
+        const cell: Cell = new Cell(map, 1, 1);
         expect(cell.isEmpty()).toBeTruthy();
 
         cell.actor = UTILS.mockActor();
@@ -579,7 +586,7 @@ describe('Cell', () => {
     // });
 
     test('blocksPathing', () => {
-        const cell: Cell = new Cell('FLOOR');
+        const cell: Cell = new Cell(map, 1, 1, 'FLOOR');
         expect(cell.blocksPathing()).toBeFalsy();
         expect(cell.blocksMove()).toBeFalsy();
         cell.setTile('WALL');
@@ -588,7 +595,7 @@ describe('Cell', () => {
     });
 
     test('blocksVision', () => {
-        const cell: Cell = new Cell('FLOOR');
+        const cell: Cell = new Cell(map, 1, 1, 'FLOOR');
         expect(cell.blocksVision()).toBeFalsy();
         cell.setTile('WALL');
         expect(cell.blocksVision()).toBeTruthy();
@@ -679,7 +686,8 @@ describe('Cell', () => {
     // });
 
     test('setTile(BRIDGE) will also set ground if null', () => {
-        const cell: Cell = new Cell();
+        const cell: Cell = new Cell(map, 1, 1);
+        cell.needsRedraw = false;
         expect(cell.isEmpty()).toBeTruthy();
         expect(cell.needsRedraw).toBeFalse();
         expect(cell.changed).toBeFalse();
@@ -702,14 +710,14 @@ describe('Cell', () => {
             fg: 'red',
         });
 
-        const cell: Cell = new Cell('FLOOR');
+        const cell: Cell = new Cell(map, 1, 1, 'FLOOR');
         cell.setTile(fire);
         // Fire handled in TileLayer...
         expect(cell.hasCellFlag(Flags.Cell.CAUGHT_FIRE_THIS_TURN)).toBeFalsy();
     });
 
     test('setTile(UNKNOWN) - will be ignored', () => {
-        const cell: Cell = new Cell('FLOOR');
+        const cell: Cell = new Cell(map, 1, 1, 'FLOOR');
         expect(Tile.tiles.UNKNOWN).not.toBeDefined();
         cell.setTile('UNKNOWN');
         expect(cell.hasTile('UNKNOWN')).toBeFalsy();
@@ -717,7 +725,7 @@ describe('Cell', () => {
     });
 
     test('setTile', () => {
-        const c: Cell = new Cell();
+        const c: Cell = new Cell(map, 1, 1);
 
         expect(Tile.tiles.FLOOR.priority).toBeLessThan(
             Tile.tiles.DOOR.priority
@@ -739,7 +747,7 @@ describe('Cell', () => {
     });
 
     test('item', () => {
-        const cell: Cell = new Cell('FLOOR');
+        const cell: Cell = new Cell(map, 1, 1, 'FLOOR');
         expect(cell.item).toBeNull();
 
         const item = UTILS.mockItem();
@@ -762,7 +770,7 @@ describe('Cell', () => {
     });
 
     test('actor', () => {
-        const cell: Cell = new Cell('FLOOR');
+        const cell: Cell = new Cell(map, 1, 1, 'FLOOR');
         expect(cell.actor).toBeNull();
 
         const actor = UTILS.mockActor();
@@ -784,21 +792,20 @@ describe('Cell', () => {
     });
 
     test('activatesOn', () => {
-        const cell: Cell = new Cell('ENTER');
+        const cell: Cell = new Cell(map, 1, 1, 'ENTER');
         expect(cell.hasEffect('enter')).toBeTruthy();
         expect(cell.hasEffect('fire')).toBeFalsy();
     });
 
     test('fire', async () => {
-        const map: Map.Map = Map.make(10, 10);
-        const cell: Cell = new Cell('LOW_CHANCE');
+        const cell: Cell = new Cell(map, 1, 1, 'LOW_CHANCE');
         // UTILS.mockRandom();
         GWU.rng.random.seed(12345);
         expect(await cell.fire('enter', map, 5, 5, {})).toBeFalsy();
     });
 
     test('clearDepth', () => {
-        const cell: Cell = new Cell('FLOOR');
+        const cell: Cell = new Cell(map, 1, 1, 'FLOOR');
         cell.setTile('GRASS');
 
         expect(cell.depthTile(Flags.Depth.SURFACE)).toBe(Tile.tiles.GRASS);

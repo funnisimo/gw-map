@@ -18,3 +18,9 @@ export class Handler {
         return false;
     }
 }
+
+export const handlers: Record<string, Handler> = {};
+
+export function installHandler(id: string, handler: Handler) {
+    handlers[id] = handler;
+}

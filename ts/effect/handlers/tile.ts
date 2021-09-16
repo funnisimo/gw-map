@@ -3,7 +3,8 @@ import * as GWU from 'gw-utils';
 import { MapType } from '../../map/types';
 import * as Flags from '../../flags';
 import * as Tile from '../../tile';
-import * as Effect from '..';
+import { Handler, installHandler } from '../handler';
+import * as Effect from '../types';
 
 import { Actor } from '../../actor';
 import { Item } from '../../item';
@@ -28,7 +29,7 @@ export interface SpawnInfo {
     next: string | null;
 }
 
-export class SpawnEffect extends Effect.Handler {
+export class SpawnEffect extends Handler {
     constructor() {
         super();
     }
@@ -199,7 +200,7 @@ export class SpawnEffect extends Effect.Handler {
     }
 }
 
-Effect.installHandler('tile', new SpawnEffect());
+installHandler('tile', new SpawnEffect());
 
 // tick
 
@@ -587,7 +588,7 @@ export function evacuateItems(map: MapType, blockingMap: GWU.grid.NumGrid) {
     return didSomething;
 }
 
-class ClearTileEffect extends Effect.Handler {
+class ClearTileEffect extends Handler {
     constructor() {
         super();
     }
@@ -646,4 +647,4 @@ class ClearTileEffect extends Effect.Handler {
     }
 }
 
-Effect.installHandler('clear', new ClearTileEffect());
+installHandler('clear', new ClearTileEffect());

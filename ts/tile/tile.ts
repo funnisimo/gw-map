@@ -1,6 +1,7 @@
 import * as GWU from 'gw-utils';
 
-import * as Effect from '../effect';
+import { EffectInfo, EffectConfig } from '../effect/types';
+import { make as makeEffect } from '../effect/make';
 import { TileFlags, TileType, NameConfig } from './types';
 import * as Flags from '../flags';
 
@@ -8,7 +9,7 @@ export interface TileConfig extends GWU.sprite.SpriteConfig {
     id: string;
     flags: TileFlags;
     dissipate: number;
-    effects: Record<string, Effect.EffectInfo | string>;
+    effects: Record<string, EffectInfo | string>;
     priority: number;
     depth: number;
     light: GWU.light.LightType | null;
@@ -18,6 +19,7 @@ export interface TileConfig extends GWU.sprite.SpriteConfig {
     description: string;
     flavor: string;
     article: string | null;
+    tags: string | string[] | null;
 }
 
 export class Tile implements TileType {
@@ -25,12 +27,13 @@ export class Tile implements TileType {
     index = -1;
     flags: TileFlags;
     dissipate = 20 * 100; // 0%
-    effects: Record<string, string | Effect.EffectInfo> = {};
+    effects: Record<string, string | EffectInfo> = {};
     sprite: GWU.sprite.Sprite;
     priority = 50;
     depth = 0;
     light: GWU.light.LightType | null = null;
     groundTile: string | null = null;
+    tags: string[] = [];
 
     name: string;
     description: string;
@@ -60,6 +63,29 @@ export class Tile implements TileType {
         if (this.hasEffect('fire')) {
             this.flags.tile |= Flags.Tile.T_IS_FLAMMABLE;
         }
+
+        if (config.tags) {
+            if (typeof config.tags === 'string') {
+                config.tags
+                    .split(/[,|]/)
+                    .map((t) => t.trim())
+                    .forEach((t) => {
+                        this.tags.push(t);
+                    });
+            } else {
+                this.tags = config.tags.slice().map((t) => t.trim());
+            }
+        }
+    }
+
+    hasTag(tag: string) {
+        return this.tags.includes(tag);
+    }
+    hasAnyTag(tags: string[]) {
+        return GWU.arraysIntersect(this.tags, tags);
+    }
+    hasAllTags(tags: string[]) {
+        return tags.every((t) => this.tags.includes(t));
     }
 
     hasEntityFlag(flag: number): boolean {
@@ -160,10 +186,12 @@ export interface TileOptions extends GWU.sprite.SpriteConfig {
     dissipate: number;
     depth: Flags.Depth | Flags.DepthString;
 
-    effects: Record<string, Partial<Effect.EffectConfig> | string | null>;
+    effects: Record<string, Partial<EffectConfig> | string | null>;
     groundTile: string;
 
     light: GWU.light.LightBase | null;
+
+    tags: string | string[];
 }
 
 export function make(options: Partial<TileOptions>) {
@@ -206,7 +234,7 @@ export function make(options: Partial<TileOptions>) {
         priority = options.priority;
     }
 
-    const effects: Record<string, Effect.EffectInfo | string> = {};
+    const effects: Record<string, EffectInfo | string> = {};
     Object.assign(effects, base.effects);
     if (options.effects) {
         Object.entries(options.effects).forEach(([key, value]) => {
@@ -220,7 +248,7 @@ export function make(options: Partial<TileOptions>) {
                 return;
             }
 
-            effects[key] = Effect.make(value);
+            effects[key] = makeEffect(value);
         });
     }
 
@@ -268,6 +296,7 @@ export function make(options: Partial<TileOptions>) {
         description: options.description || base.description,
         flavor: options.flavor || base.flavor,
         article: options.article ?? base.article,
+        tags: options.tags || null,
     };
 
     const tile = new Tile(config);

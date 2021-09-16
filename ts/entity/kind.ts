@@ -10,6 +10,11 @@ export interface KindOptions extends Partial<GWU.sprite.SpriteConfig> {
     description?: string;
 
     tags?: string | string[];
+    requiredTileTags?: string | string[];
+}
+
+export interface MakeOptions {
+    machineHome: number;
 }
 
 export class EntityKind {
@@ -19,6 +24,7 @@ export class EntityKind {
     description: string;
     sprite: GWU.sprite.Sprite;
     tags: string[] = [];
+    requiredTileTags: string[] = [];
 
     constructor(config: KindOptions) {
         this.id = config.id || config.name;
@@ -34,22 +40,59 @@ export class EntityKind {
                 this.tags = config.tags.slice();
             }
         }
+        if (config.requiredTileTags) {
+            if (typeof config.requiredTileTags === 'string') {
+                this.requiredTileTags = config.requiredTileTags
+                    .split(/[,|]/)
+                    .map((t) => t.trim());
+            } else {
+                this.requiredTileTags = config.requiredTileTags
+                    .slice()
+                    .map((t) => t.trim());
+            }
+        }
     }
 
-    forbidsCell(_item: Entity, _cell: CellType): boolean {
+    make(opts?: Partial<MakeOptions>): Entity {
+        const entity = new Entity(this);
+        this.init(entity, opts);
+        return entity;
+    }
+
+    init(entity: Entity, opts: Partial<MakeOptions> = {}) {
+        if (opts.machineHome) {
+            entity.machineHome = opts.machineHome;
+        }
+    }
+
+    forbidsCell(cell: CellType, _entity?: Entity): boolean {
+        if (
+            this.requiredTileTags.length &&
+            !cell.hasAllTileTags(this.requiredTileTags)
+        )
+            return true;
         return false;
     }
 
-    getName(_item: Entity): string {
+    avoidsCell(cell: CellType, _entity?: Entity): boolean {
+        if (
+            this.requiredTileTags.length &&
+            !cell.hasAnyTileTag(this.requiredTileTags)
+        )
+            return true;
+        return false;
+    }
+
+    getName(_entity: Entity): string {
         return this.name;
     }
-    getDescription(_item: Entity): string {
+    getDescription(_entity: Entity): string {
         return this.description;
     }
-    getFlavor(_item: Entity): string {
+    getFlavor(_entity: Entity): string {
         return this.flavor;
     }
-    getVerb(_item: Entity, verb: string): string {
+    getVerb(_entity: Entity, verb: string): string {
         return verb;
     }
 }

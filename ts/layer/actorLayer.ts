@@ -29,6 +29,7 @@ export class ActorLayer extends MapLayer {
         }
         obj.x = x;
         obj.y = y;
+        obj.map = this.map;
 
         if (obj.key && obj.key.matches(x, y) && cell.hasEffect('key')) {
             await cell.fire('key', this.map, x, y);
@@ -47,6 +48,7 @@ export class ActorLayer extends MapLayer {
         }
         actor.x = x;
         actor.y = y;
+        actor.map = this.map;
         return true;
     }
 
