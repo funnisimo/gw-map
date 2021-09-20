@@ -52,19 +52,19 @@ export class ActorLayer extends MapLayer {
         return true;
     }
 
-    async removeActor(obj: Actor): Promise<boolean> {
-        const x = obj.x;
-        const y = obj.y;
+    async removeActor(actor: Actor): Promise<boolean> {
+        const x = actor.x;
+        const y = actor.y;
         const cell = this.map.cell(x, y);
 
-        if (!GWU.list.remove(cell, 'actor', obj)) return false;
+        if (!GWU.list.remove(cell, 'actor', actor)) return false;
 
-        if (obj.isPlayer()) {
+        if (actor.isPlayer()) {
             cell.clearCellFlag(Flags.Cell.HAS_PLAYER);
         }
 
-        if (obj.key && obj.key.matches(x, y) && cell.hasEffect('nokey')) {
-            await cell.fire('key', this.map, x, y);
+        if (actor.key && actor.key.matches(x, y) && cell.hasEffect('nokey')) {
+            await cell.fire('nokey', this.map, x, y);
         }
 
         return true;

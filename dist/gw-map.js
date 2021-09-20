@@ -1452,17 +1452,17 @@
             actor.map = this.map;
             return true;
         }
-        async removeActor(obj) {
-            const x = obj.x;
-            const y = obj.y;
+        async removeActor(actor) {
+            const x = actor.x;
+            const y = actor.y;
             const cell = this.map.cell(x, y);
-            if (!GWU__namespace.list.remove(cell, 'actor', obj))
+            if (!GWU__namespace.list.remove(cell, 'actor', actor))
                 return false;
-            if (obj.isPlayer()) {
+            if (actor.isPlayer()) {
                 cell.clearCellFlag(Cell$1.HAS_PLAYER);
             }
-            if (obj.key && obj.key.matches(x, y) && cell.hasEffect('nokey')) {
-                await cell.fire('key', this.map, x, y);
+            if (actor.key && actor.key.matches(x, y) && cell.hasEffect('nokey')) {
+                await cell.fire('nokey', this.map, x, y);
             }
             return true;
         }
@@ -3225,7 +3225,11 @@
             const layer = this.layers[item.depth];
             if (!(await layer.removeItem(item)))
                 return false;
-            return this.addItem(x, y, item);
+            if (!(await this.addItem(x, y, item))) {
+                layer.forceItem(item.x, item.y, item);
+                return false;
+            }
+            return true;
         }
         // Actors
         hasPlayer(x, y) {
@@ -3269,7 +3273,11 @@
             const layer = this.layers[actor.depth];
             if (!(await layer.removeActor(actor)))
                 return false;
-            return this.addActor(x, y, actor);
+            if (!(await layer.addActor(x, y, actor))) {
+                layer.forceActor(actor.x, actor.y, actor);
+                return false;
+            }
+            return true;
         }
         // Information
         isVisible(x, y) {

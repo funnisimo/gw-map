@@ -720,7 +720,7 @@ declare class ActorLayer extends MapLayer {
     constructor(map: MapType, name?: string);
     addActor(x: number, y: number, obj: Actor, _opts?: any): Promise<boolean>;
     forceActor(x: number, y: number, actor: Actor, _opts?: any): boolean;
-    removeActor(obj: Actor): Promise<boolean>;
+    removeActor(actor: Actor): Promise<boolean>;
     putAppearance(dest: GWU.sprite.Mixer, x: number, y: number): void;
 }
 

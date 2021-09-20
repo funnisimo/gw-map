@@ -82,6 +82,7 @@ describe('Map', () => {
         expect(map.cell(0, 0).needsRedraw).toBeTruthy();
         expect(map.fov.isAnyKindOfVisible(0, 0)).toBeTrue(); // by default the map is visible
 
+        expect(map.hasMapFlag(Flags.Map.MAP_CHANGED)).toBeFalsy();
         // map.dump();
     });
 

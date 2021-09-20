@@ -211,7 +211,11 @@ export class Map
         if (!this.hasXY(x, y)) return false;
         const layer = this.layers[item.depth] as Layer.ItemLayer;
         if (!(await layer.removeItem(item))) return false;
-        return this.addItem(x, y, item);
+        if (!(await this.addItem(x, y, item))) {
+            layer.forceItem(item.x, item.y, item);
+            return false;
+        }
+        return true;
     }
 
     // Actors
@@ -253,7 +257,11 @@ export class Map
         if (!this.hasXY(x, y)) return false;
         const layer = this.layers[actor.depth] as Layer.ActorLayer;
         if (!(await layer.removeActor(actor))) return false;
-        return this.addActor(x, y, actor);
+        if (!(await layer.addActor(x, y, actor))) {
+            layer.forceActor(actor.x, actor.y, actor);
+            return false;
+        }
+        return true;
     }
 
     // Information

@@ -43,8 +43,8 @@ export function countTile(map: Map.Map, tile: string) {
     return count;
 }
 
-export function mockCell(): Map.Cell {
-    const cell = new Map.Cell();
+export function mockCell(map: Map.Map, x: number, y: number): Map.Cell {
+    const cell = new Map.Cell(map, x, y);
     jest.spyOn(cell, 'tileFlags').mockReturnValue(0);
     jest.spyOn(cell, 'tileMechFlags').mockReturnValue(0);
     return cell;
