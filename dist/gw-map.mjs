@@ -507,9 +507,6 @@ class Actor extends Entity {
     isPlayer() {
         return this.hasActorFlag(Actor$1.IS_PLAYER);
     }
-    hasStatus(_status) {
-        return false;
-    }
     async pickupItem(item, opts) {
         return this.kind.pickupItem(this, item, opts);
     }

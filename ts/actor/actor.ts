@@ -41,9 +41,6 @@ export class Actor extends Entity.Entity {
     isPlayer() {
         return this.hasActorFlag(Flags.Actor.IS_PLAYER);
     }
-    hasStatus(_status: string): boolean {
-        return false;
-    }
 
     async pickupItem(
         item: Item,

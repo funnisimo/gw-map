@@ -977,7 +977,6 @@ declare class Actor extends Entity {
     hasAllActorFlags(flags: number): boolean;
     actorFlags(): number;
     isPlayer(): boolean;
-    hasStatus(_status: string): boolean;
     pickupItem(item: Item, opts?: Partial<PickupOptions>): Promise<boolean>;
     dropItem(item: Item, opts?: Partial<DropOptions>): Promise<boolean>;
 }
