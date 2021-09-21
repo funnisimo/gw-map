@@ -3,6 +3,11 @@ import * as GWU from 'gw-utils';
 import { CellType } from '../map/types';
 import { Entity } from './entity';
 
+export interface TextOptions {
+    article?: boolean;
+    color?: boolean | GWU.color.ColorBase;
+}
+
 export interface KindOptions extends Partial<GWU.sprite.SpriteConfig> {
     id?: string;
     name: string;
@@ -83,13 +88,13 @@ export class EntityKind {
         return false;
     }
 
-    getName(_entity: Entity): string {
+    getName(_entity: Entity, _opts?: TextOptions): string {
         return this.name;
     }
-    getDescription(_entity: Entity): string {
+    getDescription(_entity: Entity, _opts?: TextOptions): string {
         return this.description;
     }
-    getFlavor(_entity: Entity): string {
+    getFlavor(_entity: Entity, _opts?: TextOptions): string {
         return this.flavor;
     }
     getVerb(_entity: Entity, verb: string): string {

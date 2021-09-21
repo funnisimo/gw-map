@@ -390,14 +390,14 @@ class Entity {
     avoidsCell(cell) {
         return this.kind.avoidsCell(cell, this);
     }
-    getName() {
-        return this.kind.getName(this);
+    getName(opts) {
+        return this.kind.getName(this, opts);
     }
-    getDescription() {
-        return this.kind.getDescription(this);
+    getDescription(opts) {
+        return this.kind.getDescription(this, opts);
     }
-    getFlavor() {
-        return this.kind.getFlavor(this);
+    getFlavor(opts) {
+        return this.kind.getFlavor(this, opts);
     }
     getVerb(verb) {
         return this.kind.getVerb(this, verb);
@@ -456,13 +456,13 @@ class EntityKind {
             return true;
         return false;
     }
-    getName(_entity) {
+    getName(_entity, _opts) {
         return this.name;
     }
-    getDescription(_entity) {
+    getDescription(_entity, _opts) {
         return this.description;
     }
-    getFlavor(_entity) {
+    getFlavor(_entity, _opts) {
         return this.flavor;
     }
     getVerb(_entity, verb) {
@@ -500,6 +500,9 @@ class Actor extends Entity {
     }
     isPlayer() {
         return this.hasActorFlag(Actor$1.IS_PLAYER);
+    }
+    hasStatus(_status) {
+        return false;
     }
     async pickupItem(item, opts) {
         return this.kind.pickupItem(this, item, opts);
@@ -958,7 +961,7 @@ class Tile {
     }
     getName(arg) {
         let opts = {};
-        if (arg === true || arg === false) {
+        if (typeof arg === 'boolean') {
             opts.article = arg;
         }
         else if (typeof arg === 'string') {
@@ -988,11 +991,11 @@ class Tile {
         }
         return result;
     }
-    getDescription() {
-        return this.description || this.getName();
+    getDescription(opts) {
+        return this.description || this.getName(opts);
     }
-    getFlavor() {
-        return this.flavor || this.getName();
+    getFlavor(opts) {
+        return this.flavor || this.getName(opts);
     }
 }
 function make$1(options) {
@@ -1135,6 +1138,7 @@ install$1('FLOOR', {
     bg: [2, 2, 10, 0, 2, 2, 0],
     priority: 10,
     article: 'the',
+    flavor: 'the stone floor',
 });
 install$1('DOOR', {
     ch: '+',
@@ -1147,6 +1151,7 @@ install$1('DOOR', {
         enter: { tile: 'DOOR_OPEN' },
         open: { tile: 'DOOR_OPEN_ALWAYS' },
     },
+    flavor: 'a closed door',
 });
 install$1('DOOR_OPEN', 'DOOR', {
     ch: "'",
@@ -1166,12 +1171,14 @@ install$1('DOOR_OPEN', 'DOOR', {
         open: null,
         close: { tile: 'DOOR', flags: 'E_SUPERPRIORITY, E_ONLY_IF_EMPTY' },
     },
+    flavor: 'an open door',
 });
 install$1('DOOR_OPEN_ALWAYS', 'DOOR_OPEN', {
     effects: {
         tick: null,
         close: { tile: 'DOOR', flags: 'E_SUPERPRIORITY, E_ONLY_IF_EMPTY' },
     },
+    flavor: 'an open door',
 });
 install$1('UP_STAIRS', {
     ch: '<',
@@ -1184,6 +1191,7 @@ install$1('UP_STAIRS', {
     effects: {
         player: { emit: 'UP_STAIRS' },
     },
+    flavor: 'stairs leading upwards',
 });
 install$1('DOWN_STAIRS', {
     ch: '>',
@@ -1196,6 +1204,7 @@ install$1('DOWN_STAIRS', {
     effects: {
         player: { emit: 'DOWN_STAIRS' },
     },
+    flavor: 'downward leading stairs',
 });
 install$1('WALL', {
     ch: '#',
@@ -1217,7 +1226,7 @@ install$1('IMPREGNABLE', {
     article: 'a',
     name: 'impregnable wall',
     description: 'A wall made from very hard stone.',
-    flavor: 'an impregnable wall',
+    flavor: 'a very hard wall',
 });
 install$1('LAKE', {
     ch: '~',
@@ -1227,6 +1236,7 @@ install$1('LAKE', {
     flags: 'T_DEEP_WATER',
     name: 'deep water',
     article: 'the',
+    flavor: 'some deep water',
 });
 install$1('SHALLOW', {
     ch: '\u00b7',
@@ -1235,7 +1245,8 @@ install$1('SHALLOW', {
     priority: 20,
     name: 'shallow water',
     article: 'the',
-    depth: 'SURFACE', // 'LIQUID'?
+    depth: 'SURFACE',
+    flavor: 'some shallow water',
 });
 install$1('BRIDGE', {
     ch: '=',
@@ -1245,6 +1256,7 @@ install$1('BRIDGE', {
     flags: 'T_BRIDGE, L_VISUALLY_DISTINCT',
     article: 'a',
     groundTile: 'LAKE',
+    flavor: 'a bridge',
 });
 
 const flags = { Tile: Tile$1, TileMech };

@@ -2,8 +2,13 @@ import * as GWU from 'gw-utils';
 
 import { EffectInfo, EffectConfig } from '../effect/types';
 import { make as makeEffect } from '../effect/make';
-import { TileFlags, TileType, NameConfig } from './types';
+import { TileFlags } from './types';
 import * as Flags from '../flags';
+
+export interface TextOptions {
+    article?: boolean | string;
+    color?: boolean | string | GWU.color.ColorBase;
+}
 
 export interface TileConfig extends GWU.sprite.SpriteConfig {
     id: string;
@@ -22,7 +27,7 @@ export interface TileConfig extends GWU.sprite.SpriteConfig {
     tags: string | string[] | null;
 }
 
-export class Tile implements TileType {
+export class Tile {
     id: string;
     index = -1;
     flags: TileFlags;
@@ -128,12 +133,12 @@ export class Tile implements TileType {
     }
 
     getName(): string;
-    getName(config: NameConfig): string;
+    getName(config?: TextOptions): string;
     getName(article: string): string;
     getName(article: boolean): string;
-    getName(arg?: any): string {
-        let opts: NameConfig = {};
-        if (arg === true || arg === false) {
+    getName(arg?: boolean | string | TextOptions): string {
+        let opts: TextOptions = {};
+        if (typeof arg === 'boolean') {
             opts.article = arg;
         } else if (typeof arg === 'string') {
             opts.article = arg;
@@ -164,11 +169,11 @@ export class Tile implements TileType {
         }
         return result;
     }
-    getDescription(): string {
-        return this.description || this.getName();
+    getDescription(opts?: TextOptions): string {
+        return this.description || this.getName(opts);
     }
-    getFlavor(): string {
-        return this.flavor || this.getName();
+    getFlavor(opts?: TextOptions): string {
+        return this.flavor || this.getName(opts);
     }
 }
 

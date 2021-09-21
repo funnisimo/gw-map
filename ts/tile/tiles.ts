@@ -17,6 +17,7 @@ Tile.install('FLOOR', {
     bg: [2, 2, 10, 0, 2, 2, 0],
     priority: 10,
     article: 'the',
+    flavor: 'the stone floor',
 });
 
 Tile.install('DOOR', {
@@ -31,6 +32,7 @@ Tile.install('DOOR', {
         enter: { tile: 'DOOR_OPEN' },
         open: { tile: 'DOOR_OPEN_ALWAYS' },
     },
+    flavor: 'a closed door',
 });
 
 Tile.install('DOOR_OPEN', 'DOOR', {
@@ -51,6 +53,7 @@ Tile.install('DOOR_OPEN', 'DOOR', {
         open: null,
         close: { tile: 'DOOR', flags: 'E_SUPERPRIORITY, E_ONLY_IF_EMPTY' },
     },
+    flavor: 'an open door',
 });
 
 Tile.install('DOOR_OPEN_ALWAYS', 'DOOR_OPEN', {
@@ -58,6 +61,7 @@ Tile.install('DOOR_OPEN_ALWAYS', 'DOOR_OPEN', {
         tick: null,
         close: { tile: 'DOOR', flags: 'E_SUPERPRIORITY, E_ONLY_IF_EMPTY' },
     },
+    flavor: 'an open door',
 });
 
 Tile.install('UP_STAIRS', {
@@ -72,6 +76,7 @@ Tile.install('UP_STAIRS', {
     effects: {
         player: { emit: 'UP_STAIRS' },
     },
+    flavor: 'stairs leading upwards',
 });
 Tile.install('DOWN_STAIRS', {
     ch: '>',
@@ -85,6 +90,7 @@ Tile.install('DOWN_STAIRS', {
     effects: {
         player: { emit: 'DOWN_STAIRS' },
     },
+    flavor: 'downward leading stairs',
 });
 
 Tile.install('WALL', {
@@ -108,7 +114,7 @@ Tile.install('IMPREGNABLE', {
     article: 'a',
     name: 'impregnable wall',
     description: 'A wall made from very hard stone.',
-    flavor: 'an impregnable wall',
+    flavor: 'a very hard wall',
 });
 
 Tile.install('LAKE', {
@@ -119,6 +125,7 @@ Tile.install('LAKE', {
     flags: 'T_DEEP_WATER',
     name: 'deep water',
     article: 'the',
+    flavor: 'some deep water',
 });
 
 Tile.install('SHALLOW', {
@@ -129,6 +136,7 @@ Tile.install('SHALLOW', {
     name: 'shallow water',
     article: 'the',
     depth: 'SURFACE', // 'LIQUID'?
+    flavor: 'some shallow water',
 });
 
 Tile.install('BRIDGE', {
@@ -139,4 +147,5 @@ Tile.install('BRIDGE', {
     flags: 'T_BRIDGE, L_VISUALLY_DISTINCT',
     article: 'a',
     groundTile: 'LAKE',
+    flavor: 'a bridge',
 });

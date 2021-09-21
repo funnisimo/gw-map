@@ -230,6 +230,11 @@ interface ActorFlags extends FlagType$1 {
     actor: number;
 }
 
+interface TileFlags extends FlagType$1 {
+    tile: number;
+    tileMech: number;
+}
+
 interface EffectInfo {
     flags: number;
     chance: number;
@@ -251,36 +256,10 @@ interface EffectConfig {
 }
 declare type EffectBase = Partial<EffectConfig> | Function;
 
-interface TileFlags extends FlagType$1 {
-    tile: number;
-    tileMech: number;
-}
-interface NameConfig {
+interface TextOptions$1 {
     article?: boolean | string;
     color?: boolean | string | GWU.color.ColorBase;
 }
-interface TileType {
-    readonly id: string;
-    readonly index: number;
-    readonly flags: TileFlags;
-    readonly dissipate: number;
-    readonly effects: Record<string, string | EffectInfo>;
-    readonly groundTile: string | null;
-    hasEntityFlag(flag: number): boolean;
-    hasTileFlag(flag: number): boolean;
-    hasTileMechFlag(flag: number): boolean;
-    hasAllEntityFlags(flag: number): boolean;
-    hasAllTileFlags(flag: number): boolean;
-    hasAllTileMechFlags(flag: number): boolean;
-    hasEffect(name: string): boolean;
-    getName(): string;
-    getName(config: NameConfig): string;
-    getName(article: string): string;
-    getName(article: boolean): string;
-    getDescription(): string;
-    getFlavor(): string;
-}
-
 interface TileConfig extends GWU.sprite.SpriteConfig {
     id: string;
     flags: TileFlags;
@@ -296,7 +275,7 @@ interface TileConfig extends GWU.sprite.SpriteConfig {
     article: string | null;
     tags: string | string[] | null;
 }
-declare class Tile implements TileType {
+declare class Tile {
     id: string;
     index: number;
     flags: TileFlags;
@@ -328,11 +307,11 @@ declare class Tile implements TileType {
     blocksEffects(): boolean;
     hasEffect(name: string): boolean;
     getName(): string;
-    getName(config: NameConfig): string;
+    getName(config?: TextOptions$1): string;
     getName(article: string): string;
     getName(article: boolean): string;
-    getDescription(): string;
-    getFlavor(): string;
+    getDescription(opts?: TextOptions$1): string;
+    getFlavor(opts?: TextOptions$1): string;
 }
 interface TileOptions extends GWU.sprite.SpriteConfig {
     extends: string;
@@ -365,8 +344,6 @@ declare const flags: {
 
 declare const index_d$7_flags: typeof flags;
 type index_d$7_TileFlags = TileFlags;
-type index_d$7_NameConfig = NameConfig;
-type index_d$7_TileType = TileType;
 type index_d$7_TileConfig = TileConfig;
 type index_d$7_Tile = Tile;
 declare const index_d$7_Tile: typeof Tile;
@@ -377,8 +354,7 @@ declare namespace index_d$7 {
   export {
     index_d$7_flags as flags,
     index_d$7_TileFlags as TileFlags,
-    index_d$7_NameConfig as NameConfig,
-    index_d$7_TileType as TileType,
+    TextOptions$1 as TextOptions,
     index_d$7_TileConfig as TileConfig,
     index_d$7_Tile as Tile,
     index_d$7_TileOptions as TileOptions,
@@ -1054,6 +1030,7 @@ declare class Actor extends Entity {
     hasAllActorFlags(flags: number): boolean;
     actorFlags(): number;
     isPlayer(): boolean;
+    hasStatus(_status: string): boolean;
     pickupItem(item: Item, opts?: Partial<PickupOptions>): Promise<boolean>;
     dropItem(item: Item, opts?: Partial<DropOptions>): Promise<boolean>;
 }
@@ -1269,12 +1246,16 @@ declare class Entity implements EntityType {
     blocksEffects(): boolean;
     forbidsCell(cell: CellType): boolean;
     avoidsCell(cell: CellType): boolean;
-    getName(): string;
-    getDescription(): string;
-    getFlavor(): string;
+    getName(opts?: TextOptions): string;
+    getDescription(opts?: TextOptions): string;
+    getFlavor(opts?: TextOptions): string;
     getVerb(verb: string): string;
 }
 
+interface TextOptions {
+    article?: boolean;
+    color?: boolean | GWU.color.ColorBase;
+}
 interface KindOptions extends Partial<GWU.sprite.SpriteConfig> {
     id?: string;
     name: string;
@@ -1299,9 +1280,9 @@ declare class EntityKind {
     init(entity: Entity, opts?: Partial<MakeOptions>): void;
     forbidsCell(cell: CellType, _entity?: Entity): boolean;
     avoidsCell(cell: CellType, _entity?: Entity): boolean;
-    getName(_entity: Entity): string;
-    getDescription(_entity: Entity): string;
-    getFlavor(_entity: Entity): string;
+    getName(_entity: Entity, _opts?: TextOptions): string;
+    getDescription(_entity: Entity, _opts?: TextOptions): string;
+    getFlavor(_entity: Entity, _opts?: TextOptions): string;
     getVerb(_entity: Entity, verb: string): string;
 }
 
@@ -1310,6 +1291,7 @@ type index_d$1_EntityType = EntityType;
 type index_d$1_KeyInfo = KeyInfo;
 declare const index_d$1_KeyInfo: typeof KeyInfo;
 declare const index_d$1_makeKeyInfo: typeof makeKeyInfo;
+type index_d$1_TextOptions = TextOptions;
 type index_d$1_KindOptions = KindOptions;
 type index_d$1_MakeOptions = MakeOptions;
 type index_d$1_EntityKind = EntityKind;
@@ -1323,6 +1305,7 @@ declare namespace index_d$1 {
     index_d$1_EntityType as EntityType,
     index_d$1_KeyInfo as KeyInfo,
     index_d$1_makeKeyInfo as makeKeyInfo,
+    index_d$1_TextOptions as TextOptions,
     index_d$1_KindOptions as KindOptions,
     index_d$1_MakeOptions as MakeOptions,
     index_d$1_EntityKind as EntityKind,

@@ -3,7 +3,7 @@ import * as GWU from 'gw-utils';
 import { FlagType, EntityType, KeyInfoType } from './types';
 import * as Flags from '../flags/entity';
 import { CellType, MapType } from '../map/types';
-import { EntityKind } from './kind';
+import { EntityKind, TextOptions } from './kind';
 
 export class Entity implements EntityType {
     depth: number;
@@ -71,14 +71,14 @@ export class Entity implements EntityType {
         return this.kind.avoidsCell(cell, this);
     }
 
-    getName(): string {
-        return this.kind.getName(this);
+    getName(opts?: TextOptions): string {
+        return this.kind.getName(this, opts);
     }
-    getDescription(): string {
-        return this.kind.getDescription(this);
+    getDescription(opts?: TextOptions): string {
+        return this.kind.getDescription(this, opts);
     }
-    getFlavor(): string {
-        return this.kind.getFlavor(this);
+    getFlavor(opts?: TextOptions): string {
+        return this.kind.getFlavor(this, opts);
     }
     getVerb(verb: string): string {
         return this.kind.getVerb(this, verb);
