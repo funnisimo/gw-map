@@ -86,9 +86,6 @@ export class Cell implements CellType {
     chokeCount = 0;
     tiles: TileArray;
     machineId = 0;
-    // keyId = 0;
-    // gasVolume: number = 0;
-    // liquidVolume: number = 0;
     _actor: Actor | null = null;
     _item: Item | null = null;
     _objects: CellObjects;
@@ -122,10 +119,12 @@ export class Cell implements CellType {
         for (let i = 0; i < this.tiles.length; ++i) {
             this.tiles[i] = other.tiles[i];
         }
+        this.machineId = other.machineId;
         this._actor = other._actor;
         this._item = other._item;
-        // this.keyId = other.keyId;
-        this.machineId = other.machineId;
+        this.map = other.map;
+        this.x = other.x;
+        this.y = other.y;
     }
 
     hasCellFlag(flag: number): boolean {
@@ -371,7 +370,7 @@ export class Cell implements CellType {
 
         return true;
     }
-    clearTiles(tile: string | number | TILE.Tile) {
+    clearTiles(tile?: string | number | TILE.Tile) {
         this.tiles[0] = TILE.tiles.NULL;
         for (let i = 1; i < this.tiles.length; ++i) {
             this.tiles[i] = null;

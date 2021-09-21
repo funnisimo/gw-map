@@ -44,8 +44,8 @@ describe('Map', () => {
         ];
 
         const map = Map.from(prefab, charToTile, {
-            fov: true,
-            revealed: true,
+            // fov: true,
+            // revealed: true,
         });
 
         const mixer = new GWU.sprite.Mixer();
@@ -114,5 +114,114 @@ describe('Map', () => {
 
         expect(nums).toEqual(nums2);
         expect(nums).toEqual(nums3);
+    });
+
+    describe('memory', () => {
+        test('make - default', () => {
+            const map = Map.make(10, 10, {
+                tile: 'FLOOR',
+                boundary: 'WALL',
+            });
+            expect(map.fov.isRevealed(5, 5)).toBeTruthy();
+            expect(map.light.getLight(5, 5)).toEqual([100, 100, 100]);
+            expect(map.light.isLit(5, 5)).toBeTruthy();
+            expect(map.fov.isAnyKindOfVisible(5, 5)).toBeTruthy();
+            expect(map.fov.isDirectlyVisible(5, 5)).toBeFalsy();
+
+            const memory = map.memory[5][5];
+            expect(memory.tiles).toEqual([Tile.tiles.FLOOR]);
+            expect(memory.needsRedraw).toBeTruthy();
+            expect(memory.snapshot.ch).toEqual(Tile.tiles.FLOOR.sprite.ch); // we got the snapshot
+        });
+
+        test('make - revealed', () => {
+            const map = Map.make(10, 10, {
+                revealed: true,
+                tile: 'FLOOR',
+                boundary: 'WALL',
+            });
+            expect(map.fov.isRevealed(5, 5)).toBeTruthy();
+            expect(map.light.getLight(5, 5)).toEqual([100, 100, 100]);
+            expect(map.light.isLit(5, 5)).toBeTruthy();
+            expect(map.fov.isAnyKindOfVisible(5, 5)).toBeFalsy();
+            expect(map.fov.isDirectlyVisible(5, 5)).toBeFalsy();
+
+            const memory = map.memory[5][5];
+            expect(memory.tiles).toEqual([Tile.tiles.FLOOR]);
+            expect(memory.needsRedraw).toBeTruthy();
+            expect(memory.snapshot.ch).toEqual(Tile.tiles.FLOOR.sprite.ch); // we got the snapshot
+        });
+
+        test('make - visible', () => {
+            const map = Map.make(10, 10, {
+                visible: true,
+                tile: 'FLOOR',
+                boundary: 'WALL',
+            });
+            expect(map.fov.isRevealed(5, 5)).toBeTruthy();
+            expect(map.light.getLight(5, 5)).toEqual([100, 100, 100]);
+            expect(map.light.isLit(5, 5)).toBeTruthy();
+            expect(map.fov.isAnyKindOfVisible(5, 5)).toBeTruthy();
+            expect(map.fov.isDirectlyVisible(5, 5)).toBeFalsy();
+
+            const memory = map.memory[5][5];
+            expect(memory.tiles).toEqual([Tile.tiles.FLOOR]);
+            expect(memory.needsRedraw).toBeTruthy();
+            expect(memory.snapshot.ch).toEqual(Tile.tiles.FLOOR.sprite.ch); // we got the snapshot
+        });
+
+        test('make - not visible', () => {
+            const map = Map.make(10, 10, {
+                visible: false,
+                tile: 'FLOOR',
+                boundary: 'WALL',
+            });
+            expect(map.fov.isRevealed(5, 5)).toBeFalsy();
+            expect(map.light.getLight(5, 5)).toEqual([100, 100, 100]);
+            expect(map.light.isLit(5, 5)).toBeTruthy();
+            expect(map.fov.isAnyKindOfVisible(5, 5)).toBeFalsy();
+            expect(map.fov.isDirectlyVisible(5, 5)).toBeFalsy();
+
+            const memory = map.memory[5][5];
+            expect(memory.tiles).toEqual([Tile.tiles.NULL]);
+            expect(memory.needsRedraw).toBeTruthy();
+            expect(memory.snapshot.ch).toEqual(Tile.tiles.NULL.sprite.ch); // we got the snapshot
+        });
+
+        test('make - not revealed', () => {
+            const map = Map.make(10, 10, {
+                revealed: false,
+                tile: 'FLOOR',
+                boundary: 'WALL',
+            });
+            expect(map.fov.isRevealed(5, 5)).toBeFalsy();
+            expect(map.light.getLight(5, 5)).toEqual([100, 100, 100]);
+            expect(map.light.isLit(5, 5)).toBeTruthy();
+            expect(map.fov.isAnyKindOfVisible(5, 5)).toBeFalsy();
+            expect(map.fov.isDirectlyVisible(5, 5)).toBeFalsy();
+
+            const memory = map.memory[5][5];
+            expect(memory.tiles).toEqual([Tile.tiles.NULL]);
+            expect(memory.needsRedraw).toBeTruthy();
+            expect(memory.snapshot.ch).toEqual(Tile.tiles.NULL.sprite.ch); // we got the snapshot
+        });
+
+        test('make - fov', () => {
+            const map = Map.make(10, 10, {
+                fov: true,
+                tile: 'FLOOR',
+                boundary: 'WALL',
+            });
+            expect(map.fov.isRevealed(5, 5)).toBeFalsy();
+            expect(map.light.getLight(5, 5)).toEqual([100, 100, 100]);
+            expect(map.light.isLit(5, 5)).toBeTruthy();
+            expect(map.fov.isAnyKindOfVisible(5, 5)).toBeFalsy();
+            expect(map.fov.isDirectlyVisible(5, 5)).toBeFalsy();
+
+            const memory = map.memory[5][5];
+            expect(memory.tiles).toEqual([Tile.tiles.NULL]);
+            expect(memory.needsRedraw).toBeTruthy();
+            expect(memory.snapshot.ch).toEqual(Tile.tiles.NULL.sprite.ch); // we got the snapshot
+        });
     });
 });

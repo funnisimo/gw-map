@@ -1,81 +1,25 @@
 import * as GWU from 'gw-utils';
 
-import { Actor } from '../actor';
-import * as Flags from '../flags';
-import { Item } from '../item';
-import * as TILE from '../tile';
-import { CellInfoType } from './types';
+import { Cell } from './cell';
+import { Map } from './map';
+import * as Tile from '../tile';
 
-export class CellMemory implements CellInfoType {
-    chokeCount = 0;
-    machineId = 0;
-    keyId = 0;
-
-    flags = {
-        cell: 0,
-        item: 0,
-        actor: 0,
-        tile: 0,
-        tileMech: 0,
-        object: 0,
-    };
-    blocks = {
-        vision: false,
-        effects: false,
-        move: false,
-        pathing: false,
-    };
-    _tile: TILE.Tile = TILE.tiles.NULL;
-    _item: Item | null = null;
-    _actor: Actor | null = null;
-    _hasKey: boolean = false;
+export class CellMemory extends Cell {
     snapshot: GWU.sprite.Mixer;
 
-    constructor() {
+    constructor(map: Map, x: number, y: number) {
+        super(map, x, y);
         this.snapshot = new GWU.sprite.Mixer();
+        this.snapshot.copy(Tile.tiles.NULL.sprite);
     }
 
     clear() {
+        super.clear();
         this.snapshot.blackOut();
-        this._item = null;
-        this._actor = null;
-        this._tile = TILE.tiles.NULL;
-        this.flags.cell = 0;
-        this.flags.object = 0;
-        this.flags.tile = 0;
-        this.flags.tileMech = 0;
-        this.blocks.effects = false;
-        this.blocks.move = false;
-        this.blocks.pathing = false;
-        this.blocks.vision = false;
-        this.machineId = 0;
-        this.chokeCount = 0;
     }
 
-    store(cell: CellInfoType) {
-        this._item = null;
-        if (cell.hasItem()) {
-            this._item = cell.item;
-        }
-        this._actor = null;
-        if (cell.hasActor()) {
-            this._actor = cell.actor;
-        }
-        this._tile = cell.tile;
-        this.flags.cell = cell.cellFlags();
-        this.flags.tile = cell.tileFlags();
-        this.flags.tileMech = cell.tileMechFlags();
-        this.flags.object = cell.entityFlags();
-        this.flags.item = cell.itemFlags();
-        this.flags.actor = cell.actorFlags();
-
-        this.blocks.effects = cell.blocksEffects();
-        this.blocks.move = cell.blocksMove();
-        this.blocks.pathing = cell.blocksPathing();
-        this.blocks.vision = cell.blocksVision();
-
-        this.chokeCount = cell.chokeCount;
-        this.machineId = cell.machineId;
+    store(cell: Cell) {
+        this.copy(cell);
     }
 
     getSnapshot(dest: GWU.sprite.Mixer) {
@@ -83,115 +27,5 @@ export class CellMemory implements CellInfoType {
     }
     putSnapshot(src: GWU.sprite.Mixer) {
         this.snapshot.copy(src);
-    }
-
-    get needsRedraw() {
-        return this.hasCellFlag(Flags.Cell.NEEDS_REDRAW);
-    }
-
-    hasCellFlag(flag: number): boolean {
-        return !!(this.flags.cell & flag);
-    }
-    hasTileFlag(flag: number): boolean {
-        return !!(this.flags.tile & flag);
-    }
-    hasAllTileFlags(flags: number): boolean {
-        return (this.flags.tile & flags) == flags;
-    }
-    hasEntityFlag(flag: number): boolean {
-        return !!(this.flags.object & flag);
-    }
-    hasAllEntityFlags(flags: number): boolean {
-        return (this.flags.object & flags) == flags;
-    }
-    hasTileMechFlag(flag: number): boolean {
-        return !!(this.flags.tileMech & flag);
-    }
-
-    cellFlags(): number {
-        return this.flags.cell;
-    }
-    entityFlags(): number {
-        return this.flags.object;
-    }
-    tileFlags(): number {
-        return this.flags.tile;
-    }
-    tileMechFlags(): number {
-        return this.flags.tileMech;
-    }
-    itemFlags(): number {
-        return this.flags.item;
-    }
-    actorFlags(): number {
-        return this.flags.actor;
-    }
-    blocksVision(): boolean {
-        return this.blocks.vision;
-    }
-    blocksPathing(): boolean {
-        return this.blocks.pathing;
-    }
-    blocksMove(): boolean {
-        return this.blocks.move;
-    }
-    blocksEffects(): boolean {
-        return this.blocks.effects;
-    }
-
-    isWall(): boolean {
-        return this.blocksVision() && this.blocksMove();
-    }
-    isStairs(): boolean {
-        return this.hasTileFlag(Flags.Tile.T_HAS_STAIRS);
-    }
-    isFloor(): boolean {
-        return (
-            !this.hasEntityFlag(Flags.Entity.L_BLOCKS_EVERYTHING) &&
-            !this.hasTileFlag(Flags.Tile.T_PATHING_BLOCKER)
-        );
-    }
-    isPassable(): boolean {
-        return !this.hasEntityFlag(Flags.Entity.L_BLOCKS_MOVE);
-    }
-    isSecretlyPassable(): boolean {
-        return this.hasEntityFlag(Flags.Entity.L_SECRETLY_PASSABLE);
-    }
-
-    get tile(): TILE.Tile {
-        return this._tile;
-    }
-    hasTile(tile: string | number | TILE.Tile): boolean {
-        if (!(tile instanceof TILE.Tile)) {
-            tile = TILE.get(tile);
-        }
-        return this._tile === tile;
-    }
-
-    hasItem(): boolean {
-        return !!this._item;
-    }
-    get item(): Item | null {
-        return this._item;
-    }
-
-    hasActor(): boolean {
-        return !!this._actor;
-    }
-    hasPlayer(): boolean {
-        return !!(this.flags.cell & Flags.Cell.HAS_PLAYER);
-    }
-    get actor(): Actor | null {
-        return this._actor;
-    }
-
-    getDescription(): string {
-        throw new Error('Method not implemented.');
-    }
-    getFlavor(): string {
-        throw new Error('Method not implemented.');
-    }
-    getName(_opts: any): string {
-        throw new Error('Method not implemented.');
     }
 }

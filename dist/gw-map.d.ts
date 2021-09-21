@@ -643,7 +643,7 @@ declare class Cell implements CellType {
     isGateSite(): boolean;
     isSecretlyPassable(): boolean;
     setTile(tile: string | number | Tile): boolean;
-    clearTiles(tile: string | number | Tile): void;
+    clearTiles(tile?: string | number | Tile): void;
     clear(tile?: number | string | Tile): void;
     clearDepth(depth: Depth): boolean;
     clearDepthsWithFlags(tileFlag: number, tileMechFlag?: number): void;
@@ -752,66 +752,13 @@ declare namespace index_d$4 {
   };
 }
 
-declare class CellMemory implements CellInfoType {
-    chokeCount: number;
-    machineId: number;
-    keyId: number;
-    flags: {
-        cell: number;
-        item: number;
-        actor: number;
-        tile: number;
-        tileMech: number;
-        object: number;
-    };
-    blocks: {
-        vision: boolean;
-        effects: boolean;
-        move: boolean;
-        pathing: boolean;
-    };
-    _tile: Tile;
-    _item: Item | null;
-    _actor: Actor | null;
-    _hasKey: boolean;
+declare class CellMemory extends Cell {
     snapshot: GWU.sprite.Mixer;
-    constructor();
+    constructor(map: Map, x: number, y: number);
     clear(): void;
-    store(cell: CellInfoType): void;
+    store(cell: Cell): void;
     getSnapshot(dest: GWU.sprite.Mixer): void;
     putSnapshot(src: GWU.sprite.Mixer): void;
-    get needsRedraw(): boolean;
-    hasCellFlag(flag: number): boolean;
-    hasTileFlag(flag: number): boolean;
-    hasAllTileFlags(flags: number): boolean;
-    hasEntityFlag(flag: number): boolean;
-    hasAllEntityFlags(flags: number): boolean;
-    hasTileMechFlag(flag: number): boolean;
-    cellFlags(): number;
-    entityFlags(): number;
-    tileFlags(): number;
-    tileMechFlags(): number;
-    itemFlags(): number;
-    actorFlags(): number;
-    blocksVision(): boolean;
-    blocksPathing(): boolean;
-    blocksMove(): boolean;
-    blocksEffects(): boolean;
-    isWall(): boolean;
-    isStairs(): boolean;
-    isFloor(): boolean;
-    isPassable(): boolean;
-    isSecretlyPassable(): boolean;
-    get tile(): Tile;
-    hasTile(tile: string | number | Tile): boolean;
-    hasItem(): boolean;
-    get item(): Item | null;
-    hasActor(): boolean;
-    hasPlayer(): boolean;
-    get actor(): Actor | null;
-    getDescription(): string;
-    getFlavor(): string;
-    getName(_opts: any): string;
 }
 
 interface MapOptions extends GWU.light.LightSystemOptions, GWU.fov.FovSystemOptions {
@@ -854,7 +801,7 @@ declare class Map implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType
     getLayer(depth: number | keyof typeof Depth): LayerType | null;
     hasXY(x: number, y: number): boolean;
     isBoundaryXY(x: number, y: number): boolean;
-    cell(x: number, y: number): CellType;
+    cell(x: number, y: number): Cell;
     get(x: number, y: number): Cell | undefined;
     eachCell(cb: EachCellCb): void;
     drawInto(dest: GWU.canvas.Canvas | GWU.canvas.DataBuffer, opts?: Partial<MapDrawOptions> | boolean): void;
@@ -908,7 +855,7 @@ declare class Map implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType
     onCellRevealed(_x: number, _y: number): void;
     redrawCell(x: number, y: number, clearMemory?: boolean): void;
     clearMemory(x: number, y: number): void;
-    storeMemory(x: number, y: number): void;
+    storeMemory(x: number, y: number, updateSnapshot?: boolean): void;
 }
 declare function make$1(w: number, h: number, floor?: string, boundary?: string): Map;
 declare function make$1(w: number, h: number, floor: string): Map;
@@ -1045,6 +992,7 @@ declare class ActorKind extends EntityKind {
     init(actor: Actor, options?: Partial<MakeOptions$1>): void;
     forbidsCell(cell: CellType, actor?: Actor): boolean;
     avoidsCell(cell: CellType, actor?: Actor): boolean;
+    getFlavor(actor: Actor, opts?: FlavorOptions): string;
     pickupItem(actor: Actor, item: Item, _opts?: Partial<PickupOptions>): Promise<boolean>;
     dropItem(actor: Actor, item: Item, _opts?: Partial<DropOptions>): Promise<boolean>;
 }
@@ -1113,8 +1061,8 @@ interface SetOptions {
 }
 declare type SetTileOptions = Partial<SetOptions>;
 interface CellInfoType {
-    chokeCount: number;
-    machineId: number;
+    readonly chokeCount: number;
+    readonly machineId: number;
     readonly needsRedraw: boolean;
     hasCellFlag(flag: number): boolean;
     hasTileFlag(flag: number): boolean;
@@ -1137,8 +1085,17 @@ interface CellInfoType {
     isFloor(): boolean;
     isPassable(): boolean;
     isSecretlyPassable(): boolean;
-    readonly tile: Tile;
+    depthPriority(depth: number): number;
+    highestPriority(): number;
+    blocksLayer(depth: number): boolean;
+    depthTile(depth: number): Tile | null;
     hasTile(tile: string | number | Tile): boolean;
+    eachTile(cb: GWU.types.EachCb<Tile>): void;
+    hasDepthTile(depth: number): boolean;
+    highestPriorityTile(): Tile;
+    hasTileTag(tag: string): boolean;
+    hasAllTileTags(tags: string[]): boolean;
+    hasAnyTileTag(tags: string[]): boolean;
     hasItem(): boolean;
     readonly item: Item | null;
     hasActor(): boolean;
@@ -1152,21 +1109,13 @@ interface CellType extends CellInfoType {
     flags: CellFlags;
     actor: Actor | null;
     item: Item | null;
+    chokeCount: number;
+    machineId: number;
     setCellFlag(flag: number): void;
     clearCellFlag(flag: number): void;
-    depthPriority(depth: number): number;
-    highestPriority(): number;
-    depthTile(depth: number): Tile | null;
-    blocksLayer(depth: number): boolean;
-    eachTile(cb: GWU.types.EachCb<Tile>): void;
     setTile(tile: Tile): boolean;
     clear(tile?: number | string | Tile): void;
     clearDepth(depth: number): boolean;
-    hasDepthTile(depth: number): boolean;
-    highestPriorityTile(): Tile;
-    hasTileTag(tag: string): boolean;
-    hasAllTileTags(tags: string[]): boolean;
-    hasAnyTileTag(tags: string[]): boolean;
     clearTiles(tile?: string | number | Tile): void;
     isEmpty(): boolean;
     isGateSite(): boolean;
@@ -1236,6 +1185,7 @@ declare class Entity implements EntityType {
     constructor(kind: EntityKind);
     get sprite(): GWU.sprite.Sprite;
     get isDestroyed(): boolean;
+    canBeSeen(): boolean;
     destroy(): void;
     hasEntityFlag(flag: number): boolean;
     hasAllEntityFlags(flags: number): boolean;
@@ -1248,13 +1198,16 @@ declare class Entity implements EntityType {
     avoidsCell(cell: CellType): boolean;
     getName(opts?: TextOptions): string;
     getDescription(opts?: TextOptions): string;
-    getFlavor(opts?: TextOptions): string;
+    getFlavor(opts?: FlavorOptions): string;
     getVerb(verb: string): string;
 }
 
 interface TextOptions {
     article?: boolean;
     color?: boolean | GWU.color.ColorBase;
+}
+interface FlavorOptions extends TextOptions {
+    action?: boolean;
 }
 interface KindOptions extends Partial<GWU.sprite.SpriteConfig> {
     id?: string;
@@ -1278,11 +1231,12 @@ declare class EntityKind {
     constructor(config: KindOptions);
     make(opts?: Partial<MakeOptions>): Entity;
     init(entity: Entity, opts?: Partial<MakeOptions>): void;
+    canBeSeen(_entity: Entity): boolean;
     forbidsCell(cell: CellType, _entity?: Entity): boolean;
     avoidsCell(cell: CellType, _entity?: Entity): boolean;
     getName(_entity: Entity, _opts?: TextOptions): string;
     getDescription(_entity: Entity, _opts?: TextOptions): string;
-    getFlavor(_entity: Entity, _opts?: TextOptions): string;
+    getFlavor(_entity: Entity, _opts?: FlavorOptions): string;
     getVerb(_entity: Entity, verb: string): string;
 }
 
@@ -1292,6 +1246,7 @@ type index_d$1_KeyInfo = KeyInfo;
 declare const index_d$1_KeyInfo: typeof KeyInfo;
 declare const index_d$1_makeKeyInfo: typeof makeKeyInfo;
 type index_d$1_TextOptions = TextOptions;
+type index_d$1_FlavorOptions = FlavorOptions;
 type index_d$1_KindOptions = KindOptions;
 type index_d$1_MakeOptions = MakeOptions;
 type index_d$1_EntityKind = EntityKind;
@@ -1306,6 +1261,7 @@ declare namespace index_d$1 {
     index_d$1_KeyInfo as KeyInfo,
     index_d$1_makeKeyInfo as makeKeyInfo,
     index_d$1_TextOptions as TextOptions,
+    index_d$1_FlavorOptions as FlavorOptions,
     index_d$1_KindOptions as KindOptions,
     index_d$1_MakeOptions as MakeOptions,
     index_d$1_EntityKind as EntityKind,

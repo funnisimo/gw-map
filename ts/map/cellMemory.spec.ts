@@ -16,15 +16,13 @@ describe('CellMemory', () => {
     });
 
     test('Snapshot', () => {
-        const a = new CellMemory();
-        const b = new CellMemory();
+        const a = new CellMemory(map, 1, 1);
+        const b = new CellMemory(map, 1, 1);
 
         a.snapshot.draw('a');
-        a.flags.tile = 1;
         a.flags.cell = 1;
 
         b.snapshot.draw('b');
-        b.flags.tile = 2;
         b.flags.cell = 2;
 
         expect(a.snapshot).not.toBe(b.snapshot);
@@ -43,14 +41,12 @@ describe('CellMemory', () => {
         expect(c.flags.cell).toEqual(Flags.Cell.NEEDS_REDRAW);
         expect(c.hasTile('FLOOR')).toBeTruthy();
 
-        const mem: CellMemory = new CellMemory();
+        const mem: CellMemory = new CellMemory(map, 1, 1);
         mem.store(c);
         expect(mem.item).toBeNull();
         expect(mem.actor).toBeNull();
         expect(mem.tile).toBe(Tile.tiles.FLOOR);
         expect(mem.flags.cell).toEqual(Flags.Cell.NEEDS_REDRAW);
-        expect(mem.flags.tile).toEqual(0);
-        expect(mem.flags.tileMech).toEqual(0);
 
         const item = UTILS.mockItem();
 
@@ -66,7 +62,5 @@ describe('CellMemory', () => {
         expect(mem.flags.cell).toEqual(
             Flags.Cell.NEEDS_REDRAW | Flags.Cell.HAS_ACTOR | Flags.Cell.HAS_ITEM
         );
-        expect(mem.flags.tile).toEqual(0);
-        expect(mem.flags.tileMech).toEqual(0);
     });
 });

@@ -11,7 +11,6 @@ import {
     MapType,
     EachCellCb,
     MapTestFn,
-    CellType,
     SetTileOptions,
     CellInfoType,
 } from './types';
@@ -64,7 +63,11 @@ export class Map
             height,
             (x, y) => new Cell(this, x, y)
         );
-        this.memory = GWU.grid.make(width, height, () => new CellMemory());
+        this.memory = GWU.grid.make(
+            width,
+            height,
+            (x, y) => new CellMemory(this, x, y)
+        );
 
         if (opts.seed) {
             this._seed = opts.seed;
@@ -87,7 +90,9 @@ export class Map
     }
 
     cellInfo(x: number, y: number, useMemory = false): CellInfoType {
-        if (useMemory) return this.memory[x][y];
+        if (useMemory && !this.fov.isAnyKindOfVisible(x, y)) {
+            return this.memory[x][y];
+        }
         return this.cell(x, y);
     }
 
@@ -135,7 +140,7 @@ export class Map
         return x == 0 || y == 0 || x == this.width - 1 || y == this.height - 1;
     }
 
-    cell(x: number, y: number): CellType {
+    cell(x: number, y: number): Cell {
         return this.cells[x][y];
     }
     get(x: number, y: number): Cell | undefined {
@@ -630,9 +635,16 @@ export class Map
     clearMemory(x: number, y: number): void {
         this.memory[x][y].clear();
     }
-    storeMemory(x: number, y: number): void {
+    storeMemory(x: number, y: number, updateSnapshot = false): void {
         const cell = this.cell(x, y);
-        this.memory[x][y].store(cell);
+        const memory = this.memory[x][y];
+        memory.store(cell);
+        if (updateSnapshot) {
+            const dest = memory.snapshot;
+            dest.blackOut();
+            this.layers.forEach((layer) => layer.putAppearance(dest, x, y));
+            dest.bake();
+        }
     }
 
     // // DigSite
@@ -672,13 +684,20 @@ export function make(
     const map = new Map(w, h, opts);
     if (opts.tile) {
         map.fill(opts.tile, opts.boundary);
+        map.light.update();
     }
-
-    map.light.update();
 
     // if (!DATA.map) {
     //     DATA.map = map;
     // }
+
+    // In case we reveal the map or make it all visible we need our memory set correctly
+    map.cells.forEach((_c, x, y) => {
+        if (map.fov.isRevealed(x, y)) {
+            map.storeMemory(x, y, true); // with snapshot
+        }
+    });
+
     return map;
 }
 

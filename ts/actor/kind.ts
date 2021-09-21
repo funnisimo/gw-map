@@ -3,6 +3,7 @@ import * as Entity from '../entity';
 import { CellType } from '../map';
 import { Actor, PickupOptions, DropOptions } from './actor';
 import { Item } from '../item/item';
+import { FlavorOptions } from '../entity';
 
 export interface KindOptions extends Entity.KindOptions {}
 
@@ -34,6 +35,14 @@ export class ActorKind extends Entity.EntityKind {
         if (cell.blocksMove()) return true;
         if (cell.blocksPathing()) return true;
         return false;
+    }
+
+    getFlavor(actor: Actor, opts?: FlavorOptions): string {
+        const flavor = actor.isPlayer() ? 'yourself' : this.flavor;
+        if (opts && opts.action) {
+            return flavor + ' standing';
+        }
+        return flavor;
     }
 
     async pickupItem(

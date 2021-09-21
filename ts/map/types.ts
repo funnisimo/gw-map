@@ -25,8 +25,8 @@ export interface SetOptions {
 export type SetTileOptions = Partial<SetOptions>;
 
 export interface CellInfoType {
-    chokeCount: number;
-    machineId: number;
+    readonly chokeCount: number;
+    readonly machineId: number;
     // keyId: number;
     readonly needsRedraw: boolean;
 
@@ -59,8 +59,19 @@ export interface CellInfoType {
 
     // Tiles
 
-    readonly tile: Tile;
+    depthPriority(depth: number): number;
+    highestPriority(): number;
+    blocksLayer(depth: number): boolean;
+    depthTile(depth: number): Tile | null;
     hasTile(tile: string | number | Tile): boolean;
+    eachTile(cb: GWU.types.EachCb<Tile>): void;
+
+    hasDepthTile(depth: number): boolean;
+    highestPriorityTile(): Tile;
+
+    hasTileTag(tag: string): boolean;
+    hasAllTileTags(tags: string[]): boolean;
+    hasAnyTileTag(tags: string[]): boolean;
 
     // Items
 
@@ -84,29 +95,16 @@ export interface CellType extends CellInfoType {
     flags: CellFlags;
     actor: Actor | null;
     item: Item | null;
+    chokeCount: number;
+    machineId: number;
 
     setCellFlag(flag: number): void;
     clearCellFlag(flag: number): void;
-
-    // Tiles
-
-    depthPriority(depth: number): number;
-    highestPriority(): number;
-    depthTile(depth: number): Tile | null;
-    blocksLayer(depth: number): boolean;
-    eachTile(cb: GWU.types.EachCb<Tile>): void;
 
     // @returns - whether or not the change results in a change to the cell lighting.
     setTile(tile: Tile): boolean;
     clear(tile?: number | string | Tile): void;
     clearDepth(depth: number): boolean;
-
-    hasDepthTile(depth: number): boolean;
-    highestPriorityTile(): Tile;
-
-    hasTileTag(tag: string): boolean;
-    hasAllTileTags(tags: string[]): boolean;
-    hasAnyTileTag(tags: string[]): boolean;
 
     clearTiles(tile?: string | number | Tile): void;
 

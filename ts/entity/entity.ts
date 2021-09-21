@@ -3,7 +3,7 @@ import * as GWU from 'gw-utils';
 import { FlagType, EntityType, KeyInfoType } from './types';
 import * as Flags from '../flags/entity';
 import { CellType, MapType } from '../map/types';
-import { EntityKind, TextOptions } from './kind';
+import { EntityKind, TextOptions, FlavorOptions } from './kind';
 
 export class Entity implements EntityType {
     depth: number;
@@ -33,6 +33,10 @@ export class Entity implements EntityType {
 
     get isDestroyed(): boolean {
         return this.hasEntityFlag(Flags.Entity.L_DESTROYED);
+    }
+
+    canBeSeen(): boolean {
+        return this.kind.canBeSeen(this);
     }
 
     destroy() {
@@ -77,7 +81,7 @@ export class Entity implements EntityType {
     getDescription(opts?: TextOptions): string {
         return this.kind.getDescription(this, opts);
     }
-    getFlavor(opts?: TextOptions): string {
+    getFlavor(opts?: FlavorOptions): string {
         return this.kind.getFlavor(this, opts);
     }
     getVerb(verb: string): string {

@@ -8,6 +8,10 @@ export interface TextOptions {
     color?: boolean | GWU.color.ColorBase;
 }
 
+export interface FlavorOptions extends TextOptions {
+    action?: boolean;
+}
+
 export interface KindOptions extends Partial<GWU.sprite.SpriteConfig> {
     id?: string;
     name: string;
@@ -70,6 +74,10 @@ export class EntityKind {
         }
     }
 
+    canBeSeen(_entity: Entity): boolean {
+        return true;
+    }
+
     forbidsCell(cell: CellType, _entity?: Entity): boolean {
         if (
             this.requiredTileTags.length &&
@@ -94,7 +102,7 @@ export class EntityKind {
     getDescription(_entity: Entity, _opts?: TextOptions): string {
         return this.description;
     }
-    getFlavor(_entity: Entity, _opts?: TextOptions): string {
+    getFlavor(_entity: Entity, _opts?: FlavorOptions): string {
         return this.flavor;
     }
     getVerb(_entity: Entity, verb: string): string {
