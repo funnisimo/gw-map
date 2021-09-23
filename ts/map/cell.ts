@@ -1,7 +1,7 @@
 import * as GWU from 'gw-utils';
 
 import * as Flags from '../flags';
-import { CellType, CellFlags, MapType } from './types';
+import { CellType, CellFlags, MapType, TileArray } from './types';
 
 import * as TILE from '../tile';
 import { Entity } from '../entity';
@@ -9,14 +9,11 @@ import { Actor } from '../actor';
 import { Item } from '../item';
 import * as Effect from '../effect';
 
-type TileData = TILE.Tile | null;
-type TileArray = [TILE.Tile, ...TileData[]];
-
 type EachCb<T> = (t: T) => any;
 type MatchCb<T> = (t: T) => boolean;
 type ReduceCb<T> = (out: any, t: T) => any;
 
-class CellObjects {
+class CellEntities {
     cell: Cell;
 
     constructor(cell: Cell) {
@@ -88,7 +85,7 @@ export class Cell implements CellType {
     machineId = 0;
     _actor: Actor | null = null;
     _item: Item | null = null;
-    _objects: CellObjects;
+    _entities: CellEntities;
     map: MapType;
     x = -1;
     y = -1;
@@ -99,7 +96,7 @@ export class Cell implements CellType {
         y: number,
         groundTile?: number | string | TILE.Tile
     ) {
-        this._objects = new CellObjects(this);
+        this._entities = new CellEntities(this);
         this.flags = { cell: Flags.Cell.NEEDS_REDRAW };
         this.tiles = [TILE.tiles.NULL];
         this.map = map;
@@ -137,10 +134,12 @@ export class Cell implements CellType {
         this.flags.cell &= ~flag;
     }
 
-    hasEntityFlag(flag: number): boolean {
+    hasEntityFlag(flag: number, withEntities = false): boolean {
+        if (this.tiles.some((t) => t && t.flags.entity & flag)) return true;
+
         return (
-            this.tiles.some((t) => t && t.flags.entity & flag) ||
-            this._objects.some((o) => !!(o.flags.entity & flag))
+            withEntities &&
+            this._entities.some((o) => !!(o.flags.entity & flag))
         );
     }
     hasAllEntityFlags(flags: number): boolean {
@@ -176,11 +175,15 @@ export class Cell implements CellType {
     cellFlags(): number {
         return this.flags.cell;
     }
-    entityFlags(): number {
-        return (
-            this.tiles.reduce((out, t) => out | (t ? t.flags.entity : 0), 0) |
-            this._objects.reduce((out, o) => out | o.flags.entity, 0)
+    entityFlags(withEntities = false): number {
+        let flags = this.tiles.reduce(
+            (out, t) => out | (t ? t.flags.entity : 0),
+            0
         );
+        if (withEntities) {
+            flags |= this._entities.reduce((out, o) => out | o.flags.entity, 0);
+        }
+        return flags;
     }
     tileFlags(): number {
         return this.tiles.reduce((out, t) => out | (t ? t.flags.tile : 0), 0);
@@ -193,14 +196,14 @@ export class Cell implements CellType {
     }
     itemFlags(): number {
         let flags = 0;
-        this._objects.eachItem((i) => {
+        this._entities.eachItem((i) => {
             flags |= i.flags.item;
         });
         return flags;
     }
     actorFlags(): number {
         let flags = 0;
-        this._objects.eachActor((a) => {
+        this._entities.eachActor((a) => {
             flags |= a.flags.actor;
         });
         return flags;
@@ -272,29 +275,21 @@ export class Cell implements CellType {
         return this.tiles.find((t) => t && t.flags.tileMech & flag) || null;
     }
 
-    blocksVision(): boolean {
-        return (
-            this.tiles.some((t) => t && t.blocksVision()) ||
-            this._objects.some((o) => o.blocksVision())
-        );
+    blocksVision(withEntities = false): boolean {
+        if (this.tiles.some((t) => t && t.blocksVision())) return true;
+        return withEntities && this._entities.some((o) => o.blocksVision());
     }
-    blocksPathing(): boolean {
-        return (
-            this.tiles.some((t) => t && t.blocksPathing()) ||
-            this._objects.some((o) => o.blocksPathing())
-        );
+    blocksPathing(withEntities = false): boolean {
+        if (this.tiles.some((t) => t && t.blocksPathing())) return true;
+        return withEntities && this._entities.some((o) => o.blocksPathing());
     }
-    blocksMove(): boolean {
-        return (
-            this.tiles.some((t) => t && t.blocksMove()) ||
-            this._objects.some((o) => o.blocksMove())
-        );
+    blocksMove(withEntities = false): boolean {
+        if (this.tiles.some((t) => t && t.blocksMove())) return true;
+        return withEntities && this._entities.some((o) => o.blocksMove());
     }
-    blocksEffects(): boolean {
-        return (
-            this.tiles.some((t) => t && t.blocksEffects()) ||
-            this._objects.some((o) => o.blocksEffects())
-        );
+    blocksEffects(withEntities = false): boolean {
+        if (this.tiles.some((t) => t && t.blocksEffects())) return true;
+        return withEntities && this._entities.some((o) => o.blocksEffects());
     }
     blocksLayer(depth: number): boolean {
         return this.tiles.some(
@@ -352,12 +347,12 @@ export class Cell implements CellType {
         this.tiles[tile.depth] = tile;
         this.needsRedraw = true;
 
-        if (current.light !== tile.light) {
-            this.setCellFlag(Flags.Cell.LIGHT_CHANGED);
-        }
-        if (current.blocksVision() !== tile.blocksVision()) {
-            this.setCellFlag(Flags.Cell.FOV_CHANGED);
-        }
+        // if (current.light !== tile.light) {
+        //     this.setCellFlag(Flags.Cell.LIGHT_CHANGED);
+        // }
+        // if (current.blocksVision() !== tile.blocksVision()) {
+        //     this.setCellFlag(Flags.Cell.FOV_CHANGED);
+        // }
 
         // if (volume) {
         //     if (tile.depth === Depth.GAS) {
@@ -500,6 +495,9 @@ export class Cell implements CellType {
         }
         this.needsRedraw = true;
     }
+    removeItem(item: Item): boolean {
+        return GWU.list.remove(this, 'item', item);
+    }
 
     // // Actors
 
@@ -517,9 +515,12 @@ export class Cell implements CellType {
         if (val) {
             this.setCellFlag(Flags.Cell.HAS_ACTOR);
         } else {
-            this.clearCellFlag(Flags.Cell.HAS_ACTOR);
+            this.clearCellFlag(Flags.Cell.HAS_ACTOR | Flags.Cell.HAS_PLAYER);
         }
         this.needsRedraw = true;
+    }
+    removeActor(actor: Actor): boolean {
+        return GWU.list.remove(this, 'actor', actor);
     }
 
     getDescription() {

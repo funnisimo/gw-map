@@ -179,8 +179,8 @@ var Cell$1;
     Cell[Cell["IS_IN_AREA_MACHINE"] = Fl$3(10)] = "IS_IN_AREA_MACHINE";
     Cell[Cell["IMPREGNABLE"] = Fl$3(11)] = "IMPREGNABLE";
     Cell[Cell["NEEDS_REDRAW"] = Fl$3(13)] = "NEEDS_REDRAW";
-    Cell[Cell["LIGHT_CHANGED"] = Fl$3(14)] = "LIGHT_CHANGED";
-    Cell[Cell["FOV_CHANGED"] = Fl$3(15)] = "FOV_CHANGED";
+    Cell[Cell["STABLE_MEMORY"] = Fl$3(14)] = "STABLE_MEMORY";
+    Cell[Cell["STABLE_SNAPSHOT"] = Fl$3(15)] = "STABLE_SNAPSHOT";
     // These are to help memory
     Cell[Cell["HAS_SURFACE"] = Fl$3(16)] = "HAS_SURFACE";
     Cell[Cell["HAS_LIQUID"] = Fl$3(17)] = "HAS_LIQUID";
@@ -191,12 +191,11 @@ var Cell$1;
     Cell[Cell["HAS_ITEM"] = Fl$3(22)] = "HAS_ITEM";
     Cell[Cell["IS_IN_PATH"] = Fl$3(23)] = "IS_IN_PATH";
     Cell[Cell["IS_CURSOR"] = Fl$3(24)] = "IS_CURSOR";
-    Cell[Cell["STABLE_MEMORY"] = Fl$3(25)] = "STABLE_MEMORY";
     Cell[Cell["IS_WIRED"] = Fl$3(26)] = "IS_WIRED";
     Cell[Cell["IS_CIRCUIT_BREAKER"] = Fl$3(27)] = "IS_CIRCUIT_BREAKER";
     Cell[Cell["IS_POWERED"] = Fl$3(28)] = "IS_POWERED";
     Cell[Cell["COLORS_DANCE"] = Fl$3(30)] = "COLORS_DANCE";
-    Cell[Cell["CHANGED"] = Cell.NEEDS_REDRAW | Cell.LIGHT_CHANGED | Cell.FOV_CHANGED] = "CHANGED";
+    Cell[Cell["CHANGED"] = Cell.NEEDS_REDRAW] = "CHANGED";
     Cell[Cell["IS_IN_MACHINE"] = Cell.IS_IN_ROOM_MACHINE | Cell.IS_IN_AREA_MACHINE] = "IS_IN_MACHINE";
     Cell[Cell["PERMANENT_CELL_FLAGS"] = Cell.HAS_ITEM |
         Cell.HAS_DORMANT_MONSTER |
@@ -211,7 +210,7 @@ var Cell$1;
         Cell.IMPREGNABLE] = "PERMANENT_CELL_FLAGS";
     Cell[Cell["HAS_ANY_ACTOR"] = Cell.HAS_PLAYER | Cell.HAS_ACTOR] = "HAS_ANY_ACTOR";
     Cell[Cell["HAS_ANY_OBJECT"] = Cell.HAS_ITEM | Cell.HAS_ANY_ACTOR] = "HAS_ANY_OBJECT";
-    Cell[Cell["CELL_DEFAULT"] = Cell.NEEDS_REDRAW | Cell.LIGHT_CHANGED] = "CELL_DEFAULT";
+    Cell[Cell["CELL_DEFAULT"] = Cell.NEEDS_REDRAW] = "CELL_DEFAULT";
 })(Cell$1 || (Cell$1 = {}));
 
 const Fl$2 = GWU.flag.fl;
@@ -227,6 +226,7 @@ var Map$1;
     Map[Map["MAP_CALC_FOV"] = Fl$2(7)] = "MAP_CALC_FOV";
     Map[Map["MAP_FOV_CHANGED"] = Fl$2(8)] = "MAP_FOV_CHANGED";
     Map[Map["MAP_DANCES"] = Fl$2(9)] = "MAP_DANCES";
+    Map[Map["MAP_SIDEBAR_TILES_CHANGED"] = Fl$2(10)] = "MAP_SIDEBAR_TILES_CHANGED";
     Map[Map["MAP_DEFAULT"] = 0] = "MAP_DEFAULT";
 })(Map$1 || (Map$1 = {}));
 
@@ -346,6 +346,7 @@ class Entity {
         this.map = null;
         this.key = null;
         this.machineHome = 0;
+        this.lastSeen = null;
         this.depth = 1; // default - TODO - enum/const
         this.light = null;
         this.flags = { entity: 0 };
@@ -1367,6 +1368,13 @@ class TileLayer extends MapLayer {
         if (current.light !== tile.light) {
             this.map.light.glowLightChanged = true;
         }
+        if (current.hasEntityFlag(Entity$1.L_LIST_IN_SIDEBAR) !==
+            tile.hasEntityFlag(Entity$1.L_LIST_IN_SIDEBAR)) {
+            this.map.setMapFlag(Map$1.MAP_SIDEBAR_TILES_CHANGED);
+        }
+        if (this.map.fov.isAnyKindOfVisible(x, y)) {
+            cell.clearCellFlag(Cell$1.STABLE_MEMORY | Cell$1.STABLE_SNAPSHOT);
+        }
         if (tile.hasTileFlag(Tile$1.T_IS_FIRE)) {
             cell.setCellFlag(Cell$1.CAUGHT_FIRE_THIS_TURN);
         }
@@ -1432,11 +1440,19 @@ class ActorLayer extends MapLayer {
         if (obj.key && obj.key.matches(x, y) && cell.hasEffect('key')) {
             await cell.fire('key', this.map, x, y);
         }
+        cell.needsRedraw = true;
+        if (this.map.fov.isAnyKindOfVisible(x, y)) {
+            cell.clearCellFlag(Cell$1.STABLE_MEMORY | Cell$1.STABLE_SNAPSHOT);
+        }
         return true;
     }
     forceActor(x, y, actor, _opts) {
         if (actor.isDestroyed)
             return false;
+        if (this.map.hasXY(actor.x, actor.y)) {
+            const oldCell = this.map.cell(actor.x, actor.y);
+            oldCell.removeActor(actor);
+        }
         const cell = this.map.cell(x, y);
         if (!GWU.list.push(cell, 'actor', actor))
             return false;
@@ -1446,6 +1462,10 @@ class ActorLayer extends MapLayer {
         actor.x = x;
         actor.y = y;
         actor.map = this.map;
+        cell.needsRedraw = true;
+        if (this.map.fov.isAnyKindOfVisible(x, y)) {
+            cell.clearCellFlag(Cell$1.STABLE_MEMORY | Cell$1.STABLE_SNAPSHOT);
+        }
         return true;
     }
     async removeActor(actor) {
@@ -1459,6 +1479,10 @@ class ActorLayer extends MapLayer {
         }
         if (actor.key && actor.key.matches(x, y) && cell.hasEffect('nokey')) {
             await cell.fire('nokey', this.map, x, y);
+        }
+        cell.needsRedraw = true;
+        if (this.map.fov.isAnyKindOfVisible(x, y)) {
+            cell.clearCellFlag(Cell$1.STABLE_MEMORY | Cell$1.STABLE_SNAPSHOT);
         }
         return true;
     }
@@ -1497,6 +1521,10 @@ class ItemLayer extends MapLayer {
         if (cell.hasEffect('addItem')) {
             await cell.fire('addItem', this.map, x, y, { item });
         }
+        cell.needsRedraw = true;
+        if (this.map.fov.isAnyKindOfVisible(x, y)) {
+            cell.clearCellFlag(Cell$1.STABLE_MEMORY | Cell$1.STABLE_SNAPSHOT);
+        }
         return true;
     }
     forceItem(x, y, obj, _opts) {
@@ -1515,6 +1543,10 @@ class ItemLayer extends MapLayer {
         obj.y = y;
         obj.depth = this.depth;
         obj.map = this.map;
+        cell.needsRedraw = true;
+        if (this.map.fov.isAnyKindOfVisible(x, y)) {
+            cell.clearCellFlag(Cell$1.STABLE_MEMORY | Cell$1.STABLE_SNAPSHOT);
+        }
         return true;
     }
     async removeItem(obj) {
@@ -1528,6 +1560,10 @@ class ItemLayer extends MapLayer {
         }
         else if (cell.hasEffect('removeItem')) {
             await cell.fire('removeItem', this.map, x, y);
+        }
+        cell.needsRedraw = true;
+        if (this.map.fov.isAnyKindOfVisible(x, y)) {
+            cell.clearCellFlag(Cell$1.STABLE_MEMORY | Cell$1.STABLE_SNAPSHOT);
         }
         return true;
     }
@@ -1937,11 +1973,11 @@ class SpawnEffect extends Handler {
             const lakeX = i + blockingToMapX;
             const lakeY = j + blockingToMapY;
             if (blockingGrid.get(lakeX, lakeY)) {
-                if (map.cellInfo(i, j).isStairs()) {
+                if (map.cell(i, j).isStairs()) {
                     disrupts = true;
                 }
             }
-            else if (!map.cellInfo(i, j).blocksMove()) {
+            else if (!map.cell(i, j).blocksMove()) {
                 walkableGrid[i][j] = 1;
             }
         });
@@ -2025,13 +2061,13 @@ function cellIsOk(effect, map, x, y, isStart) {
         return false;
     }
     if (effect.flags & Effect.E_BUILD_IN_WALLS) {
-        if (!map.cellInfo(x, y).isWall())
+        if (!map.cell(x, y).isWall())
             return false;
     }
     else if (effect.flags & Effect.E_MUST_TOUCH_WALLS) {
         let ok = false;
         GWU.xy.eachNeighbor(x, y, (i, j) => {
-            if (map.cellInfo(i, j).isWall()) {
+            if (map.cell(i, j).isWall()) {
                 ok = true;
             }
         }, true);
@@ -2040,10 +2076,10 @@ function cellIsOk(effect, map, x, y, isStart) {
     }
     else if (effect.flags & Effect.E_NO_TOUCH_WALLS) {
         let ok = true;
-        if (map.cellInfo(x, y).isWall())
+        if (map.cell(x, y).isWall())
             return false; // or on wall
         GWU.xy.eachNeighbor(x, y, (i, j) => {
-            if (map.cellInfo(i, j).isWall()) {
+            if (map.cell(i, j).isWall()) {
                 ok = false;
             }
         }, true);
@@ -2237,7 +2273,7 @@ function evacuateCreatures(map, blockingMap) {
                     return !monst.forbidsCell(c);
                 });
                 if (loc && loc[0] >= 0 && loc[1] >= 0) {
-                    map.moveActor(loc[0], loc[1], monst);
+                    map.forceActor(loc[0], loc[1], monst);
                     // map.redrawXY(loc[0], loc[1]);
                     didSomething = true;
                 }
@@ -2267,7 +2303,7 @@ function evacuateItems(map, blockingMap) {
                 return !item.forbidsCell(dest);
             });
             if (loc && loc[0] >= 0 && loc[1] >= 0) {
-                map.moveItem(loc[0], loc[1], item);
+                map.forceItem(loc[0], loc[1], item);
                 // map.redrawXY(loc[0], loc[1]);
                 didSomething = true;
             }
@@ -2456,7 +2492,7 @@ var index$2 = /*#__PURE__*/Object.freeze({
     FireLayer: FireLayer
 });
 
-class CellObjects {
+class CellEntities {
     constructor(cell) {
         this.cell = cell;
     }
@@ -2525,7 +2561,7 @@ class Cell {
         this._item = null;
         this.x = -1;
         this.y = -1;
-        this._objects = new CellObjects(this);
+        this._entities = new CellEntities(this);
         this.flags = { cell: Cell$1.NEEDS_REDRAW };
         this.tiles = [tiles.NULL];
         this.map = map;
@@ -2559,9 +2595,11 @@ class Cell {
     clearCellFlag(flag) {
         this.flags.cell &= ~flag;
     }
-    hasEntityFlag(flag) {
-        return (this.tiles.some((t) => t && t.flags.entity & flag) ||
-            this._objects.some((o) => !!(o.flags.entity & flag)));
+    hasEntityFlag(flag, withEntities = false) {
+        if (this.tiles.some((t) => t && t.flags.entity & flag))
+            return true;
+        return (withEntities &&
+            this._entities.some((o) => !!(o.flags.entity & flag)));
     }
     hasAllEntityFlags(flags) {
         return (this.entityFlags() & flags) == flags;
@@ -2594,9 +2632,12 @@ class Cell {
     cellFlags() {
         return this.flags.cell;
     }
-    entityFlags() {
-        return (this.tiles.reduce((out, t) => out | (t ? t.flags.entity : 0), 0) |
-            this._objects.reduce((out, o) => out | o.flags.entity, 0));
+    entityFlags(withEntities = false) {
+        let flags = this.tiles.reduce((out, t) => out | (t ? t.flags.entity : 0), 0);
+        if (withEntities) {
+            flags |= this._entities.reduce((out, o) => out | o.flags.entity, 0);
+        }
+        return flags;
     }
     tileFlags() {
         return this.tiles.reduce((out, t) => out | (t ? t.flags.tile : 0), 0);
@@ -2606,14 +2647,14 @@ class Cell {
     }
     itemFlags() {
         let flags = 0;
-        this._objects.eachItem((i) => {
+        this._entities.eachItem((i) => {
             flags |= i.flags.item;
         });
         return flags;
     }
     actorFlags() {
         let flags = 0;
-        this._objects.eachActor((a) => {
+        this._entities.eachActor((a) => {
             flags |= a.flags.actor;
         });
         return flags;
@@ -2678,21 +2719,25 @@ class Cell {
     tileWithMechFlag(flag) {
         return this.tiles.find((t) => t && t.flags.tileMech & flag) || null;
     }
-    blocksVision() {
-        return (this.tiles.some((t) => t && t.blocksVision()) ||
-            this._objects.some((o) => o.blocksVision()));
+    blocksVision(withEntities = false) {
+        if (this.tiles.some((t) => t && t.blocksVision()))
+            return true;
+        return withEntities && this._entities.some((o) => o.blocksVision());
     }
-    blocksPathing() {
-        return (this.tiles.some((t) => t && t.blocksPathing()) ||
-            this._objects.some((o) => o.blocksPathing()));
+    blocksPathing(withEntities = false) {
+        if (this.tiles.some((t) => t && t.blocksPathing()))
+            return true;
+        return withEntities && this._entities.some((o) => o.blocksPathing());
     }
-    blocksMove() {
-        return (this.tiles.some((t) => t && t.blocksMove()) ||
-            this._objects.some((o) => o.blocksMove()));
+    blocksMove(withEntities = false) {
+        if (this.tiles.some((t) => t && t.blocksMove()))
+            return true;
+        return withEntities && this._entities.some((o) => o.blocksMove());
     }
-    blocksEffects() {
-        return (this.tiles.some((t) => t && t.blocksEffects()) ||
-            this._objects.some((o) => o.blocksEffects()));
+    blocksEffects(withEntities = false) {
+        if (this.tiles.some((t) => t && t.blocksEffects()))
+            return true;
+        return withEntities && this._entities.some((o) => o.blocksEffects());
     }
     blocksLayer(depth) {
         return this.tiles.some((t) => t &&
@@ -2739,12 +2784,12 @@ class Cell {
             return false;
         this.tiles[tile.depth] = tile;
         this.needsRedraw = true;
-        if (current.light !== tile.light) {
-            this.setCellFlag(Cell$1.LIGHT_CHANGED);
-        }
-        if (current.blocksVision() !== tile.blocksVision()) {
-            this.setCellFlag(Cell$1.FOV_CHANGED);
-        }
+        // if (current.light !== tile.light) {
+        //     this.setCellFlag(Flags.Cell.LIGHT_CHANGED);
+        // }
+        // if (current.blocksVision() !== tile.blocksVision()) {
+        //     this.setCellFlag(Flags.Cell.FOV_CHANGED);
+        // }
         // if (volume) {
         //     if (tile.depth === Depth.GAS) {
         //         this.gasVolume = volume;
@@ -2871,6 +2916,9 @@ class Cell {
         }
         this.needsRedraw = true;
     }
+    removeItem(item) {
+        return GWU.list.remove(this, 'item', item);
+    }
     // // Actors
     hasActor() {
         return this.hasCellFlag(Cell$1.HAS_ACTOR);
@@ -2887,9 +2935,12 @@ class Cell {
             this.setCellFlag(Cell$1.HAS_ACTOR);
         }
         else {
-            this.clearCellFlag(Cell$1.HAS_ACTOR);
+            this.clearCellFlag(Cell$1.HAS_ACTOR | Cell$1.HAS_PLAYER);
         }
         this.needsRedraw = true;
+    }
+    removeActor(actor) {
+        return GWU.list.remove(this, 'actor', actor);
     }
     getDescription() {
         return this.highestPriorityTile().description;
@@ -2922,6 +2973,12 @@ class CellMemory extends Cell {
     }
     store(cell) {
         this.copy(cell);
+        if (cell.actor) {
+            cell.actor.lastSeen = cell;
+        }
+        if (cell.item) {
+            cell.item.lastSeen = cell;
+        }
     }
     getSnapshot(dest) {
         dest.copy(this.snapshot);
@@ -2941,7 +2998,7 @@ class Map {
         this.flags = { map: 0 };
         this.layers = [];
         this.cells = GWU.grid.make(width, height, (x, y) => new Cell(this, x, y));
-        this.memory = GWU.grid.make(width, height, (x, y) => new CellMemory(this, x, y));
+        this._memory = GWU.grid.make(width, height, (x, y) => new CellMemory(this, x, y));
         if (opts.seed) {
             this._seed = opts.seed;
             this.rng = GWU.rng.make(opts.seed);
@@ -2958,11 +3015,13 @@ class Map {
         this._seed = v;
         this.rng = GWU.rng.make(v);
     }
-    cellInfo(x, y, useMemory = false) {
-        if (useMemory && !this.fov.isAnyKindOfVisible(x, y)) {
-            return this.memory[x][y];
-        }
-        return this.cell(x, y);
+    memory(x, y) {
+        return this._memory[x][y];
+    }
+    knowledge(x, y) {
+        if (this.fov.isAnyKindOfVisible(x, y))
+            return this.cells[x][y];
+        return this._memory[x][y];
     }
     // LAYERS
     initLayers() {
@@ -3016,21 +3075,14 @@ class Map {
         const mixer = new GWU.sprite.Mixer();
         for (let x = 0; x < buffer.width; ++x) {
             for (let y = 0; y < buffer.height; ++y) {
-                // const cell = this.cell(x, y);
-                // if (
-                //     cell.needsRedraw ||
-                //     this.light.lightChanged(x, y) ||
-                //     this.fov.fovChanged(x, y)
-                // ) {
                 this.getAppearanceAt(x, y, mixer);
                 buffer.drawSprite(x, y, mixer);
-                // }
             }
         }
     }
     // items
     hasItem(x, y) {
-        return this.cell(x, y).hasItem();
+        return this.cells[x][y].hasItem();
     }
     itemAt(x, y) {
         return this.cell(x, y).item;
@@ -3064,7 +3116,14 @@ class Map {
         const layer = this.layers[item.depth];
         return layer.removeItem(item);
     }
-    async moveItem(x, y, item) {
+    async moveItem(item, dir) {
+        if (typeof dir === 'number') {
+            dir = GWU.xy.DIRS[dir];
+        }
+        const oldX = item.x;
+        const oldY = item.y;
+        const x = oldX + dir[0];
+        const y = oldY + dir[1];
         if (!this.hasXY(x, y))
             return false;
         const layer = this.layers[item.depth];
@@ -3073,6 +3132,21 @@ class Map {
         if (!(await this.addItem(x, y, item))) {
             layer.forceItem(item.x, item.y, item);
             return false;
+        }
+        const wasVisible = this.fov.isAnyKindOfVisible(oldX, oldY);
+        const isVisible = this.fov.isAnyKindOfVisible(x, y);
+        if (isVisible && !wasVisible) {
+            if (item.lastSeen) {
+                this._memory[item.lastSeen.x][item.lastSeen.y].removeItem(item);
+                this.clearCellFlag(item.lastSeen.x, item.lastSeen.y, Cell$1.STABLE_SNAPSHOT);
+                item.lastSeen = null;
+            }
+        }
+        else if (wasVisible && !isVisible) {
+            const mem = this._memory[x][y];
+            mem.item = item;
+            this.clearCellFlag(x, y, Cell$1.STABLE_SNAPSHOT);
+            item.lastSeen = this.cell(x, y);
         }
         return true;
     }
@@ -3112,7 +3186,14 @@ class Map {
         const layer = this.layers[actor.depth];
         return layer.removeActor(actor);
     }
-    async moveActor(x, y, actor) {
+    async moveActor(actor, dir) {
+        if (typeof dir === 'number') {
+            dir = GWU.xy.DIRS[dir];
+        }
+        const oldX = actor.x;
+        const oldY = actor.y;
+        const x = oldX + dir[0];
+        const y = oldY + dir[1];
         if (!this.hasXY(x, y))
             return false;
         const layer = this.layers[actor.depth];
@@ -3121,6 +3202,21 @@ class Map {
         if (!(await layer.addActor(x, y, actor))) {
             layer.forceActor(actor.x, actor.y, actor);
             return false;
+        }
+        const wasVisible = this.fov.isAnyKindOfVisible(oldX, oldY);
+        const isVisible = this.fov.isAnyKindOfVisible(x, y);
+        if (isVisible && !wasVisible) {
+            if (actor.lastSeen) {
+                this._memory[actor.lastSeen.x][actor.lastSeen.y].removeActor(actor);
+                this.clearCellFlag(actor.lastSeen.x, actor.lastSeen.y, Cell$1.STABLE_SNAPSHOT);
+                actor.lastSeen = null;
+            }
+        }
+        else if (wasVisible && !isVisible) {
+            const mem = this._memory[x][y];
+            mem.actor = actor;
+            this.clearCellFlag(x, y, Cell$1.STABLE_SNAPSHOT);
+            actor.lastSeen = this.cell(x, y);
         }
         return true;
     }
@@ -3132,7 +3228,7 @@ class Map {
         if (!this.hasXY(x, y))
             return false;
         const cell = this.cells[x][y];
-        return cell._objects.some((e) => !!e.key && e.key.matches(x, y));
+        return cell._entities.some((e) => !!e.key && e.key.matches(x, y));
     }
     count(cb) {
         return this.cells.count((cell, x, y) => cb(cell, x, y, this));
@@ -3158,10 +3254,10 @@ class Map {
         this.flags.map &= ~flag;
     }
     setCellFlag(x, y, flag) {
-        this.cell(x, y).setCellFlag(flag);
+        this.cells[x][y].setCellFlag(flag);
     }
     clearCellFlag(x, y, flag) {
-        this.cell(x, y).clearCellFlag(flag);
+        this.cells[x][y].clearCellFlag(flag);
     }
     clear() {
         this.light.glowLightChanged = true;
@@ -3169,7 +3265,7 @@ class Map {
         this.layers.forEach((l) => l.clear());
     }
     clearCell(x, y, tile) {
-        const cell = this.cell(x, y);
+        const cell = this.cells[x][y];
         cell.clear(tile);
     }
     // Skips all the logic checks and just forces a clean cell with the given tile
@@ -3179,13 +3275,15 @@ class Map {
         let i, j;
         for (i = 0; i < this.width; ++i) {
             for (j = 0; j < this.height; ++j) {
-                const cell = this.cell(i, j);
+                const cell = this.cells[i][j];
                 cell.clear(this.isBoundaryXY(i, j) ? boundary : tile);
             }
         }
     }
     hasTile(x, y, tile, useMemory = false) {
-        return this.cellInfo(x, y, useMemory).hasTile(tile);
+        if (!useMemory)
+            return this.cell(x, y).hasTile(tile);
+        return this.memory(x, y).hasTile(tile);
     }
     forceTile(x, y, tile) {
         return this.setTile(x, y, tile, { superpriority: true });
@@ -3206,7 +3304,7 @@ class Map {
         return layer.setTile(x, y, tile, opts);
     }
     clearTiles(x, y, tile) {
-        const cell = this.cell(x, y);
+        const cell = this.cells[x][y];
         cell.clearTiles(tile);
     }
     async tick(dt) {
@@ -3244,7 +3342,7 @@ class Map {
         return other;
     }
     async fire(event, x, y, ctx = {}) {
-        const cell = this.cell(x, y);
+        const cell = this.cells[x][y];
         return cell.fire(event, this, x, y, ctx);
     }
     async fireAll(event, ctx = {}) {
@@ -3290,7 +3388,7 @@ class Map {
         await willFire.forEachAsync(async (w, x, y) => {
             if (!w)
                 return;
-            const cell = this.cell(x, y);
+            const cell = this.cells[x][y];
             if (cell.hasCellFlag(Cell$1.EVENT_FIRED_THIS_TURN))
                 return;
             for (let depth = 0; depth <= Depth$1.GAS; ++depth) {
@@ -3325,9 +3423,10 @@ class Map {
     }
     getAppearanceAt(x, y, dest) {
         dest.blackOut();
-        const cell = this.cell(x, y);
+        const cell = this.cells[x][y];
         const isVisible = this.fov.isAnyKindOfVisible(x, y);
-        if (cell.needsRedraw && isVisible) {
+        const needSnapshot = !cell.hasCellFlag(Cell$1.STABLE_SNAPSHOT);
+        if (needSnapshot || (cell.needsRedraw && isVisible)) {
             this.layers.forEach((layer) => layer.putAppearance(dest, x, y));
             if (dest.dances) {
                 cell.setCellFlag(Cell$1.COLORS_DANCE);
@@ -3336,11 +3435,12 @@ class Map {
                 cell.clearCellFlag(Cell$1.COLORS_DANCE);
             }
             dest.bake();
-            this.memory[x][y].putSnapshot(dest);
+            this._memory[x][y].putSnapshot(dest);
             cell.needsRedraw = false;
+            cell.setCellFlag(Cell$1.STABLE_SNAPSHOT);
         }
         else {
-            this.memory[x][y].getSnapshot(dest);
+            this._memory[x][y].getSnapshot(dest);
         }
         if (isVisible) {
             const light = this.light.getLight(x, y);
@@ -3358,12 +3458,12 @@ class Map {
     }
     // // LightSystemSite
     hasActor(x, y) {
-        return this.cell(x, y).hasActor();
+        return this.cells[x][y].hasActor();
     }
     eachGlowLight(cb) {
         this.cells.forEach((cell, x, y) => {
             cell.eachGlowLight((light) => cb(x, y, light));
-            cell.clearCellFlag(Cell$1.LIGHT_CHANGED);
+            // cell.clearCellFlag(Flags.Cell.LIGHT_CHANGED);
         });
     }
     eachDynamicLight(_cb) { }
@@ -3378,7 +3478,7 @@ class Map {
         return !this.light.isDark(x, y);
     }
     blocksVision(x, y) {
-        return this.cell(x, y).blocksVision();
+        return this.cells[x][y].blocksVision();
     }
     onCellRevealed(_x, _y) {
         // if (DATA.automationActive) {
@@ -3425,17 +3525,19 @@ class Map {
         this.cells[x][y].needsRedraw = true;
     }
     clearMemory(x, y) {
-        this.memory[x][y].clear();
+        this._memory[x][y].clear();
     }
     storeMemory(x, y, updateSnapshot = false) {
-        const cell = this.cell(x, y);
-        const memory = this.memory[x][y];
+        const cell = this.cells[x][y];
+        const memory = this._memory[x][y];
         memory.store(cell);
-        if (updateSnapshot) {
+        cell.setCellFlag(Cell$1.STABLE_MEMORY);
+        if (updateSnapshot || !cell.hasCellFlag(Cell$1.STABLE_SNAPSHOT)) {
             const dest = memory.snapshot;
             dest.blackOut();
             this.layers.forEach((layer) => layer.putAppearance(dest, x, y));
             dest.bake();
+            cell.setCellFlag(Cell$1.STABLE_SNAPSHOT);
         }
     }
 }
@@ -3460,12 +3562,12 @@ function make(w, h, opts = {}, boundary) {
     // if (!DATA.map) {
     //     DATA.map = map;
     // }
-    // In case we reveal the map or make it all visible we need our memory set correctly
-    map.cells.forEach((_c, x, y) => {
-        if (map.fov.isRevealed(x, y)) {
-            map.storeMemory(x, y, true); // with snapshot
-        }
-    });
+    // // In case we reveal the map or make it all visible we need our memory set correctly
+    // map.cells.forEach((_c, x, y) => {
+    //     if (map.fov.isRevealed(x, y)) {
+    //         map.storeMemory(x, y, true); // with snapshot
+    //     }
+    // });
     return map;
 }
 function isString(value) {

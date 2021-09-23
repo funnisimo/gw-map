@@ -23,8 +23,8 @@ export enum Cell {
     IMPREGNABLE = Fl(11), // no tunneling allowed!
 
     NEEDS_REDRAW = Fl(13), // needs to be redrawn (maybe in path, etc...)
-    LIGHT_CHANGED = Fl(14), // one of the tiles changed the cell lighting
-    FOV_CHANGED = Fl(15),
+    STABLE_MEMORY = Fl(14), //
+    STABLE_SNAPSHOT = Fl(15), //
 
     // These are to help memory
     HAS_SURFACE = Fl(16),
@@ -38,15 +38,13 @@ export enum Cell {
     IS_IN_PATH = Fl(23), // the yellow trail leading to the cursor
     IS_CURSOR = Fl(24), // the current cursor
 
-    STABLE_MEMORY = Fl(25), // redraws will simply be pulled from the memory array, not recalculated
-
     IS_WIRED = Fl(26),
     IS_CIRCUIT_BREAKER = Fl(27),
     IS_POWERED = Fl(28), // has been activated by machine power this turn (can probably be eliminate if needed)
 
     COLORS_DANCE = Fl(30),
 
-    CHANGED = NEEDS_REDRAW | LIGHT_CHANGED | FOV_CHANGED, // Cell has changed
+    CHANGED = NEEDS_REDRAW, // Cell has changed
 
     IS_IN_MACHINE = IS_IN_ROOM_MACHINE | IS_IN_AREA_MACHINE, // sacred ground; don't generate items here, or teleport randomly to it
 
@@ -65,5 +63,5 @@ export enum Cell {
     HAS_ANY_ACTOR = HAS_PLAYER | HAS_ACTOR,
     HAS_ANY_OBJECT = HAS_ITEM | HAS_ANY_ACTOR,
 
-    CELL_DEFAULT = NEEDS_REDRAW | LIGHT_CHANGED,
+    CELL_DEFAULT = NEEDS_REDRAW,
 }

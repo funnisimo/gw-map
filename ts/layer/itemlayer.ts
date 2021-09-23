@@ -3,6 +3,7 @@ import * as GWU from 'gw-utils';
 import { MapType } from '../map/types';
 import { Item } from '../item';
 import { MapLayer } from './mapLayer';
+import * as Flags from '../flags';
 
 export class ItemLayer extends MapLayer {
     constructor(map: MapType, name = 'item') {
@@ -39,6 +40,13 @@ export class ItemLayer extends MapLayer {
             await cell.fire('addItem', this.map, x, y, { item });
         }
 
+        cell.needsRedraw = true;
+        if (this.map.fov.isAnyKindOfVisible(x, y)) {
+            cell.clearCellFlag(
+                Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+            );
+        }
+
         return true;
     }
 
@@ -58,6 +66,14 @@ export class ItemLayer extends MapLayer {
         obj.y = y;
         obj.depth = this.depth;
         obj.map = this.map;
+
+        cell.needsRedraw = true;
+        if (this.map.fov.isAnyKindOfVisible(x, y)) {
+            cell.clearCellFlag(
+                Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+            );
+        }
+
         return true;
     }
 
@@ -71,6 +87,13 @@ export class ItemLayer extends MapLayer {
             await cell.fire('nokey', this.map, x, y);
         } else if (cell.hasEffect('removeItem')) {
             await cell.fire('removeItem', this.map, x, y);
+        }
+
+        cell.needsRedraw = true;
+        if (this.map.fov.isAnyKindOfVisible(x, y)) {
+            cell.clearCellFlag(
+                Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+            );
         }
 
         return true;

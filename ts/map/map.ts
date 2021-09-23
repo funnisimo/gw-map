@@ -7,15 +7,10 @@ import { Tile } from '../tile';
 import * as Layer from '../layer';
 import { Item } from '../item';
 import { Actor } from '../actor';
-import {
-    MapType,
-    EachCellCb,
-    MapTestFn,
-    SetTileOptions,
-    CellInfoType,
-} from './types';
+import { MapType, EachCellCb, MapTestFn, SetTileOptions } from './types';
 import { CellMemory } from './cellMemory';
 import * as Effect from '../effect';
+import { CellType, CellInfoType } from '.';
 
 export interface MapOptions
     extends GWU.light.LightSystemOptions,
@@ -47,7 +42,7 @@ export class Map
     light: GWU.light.LightSystemType;
     fov: GWU.fov.FovSystemType;
     properties: Record<string, any>;
-    memory: GWU.grid.Grid<CellMemory>;
+    _memory: GWU.grid.Grid<CellMemory>;
     machineCount = 0;
     private _seed = 0;
     rng: GWU.rng.Random = GWU.rng.random;
@@ -63,7 +58,7 @@ export class Map
             height,
             (x, y) => new Cell(this, x, y)
         );
-        this.memory = GWU.grid.make(
+        this._memory = GWU.grid.make(
             width,
             height,
             (x, y) => new CellMemory(this, x, y)
@@ -89,11 +84,13 @@ export class Map
         this.rng = GWU.rng.make(v);
     }
 
-    cellInfo(x: number, y: number, useMemory = false): CellInfoType {
-        if (useMemory && !this.fov.isAnyKindOfVisible(x, y)) {
-            return this.memory[x][y];
-        }
-        return this.cell(x, y);
+    memory(x: number, y: number): CellMemory {
+        return this._memory[x][y];
+    }
+
+    knowledge(x: number, y: number): CellInfoType {
+        if (this.fov.isAnyKindOfVisible(x, y)) return this.cells[x][y];
+        return this._memory[x][y];
     }
 
     // LAYERS
@@ -140,10 +137,10 @@ export class Map
         return x == 0 || y == 0 || x == this.width - 1 || y == this.height - 1;
     }
 
-    cell(x: number, y: number): Cell {
+    cell(x: number, y: number): CellType {
         return this.cells[x][y];
     }
-    get(x: number, y: number): Cell | undefined {
+    get(x: number, y: number): CellType | undefined {
         return this.cells.get(x, y);
     }
     eachCell(cb: EachCellCb) {
@@ -163,15 +160,8 @@ export class Map
         const mixer = new GWU.sprite.Mixer();
         for (let x = 0; x < buffer.width; ++x) {
             for (let y = 0; y < buffer.height; ++y) {
-                // const cell = this.cell(x, y);
-                // if (
-                //     cell.needsRedraw ||
-                //     this.light.lightChanged(x, y) ||
-                //     this.fov.fovChanged(x, y)
-                // ) {
                 this.getAppearanceAt(x, y, mixer);
                 buffer.drawSprite(x, y, mixer);
-                // }
             }
         }
     }
@@ -179,7 +169,7 @@ export class Map
     // items
 
     hasItem(x: number, y: number): boolean {
-        return this.cell(x, y).hasItem();
+        return this.cells[x][y].hasItem();
     }
     itemAt(x: number, y: number): Item | null {
         return this.cell(x, y).item;
@@ -212,14 +202,42 @@ export class Map
         const layer = this.layers[item.depth] as Layer.ItemLayer;
         return layer.removeItem(item);
     }
-    async moveItem(x: number, y: number, item: Item): Promise<boolean> {
+    async moveItem(item: Item, dir: GWU.xy.Loc | number): Promise<boolean> {
+        if (typeof dir === 'number') {
+            dir = GWU.xy.DIRS[dir];
+        }
+        const oldX = item.x;
+        const oldY = item.y;
+        const x = oldX + dir[0];
+        const y = oldY + dir[1];
         if (!this.hasXY(x, y)) return false;
+
         const layer = this.layers[item.depth] as Layer.ItemLayer;
         if (!(await layer.removeItem(item))) return false;
         if (!(await this.addItem(x, y, item))) {
             layer.forceItem(item.x, item.y, item);
             return false;
         }
+
+        const wasVisible = this.fov.isAnyKindOfVisible(oldX, oldY);
+        const isVisible = this.fov.isAnyKindOfVisible(x, y);
+        if (isVisible && !wasVisible) {
+            if (item.lastSeen) {
+                this._memory[item.lastSeen.x][item.lastSeen.y].removeItem(item);
+                this.clearCellFlag(
+                    item.lastSeen.x,
+                    item.lastSeen.y,
+                    Flags.Cell.STABLE_SNAPSHOT
+                );
+                item.lastSeen = null;
+            }
+        } else if (wasVisible && !isVisible) {
+            const mem = this._memory[x][y];
+            mem.item = item;
+            this.clearCellFlag(x, y, Flags.Cell.STABLE_SNAPSHOT);
+            item.lastSeen = this.cell(x, y);
+        }
+
         return true;
     }
 
@@ -258,14 +276,45 @@ export class Map
         const layer = this.layers[actor.depth] as Layer.ActorLayer;
         return layer.removeActor(actor);
     }
-    async moveActor(x: number, y: number, actor: Actor): Promise<boolean> {
+    async moveActor(actor: Actor, dir: GWU.xy.Loc | number): Promise<boolean> {
+        if (typeof dir === 'number') {
+            dir = GWU.xy.DIRS[dir];
+        }
+        const oldX = actor.x;
+        const oldY = actor.y;
+        const x = oldX + dir[0];
+        const y = oldY + dir[1];
+
         if (!this.hasXY(x, y)) return false;
+
         const layer = this.layers[actor.depth] as Layer.ActorLayer;
         if (!(await layer.removeActor(actor))) return false;
         if (!(await layer.addActor(x, y, actor))) {
             layer.forceActor(actor.x, actor.y, actor);
             return false;
         }
+
+        const wasVisible = this.fov.isAnyKindOfVisible(oldX, oldY);
+        const isVisible = this.fov.isAnyKindOfVisible(x, y);
+        if (isVisible && !wasVisible) {
+            if (actor.lastSeen) {
+                this._memory[actor.lastSeen.x][actor.lastSeen.y].removeActor(
+                    actor
+                );
+                this.clearCellFlag(
+                    actor.lastSeen.x,
+                    actor.lastSeen.y,
+                    Flags.Cell.STABLE_SNAPSHOT
+                );
+                actor.lastSeen = null;
+            }
+        } else if (wasVisible && !isVisible) {
+            const mem = this._memory[x][y];
+            mem.actor = actor;
+            this.clearCellFlag(x, y, Flags.Cell.STABLE_SNAPSHOT);
+            actor.lastSeen = this.cell(x, y);
+        }
+
         return true;
     }
 
@@ -277,7 +326,7 @@ export class Map
     hasKey(x: number, y: number): boolean {
         if (!this.hasXY(x, y)) return false;
         const cell = this.cells[x][y];
-        return cell._objects.some((e) => !!e.key && e.key.matches(x, y));
+        return cell._entities.some((e) => !!e.key && e.key.matches(x, y));
     }
 
     count(cb: MapTestFn): number {
@@ -307,10 +356,10 @@ export class Map
     }
 
     setCellFlag(x: number, y: number, flag: number) {
-        this.cell(x, y).setCellFlag(flag);
+        this.cells[x][y].setCellFlag(flag);
     }
     clearCellFlag(x: number, y: number, flag: number) {
-        this.cell(x, y).clearCellFlag(flag);
+        this.cells[x][y].clearCellFlag(flag);
     }
 
     clear() {
@@ -320,7 +369,7 @@ export class Map
     }
 
     clearCell(x: number, y: number, tile?: number | string | Tile) {
-        const cell = this.cell(x, y);
+        const cell = this.cells[x][y];
         cell.clear(tile);
     }
 
@@ -332,7 +381,7 @@ export class Map
         let i, j;
         for (i = 0; i < this.width; ++i) {
             for (j = 0; j < this.height; ++j) {
-                const cell = this.cell(i, j);
+                const cell = this.cells[i][j];
                 cell.clear(this.isBoundaryXY(i, j) ? boundary : tile);
             }
         }
@@ -344,7 +393,8 @@ export class Map
         tile: string | number | Tile,
         useMemory = false
     ): boolean {
-        return this.cellInfo(x, y, useMemory).hasTile(tile);
+        if (!useMemory) return this.cell(x, y).hasTile(tile);
+        return this.memory(x, y).hasTile(tile);
     }
 
     forceTile(x: number, y: number, tile: string | number | Tile) {
@@ -372,7 +422,7 @@ export class Map
     }
 
     clearTiles(x: number, y: number, tile?: number | string | Tile) {
-        const cell = this.cell(x, y);
+        const cell = this.cells[x][y];
         cell.clearTiles(tile);
     }
 
@@ -423,7 +473,7 @@ export class Map
         y: number,
         ctx: Partial<Effect.EffectCtx> = {}
     ): Promise<boolean> {
-        const cell = this.cell(x, y);
+        const cell = this.cells[x][y];
         return cell.fire(event, this, x, y, ctx);
     }
 
@@ -487,7 +537,7 @@ export class Map
         ctx.force = true;
         await willFire.forEachAsync(async (w, x, y) => {
             if (!w) return;
-            const cell = this.cell(x, y);
+            const cell = this.cells[x][y];
             if (cell.hasCellFlag(Flags.Cell.EVENT_FIRED_THIS_TURN)) return;
             for (let depth = 0; depth <= Flags.Depth.GAS; ++depth) {
                 if (w & GWU.flag.fl(depth)) {
@@ -528,10 +578,11 @@ export class Map
 
     getAppearanceAt(x: number, y: number, dest: GWU.sprite.Mixer) {
         dest.blackOut();
-        const cell = this.cell(x, y);
+        const cell = this.cells[x][y];
         const isVisible = this.fov.isAnyKindOfVisible(x, y);
 
-        if (cell.needsRedraw && isVisible) {
+        const needSnapshot = !cell.hasCellFlag(Flags.Cell.STABLE_SNAPSHOT);
+        if (needSnapshot || (cell.needsRedraw && isVisible)) {
             this.layers.forEach((layer) => layer.putAppearance(dest, x, y));
 
             if (dest.dances) {
@@ -541,10 +592,11 @@ export class Map
             }
 
             dest.bake();
-            this.memory[x][y].putSnapshot(dest);
+            this._memory[x][y].putSnapshot(dest);
             cell.needsRedraw = false;
+            cell.setCellFlag(Flags.Cell.STABLE_SNAPSHOT);
         } else {
-            this.memory[x][y].getSnapshot(dest);
+            this._memory[x][y].getSnapshot(dest);
         }
 
         if (isVisible) {
@@ -564,12 +616,12 @@ export class Map
     // // LightSystemSite
 
     hasActor(x: number, y: number): boolean {
-        return this.cell(x, y).hasActor();
+        return this.cells[x][y].hasActor();
     }
     eachGlowLight(cb: GWU.light.LightCb): void {
         this.cells.forEach((cell, x, y) => {
             cell.eachGlowLight((light) => cb(x, y, light));
-            cell.clearCellFlag(Flags.Cell.LIGHT_CHANGED);
+            // cell.clearCellFlag(Flags.Cell.LIGHT_CHANGED);
         });
     }
     eachDynamicLight(_cb: GWU.light.LightCb): void {}
@@ -586,7 +638,7 @@ export class Map
         return !this.light.isDark(x, y);
     }
     blocksVision(x: number, y: number): boolean {
-        return this.cell(x, y).blocksVision();
+        return this.cells[x][y].blocksVision();
     }
     onCellRevealed(_x: number, _y: number): void {
         // if (DATA.automationActive) {
@@ -633,24 +685,26 @@ export class Map
         this.cells[x][y].needsRedraw = true;
     }
     clearMemory(x: number, y: number): void {
-        this.memory[x][y].clear();
+        this._memory[x][y].clear();
     }
     storeMemory(x: number, y: number, updateSnapshot = false): void {
-        const cell = this.cell(x, y);
-        const memory = this.memory[x][y];
+        const cell = this.cells[x][y];
+        const memory = this._memory[x][y];
         memory.store(cell);
-        if (updateSnapshot) {
+        cell.setCellFlag(Flags.Cell.STABLE_MEMORY);
+        if (updateSnapshot || !cell.hasCellFlag(Flags.Cell.STABLE_SNAPSHOT)) {
             const dest = memory.snapshot;
             dest.blackOut();
             this.layers.forEach((layer) => layer.putAppearance(dest, x, y));
             dest.bake();
+            cell.setCellFlag(Flags.Cell.STABLE_SNAPSHOT);
         }
     }
 
     // // DigSite
 
     // isWall(x: number, y: number, useMemory = false): boolean {
-    //     const info = this.cellInfo(x, y, useMemory);
+    //     const info = this.cell(x, y, useMemory);
     //     return info.blocksMove() && info.blocksVision();
     // }
 }
@@ -691,12 +745,12 @@ export function make(
     //     DATA.map = map;
     // }
 
-    // In case we reveal the map or make it all visible we need our memory set correctly
-    map.cells.forEach((_c, x, y) => {
-        if (map.fov.isRevealed(x, y)) {
-            map.storeMemory(x, y, true); // with snapshot
-        }
-    });
+    // // In case we reveal the map or make it all visible we need our memory set correctly
+    // map.cells.forEach((_c, x, y) => {
+    //     if (map.fov.isRevealed(x, y)) {
+    //         map.storeMemory(x, y, true); // with snapshot
+    //     }
+    // });
 
     return map;
 }

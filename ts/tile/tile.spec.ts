@@ -391,21 +391,21 @@ describe('Tile', () => {
         expect(portcullisOpen.priority).toEqual(Tile.tiles.FLOOR.priority + 1);
 
         const map = Map.make(10, 10, { tile: 'FLOOR', boundary: 'WALL' });
-        expect(map.cellInfo(5, 5).blocksMove()).toBeFalsy();
+        expect(map.cell(5, 5).blocksMove()).toBeFalsy();
         map.setTile(5, 5, 'PORTCULLIS_CLOSED');
         expect(map.hasTile(5, 5, 'PORTCULLIS_CLOSED')).toBeTruthy();
-        expect(map.cellInfo(5, 5).blocksMove()).toBeTruthy();
-        expect(map.cellInfo(5, 5).blocksVision()).toBeFalsy();
+        expect(map.cell(5, 5).blocksMove()).toBeTruthy();
+        expect(map.cell(5, 5).blocksVision()).toBeFalsy();
 
         await map.fire('machine', 5, 5);
         expect(map.hasTile(5, 5, 'PORTCULLIS_DORMANT')).toBeTruthy();
-        expect(map.cellInfo(5, 5).blocksMove()).toBeFalsy();
-        expect(map.cellInfo(5, 5).blocksVision()).toBeFalsy();
+        expect(map.cell(5, 5).blocksMove()).toBeFalsy();
+        expect(map.cell(5, 5).blocksVision()).toBeFalsy();
 
         await map.fire('machine', 5, 5);
         expect(map.hasTile(5, 5, 'PORTCULLIS_CLOSED')).toBeTruthy();
-        expect(map.cellInfo(5, 5).blocksMove()).toBeTruthy();
-        expect(map.cellInfo(5, 5).blocksVision()).toBeFalsy();
+        expect(map.cell(5, 5).blocksMove()).toBeTruthy();
+        expect(map.cell(5, 5).blocksVision()).toBeFalsy();
     });
 
     test('WALL_LEVER', async () => {

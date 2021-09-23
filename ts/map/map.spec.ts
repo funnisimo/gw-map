@@ -128,10 +128,18 @@ describe('Map', () => {
             expect(map.fov.isAnyKindOfVisible(5, 5)).toBeTruthy();
             expect(map.fov.isDirectlyVisible(5, 5)).toBeFalsy();
 
-            const memory = map.memory[5][5];
-            expect(memory.tiles).toEqual([Tile.tiles.FLOOR]);
+            expect(
+                map
+                    .cell(5, 5)
+                    .hasCellFlag(
+                        Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+                    )
+            ).toBeFalsy();
+
+            const memory = map.memory(5, 5);
+            expect(memory.tiles).toEqual([Tile.tiles.NULL]);
             expect(memory.needsRedraw).toBeTruthy();
-            expect(memory.snapshot.ch).toEqual(Tile.tiles.FLOOR.sprite.ch); // we got the snapshot
+            expect(memory.snapshot.ch).toEqual(Tile.tiles.NULL.sprite.ch); // no snapshot
         });
 
         test('make - revealed', () => {
@@ -146,10 +154,18 @@ describe('Map', () => {
             expect(map.fov.isAnyKindOfVisible(5, 5)).toBeFalsy();
             expect(map.fov.isDirectlyVisible(5, 5)).toBeFalsy();
 
-            const memory = map.memory[5][5];
-            expect(memory.tiles).toEqual([Tile.tiles.FLOOR]);
+            expect(
+                map
+                    .cell(5, 5)
+                    .hasCellFlag(
+                        Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+                    )
+            ).toBeFalsy();
+
+            const memory = map.memory(5, 5);
+            expect(memory.tiles).toEqual([Tile.tiles.NULL]);
             expect(memory.needsRedraw).toBeTruthy();
-            expect(memory.snapshot.ch).toEqual(Tile.tiles.FLOOR.sprite.ch); // we got the snapshot
+            expect(memory.snapshot.ch).toEqual(Tile.tiles.NULL.sprite.ch); // no snapshot
         });
 
         test('make - visible', () => {
@@ -164,10 +180,18 @@ describe('Map', () => {
             expect(map.fov.isAnyKindOfVisible(5, 5)).toBeTruthy();
             expect(map.fov.isDirectlyVisible(5, 5)).toBeFalsy();
 
-            const memory = map.memory[5][5];
-            expect(memory.tiles).toEqual([Tile.tiles.FLOOR]);
+            expect(
+                map
+                    .cell(5, 5)
+                    .hasCellFlag(
+                        Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+                    )
+            ).toBeFalsy();
+
+            const memory = map.memory(5, 5);
+            expect(memory.tiles).toEqual([Tile.tiles.NULL]);
             expect(memory.needsRedraw).toBeTruthy();
-            expect(memory.snapshot.ch).toEqual(Tile.tiles.FLOOR.sprite.ch); // we got the snapshot
+            expect(memory.snapshot.ch).toEqual(Tile.tiles.NULL.sprite.ch); // no snapshot
         });
 
         test('make - not visible', () => {
@@ -182,7 +206,15 @@ describe('Map', () => {
             expect(map.fov.isAnyKindOfVisible(5, 5)).toBeFalsy();
             expect(map.fov.isDirectlyVisible(5, 5)).toBeFalsy();
 
-            const memory = map.memory[5][5];
+            expect(
+                map
+                    .cell(5, 5)
+                    .hasCellFlag(
+                        Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+                    )
+            ).toBeFalsy();
+
+            const memory = map._memory[5][5];
             expect(memory.tiles).toEqual([Tile.tiles.NULL]);
             expect(memory.needsRedraw).toBeTruthy();
             expect(memory.snapshot.ch).toEqual(Tile.tiles.NULL.sprite.ch); // we got the snapshot
@@ -200,7 +232,15 @@ describe('Map', () => {
             expect(map.fov.isAnyKindOfVisible(5, 5)).toBeFalsy();
             expect(map.fov.isDirectlyVisible(5, 5)).toBeFalsy();
 
-            const memory = map.memory[5][5];
+            expect(
+                map
+                    .cell(5, 5)
+                    .hasCellFlag(
+                        Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+                    )
+            ).toBeFalsy();
+
+            const memory = map._memory[5][5];
             expect(memory.tiles).toEqual([Tile.tiles.NULL]);
             expect(memory.needsRedraw).toBeTruthy();
             expect(memory.snapshot.ch).toEqual(Tile.tiles.NULL.sprite.ch); // we got the snapshot
@@ -218,7 +258,15 @@ describe('Map', () => {
             expect(map.fov.isAnyKindOfVisible(5, 5)).toBeFalsy();
             expect(map.fov.isDirectlyVisible(5, 5)).toBeFalsy();
 
-            const memory = map.memory[5][5];
+            expect(
+                map
+                    .cell(5, 5)
+                    .hasCellFlag(
+                        Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+                    )
+            ).toBeFalsy();
+
+            const memory = map._memory[5][5];
             expect(memory.tiles).toEqual([Tile.tiles.NULL]);
             expect(memory.needsRedraw).toBeTruthy();
             expect(memory.snapshot.ch).toEqual(Tile.tiles.NULL.sprite.ch); // we got the snapshot

@@ -100,8 +100,8 @@ declare enum Cell$1 {
     IS_IN_AREA_MACHINE,
     IMPREGNABLE,
     NEEDS_REDRAW,
-    LIGHT_CHANGED,
-    FOV_CHANGED,
+    STABLE_MEMORY,
+    STABLE_SNAPSHOT,
     HAS_SURFACE,
     HAS_LIQUID,
     HAS_GAS,
@@ -111,7 +111,6 @@ declare enum Cell$1 {
     HAS_ITEM,
     IS_IN_PATH,
     IS_CURSOR,
-    STABLE_MEMORY,
     IS_WIRED,
     IS_CIRCUIT_BREAKER,
     IS_POWERED,
@@ -133,6 +132,7 @@ declare enum Map$1 {
     MAP_CALC_FOV,
     MAP_FOV_CHANGED,
     MAP_DANCES,
+    MAP_SIDEBAR_TILES_CHANGED,
     MAP_DEFAULT = 0
 }
 
@@ -571,12 +571,10 @@ declare namespace index_d$5 {
   };
 }
 
-declare type TileData = Tile | null;
-declare type TileArray = [Tile, ...TileData[]];
 declare type EachCb<T> = (t: T) => any;
 declare type MatchCb<T> = (t: T) => boolean;
 declare type ReduceCb<T> = (out: any, t: T) => any;
-declare class CellObjects {
+declare class CellEntities {
     cell: Cell;
     constructor(cell: Cell);
     eachItem(cb: EachCb<Item>): void;
@@ -592,7 +590,7 @@ declare class Cell implements CellType {
     machineId: number;
     _actor: Actor | null;
     _item: Item | null;
-    _objects: CellObjects;
+    _entities: CellEntities;
     map: MapType;
     x: number;
     y: number;
@@ -601,7 +599,7 @@ declare class Cell implements CellType {
     hasCellFlag(flag: number): boolean;
     setCellFlag(flag: number): void;
     clearCellFlag(flag: number): void;
-    hasEntityFlag(flag: number): boolean;
+    hasEntityFlag(flag: number, withEntities?: boolean): boolean;
     hasAllEntityFlags(flags: number): boolean;
     hasTileFlag(flag: number): boolean;
     hasAllTileFlags(flags: number): boolean;
@@ -611,7 +609,7 @@ declare class Cell implements CellType {
     hasAllTileTags(tags: string[]): boolean;
     hasAnyTileTag(tags: string[]): boolean;
     cellFlags(): number;
-    entityFlags(): number;
+    entityFlags(withEntities?: boolean): number;
     tileFlags(): number;
     tileMechFlags(): number;
     itemFlags(): number;
@@ -630,10 +628,10 @@ declare class Cell implements CellType {
     tileWithObjectFlag(flag: number): Tile | null;
     tileWithFlag(flag: number): Tile | null;
     tileWithMechFlag(flag: number): Tile | null;
-    blocksVision(): boolean;
-    blocksPathing(): boolean;
-    blocksMove(): boolean;
-    blocksEffects(): boolean;
+    blocksVision(withEntities?: boolean): boolean;
+    blocksPathing(withEntities?: boolean): boolean;
+    blocksMove(withEntities?: boolean): boolean;
+    blocksEffects(withEntities?: boolean): boolean;
     blocksLayer(depth: number): boolean;
     isEmpty(): boolean;
     isPassable(): boolean;
@@ -654,10 +652,12 @@ declare class Cell implements CellType {
     hasItem(): boolean;
     get item(): Item | null;
     set item(val: Item | null);
+    removeItem(item: Item): boolean;
     hasActor(): boolean;
     hasPlayer(): boolean;
     get actor(): Actor | null;
     set actor(val: Actor | null);
+    removeActor(actor: Actor): boolean;
     getDescription(): string;
     getFlavor(): string;
     getName(opts?: {}): string;
@@ -787,22 +787,23 @@ declare class Map implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType
     light: GWU.light.LightSystemType;
     fov: GWU.fov.FovSystemType;
     properties: Record<string, any>;
-    memory: GWU.grid.Grid<CellMemory>;
+    _memory: GWU.grid.Grid<CellMemory>;
     machineCount: number;
     private _seed;
     rng: GWU.rng.Random;
     constructor(width: number, height: number, opts?: Partial<MapOptions>);
     get seed(): number;
     set seed(v: number);
-    cellInfo(x: number, y: number, useMemory?: boolean): CellInfoType;
+    memory(x: number, y: number): CellMemory;
+    knowledge(x: number, y: number): CellInfoType;
     initLayers(): void;
     addLayer(depth: number | keyof typeof Depth, layer: LayerType): void;
     removeLayer(depth: number | keyof typeof Depth): void;
     getLayer(depth: number | keyof typeof Depth): LayerType | null;
     hasXY(x: number, y: number): boolean;
     isBoundaryXY(x: number, y: number): boolean;
-    cell(x: number, y: number): Cell;
-    get(x: number, y: number): Cell | undefined;
+    cell(x: number, y: number): CellType;
+    get(x: number, y: number): CellType | undefined;
     eachCell(cb: EachCellCb): void;
     drawInto(dest: GWU.canvas.Canvas | GWU.canvas.DataBuffer, opts?: Partial<MapDrawOptions> | boolean): void;
     hasItem(x: number, y: number): boolean;
@@ -811,14 +812,14 @@ declare class Map implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType
     addItem(x: number, y: number, item: Item): Promise<boolean>;
     forceItem(x: number, y: number, item: Item): boolean;
     removeItem(item: Item): Promise<boolean>;
-    moveItem(x: number, y: number, item: Item): Promise<boolean>;
+    moveItem(item: Item, dir: GWU.xy.Loc | number): Promise<boolean>;
     hasPlayer(x: number, y: number): boolean;
     actorAt(x: number, y: number): Actor | null;
     eachActor(cb: GWU.types.EachCb<Actor>): void;
     addActor(x: number, y: number, actor: Actor): Promise<boolean>;
     forceActor(x: number, y: number, actor: Actor): boolean;
     removeActor(actor: Actor): Promise<boolean>;
-    moveActor(x: number, y: number, actor: Actor): Promise<boolean>;
+    moveActor(actor: Actor, dir: GWU.xy.Loc | number): Promise<boolean>;
     isVisible(x: number, y: number): boolean;
     hasKey(x: number, y: number): boolean;
     count(cb: MapTestFn): number;
@@ -896,6 +897,8 @@ type index_d$3_CellFlags = CellFlags;
 type index_d$3_MapFlags = MapFlags;
 type index_d$3_SetOptions = SetOptions;
 type index_d$3_SetTileOptions = SetTileOptions;
+type index_d$3_TileData = TileData;
+type index_d$3_TileArray = TileArray;
 type index_d$3_CellInfoType = CellInfoType;
 type index_d$3_CellType = CellType;
 type index_d$3_EachCellCb = EachCellCb;
@@ -931,6 +934,8 @@ declare namespace index_d$3 {
     index_d$3_MapFlags as MapFlags,
     index_d$3_SetOptions as SetOptions,
     index_d$3_SetTileOptions as SetTileOptions,
+    index_d$3_TileData as TileData,
+    index_d$3_TileArray as TileArray,
     index_d$3_CellInfoType as CellInfoType,
     index_d$3_CellType as CellType,
     index_d$3_EachCellCb as EachCellCb,
@@ -1059,10 +1064,15 @@ interface SetOptions {
     machine: number;
 }
 declare type SetTileOptions = Partial<SetOptions>;
+declare type TileData = Tile | null;
+declare type TileArray = [Tile, ...TileData[]];
 interface CellInfoType {
     readonly chokeCount: number;
     readonly machineId: number;
     readonly needsRedraw: boolean;
+    readonly x: number;
+    readonly y: number;
+    readonly tiles: TileArray;
     hasCellFlag(flag: number): boolean;
     hasTileFlag(flag: number): boolean;
     hasAllTileFlags(flags: number): boolean;
@@ -1110,6 +1120,8 @@ interface CellType extends CellInfoType {
     item: Item | null;
     chokeCount: number;
     machineId: number;
+    x: number;
+    y: number;
     setCellFlag(flag: number): void;
     clearCellFlag(flag: number): void;
     setTile(tile: Tile): boolean;
@@ -1118,6 +1130,8 @@ interface CellType extends CellInfoType {
     clearTiles(tile?: string | number | Tile): void;
     isEmpty(): boolean;
     isGateSite(): boolean;
+    removeActor(actor: Actor): boolean;
+    removeItem(item: Item): boolean;
     eachGlowLight(cb: (light: GWU.light.LightType) => any): void;
     fire(event: string, map: MapType, x: number, y: number, ctx?: Partial<EffectCtx>): Promise<boolean> | boolean;
     hasEffect(name: string): boolean;
@@ -1138,19 +1152,20 @@ interface MapType {
     properties: Record<string, any>;
     hasXY(x: number, y: number): boolean;
     isBoundaryXY(x: number, y: number): boolean;
-    cellInfo(x: number, y: number, useMemory?: boolean): CellInfoType;
+    memory(x: number, y: number): CellInfoType;
     cell(x: number, y: number): CellType;
     get(x: number, y: number): CellType | undefined;
     eachCell(cb: EachCellCb): void;
     eachItem(cb: EachItemCb): void;
-    addItem(x: number, y: number, actor: Item): Promise<boolean>;
-    forceItem(x: number, y: number, actor: Item): boolean;
-    removeItem(actor: Item): Promise<boolean>;
-    moveItem(x: number, y: number, item: Item): Promise<boolean>;
+    addItem(x: number, y: number, item: Item): Promise<boolean>;
+    forceItem(x: number, y: number, item: Item): boolean;
+    removeItem(item: Item): Promise<boolean>;
+    moveItem(item: Item, dir: GWU.xy.Loc | number): Promise<boolean>;
     eachActor(cb: EachActorCb): void;
     addActor(x: number, y: number, actor: Actor): Promise<boolean>;
+    forceActor(x: number, y: number, actor: Actor): boolean;
     removeActor(actor: Actor): Promise<boolean>;
-    moveActor(x: number, y: number, actor: Actor): Promise<boolean>;
+    moveActor(actor: Actor, dir: GWU.xy.Loc | number): Promise<boolean>;
     isVisible(x: number, y: number): boolean;
     hasKey(x: number, y: number): boolean;
     hasMapFlag(flag: number): boolean;
@@ -1181,6 +1196,7 @@ declare class Entity implements EntityType {
     kind: EntityKind;
     key: KeyInfoType | null;
     machineHome: number;
+    lastSeen: GWU.xy.XY | null;
     constructor(kind: EntityKind);
     get sprite(): GWU.sprite.Sprite;
     get isDestroyed(): boolean;

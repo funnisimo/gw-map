@@ -170,10 +170,10 @@ export class SpawnEffect extends Handler {
             const lakeX = i + blockingToMapX;
             const lakeY = j + blockingToMapY;
             if (blockingGrid.get(lakeX, lakeY)) {
-                if (map.cellInfo(i, j).isStairs()) {
+                if (map.cell(i, j).isStairs()) {
                     disrupts = true;
                 }
-            } else if (!map.cellInfo(i, j).blocksMove()) {
+            } else if (!map.cell(i, j).blocksMove()) {
                 walkableGrid[i][j] = 1;
             }
         });
@@ -295,14 +295,14 @@ function cellIsOk(
     }
 
     if (effect.flags & Flags.Effect.E_BUILD_IN_WALLS) {
-        if (!map.cellInfo(x, y).isWall()) return false;
+        if (!map.cell(x, y).isWall()) return false;
     } else if (effect.flags & Flags.Effect.E_MUST_TOUCH_WALLS) {
         let ok = false;
         GWU.xy.eachNeighbor(
             x,
             y,
             (i, j) => {
-                if (map.cellInfo(i, j).isWall()) {
+                if (map.cell(i, j).isWall()) {
                     ok = true;
                 }
             },
@@ -311,12 +311,12 @@ function cellIsOk(
         if (!ok) return false;
     } else if (effect.flags & Flags.Effect.E_NO_TOUCH_WALLS) {
         let ok = true;
-        if (map.cellInfo(x, y).isWall()) return false; // or on wall
+        if (map.cell(x, y).isWall()) return false; // or on wall
         GWU.xy.eachNeighbor(
             x,
             y,
             (i, j) => {
-                if (map.cellInfo(i, j).isWall()) {
+                if (map.cell(i, j).isWall()) {
                     ok = false;
                 }
             },
@@ -552,7 +552,7 @@ export function evacuateCreatures(map: MapType, blockingMap: GWU.grid.NumGrid) {
                     return !monst.forbidsCell(c);
                 });
                 if (loc && loc[0] >= 0 && loc[1] >= 0) {
-                    map.moveActor(loc[0], loc[1], monst);
+                    map.forceActor(loc[0], loc[1], monst);
                     // map.redrawXY(loc[0], loc[1]);
                     didSomething = true;
                 }
@@ -579,7 +579,7 @@ export function evacuateItems(map: MapType, blockingMap: GWU.grid.NumGrid) {
                 return !item.forbidsCell(dest);
             });
             if (loc && loc[0] >= 0 && loc[1] >= 0) {
-                map.moveItem(loc[0], loc[1], item);
+                map.forceItem(loc[0], loc[1], item);
                 // map.redrawXY(loc[0], loc[1]);
                 didSomething = true;
             }

@@ -206,12 +206,12 @@ describe('tile effect', () => {
 
             expect(
                 map
-                    .cellInfo(ctx.x, ctx.y - 1)
+                    .cell(ctx.x, ctx.y - 1)
                     .hasEntityFlag(Flags.Entity.L_BLOCKS_EFFECTS)
             ).toBeTruthy();
             expect(
                 map
-                    .cellInfo(ctx.x - 1, ctx.y)
+                    .cell(ctx.x - 1, ctx.y)
                     .hasEntityFlag(Flags.Entity.L_BLOCKS_EFFECTS)
             ).toBeTruthy();
 
@@ -480,11 +480,11 @@ describe('tile effect', () => {
     describe('fire', () => {
         test('tile', async () => {
             effect = Effect.make({ tile: 'WALL' });
-            expect(map.cellInfo(ctx.x, ctx.y).hasTile('WALL')).toBeFalsy();
+            expect(map.cell(ctx.x, ctx.y).hasTile('WALL')).toBeFalsy();
             await expect(
                 Effect.fire(effect, map, ctx.x, ctx.y, ctx)
             ).resolves.toBeTruthy();
-            expect(map.cellInfo(ctx.x, ctx.y).hasTile('WALL')).toBeTruthy();
+            expect(map.cell(ctx.x, ctx.y).hasTile('WALL')).toBeTruthy();
             GWU.xy.eachNeighbor(ctx.x, ctx.y, (x, y) => {
                 const cell = map.cell(x, y);
                 expect(cell.hasTile('WALL')).toBeFalsy();
@@ -493,11 +493,11 @@ describe('tile effect', () => {
 
         test('tile and neighbors - string', async () => {
             effect = Effect.make({ tile: 'WALL,100,100' })!;
-            expect(map.cellInfo(ctx.x, ctx.y).hasTile('WALL')).toBeFalsy();
+            expect(map.cell(ctx.x, ctx.y).hasTile('WALL')).toBeFalsy();
             await expect(
                 Effect.fire(effect, map, ctx.x, ctx.y, ctx)
             ).resolves.toBeTruthy();
-            expect(map.cellInfo(ctx.x, ctx.y).hasTile('WALL')).toBeTruthy();
+            expect(map.cell(ctx.x, ctx.y).hasTile('WALL')).toBeTruthy();
             GWU.xy.eachNeighbor(
                 ctx.x,
                 ctx.y,
@@ -514,11 +514,11 @@ describe('tile effect', () => {
                 tile: { id: 'WALL', spread: 100, decrement: 100 },
             });
 
-            expect(map.cellInfo(ctx.x, ctx.y).hasTile('WALL')).toBeFalsy();
+            expect(map.cell(ctx.x, ctx.y).hasTile('WALL')).toBeFalsy();
             await expect(
                 Effect.fire(effect, map, ctx.x, ctx.y, ctx)
             ).resolves.toBeTruthy();
-            expect(map.cellInfo(ctx.x, ctx.y).hasTile('WALL')).toBeTruthy();
+            expect(map.cell(ctx.x, ctx.y).hasTile('WALL')).toBeTruthy();
             GWU.xy.eachNeighbor(
                 ctx.x,
                 ctx.y,

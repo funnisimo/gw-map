@@ -19,5 +19,7 @@ export enum Map {
 
     MAP_DANCES = Fl(9),
 
+    MAP_SIDEBAR_TILES_CHANGED = Fl(10),
+
     MAP_DEFAULT = 0,
 }

@@ -57,6 +57,19 @@ export class TileLayer extends MapLayer {
             this.map.light.glowLightChanged = true;
         }
 
+        if (
+            current.hasEntityFlag(Flags.Entity.L_LIST_IN_SIDEBAR) !==
+            tile.hasEntityFlag(Flags.Entity.L_LIST_IN_SIDEBAR)
+        ) {
+            this.map.setMapFlag(Flags.Map.MAP_SIDEBAR_TILES_CHANGED);
+        }
+
+        if (this.map.fov.isAnyKindOfVisible(x, y)) {
+            cell.clearCellFlag(
+                Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+            );
+        }
+
         if (tile.hasTileFlag(Flags.Tile.T_IS_FIRE)) {
             cell.setCellFlag(Flags.Cell.CAUGHT_FIRE_THIS_TURN);
         }

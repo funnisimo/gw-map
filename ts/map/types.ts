@@ -24,11 +24,17 @@ export interface SetOptions {
 
 export type SetTileOptions = Partial<SetOptions>;
 
+export type TileData = Tile | null;
+export type TileArray = [Tile, ...TileData[]];
+
 export interface CellInfoType {
     readonly chokeCount: number;
     readonly machineId: number;
     // keyId: number;
     readonly needsRedraw: boolean;
+    readonly x: number;
+    readonly y: number;
+    readonly tiles: TileArray;
 
     // Flags
 
@@ -97,6 +103,8 @@ export interface CellType extends CellInfoType {
     item: Item | null;
     chokeCount: number;
     machineId: number;
+    x: number;
+    y: number;
 
     setCellFlag(flag: number): void;
     clearCellFlag(flag: number): void;
@@ -110,6 +118,9 @@ export interface CellType extends CellInfoType {
 
     isEmpty(): boolean;
     isGateSite(): boolean;
+
+    removeActor(actor: Actor): boolean;
+    removeItem(item: Item): boolean;
 
     // Lights
 
@@ -161,7 +172,7 @@ export interface MapType {
     hasXY(x: number, y: number): boolean;
     isBoundaryXY(x: number, y: number): boolean;
 
-    cellInfo(x: number, y: number, useMemory?: boolean): CellInfoType;
+    memory(x: number, y: number): CellInfoType;
     cell(x: number, y: number): CellType;
     get(x: number, y: number): CellType | undefined;
     eachCell(cb: EachCellCb): void;
@@ -170,18 +181,19 @@ export interface MapType {
 
     // itemAt(x: number, y: number): Item | null;
     eachItem(cb: EachItemCb): void;
-    addItem(x: number, y: number, actor: Item): Promise<boolean>;
-    forceItem(x: number, y: number, actor: Item): boolean;
-    removeItem(actor: Item): Promise<boolean>;
-    moveItem(x: number, y: number, item: Item): Promise<boolean>;
+    addItem(x: number, y: number, item: Item): Promise<boolean>;
+    forceItem(x: number, y: number, item: Item): boolean;
+    removeItem(item: Item): Promise<boolean>;
+    moveItem(item: Item, dir: GWU.xy.Loc | number): Promise<boolean>;
 
     // Actors
 
     // actorAt(x: number, y: number): Actor | null;
     eachActor(cb: EachActorCb): void;
     addActor(x: number, y: number, actor: Actor): Promise<boolean>;
+    forceActor(x: number, y: number, actor: Actor): boolean;
     removeActor(actor: Actor): Promise<boolean>;
-    moveActor(x: number, y: number, actor: Actor): Promise<boolean>;
+    moveActor(actor: Actor, dir: GWU.xy.Loc | number): Promise<boolean>;
 
     // Information
 

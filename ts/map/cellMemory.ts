@@ -20,6 +20,12 @@ export class CellMemory extends Cell {
 
     store(cell: Cell) {
         this.copy(cell);
+        if (cell.actor) {
+            cell.actor.lastSeen = cell;
+        }
+        if (cell.item) {
+            cell.item.lastSeen = cell;
+        }
     }
 
     getSnapshot(dest: GWU.sprite.Mixer) {

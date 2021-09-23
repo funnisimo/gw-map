@@ -35,11 +35,24 @@ export class ActorLayer extends MapLayer {
             await cell.fire('key', this.map, x, y);
         }
 
+        cell.needsRedraw = true;
+        if (this.map.fov.isAnyKindOfVisible(x, y)) {
+            cell.clearCellFlag(
+                Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+            );
+        }
+
         return true;
     }
 
     forceActor(x: number, y: number, actor: Actor, _opts?: any): boolean {
         if (actor.isDestroyed) return false;
+
+        if (this.map.hasXY(actor.x, actor.y)) {
+            const oldCell = this.map.cell(actor.x, actor.y);
+            oldCell.removeActor(actor);
+        }
+
         const cell = this.map.cell(x, y);
         if (!GWU.list.push(cell, 'actor', actor)) return false;
 
@@ -49,6 +62,14 @@ export class ActorLayer extends MapLayer {
         actor.x = x;
         actor.y = y;
         actor.map = this.map;
+
+        cell.needsRedraw = true;
+        if (this.map.fov.isAnyKindOfVisible(x, y)) {
+            cell.clearCellFlag(
+                Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+            );
+        }
+
         return true;
     }
 
@@ -65,6 +86,13 @@ export class ActorLayer extends MapLayer {
 
         if (actor.key && actor.key.matches(x, y) && cell.hasEffect('nokey')) {
             await cell.fire('nokey', this.map, x, y);
+        }
+
+        cell.needsRedraw = true;
+        if (this.map.fov.isAnyKindOfVisible(x, y)) {
+            cell.clearCellFlag(
+                Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+            );
         }
 
         return true;

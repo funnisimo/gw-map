@@ -16,6 +16,7 @@ export class Entity implements EntityType {
     kind: EntityKind;
     key: KeyInfoType | null = null;
     machineHome = 0;
+    lastSeen: GWU.xy.XY | null = null;
 
     constructor(kind: EntityKind) {
         this.depth = 1; // default - TODO - enum/const
