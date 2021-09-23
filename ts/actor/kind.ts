@@ -7,7 +7,9 @@ import { FlavorOptions } from '../entity';
 
 export interface KindOptions extends Entity.KindOptions {}
 
-export interface MakeOptions extends Entity.MakeOptions {}
+export interface MakeOptions extends Entity.MakeOptions {
+    fov: GWU.fov.FovSystem;
+}
 
 export class ActorKind extends Entity.EntityKind {
     constructor(opts: KindOptions) {
@@ -22,6 +24,19 @@ export class ActorKind extends Entity.EntityKind {
 
     init(actor: Actor, options: Partial<MakeOptions> = {}) {
         super.init(actor, options);
+        actor.fov = options.fov || null;
+    }
+
+    canSeeEntity(_actor: Actor, _entity: Entity.Entity): boolean {
+        return true;
+    }
+
+    isAbleToSee(_actor: Actor, _entity: Entity.Entity): boolean {
+        return true;
+    }
+
+    isAbleToSense(_actor: Actor, _entity: Entity.Entity): boolean {
+        return true;
     }
 
     forbidsCell(cell: CellType, actor?: Actor): boolean {

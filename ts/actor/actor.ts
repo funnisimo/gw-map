@@ -1,3 +1,4 @@
+import * as GWU from 'gw-utils';
 import * as Entity from '../entity';
 import { ActorFlags } from './types';
 import * as Flags from '../flags';
@@ -19,6 +20,7 @@ export class Actor extends Entity.Entity {
     next: Actor | null = null;
     leader: Actor | null = null;
     items: Item | null = null;
+    fov: GWU.fov.FovSystem | null = null;
 
     constructor(kind: ActorKind) {
         super(kind);
@@ -41,6 +43,55 @@ export class Actor extends Entity.Entity {
     isPlayer() {
         return this.hasActorFlag(Flags.Actor.IS_PLAYER);
     }
+
+    /////////////// VISIBILITY
+
+    canSee(x: number, y: number): boolean;
+    canSee(entity: Entity.Entity): boolean;
+    canSee(x: number | Entity.Entity, y?: number): boolean {
+        if (x instanceof Entity.Entity) {
+            return this.canSee(x.x, x.y) && this.kind.isAbleToSee(this, x);
+        }
+        if (this.fov) {
+            return this.fov.isDirectlyVisible(x, y!);
+        } else if (this.map) {
+            return GWU.xy.forLineBetween(
+                this.x,
+                this.y,
+                x,
+                y!,
+                (i, j) => !this.map!.cell(i, j).blocksVision()
+            );
+        } else {
+            return false; // need a map or an fov
+        }
+    }
+
+    canSeeOrSense(x: number, y: number): boolean;
+    canSeeOrSense(entity: Entity.Entity): boolean;
+    canSeeOrSense(x: number | Entity.Entity, y?: number): boolean {
+        if (x instanceof Entity.Entity) {
+            return (
+                this.canSeeOrSense(x.x, x.y) &&
+                (this.kind.isAbleToSee(this, x) ||
+                    this.kind.isAbleToSense(this, x))
+            );
+        }
+        if (this.fov) {
+            return this.fov.isAnyKindOfVisible(x, y!);
+        }
+        return this.canSee(x, y!);
+    }
+
+    isAbleToSee(entity: Entity.Entity): boolean {
+        return this.kind.isAbleToSee(this, entity);
+    }
+
+    isAbleToSense(entity: Entity.Entity): boolean {
+        return this.kind.isAbleToSense(this, entity);
+    }
+
+    ////////////////// INVENTORY
 
     async pickupItem(
         item: Item,

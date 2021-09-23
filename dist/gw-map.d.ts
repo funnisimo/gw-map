@@ -968,11 +968,18 @@ declare class Actor extends Entity {
     next: Actor | null;
     leader: Actor | null;
     items: Item | null;
+    fov: GWU.fov.FovSystem | null;
     constructor(kind: ActorKind);
     hasActorFlag(flag: number): boolean;
     hasAllActorFlags(flags: number): boolean;
     actorFlags(): number;
     isPlayer(): boolean;
+    canSee(x: number, y: number): boolean;
+    canSee(entity: Entity): boolean;
+    canSeeOrSense(x: number, y: number): boolean;
+    canSeeOrSense(entity: Entity): boolean;
+    isAbleToSee(entity: Entity): boolean;
+    isAbleToSense(entity: Entity): boolean;
     pickupItem(item: Item, opts?: Partial<PickupOptions>): Promise<boolean>;
     dropItem(item: Item, opts?: Partial<DropOptions>): Promise<boolean>;
 }
@@ -980,11 +987,15 @@ declare class Actor extends Entity {
 interface KindOptions$1 extends KindOptions {
 }
 interface MakeOptions$1 extends MakeOptions {
+    fov: GWU.fov.FovSystem;
 }
 declare class ActorKind extends EntityKind {
     constructor(opts: KindOptions$1);
     make(options?: Partial<MakeOptions$1>): Actor;
     init(actor: Actor, options?: Partial<MakeOptions$1>): void;
+    canSeeEntity(_actor: Actor, _entity: Entity): boolean;
+    isAbleToSee(_actor: Actor, _entity: Entity): boolean;
+    isAbleToSense(_actor: Actor, _entity: Entity): boolean;
     forbidsCell(cell: CellType, actor?: Actor): boolean;
     avoidsCell(cell: CellType, actor?: Actor): boolean;
     getFlavor(actor: Actor, opts?: FlavorOptions): string;

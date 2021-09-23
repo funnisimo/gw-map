@@ -518,6 +518,7 @@
             this.next = null;
             this.leader = null;
             this.items = null;
+            this.fov = null;
             // @ts-ignore - initialized in Entity
             this.flags.actor = 0;
             this.depth = Depth$1.ACTOR;
@@ -535,6 +536,38 @@
         isPlayer() {
             return this.hasActorFlag(Actor$1.IS_PLAYER);
         }
+        canSee(x, y) {
+            if (x instanceof Entity) {
+                return this.canSee(x.x, x.y) && this.kind.isAbleToSee(this, x);
+            }
+            if (this.fov) {
+                return this.fov.isDirectlyVisible(x, y);
+            }
+            else if (this.map) {
+                return GWU__namespace.xy.forLineBetween(this.x, this.y, x, y, (i, j) => !this.map.cell(i, j).blocksVision());
+            }
+            else {
+                return false; // need a map or an fov
+            }
+        }
+        canSeeOrSense(x, y) {
+            if (x instanceof Entity) {
+                return (this.canSeeOrSense(x.x, x.y) &&
+                    (this.kind.isAbleToSee(this, x) ||
+                        this.kind.isAbleToSense(this, x)));
+            }
+            if (this.fov) {
+                return this.fov.isAnyKindOfVisible(x, y);
+            }
+            return this.canSee(x, y);
+        }
+        isAbleToSee(entity) {
+            return this.kind.isAbleToSee(this, entity);
+        }
+        isAbleToSense(entity) {
+            return this.kind.isAbleToSense(this, entity);
+        }
+        ////////////////// INVENTORY
         async pickupItem(item, opts) {
             return this.kind.pickupItem(this, item, opts);
         }
@@ -554,6 +587,16 @@
         }
         init(actor, options = {}) {
             super.init(actor, options);
+            actor.fov = options.fov || null;
+        }
+        canSeeEntity(_actor, _entity) {
+            return true;
+        }
+        isAbleToSee(_actor, _entity) {
+            return true;
+        }
+        isAbleToSense(_actor, _entity) {
+            return true;
         }
         forbidsCell(cell, actor) {
             if (super.forbidsCell(cell, actor))
