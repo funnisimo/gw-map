@@ -18,7 +18,7 @@ export interface HordeFlagsType {
 }
 
 export interface SpawnOptions {
-    canBeVisible: boolean;
+    canSpawn: GWU.xy.XYMatchFunc;
     rng: GWU.rng.Random;
     machine: number;
 }
@@ -56,12 +56,9 @@ export class Horde {
         map: Map.Map,
         x = -1,
         y = -1,
-        opts: Partial<SpawnOptions> | boolean = {}
+        opts: Partial<SpawnOptions> = {}
     ): Promise<Actor.Actor | null> {
-        if (typeof opts === 'boolean') {
-            opts = { canBeVisible: opts };
-        }
-        opts.canBeVisible = opts.canBeVisible ?? !map.fov.isEnabled;
+        opts.canSpawn = opts.canSpawn || GWU.TRUE;
         opts.rng = opts.rng || map.rng;
         opts.machine = opts.machine ?? 0;
 
@@ -191,8 +188,7 @@ export class Horde {
         let loc = opts.rng.matchingLoc(map.width, map.height, (x, y) => {
             const cell = map.cell(x, y);
             if (cell.hasActor()) return false; // Brogue kills existing actors, but lets do this instead
-            if (!opts.canBeVisible && map.fov.isAnyKindOfVisible(x, y))
-                return false;
+            if (!opts.canSpawn(x, y)) return false;
 
             if (leader.avoidsCell(cell)) return false;
 

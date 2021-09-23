@@ -27,7 +27,7 @@ export class MessageEffect extends Handler {
 
     async fire(
         config: TYPES.EffectInfo,
-        map: MapType,
+        _map: MapType,
         x: number,
         y: number,
         ctx: TYPES.EffectCtx
@@ -39,8 +39,8 @@ export class MessageEffect extends Handler {
         if (
             config.message &&
             config.message.length &&
-            !fired &&
-            map.isVisible(x, y)
+            !fired
+            // && map.isVisible(x, y)
         ) {
             GWU.message.addAt(x, y, config.message, ctx);
             return true;

@@ -1,6 +1,6 @@
 import * as GWU from 'gw-utils';
 
-import { MapType } from '../map/types';
+import { MapType, CellInfoType } from '../map/types';
 import * as Flags from '../flags';
 import { Actor } from '../actor';
 import { MapLayer } from './mapLayer';
@@ -8,6 +8,15 @@ import { MapLayer } from './mapLayer';
 export class ActorLayer extends MapLayer {
     constructor(map: MapType, name = 'actor') {
         super(map, name);
+    }
+
+    clear() {
+        for (let x = 0; x < this.map.width; ++x) {
+            for (let y = 0; y < this.map.height; ++y) {
+                const cell = this.map.cell(x, y);
+                cell.actor = null;
+            }
+        }
     }
 
     async addActor(
@@ -36,11 +45,11 @@ export class ActorLayer extends MapLayer {
         }
 
         cell.needsRedraw = true;
-        if (this.map.fov.isAnyKindOfVisible(x, y)) {
-            cell.clearCellFlag(
-                Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
-            );
-        }
+        // if (this.map.fov.isAnyKindOfVisible(x, y)) {
+        //     cell.clearCellFlag(
+        //         Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+        //     );
+        // }
 
         return true;
     }
@@ -64,11 +73,11 @@ export class ActorLayer extends MapLayer {
         actor.map = this.map;
 
         cell.needsRedraw = true;
-        if (this.map.fov.isAnyKindOfVisible(x, y)) {
-            cell.clearCellFlag(
-                Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
-            );
-        }
+        // if (this.map.fov.isAnyKindOfVisible(x, y)) {
+        //     cell.clearCellFlag(
+        //         Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+        //     );
+        // }
 
         return true;
     }
@@ -89,17 +98,16 @@ export class ActorLayer extends MapLayer {
         }
 
         cell.needsRedraw = true;
-        if (this.map.fov.isAnyKindOfVisible(x, y)) {
-            cell.clearCellFlag(
-                Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
-            );
-        }
+        // if (this.map.fov.isAnyKindOfVisible(x, y)) {
+        //     cell.clearCellFlag(
+        //         Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+        //     );
+        // }
 
         return true;
     }
 
-    putAppearance(dest: GWU.sprite.Mixer, x: number, y: number) {
-        const cell = this.map.cell(x, y);
+    putAppearance(dest: GWU.sprite.Mixer, cell: CellInfoType) {
         if (!cell.actor) return;
         dest.drawSprite(cell.actor.sprite);
     }

@@ -28,12 +28,15 @@ export type TileData = Tile | null;
 export type TileArray = [Tile, ...TileData[]];
 
 export interface CellInfoType {
+    readonly flags: CellFlags;
+
     readonly chokeCount: number;
     readonly machineId: number;
     // keyId: number;
     readonly needsRedraw: boolean;
     readonly x: number;
     readonly y: number;
+    readonly map: MapType;
     readonly tiles: TileArray;
 
     // Flags
@@ -62,6 +65,8 @@ export interface CellInfoType {
     isFloor(): boolean;
     isPassable(): boolean;
     isSecretlyPassable(): boolean;
+    isNull(): boolean;
+    hasKey(): boolean;
 
     // Tiles
 
@@ -92,19 +97,19 @@ export interface CellInfoType {
 
     // Info
 
+    getSnapshot(mixer: GWU.sprite.Mixer): void;
+    putSnapshot(mixer: GWU.sprite.Mixer): void;
+
     getDescription(): string;
     getFlavor(): string;
     getName(opts: any): string;
 }
 
 export interface CellType extends CellInfoType {
-    flags: CellFlags;
     actor: Actor | null;
     item: Item | null;
     chokeCount: number;
     machineId: number;
-    x: number;
-    y: number;
 
     setCellFlag(flag: number): void;
     clearCellFlag(flag: number): void;
@@ -116,7 +121,7 @@ export interface CellType extends CellInfoType {
 
     clearTiles(tile?: string | number | Tile): void;
 
-    isEmpty(): boolean;
+    isNull(): boolean;
     isGateSite(): boolean;
 
     removeActor(actor: Actor): boolean;
@@ -138,7 +143,7 @@ export interface CellType extends CellInfoType {
 
     hasEffect(name: string): boolean;
 
-    copy(other: CellType): void;
+    copy(other: CellInfoType): void;
     needsRedraw: boolean;
     readonly changed: boolean;
 }
@@ -164,15 +169,16 @@ export interface MapType {
     readonly width: number;
     readonly height: number;
     readonly rng: GWU.rng.Random;
+    readonly id: string;
 
     light: GWU.light.LightSystemType;
-    fov: GWU.fov.FovSystemType;
+    // fov: GWU.fov.FovSystemType;
     properties: Record<string, any>;
 
     hasXY(x: number, y: number): boolean;
     isBoundaryXY(x: number, y: number): boolean;
 
-    memory(x: number, y: number): CellInfoType;
+    // memory(x: number, y: number): CellInfoType;
     cell(x: number, y: number): CellType;
     get(x: number, y: number): CellType | undefined;
     eachCell(cb: EachCellCb): void;
@@ -197,49 +203,8 @@ export interface MapType {
 
     // Information
 
-    isVisible(x: number, y: number): boolean;
+    // isVisible(x: number, y: number): boolean;
     hasKey(x: number, y: number): boolean;
-
-    // hasCellFlag(x: number, y: number, flag: number): boolean;
-    // hasObjectFlag(x: number, y: number, flag: number): boolean;
-    // hasAllObjectFlags(x: number, y: number, flags: number): boolean;
-    // hasTileFlag(x: number, y: number, flag: number): boolean;
-    // hasAllTileFlags(x: number, y: number, flags: number): boolean;
-
-    // cellFlags(x: number, y: number, useMemory?: boolean): number;
-    // objectFlags(x: number, y: number, useMemory?: boolean): number;
-    // tileFlags(x: number, y: number, useMemory?: boolean): number;
-    // tileMechFlags(x: number, y: number, useMemory?: boolean): number;
-    // itemFlags(x: number, y: number, useMemory?: boolean): number;
-    // actorFlags(x: number, y: number, useMemory?: boolean): number;
-
-    // blocksVision(x: number, y: number, useMemory?: boolean): boolean;
-    // blocksPathing(x: number, y: number, useMemory?: boolean): boolean;
-    // blocksMove(x: number, y: number, useMemory?: boolean): boolean;
-    // blocksEffects(x: number, y: number, useMemory?: boolean): boolean;
-
-    // Tiles
-
-    // hasTile(x: number, y: number, tile: string | number | Tile, useMemory?: boolean): boolean;
-
-    // Items
-
-    // hasItem(x: number, y: number, useMemory?: boolean): boolean;
-
-    // Actors
-
-    // hasActor(x: number, y: number, useMemory?: boolean): boolean;
-    // hasPlayer(x: number, y: number, useMemory?: boolean): boolean;
-
-    // Info
-
-    // getDescription(x: number, y: number, useMemory?: boolean): string;
-    // getFlavor(x: number, y: number, useMemory?: boolean): string;
-    // getName(x: number, y: number, opts: any, useMemory?: boolean): string;
-
-    // isStairs(x: number, y: number, useMemory?: boolean): boolean;
-    // isWall(x: number, y: number, useMemory?: boolean): boolean;
-    // isPassable(x: number, y: number, useMemory?: boolean): boolean;
 
     // flags
 

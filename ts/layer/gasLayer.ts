@@ -2,7 +2,7 @@ import * as GWU from 'gw-utils';
 
 import * as Flags from '../flags';
 import { TileLayer } from './tileLayer';
-import { MapType, SetTileOptions } from '../map/types';
+import { MapType, SetTileOptions, CellInfoType } from '../map/types';
 import * as Tile from '../tile';
 
 export class GasLayer extends TileLayer {
@@ -147,11 +147,10 @@ export class GasLayer extends TileLayer {
         }
     }
 
-    putAppearance(dest: GWU.sprite.Mixer, x: number, y: number) {
-        const volume = this.volume[x][y];
+    putAppearance(dest: GWU.sprite.Mixer, cell: CellInfoType) {
+        const volume = this.volume[cell.x][cell.y];
         if (!volume) return;
 
-        const cell = this.map.cell(x, y);
         const tile = cell.depthTile(this.depth);
         if (tile) {
             const opacity = this.calcOpacity(volume);

@@ -7,17 +7,22 @@ import { Tile } from '../tile';
 import * as Layer from '../layer';
 import { Item } from '../item';
 import { Actor } from '../actor';
-import { MapType, EachCellCb, MapTestFn, SetTileOptions } from './types';
-import { CellMemory } from './cellMemory';
+import {
+    MapType,
+    EachCellCb,
+    MapTestFn,
+    SetTileOptions,
+    CellType,
+} from './types';
+// import { CellMemory } from './cellMemory';
 import * as Effect from '../effect';
-import { CellType, CellInfoType } from '.';
 
-export interface MapOptions
-    extends GWU.light.LightSystemOptions,
-        GWU.fov.FovSystemOptions {
+export interface MapOptions extends GWU.light.LightSystemOptions {
+    // GWU.fov.FovSystemOptions {
     tile: string | true;
     boundary: string | true;
     seed: number;
+    id: string;
 }
 
 export type LayerType = Layer.TileLayer | Layer.ActorLayer | Layer.ItemLayer;
@@ -32,37 +37,40 @@ export interface MapDrawOptions {
     force: boolean;
 }
 
-export class Map
-    implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType {
+export class Map implements GWU.light.LightSystemSite, MapType {
     width: number;
     height: number;
     cells: GWU.grid.Grid<Cell>;
     layers: LayerType[];
     flags: { map: 0 };
     light: GWU.light.LightSystemType;
-    fov: GWU.fov.FovSystemType;
+    // fov: GWU.fov.FovSystemType;
     properties: Record<string, any>;
-    _memory: GWU.grid.Grid<CellMemory>;
+    // _memory: GWU.grid.Grid<CellMemory>;
     machineCount = 0;
     private _seed = 0;
     rng: GWU.rng.Random = GWU.rng.random;
+    id = 'MAP';
 
     constructor(width: number, height: number, opts: Partial<MapOptions> = {}) {
         this.width = width;
         this.height = height;
         this.flags = { map: 0 };
         this.layers = [];
+        if (opts.id) {
+            this.id = opts.id;
+        }
 
         this.cells = GWU.grid.make(
             width,
             height,
             (x, y) => new Cell(this, x, y)
         );
-        this._memory = GWU.grid.make(
-            width,
-            height,
-            (x, y) => new CellMemory(this, x, y)
-        );
+        // this._memory = GWU.grid.make(
+        //     width,
+        //     height,
+        //     (x, y) => new CellMemory(this, x, y)
+        // );
 
         if (opts.seed) {
             this._seed = opts.seed;
@@ -70,7 +78,7 @@ export class Map
         }
 
         this.light = new GWU.light.LightSystem(this, opts);
-        this.fov = new GWU.fov.FovSystem(this, opts);
+        // this.fov = new GWU.fov.FovSystem(this, opts);
         this.properties = {};
 
         this.initLayers();
@@ -84,14 +92,14 @@ export class Map
         this.rng = GWU.rng.make(v);
     }
 
-    memory(x: number, y: number): CellMemory {
-        return this._memory[x][y];
-    }
+    // memory(x: number, y: number): CellMemory {
+    //     return this._memory[x][y];
+    // }
 
-    knowledge(x: number, y: number): CellInfoType {
-        if (this.fov.isAnyKindOfVisible(x, y)) return this.cells[x][y];
-        return this._memory[x][y];
-    }
+    // knowledge(x: number, y: number): CellInfoType {
+    //     if (this.fov.isAnyKindOfVisible(x, y)) return this.cell(x,y);
+    //     return this._memory[x][y];
+    // }
 
     // LAYERS
 
@@ -147,29 +155,10 @@ export class Map
         this.cells.forEach((cell, x, y) => cb(cell, x, y, this));
     }
 
-    // DRAW
-
-    drawInto(
-        dest: GWU.canvas.Canvas | GWU.canvas.DataBuffer,
-        opts: Partial<MapDrawOptions> | boolean = {}
-    ) {
-        const buffer: GWU.canvas.DataBuffer =
-            dest instanceof GWU.canvas.Canvas ? dest.buffer : dest;
-
-        if (typeof opts === 'boolean') opts = { force: opts };
-        const mixer = new GWU.sprite.Mixer();
-        for (let x = 0; x < buffer.width; ++x) {
-            for (let y = 0; y < buffer.height; ++y) {
-                this.getAppearanceAt(x, y, mixer);
-                buffer.drawSprite(x, y, mixer);
-            }
-        }
-    }
-
     // items
 
     hasItem(x: number, y: number): boolean {
-        return this.cells[x][y].hasItem();
+        return this.cell(x, y).hasItem();
     }
     itemAt(x: number, y: number): Item | null {
         return this.cell(x, y).item;
@@ -219,24 +208,24 @@ export class Map
             return false;
         }
 
-        const wasVisible = this.fov.isAnyKindOfVisible(oldX, oldY);
-        const isVisible = this.fov.isAnyKindOfVisible(x, y);
-        if (isVisible && !wasVisible) {
-            if (item.lastSeen) {
-                this._memory[item.lastSeen.x][item.lastSeen.y].removeItem(item);
-                this.clearCellFlag(
-                    item.lastSeen.x,
-                    item.lastSeen.y,
-                    Flags.Cell.STABLE_SNAPSHOT
-                );
-                item.lastSeen = null;
-            }
-        } else if (wasVisible && !isVisible) {
-            const mem = this._memory[x][y];
-            mem.item = item;
-            this.clearCellFlag(x, y, Flags.Cell.STABLE_SNAPSHOT);
-            item.lastSeen = this.cell(x, y);
-        }
+        // const wasVisible = this.fov.isAnyKindOfVisible(oldX, oldY);
+        // const isVisible = this.fov.isAnyKindOfVisible(x, y);
+        // if (isVisible && !wasVisible) {
+        //     if (item.lastSeen) {
+        //         this._memory[item.lastSeen.x][item.lastSeen.y].removeItem(item);
+        //         this.clearCellFlag(
+        //             item.lastSeen.x,
+        //             item.lastSeen.y,
+        //             Flags.Cell.STABLE_SNAPSHOT
+        //         );
+        //         item.lastSeen = null;
+        //     }
+        // } else if (wasVisible && !isVisible) {
+        //     const mem = this._memory[x][y];
+        //     mem.item = item;
+        //     this.clearCellFlag(x, y, Flags.Cell.STABLE_SNAPSHOT);
+        //     item.lastSeen = this.cell(x, y);
+        // }
 
         return true;
     }
@@ -294,39 +283,39 @@ export class Map
             return false;
         }
 
-        const wasVisible = this.fov.isAnyKindOfVisible(oldX, oldY);
-        const isVisible = this.fov.isAnyKindOfVisible(x, y);
-        if (isVisible && !wasVisible) {
-            if (actor.lastSeen) {
-                this._memory[actor.lastSeen.x][actor.lastSeen.y].removeActor(
-                    actor
-                );
-                this.clearCellFlag(
-                    actor.lastSeen.x,
-                    actor.lastSeen.y,
-                    Flags.Cell.STABLE_SNAPSHOT
-                );
-                actor.lastSeen = null;
-            }
-        } else if (wasVisible && !isVisible) {
-            const mem = this._memory[x][y];
-            mem.actor = actor;
-            this.clearCellFlag(x, y, Flags.Cell.STABLE_SNAPSHOT);
-            actor.lastSeen = this.cell(x, y);
-        }
+        // const wasVisible = this.fov.isAnyKindOfVisible(oldX, oldY);
+        // const isVisible = this.fov.isAnyKindOfVisible(x, y);
+        // if (isVisible && !wasVisible) {
+        //     if (actor.lastSeen) {
+        //         this._memory[actor.lastSeen.x][actor.lastSeen.y].removeActor(
+        //             actor
+        //         );
+        //         this.clearCellFlag(
+        //             actor.lastSeen.x,
+        //             actor.lastSeen.y,
+        //             Flags.Cell.STABLE_SNAPSHOT
+        //         );
+        //         actor.lastSeen = null;
+        //     }
+        // } else if (wasVisible && !isVisible) {
+        //     const mem = this._memory[x][y];
+        //     mem.actor = actor;
+        //     this.clearCellFlag(x, y, Flags.Cell.STABLE_SNAPSHOT);
+        //     actor.lastSeen = this.cell(x, y);
+        // }
 
         return true;
     }
 
     // Information
 
-    isVisible(x: number, y: number): boolean {
-        return this.fov.isAnyKindOfVisible(x, y);
-    }
+    // isVisible(x: number, y: number): boolean {
+    //     return this.fov.isAnyKindOfVisible(x, y);
+    // }
     hasKey(x: number, y: number): boolean {
         if (!this.hasXY(x, y)) return false;
-        const cell = this.cells[x][y];
-        return cell._entities.some((e) => !!e.key && e.key.matches(x, y));
+        const cell = this.cell(x, y);
+        return cell.hasKey();
     }
 
     count(cb: MapTestFn): number {
@@ -356,20 +345,20 @@ export class Map
     }
 
     setCellFlag(x: number, y: number, flag: number) {
-        this.cells[x][y].setCellFlag(flag);
+        this.cell(x, y).setCellFlag(flag);
     }
     clearCellFlag(x: number, y: number, flag: number) {
-        this.cells[x][y].clearCellFlag(flag);
+        this.cell(x, y).clearCellFlag(flag);
     }
 
     clear() {
         this.light.glowLightChanged = true;
-        this.fov.needsUpdate = true;
+        // this.fov.needsUpdate = true;
         this.layers.forEach((l) => l.clear());
     }
 
     clearCell(x: number, y: number, tile?: number | string | Tile) {
-        const cell = this.cells[x][y];
+        const cell = this.cell(x, y);
         cell.clear(tile);
     }
 
@@ -390,11 +379,12 @@ export class Map
     hasTile(
         x: number,
         y: number,
-        tile: string | number | Tile,
-        useMemory = false
+        tile: string | number | Tile
+        // useMemory = false
     ): boolean {
-        if (!useMemory) return this.cell(x, y).hasTile(tile);
-        return this.memory(x, y).hasTile(tile);
+        return this.cell(x, y).hasTile(tile);
+        // if (!useMemory) return this.cell(x, y).hasTile(tile);
+        // return this.memory(x, y).hasTile(tile);
     }
 
     forceTile(x: number, y: number, tile: string | number | Tile) {
@@ -422,7 +412,7 @@ export class Map
     }
 
     clearTiles(x: number, y: number, tile?: number | string | Tile) {
-        const cell = this.cells[x][y];
+        const cell = this.cell(x, y);
         cell.clearTiles(tile);
     }
 
@@ -444,7 +434,7 @@ export class Map
             throw new Error('Maps must be same size to copy');
 
         this.cells.forEach((c, x, y) => {
-            c.copy(src.cells[x][y]);
+            c.copy(src.cell(x, y));
         });
 
         this.layers.forEach((l, depth) => {
@@ -452,7 +442,7 @@ export class Map
         });
 
         this.flags.map = src.flags.map;
-        this.fov.needsUpdate = true;
+        // this.fov.needsUpdate = true;
         this.light.copy(src.light);
         this.rng = src.rng;
         this.machineCount = src.machineCount;
@@ -473,7 +463,7 @@ export class Map
         y: number,
         ctx: Partial<Effect.EffectCtx> = {}
     ): Promise<boolean> {
-        const cell = this.cells[x][y];
+        const cell = this.cell(x, y);
         return cell.fire(event, this, x, y, ctx);
     }
 
@@ -537,7 +527,7 @@ export class Map
         ctx.force = true;
         await willFire.forEachAsync(async (w, x, y) => {
             if (!w) return;
-            const cell = this.cells[x][y];
+            const cell = this.cell(x, y);
             if (cell.hasCellFlag(Flags.Cell.EVENT_FIRED_THIS_TURN)) return;
             for (let depth = 0; depth <= Flags.Depth.GAS; ++depth) {
                 if (w & GWU.flag.fl(depth)) {
@@ -564,7 +554,7 @@ export class Map
         ctx.originY = originY;
         for (let x = 0; x < this.width; ++x) {
             for (let y = 0; y < this.height; ++y) {
-                const cell = this.cells[x][y];
+                const cell = this.cell(x, y);
                 if (cell.machineId !== machineId) continue;
                 if (cell.hasEffect('machine')) {
                     didSomething =
@@ -576,14 +566,33 @@ export class Map
         return didSomething;
     }
 
-    getAppearanceAt(x: number, y: number, dest: GWU.sprite.Mixer) {
+    // DRAW
+
+    drawInto(
+        dest: GWU.canvas.Canvas | GWU.canvas.DataBuffer,
+        opts: Partial<MapDrawOptions> | boolean = {}
+    ) {
+        const buffer: GWU.canvas.DataBuffer =
+            dest instanceof GWU.canvas.Canvas ? dest.buffer : dest;
+
+        if (typeof opts === 'boolean') opts = { force: opts };
+        const mixer = new GWU.sprite.Mixer();
+        for (let x = 0; x < buffer.width; ++x) {
+            for (let y = 0; y < buffer.height; ++y) {
+                this.getAppearanceAt(x, y, mixer);
+                buffer.drawSprite(x, y, mixer);
+            }
+        }
+    }
+
+    getCellAppearance(cell: CellType, dest: GWU.sprite.Mixer) {
         dest.blackOut();
-        const cell = this.cells[x][y];
-        const isVisible = this.fov.isAnyKindOfVisible(x, y);
+        const isVisible = true; // this.fov.isAnyKindOfVisible(x, y);
+        const isRevealed = true; // this.fov.isRevealed(x, y);
 
         const needSnapshot = !cell.hasCellFlag(Flags.Cell.STABLE_SNAPSHOT);
         if (needSnapshot || (cell.needsRedraw && isVisible)) {
-            this.layers.forEach((layer) => layer.putAppearance(dest, x, y));
+            this.layers.forEach((layer) => layer.putAppearance(dest, cell));
 
             if (dest.dances) {
                 cell.setCellFlag(Flags.Cell.COLORS_DANCE);
@@ -592,17 +601,17 @@ export class Map
             }
 
             dest.bake();
-            this._memory[x][y].putSnapshot(dest);
+            cell.putSnapshot(dest);
             cell.needsRedraw = false;
             cell.setCellFlag(Flags.Cell.STABLE_SNAPSHOT);
         } else {
-            this._memory[x][y].getSnapshot(dest);
+            cell.getSnapshot(dest);
         }
 
         if (isVisible) {
-            const light = this.light.getLight(x, y);
+            const light = this.light.getLight(cell.x, cell.y);
             dest.multiply(light);
-        } else if (this.fov.isRevealed(x, y)) {
+        } else if (isRevealed) {
             dest.scale(50);
         } else {
             dest.blackOut();
@@ -613,10 +622,15 @@ export class Map
         }
     }
 
+    getAppearanceAt(x: number, y: number, dest: GWU.sprite.Mixer) {
+        const cell = this.cell(x, y);
+        return this.getCellAppearance(cell, dest);
+    }
+
     // // LightSystemSite
 
     hasActor(x: number, y: number): boolean {
-        return this.cells[x][y].hasActor();
+        return this.cell(x, y).hasActor();
     }
     eachGlowLight(cb: GWU.light.LightCb): void {
         this.cells.forEach((cell, x, y) => {
@@ -638,7 +652,7 @@ export class Map
         return !this.light.isDark(x, y);
     }
     blocksVision(x: number, y: number): boolean {
-        return this.cells[x][y].blocksVision();
+        return this.cell(x, y).blocksVision();
     }
     onCellRevealed(_x: number, _y: number): void {
         // if (DATA.automationActive) {
@@ -678,28 +692,28 @@ export class Map
         //     }
         // }
     }
-    redrawCell(x: number, y: number, clearMemory?: boolean): void {
-        if (clearMemory) {
-            this.clearMemory(x, y);
-        }
-        this.cells[x][y].needsRedraw = true;
+    redrawCell(x: number, y: number): void {
+        // if (clearMemory) {
+        //     this.clearMemory(x, y);
+        // }
+        this.cell(x, y).needsRedraw = true;
     }
-    clearMemory(x: number, y: number): void {
-        this._memory[x][y].clear();
-    }
-    storeMemory(x: number, y: number, updateSnapshot = false): void {
-        const cell = this.cells[x][y];
-        const memory = this._memory[x][y];
-        memory.store(cell);
-        cell.setCellFlag(Flags.Cell.STABLE_MEMORY);
-        if (updateSnapshot || !cell.hasCellFlag(Flags.Cell.STABLE_SNAPSHOT)) {
-            const dest = memory.snapshot;
-            dest.blackOut();
-            this.layers.forEach((layer) => layer.putAppearance(dest, x, y));
-            dest.bake();
-            cell.setCellFlag(Flags.Cell.STABLE_SNAPSHOT);
-        }
-    }
+    // clearMemory(x: number, y: number): void {
+    //     this._memory[x][y].clear();
+    // }
+    // storeMemory(x: number, y: number, updateSnapshot = false): void {
+    //     const cell = this.cell(x,y);
+    //     const memory = this._memory[x][y];
+    //     memory.store(cell);
+    //     cell.setCellFlag(Flags.Cell.STABLE_MEMORY);
+    //     if (updateSnapshot || !cell.hasCellFlag(Flags.Cell.STABLE_SNAPSHOT)) {
+    //         const dest = memory.snapshot;
+    //         dest.blackOut();
+    //         this.layers.forEach((layer) => layer.putAppearance(dest, x, y));
+    //         dest.bake();
+    //         cell.setCellFlag(Flags.Cell.STABLE_SNAPSHOT);
+    //     }
+    // }
 
     // // DigSite
 

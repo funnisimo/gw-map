@@ -1,7 +1,7 @@
 import * as GWU from 'gw-utils';
 
 import * as Flags from '../flags';
-import { CellType, CellFlags, MapType, TileArray } from './types';
+import { CellType, CellInfoType, CellFlags, MapType, TileArray } from './types';
 
 import * as TILE from '../tile';
 import { Entity } from '../entity';
@@ -89,6 +89,7 @@ export class Cell implements CellType {
     map: MapType;
     x = -1;
     y = -1;
+    snapshot: GWU.sprite.Mixer;
 
     constructor(
         map: MapType,
@@ -102,6 +103,7 @@ export class Cell implements CellType {
         this.map = map;
         this.x = x;
         this.y = y;
+        this.snapshot = GWU.sprite.makeMixer();
 
         if (groundTile) {
             const tile = TILE.get(groundTile);
@@ -109,7 +111,14 @@ export class Cell implements CellType {
         }
     }
 
-    copy(other: Cell) {
+    getSnapshot(dest: GWU.sprite.Mixer) {
+        dest.copy(this.snapshot);
+    }
+    putSnapshot(src: GWU.sprite.Mixer) {
+        this.snapshot.copy(src);
+    }
+
+    copy(other: CellInfoType) {
         Object.assign(this.flags, other.flags);
         this.chokeCount = other.chokeCount;
         this.tiles.length = other.tiles.length;
@@ -117,11 +126,12 @@ export class Cell implements CellType {
             this.tiles[i] = other.tiles[i];
         }
         this.machineId = other.machineId;
-        this._actor = other._actor;
-        this._item = other._item;
+        this._actor = other.actor;
+        this._item = other.item;
         this.map = other.map;
         this.x = other.x;
         this.y = other.y;
+        other.getSnapshot(this.snapshot);
     }
 
     hasCellFlag(flag: number): boolean {
@@ -302,7 +312,7 @@ export class Cell implements CellType {
 
     // Tests
 
-    isEmpty(): boolean {
+    isNull(): boolean {
         return (
             this.tiles.every((t) => !t || t === TILE.tiles.NULL) &&
             this._actor == null &&
@@ -330,6 +340,11 @@ export class Cell implements CellType {
     }
     isSecretlyPassable(): boolean {
         return this.hasEntityFlag(Flags.Entity.L_SECRETLY_PASSABLE);
+    }
+    hasKey(): boolean {
+        return this._entities.some(
+            (e) => !!e.key && e.key.matches(this.x, this.y)
+        );
     }
 
     // @returns - whether or not the change results in a change to the cell tiles.
@@ -373,6 +388,7 @@ export class Cell implements CellType {
         if (tile) {
             this.setTile(tile);
         }
+        this.needsRedraw = true;
     }
 
     clear(tile?: number | string | TILE.Tile) {
@@ -386,6 +402,7 @@ export class Cell implements CellType {
         if (tile) {
             this.setTile(tile);
         }
+        this.snapshot.blackOut();
     }
     clearDepth(depth: Flags.Depth): boolean {
         if (depth == 0) {

@@ -1,13 +1,22 @@
 import * as GWU from 'gw-utils';
 
-import { MapType } from '../map/types';
+import { MapType, CellInfoType } from '../map/types';
 import { Item } from '../item';
 import { MapLayer } from './mapLayer';
-import * as Flags from '../flags';
+// import * as Flags from '../flags';
 
 export class ItemLayer extends MapLayer {
     constructor(map: MapType, name = 'item') {
         super(map, name);
+    }
+
+    clear() {
+        for (let x = 0; x < this.map.width; ++x) {
+            for (let y = 0; y < this.map.height; ++y) {
+                const cell = this.map.cell(x, y);
+                cell.item = null;
+            }
+        }
     }
 
     async addItem(
@@ -41,11 +50,11 @@ export class ItemLayer extends MapLayer {
         }
 
         cell.needsRedraw = true;
-        if (this.map.fov.isAnyKindOfVisible(x, y)) {
-            cell.clearCellFlag(
-                Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
-            );
-        }
+        // if (this.map.fov.isAnyKindOfVisible(x, y)) {
+        //     cell.clearCellFlag(
+        //         Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+        //     );
+        // }
 
         return true;
     }
@@ -68,11 +77,11 @@ export class ItemLayer extends MapLayer {
         obj.map = this.map;
 
         cell.needsRedraw = true;
-        if (this.map.fov.isAnyKindOfVisible(x, y)) {
-            cell.clearCellFlag(
-                Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
-            );
-        }
+        // if (this.map.fov.isAnyKindOfVisible(x, y)) {
+        //     cell.clearCellFlag(
+        //         Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+        //     );
+        // }
 
         return true;
     }
@@ -90,17 +99,16 @@ export class ItemLayer extends MapLayer {
         }
 
         cell.needsRedraw = true;
-        if (this.map.fov.isAnyKindOfVisible(x, y)) {
-            cell.clearCellFlag(
-                Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
-            );
-        }
+        // if (this.map.fov.isAnyKindOfVisible(x, y)) {
+        //     cell.clearCellFlag(
+        //         Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+        //     );
+        // }
 
         return true;
     }
 
-    putAppearance(dest: GWU.sprite.Mixer, x: number, y: number) {
-        const cell = this.map.cell(x, y);
+    putAppearance(dest: GWU.sprite.Mixer, cell: CellInfoType) {
         if (!cell.item) return;
         dest.drawSprite(cell.item.sprite);
     }

@@ -58,7 +58,7 @@ export async function fire(
     // bookkeeping
     if (
         didSomething &&
-        map.isVisible(x, y) &&
+        // map.isVisible(x, y) &&
         !(effect.flags & Flags.E_NO_MARK_FIRED)
     ) {
         effect.flags |= Flags.E_FIRED;

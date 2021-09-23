@@ -123,13 +123,13 @@ describe('Cell', () => {
         other.copy(cell);
         expect(other.hasTile('LAKE')).toBeTruthy();
         expect(other.hasTile('BRIDGE')).toBeTruthy();
-        expect(other.isEmpty()).toBeFalsy();
+        expect(other.isNull()).toBeFalsy();
         expect(other.changed).toBeTrue();
 
         other.clearCellFlag(Flags.Cell.CHANGED);
         other.clear();
         expect(other.hasTile('LAKE')).toBeFalsy();
-        expect(other.isEmpty()).toBeTruthy();
+        expect(other.isNull()).toBeTruthy();
         expect(other.changed).toBeTrue();
         expect(other.needsRedraw).toBeTrue();
     });
@@ -319,21 +319,21 @@ describe('Cell', () => {
     // );
     // });
 
-    test('isEmpty - actor, item', () => {
+    test('isNull - actor, item', () => {
         const cell: Cell = new Cell(map, 1, 1);
-        expect(cell.isEmpty()).toBeTruthy();
+        expect(cell.isNull()).toBeTruthy();
 
         cell.actor = UTILS.mockActor();
-        expect(cell.isEmpty()).toBeFalsy();
+        expect(cell.isNull()).toBeFalsy();
 
         cell.item = UTILS.mockItem();
-        expect(cell.isEmpty()).toBeFalsy();
+        expect(cell.isNull()).toBeFalsy();
 
         cell.actor = null;
-        expect(cell.isEmpty()).toBeFalsy();
+        expect(cell.isNull()).toBeFalsy();
 
         cell.item = null;
-        expect(cell.isEmpty()).toBeTruthy();
+        expect(cell.isNull()).toBeTruthy();
     });
 
     // test('isWalkableNow + isMoveableNow - Bridge', () => {
@@ -688,7 +688,7 @@ describe('Cell', () => {
     test('setTile(BRIDGE) will also set ground if null', () => {
         const cell: Cell = new Cell(map, 1, 1);
         cell.needsRedraw = false;
-        expect(cell.isEmpty()).toBeTruthy();
+        expect(cell.isNull()).toBeTruthy();
         expect(cell.needsRedraw).toBeFalse();
         expect(cell.changed).toBeFalse();
 
@@ -699,7 +699,7 @@ describe('Cell', () => {
         // groundTile not handled in cell - look in layer
         expect(cell.depthTile(Flags.Depth.GROUND)).toEqual(Tile.tiles.NULL);
         expect(cell.depthTile(Flags.Depth.SURFACE)).toEqual(Tile.tiles.BRIDGE);
-        expect(cell.isEmpty()).toBeFalsy();
+        expect(cell.isNull()).toBeFalsy();
     });
 
     test('setTile(FIRE) - sets caught fire flag', () => {

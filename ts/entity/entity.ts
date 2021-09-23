@@ -5,6 +5,8 @@ import * as Flags from '../flags/entity';
 import { CellType, MapType } from '../map/types';
 import { EntityKind, TextOptions, FlavorOptions } from './kind';
 
+let lastId = 0;
+
 export class Entity implements EntityType {
     depth: number;
     light: GWU.light.LightType | null;
@@ -16,7 +18,7 @@ export class Entity implements EntityType {
     kind: EntityKind;
     key: KeyInfoType | null = null;
     machineHome = 0;
-    lastSeen: GWU.xy.XY | null = null;
+    id: string;
 
     constructor(kind: EntityKind) {
         this.depth = 1; // default - TODO - enum/const
@@ -26,6 +28,7 @@ export class Entity implements EntityType {
         this.x = -1;
         this.y = -1;
         this.kind = kind;
+        this.id = '' + ++lastId;
     }
 
     get sprite(): GWU.sprite.Sprite {
