@@ -4,7 +4,9 @@ import * as Entity from '../entity';
 import { Item } from './item';
 
 export interface KindOptions extends Entity.KindOptions {}
-export interface MakeOptions extends Entity.MakeOptions {}
+export interface MakeOptions extends Entity.MakeOptions {
+    quantity: number;
+}
 
 export class ItemKind extends Entity.EntityKind {
     constructor(config: KindOptions) {
@@ -19,6 +21,7 @@ export class ItemKind extends Entity.EntityKind {
 
     init(item: Item, options: Partial<MakeOptions> = {}) {
         super.init(item, options);
+        item.quantity = options.quantity || 1;
     }
 
     // forbidsCell(_cell: CellType, _item: Item,): boolean {

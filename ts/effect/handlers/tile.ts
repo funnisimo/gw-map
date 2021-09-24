@@ -6,8 +6,8 @@ import * as Tile from '../../tile';
 import { Handler, installHandler } from '../handler';
 import * as Effect from '../types';
 
-import { Actor } from '../../actor';
-import { Item } from '../../item';
+// import { Actor } from '../../actor';
+// import { Item } from '../../item';
 
 export interface SpawnConfig {
     tile: string;
@@ -532,58 +532,39 @@ export function clearCells(
 }
 
 export function evacuateCreatures(map: MapType, blockingMap: GWU.grid.NumGrid) {
-    let i = 0,
-        j = 0;
-
     let didSomething = false;
-    for (i = 0; i < map.width; i++) {
-        for (j = 0; j < map.height; j++) {
-            if (!blockingMap[i][j]) continue;
-            const cell = map.cell(i, j);
-            if (!cell.hasActor()) continue;
-
-            GWU.list.forEach(cell.actor, (obj) => {
-                if (!(obj instanceof Actor)) return;
-                const monst: Actor = obj;
-                const loc = map.rng.matchingLocNear(i, j, (x, y) => {
-                    if (!map.hasXY(x, y)) return false;
-                    if (blockingMap[x][y]) return false;
-                    const c = map.cell(x, y);
-                    return !monst.forbidsCell(c);
-                });
-                if (loc && loc[0] >= 0 && loc[1] >= 0) {
-                    map.forceActor(loc[0], loc[1], monst);
-                    // map.redrawXY(loc[0], loc[1]);
-                    didSomething = true;
-                }
-            });
+    map.eachActor((a) => {
+        if (!blockingMap[a.x][a.y]) return;
+        const loc = map.rng.matchingLocNear(a.x, a.y, (x, y) => {
+            if (!map.hasXY(x, y)) return false;
+            if (blockingMap[x][y]) return false;
+            const c = map.cell(x, y);
+            return !a.forbidsCell(c);
+        });
+        if (loc && loc[0] >= 0 && loc[1] >= 0) {
+            map.forceActor(loc[0], loc[1], a);
+            // map.redrawXY(loc[0], loc[1]);
+            didSomething = true;
         }
-    }
+    });
     return didSomething;
 }
 
 export function evacuateItems(map: MapType, blockingMap: GWU.grid.NumGrid) {
     let didSomething = false;
-    blockingMap.forEach((v: number, i: number, j: number) => {
-        if (!v) return;
-        const cell = map.cell(i, j);
-        if (!cell.hasItem()) return;
-
-        GWU.list.forEach(cell.item, (obj) => {
-            if (!(obj instanceof Item)) return;
-            const item: Item = obj;
-            const loc = map.rng.matchingLocNear(i, j, (x, y) => {
-                if (!map.hasXY(x, y)) return false;
-                if (blockingMap[x][y]) return false;
-                const dest = map.cell(x, y);
-                return !item.forbidsCell(dest);
-            });
-            if (loc && loc[0] >= 0 && loc[1] >= 0) {
-                map.forceItem(loc[0], loc[1], item);
-                // map.redrawXY(loc[0], loc[1]);
-                didSomething = true;
-            }
+    map.eachItem((i) => {
+        if (!blockingMap[i.x][i.y]) return;
+        const loc = map.rng.matchingLocNear(i.x, i.y, (x, y) => {
+            if (!map.hasXY(x, y)) return false;
+            if (blockingMap[x][y]) return false;
+            const dest = map.cell(x, y);
+            return !i.forbidsCell(dest);
         });
+        if (loc && loc[0] >= 0 && loc[1] >= 0) {
+            map.forceItem(loc[0], loc[1], i);
+            // map.redrawXY(loc[0], loc[1]);
+            didSomething = true;
+        }
     });
     return didSomething;
 }

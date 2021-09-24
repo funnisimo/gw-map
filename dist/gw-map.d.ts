@@ -230,6 +230,99 @@ interface ActorFlags extends FlagType$1 {
     actor: number;
 }
 
+interface FlagType extends FlagType$1 {
+    item: number;
+}
+
+interface KindOptions$2 extends KindOptions {
+}
+interface MakeOptions$2 extends MakeOptions {
+    quantity: number;
+}
+declare class ItemKind extends EntityKind {
+    constructor(config: KindOptions$2);
+    make(options?: Partial<MakeOptions$2>): Item;
+    init(item: Item, options?: Partial<MakeOptions$2>): void;
+}
+
+declare class Item extends Entity {
+    flags: FlagType;
+    quantity: number;
+    kind: ItemKind;
+    next: Item | null;
+    constructor(kind: ItemKind);
+    copy(other: Item): void;
+    itemFlags(): number;
+    hasItemFlag(flag: number): boolean;
+    hasAllItemFlags(flags: number): boolean;
+}
+
+declare function make$4(id: string | ItemKind, makeOptions?: any): Item;
+declare function makeRandom$1(opts: Partial<MatchOptions$2> | string, makeOptions?: any): Item;
+declare function from$4(info: string | ItemKind | KindOptions$2, makeOptions?: any): Item;
+declare const kinds$1: Record<string, ItemKind>;
+declare function install$4(id: string, kind: ItemKind | KindOptions$2): ItemKind;
+declare function get$3(id: string | ItemKind): ItemKind | null;
+declare function makeKind$1(info: KindOptions$2): ItemKind;
+interface MatchOptions$2 {
+    tags: string | string[];
+    forbidTags: string | string[];
+    rng: GWU.rng.Random;
+}
+declare function randomKind$1(opts?: Partial<MatchOptions$2> | string): ItemKind | null;
+
+type index_d$8_FlagType = FlagType;
+type index_d$8_ItemKind = ItemKind;
+declare const index_d$8_ItemKind: typeof ItemKind;
+type index_d$8_Item = Item;
+declare const index_d$8_Item: typeof Item;
+declare namespace index_d$8 {
+  export {
+    index_d$8_FlagType as FlagType,
+    KindOptions$2 as KindOptions,
+    MakeOptions$2 as MakeOptions,
+    index_d$8_ItemKind as ItemKind,
+    index_d$8_Item as Item,
+    make$4 as make,
+    makeRandom$1 as makeRandom,
+    from$4 as from,
+    kinds$1 as kinds,
+    install$4 as install,
+    get$3 as get,
+    makeKind$1 as makeKind,
+    MatchOptions$2 as MatchOptions,
+    randomKind$1 as randomKind,
+  };
+}
+
+interface PickupOptions {
+    admin: boolean;
+}
+interface DropOptions {
+    admin: boolean;
+}
+declare class Actor extends Entity {
+    flags: ActorFlags;
+    kind: ActorKind;
+    next: Actor | null;
+    leader: Actor | null;
+    items: Item | null;
+    fov: GWU.fov.FovSystem | null;
+    constructor(kind: ActorKind);
+    hasActorFlag(flag: number): boolean;
+    hasAllActorFlags(flags: number): boolean;
+    actorFlags(): number;
+    isPlayer(): boolean;
+    canSee(x: number, y: number): boolean;
+    canSee(entity: Entity): boolean;
+    canSeeOrSense(x: number, y: number): boolean;
+    canSeeOrSense(entity: Entity): boolean;
+    isAbleToSee(entity: Entity): boolean;
+    isAbleToSense(entity: Entity): boolean;
+    pickupItem(item: Item, opts?: Partial<PickupOptions>): Promise<boolean>;
+    dropItem(item: Item, opts?: Partial<DropOptions>): Promise<boolean>;
+}
+
 interface TileFlags extends FlagType$1 {
     tile: number;
     tileMech: number;
@@ -329,12 +422,12 @@ interface TileOptions extends GWU.sprite.SpriteConfig {
     light: GWU.light.LightBase | null;
     tags: string | string[];
 }
-declare function make$4(options: Partial<TileOptions>): Tile;
+declare function make$3(options: Partial<TileOptions>): Tile;
 declare const tiles: Record<string, Tile>;
 declare const all: Tile[];
-declare function get$3(id: string | number | Tile): Tile;
-declare function install$4(id: string, options: Partial<TileOptions>): Tile;
-declare function install$4(id: string, base: string, options: Partial<TileOptions>): Tile;
+declare function get$2(id: string | number | Tile): Tile;
+declare function install$3(id: string, options: Partial<TileOptions>): Tile;
+declare function install$3(id: string, base: string, options: Partial<TileOptions>): Tile;
 declare function installAll$2(tiles: Record<string, Partial<TileOptions>>): void;
 
 declare const flags: {
@@ -342,91 +435,28 @@ declare const flags: {
     TileMech: typeof TileMech;
 };
 
-declare const index_d$8_flags: typeof flags;
-type index_d$8_TileFlags = TileFlags;
-type index_d$8_TileConfig = TileConfig;
-type index_d$8_Tile = Tile;
-declare const index_d$8_Tile: typeof Tile;
-type index_d$8_TileOptions = TileOptions;
-declare const index_d$8_tiles: typeof tiles;
-declare const index_d$8_all: typeof all;
-declare namespace index_d$8 {
-  export {
-    index_d$8_flags as flags,
-    index_d$8_TileFlags as TileFlags,
-    TextOptions$1 as TextOptions,
-    index_d$8_TileConfig as TileConfig,
-    index_d$8_Tile as Tile,
-    index_d$8_TileOptions as TileOptions,
-    make$4 as make,
-    index_d$8_tiles as tiles,
-    index_d$8_all as all,
-    get$3 as get,
-    install$4 as install,
-    installAll$2 as installAll,
-  };
-}
-
-interface FlagType extends FlagType$1 {
-    item: number;
-}
-
-declare class Item extends Entity {
-    flags: FlagType;
-    quantity: number;
-    kind: ItemKind;
-    next: Item | null;
-    constructor(kind: ItemKind);
-    itemFlags(): number;
-    hasItemFlag(flag: number): boolean;
-    hasAllItemFlags(flags: number): boolean;
-}
-
-interface KindOptions$2 extends KindOptions {
-}
-interface MakeOptions$2 extends MakeOptions {
-}
-declare class ItemKind extends EntityKind {
-    constructor(config: KindOptions$2);
-    make(options?: Partial<MakeOptions$2>): Item;
-    init(item: Item, options?: Partial<MakeOptions$2>): void;
-}
-
-declare function make$3(id: string | ItemKind, makeOptions?: any): Item;
-declare function makeRandom$1(opts: Partial<MatchOptions$2> | string, makeOptions?: any): Item;
-declare function from$4(info: string | ItemKind | KindOptions$2, makeOptions?: any): Item;
-declare const kinds$1: Record<string, ItemKind>;
-declare function install$3(id: string, kind: ItemKind | KindOptions$2): ItemKind;
-declare function get$2(id: string | ItemKind): ItemKind | null;
-declare function makeKind$1(info: KindOptions$2): ItemKind;
-interface MatchOptions$2 {
-    tags: string | string[];
-    forbidTags: string | string[];
-    rng: GWU.rng.Random;
-}
-declare function randomKind$1(opts?: Partial<MatchOptions$2> | string): ItemKind | null;
-
-type index_d$7_FlagType = FlagType;
-type index_d$7_ItemKind = ItemKind;
-declare const index_d$7_ItemKind: typeof ItemKind;
-type index_d$7_Item = Item;
-declare const index_d$7_Item: typeof Item;
+declare const index_d$7_flags: typeof flags;
+type index_d$7_TileFlags = TileFlags;
+type index_d$7_TileConfig = TileConfig;
+type index_d$7_Tile = Tile;
+declare const index_d$7_Tile: typeof Tile;
+type index_d$7_TileOptions = TileOptions;
+declare const index_d$7_tiles: typeof tiles;
+declare const index_d$7_all: typeof all;
 declare namespace index_d$7 {
   export {
-    index_d$7_FlagType as FlagType,
-    KindOptions$2 as KindOptions,
-    MakeOptions$2 as MakeOptions,
-    index_d$7_ItemKind as ItemKind,
-    index_d$7_Item as Item,
+    index_d$7_flags as flags,
+    index_d$7_TileFlags as TileFlags,
+    TextOptions$1 as TextOptions,
+    index_d$7_TileConfig as TileConfig,
+    index_d$7_Tile as Tile,
+    index_d$7_TileOptions as TileOptions,
     make$3 as make,
-    makeRandom$1 as makeRandom,
-    from$4 as from,
-    kinds$1 as kinds,
-    install$3 as install,
+    index_d$7_tiles as tiles,
+    index_d$7_all as all,
     get$2 as get,
-    makeKind$1 as makeKind,
-    MatchOptions$2 as MatchOptions,
-    randomKind$1 as randomKind,
+    install$3 as install,
+    installAll$2 as installAll,
   };
 }
 
@@ -572,25 +602,11 @@ declare namespace index_d$6 {
 }
 
 declare type EachCb<T> = (t: T) => any;
-declare type MatchCb<T> = (t: T) => boolean;
-declare type ReduceCb<T> = (out: any, t: T) => any;
-declare class CellEntities {
-    cell: Cell;
-    constructor(cell: Cell);
-    eachItem(cb: EachCb<Item>): void;
-    eachActor(cb: EachCb<Actor>): void;
-    forEach(cb: EachCb<Entity>): void;
-    some(cb: MatchCb<Entity>): boolean;
-    reduce(cb: ReduceCb<Entity>, start?: any): any;
-}
 declare class Cell implements CellType {
     flags: CellFlags;
     chokeCount: number;
     tiles: TileArray;
     machineId: number;
-    _actor: Actor | null;
-    _item: Item | null;
-    _entities: CellEntities;
     map: MapType;
     x: number;
     y: number;
@@ -598,11 +614,13 @@ declare class Cell implements CellType {
     constructor(map: MapType, x: number, y: number, groundTile?: number | string | Tile);
     getSnapshot(dest: GWU.sprite.Mixer): void;
     putSnapshot(src: GWU.sprite.Mixer): void;
+    get hasStableSnapshot(): boolean;
+    get hasStableMemory(): boolean;
     copy(other: CellInfoType): void;
     hasCellFlag(flag: number): boolean;
     setCellFlag(flag: number): void;
     clearCellFlag(flag: number): void;
-    hasEntityFlag(flag: number, withEntities?: boolean): boolean;
+    hasEntityFlag(flag: number): boolean;
     hasAllEntityFlags(flags: number): boolean;
     hasTileFlag(flag: number): boolean;
     hasAllTileFlags(flags: number): boolean;
@@ -612,11 +630,9 @@ declare class Cell implements CellType {
     hasAllTileTags(tags: string[]): boolean;
     hasAnyTileTag(tags: string[]): boolean;
     cellFlags(): number;
-    entityFlags(withEntities?: boolean): number;
+    entityFlags(): number;
     tileFlags(): number;
     tileMechFlags(): number;
-    itemFlags(): number;
-    actorFlags(): number;
     get needsRedraw(): boolean;
     set needsRedraw(v: boolean);
     get changed(): boolean;
@@ -631,10 +647,10 @@ declare class Cell implements CellType {
     tileWithObjectFlag(flag: number): Tile | null;
     tileWithFlag(flag: number): Tile | null;
     tileWithMechFlag(flag: number): Tile | null;
-    blocksVision(withEntities?: boolean): boolean;
-    blocksPathing(withEntities?: boolean): boolean;
-    blocksMove(withEntities?: boolean): boolean;
-    blocksEffects(withEntities?: boolean): boolean;
+    blocksVision(): boolean;
+    blocksPathing(): boolean;
+    blocksMove(): boolean;
+    blocksEffects(): boolean;
     blocksLayer(depth: number): boolean;
     isNull(): boolean;
     isPassable(): boolean;
@@ -643,7 +659,6 @@ declare class Cell implements CellType {
     isFloor(): boolean;
     isGateSite(): boolean;
     isSecretlyPassable(): boolean;
-    hasKey(): boolean;
     setTile(tile: string | number | Tile): boolean;
     clearTiles(tile?: string | number | Tile): void;
     clear(tile?: number | string | Tile): void;
@@ -654,18 +669,17 @@ declare class Cell implements CellType {
     _activate(effect: string | EffectInfo, map: MapType, x: number, y: number, ctx: Partial<EffectCtx>): Promise<boolean>;
     hasEffect(name: string): boolean;
     hasItem(): boolean;
-    get item(): Item | null;
-    set item(val: Item | null);
+    addItem(item: Item): void;
     removeItem(item: Item): boolean;
     hasActor(): boolean;
     hasPlayer(): boolean;
-    get actor(): Actor | null;
-    set actor(val: Actor | null);
+    addActor(actor: Actor): void;
     removeActor(actor: Actor): boolean;
     getDescription(): string;
     getFlavor(): string;
     getName(opts?: {}): string;
     dump(): string;
+    toString(): string;
 }
 
 declare class MapLayer {
@@ -710,9 +724,9 @@ declare class ActorLayer extends MapLayer {
 declare class ItemLayer extends MapLayer {
     constructor(map: MapType, name?: string);
     clear(): void;
-    addItem(x: number, y: number, obj: Item, _opts?: any): Promise<boolean>;
-    forceItem(x: number, y: number, obj: Item, _opts?: any): boolean;
-    removeItem(obj: Item): Promise<boolean>;
+    addItem(x: number, y: number, item: Item, _opts?: any): Promise<boolean>;
+    forceItem(x: number, y: number, item: Item, _opts?: any): boolean;
+    removeItem(item: Item): Promise<boolean>;
     putAppearance(dest: GWU.sprite.Mixer, cell: CellInfoType): void;
 }
 
@@ -790,6 +804,8 @@ declare class Map implements GWU.light.LightSystemSite, MapType {
     private _seed;
     rng: GWU.rng.Random;
     id: string;
+    actors: Actor[];
+    items: Item[];
     constructor(width: number, height: number, opts?: Partial<MapOptions>);
     get seed(): number;
     set seed(v: number);
@@ -956,34 +972,6 @@ declare namespace index_d$4 {
   };
 }
 
-interface PickupOptions {
-    admin: boolean;
-}
-interface DropOptions {
-    admin: boolean;
-}
-declare class Actor extends Entity {
-    flags: ActorFlags;
-    kind: ActorKind;
-    next: Actor | null;
-    leader: Actor | null;
-    items: Item | null;
-    fov: GWU.fov.FovSystem | null;
-    constructor(kind: ActorKind);
-    hasActorFlag(flag: number): boolean;
-    hasAllActorFlags(flags: number): boolean;
-    actorFlags(): number;
-    isPlayer(): boolean;
-    canSee(x: number, y: number): boolean;
-    canSee(entity: Entity): boolean;
-    canSeeOrSense(x: number, y: number): boolean;
-    canSeeOrSense(entity: Entity): boolean;
-    isAbleToSee(entity: Entity): boolean;
-    isAbleToSense(entity: Entity): boolean;
-    pickupItem(item: Item, opts?: Partial<PickupOptions>): Promise<boolean>;
-    dropItem(item: Item, opts?: Partial<DropOptions>): Promise<boolean>;
-}
-
 interface KindOptions$1 extends KindOptions {
 }
 interface MakeOptions$1 extends MakeOptions {
@@ -1086,8 +1074,6 @@ interface CellInfoType {
     entityFlags(): number;
     tileFlags(): number;
     tileMechFlags(): number;
-    itemFlags(): number;
-    actorFlags(): number;
     blocksVision(): boolean;
     blocksPathing(): boolean;
     blocksMove(): boolean;
@@ -1098,7 +1084,7 @@ interface CellInfoType {
     isPassable(): boolean;
     isSecretlyPassable(): boolean;
     isNull(): boolean;
-    hasKey(): boolean;
+    isGateSite(): boolean;
     depthPriority(depth: number): number;
     highestPriority(): number;
     blocksLayer(depth: number): boolean;
@@ -1111,19 +1097,19 @@ interface CellInfoType {
     hasAllTileTags(tags: string[]): boolean;
     hasAnyTileTag(tags: string[]): boolean;
     hasItem(): boolean;
-    readonly item: Item | null;
     hasActor(): boolean;
     hasPlayer(): boolean;
-    readonly actor: Actor | null;
+    eachGlowLight(cb: (light: GWU.light.LightType) => any): void;
+    hasEffect(name: string): boolean;
+    readonly hasStableSnapshot: boolean;
     getSnapshot(mixer: GWU.sprite.Mixer): void;
     putSnapshot(mixer: GWU.sprite.Mixer): void;
+    readonly hasStableMemory: boolean;
     getDescription(): string;
     getFlavor(): string;
     getName(opts: any): string;
 }
 interface CellType extends CellInfoType {
-    actor: Actor | null;
-    item: Item | null;
     chokeCount: number;
     machineId: number;
     setCellFlag(flag: number): void;
@@ -1132,13 +1118,11 @@ interface CellType extends CellInfoType {
     clear(tile?: number | string | Tile): void;
     clearDepth(depth: number): boolean;
     clearTiles(tile?: string | number | Tile): void;
-    isNull(): boolean;
-    isGateSite(): boolean;
-    removeActor(actor: Actor): boolean;
+    addItem(item: Item): void;
     removeItem(item: Item): boolean;
-    eachGlowLight(cb: (light: GWU.light.LightType) => any): void;
+    addActor(actor: Actor): void;
+    removeActor(actor: Actor): boolean;
     fire(event: string, map: MapType, x: number, y: number, ctx?: Partial<EffectCtx>): Promise<boolean> | boolean;
-    hasEffect(name: string): boolean;
     copy(other: CellInfoType): void;
     needsRedraw: boolean;
     readonly changed: boolean;
@@ -1152,6 +1136,8 @@ interface MapType {
     readonly height: number;
     readonly rng: GWU.rng.Random;
     readonly id: string;
+    actors: Actor[];
+    items: Item[];
     light: GWU.light.LightSystemType;
     properties: Record<string, any>;
     hasXY(x: number, y: number): boolean;
@@ -1164,11 +1150,13 @@ interface MapType {
     forceItem(x: number, y: number, item: Item): boolean;
     removeItem(item: Item): Promise<boolean>;
     moveItem(item: Item, dir: GWU.xy.Loc | number): Promise<boolean>;
+    itemAt(x: number, y: number): Item | null;
     eachActor(cb: EachActorCb): void;
     addActor(x: number, y: number, actor: Actor): Promise<boolean>;
     forceActor(x: number, y: number, actor: Actor): boolean;
     removeActor(actor: Actor): Promise<boolean>;
     moveActor(actor: Actor, dir: GWU.xy.Loc | number): Promise<boolean>;
+    actorAt(x: number, y: number): Actor | null;
     hasKey(x: number, y: number): boolean;
     hasMapFlag(flag: number): boolean;
     setMapFlag(flag: number): void;
@@ -1202,6 +1190,9 @@ declare class Entity implements EntityType {
     constructor(kind: EntityKind);
     get sprite(): GWU.sprite.Sprite;
     get isDestroyed(): boolean;
+    isAt(x: number, y: number): boolean;
+    clone(): this;
+    copy(other: Entity): void;
     canBeSeen(): boolean;
     destroy(): void;
     hasEntityFlag(flag: number): boolean;
@@ -1211,12 +1202,14 @@ declare class Entity implements EntityType {
     blocksVision(): boolean;
     blocksPathing(): boolean;
     blocksEffects(): boolean;
+    isKey(x: number, y: number): boolean | null;
     forbidsCell(cell: CellType): boolean;
     avoidsCell(cell: CellType): boolean;
     getName(opts?: TextOptions): string;
     getDescription(opts?: TextOptions): string;
     getFlavor(opts?: FlavorOptions): string;
     getVerb(verb: string): string;
+    toString(): string;
 }
 
 interface TextOptions {
@@ -1395,6 +1388,18 @@ declare class Memory extends Map {
     constructor(map: Map);
     cell(x: number, y: number): CellType;
     memory(x: number, y: number): CellType;
+    isMemory(x: number, y: number): boolean;
+    setTile(): boolean;
+    addItem(): Promise<boolean>;
+    forceItem(): boolean;
+    removeItem(): Promise<boolean>;
+    moveItem(): Promise<boolean>;
+    eachItem(cb: GWU.types.EachCb<Item>): void;
+    addActor(): Promise<boolean>;
+    forceActor(): boolean;
+    removeActor(): Promise<boolean>;
+    moveActor(): Promise<boolean>;
+    eachActor(cb: GWU.types.EachCb<Actor>): void;
     storeMemory(x: number, y: number): void;
     forget(x: number, y: number): void;
     onFovChange(x: number, y: number, isVisible: boolean): void;
@@ -1419,4 +1424,4 @@ declare namespace index_d {
   };
 }
 
-export { index_d$3 as actor, index_d$6 as effect, index_d$2 as entity, index_d$9 as flags, index_d$1 as horde, index_d$7 as item, index_d$5 as layer, index_d$4 as map, index_d as memory, path_d as path, index_d$8 as tile };
+export { index_d$3 as actor, index_d$6 as effect, index_d$2 as entity, index_d$9 as flags, index_d$1 as horde, index_d$8 as item, index_d$5 as layer, index_d$4 as map, index_d as memory, path_d as path, index_d$7 as tile };

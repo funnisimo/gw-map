@@ -15,15 +15,22 @@ describe('Special Effects', () => {
         ctx: Effect.EffectCtx
     ) {
         const cell = map.cell(x, y);
-        const item = cell.item;
-        if (!item) return false;
-
+        if (!cell.hasItem()) return false;
         const myMachine = cell.machineId;
         if (!myMachine) return false;
 
+        const item = ctx.item as Item.Item;
+        if (!item)
+            throw new Error(
+                'Cell is marked as having item, but no item found @ ' +
+                    x +
+                    ',' +
+                    y
+            );
+
         const tile = ctx.tile;
 
-        let items = [item];
+        let items: Item.Item[] = [item];
         map.eachItem((i) => {
             if (i === item) return; // do not use same item again
             const itemCell = map.cell(i.x, i.y);
@@ -36,14 +43,14 @@ describe('Special Effects', () => {
 
         // console.log('SWAP ITEMS - ', items.map((i) => i.getName()).join(', '));
 
-        const firstItem = items[0];
+        const firstItem = items[0]!;
         let lastLoc = [firstItem.x, firstItem.y];
         for (let i = 1; i < items.length; ++i) {
-            const item = items[i];
-            const prevItem = items[i - 1];
+            const item = items[i]!;
+            const prevItem = items[i - 1]!;
             map.forceItem(item.x, item.y, prevItem);
         }
-        const lastItem = items[items.length - 1];
+        const lastItem = items[items.length - 1]!;
         map.forceItem(lastLoc[0], lastLoc[1], lastItem);
         return true;
     }
@@ -149,11 +156,14 @@ describe('Special Effects', () => {
         expect(map.cell(15, 15).machineId).toEqual(3);
 
         const hat = Item.make('HAT');
-        await map.addItem(5, 5, hat);
+        expect(await map.addItem(5, 5, hat)).toBeTruthy();
         expect(hat).toBeAtXY(5, 5);
+        expect(map.itemAt(5, 5)).toBe(hat);
 
         const coat = Item.make('COAT');
-        await map.addItem(15, 15, coat); // causes position swap!
+        expect(await map.addItem(15, 15, coat)).toBeTruthy(); // causes position swap!
+        expect(map.itemAt(5, 5)).not.toBeNull();
+        expect(map.itemAt(15, 15)).not.toBeNull();
 
         // map.dump();
 
@@ -167,11 +177,11 @@ describe('Special Effects', () => {
         expect(map.itemAt(15, 15)).toBe(hat);
 
         const cell5 = map.cell(5, 5);
-        expect(cell5.item).toBe(coat);
+        expect(map.itemAt(5, 5)).toBe(coat);
         expect(cell5.hasItem()).toBeTruthy();
 
         const cell15 = map.cell(15, 15);
-        expect(cell15.item).toBe(hat);
+        expect(map.itemAt(15, 15)).toBe(hat);
         expect(cell15.hasItem()).toBeTruthy();
     });
 });

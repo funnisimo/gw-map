@@ -27,4 +27,14 @@ describe('Item', () => {
         expect(await map.removeItem(item)).toBeFalsy();
         expect(await map.moveItem(item, GWU.xy.UP)).toBeFalsy();
     });
+
+    test.only('clone', () => {
+        const item = Item.from({ ch: '!', name: 'An Item' }, { quantity: 2 });
+        expect(item.quantity).toEqual(2);
+
+        const clone = item.clone();
+        expect(clone).toBeInstanceOf(Item.Item);
+        expect(clone.kind).toBe(item.kind);
+        expect(clone.quantity).toEqual(item.quantity);
+    });
 });

@@ -30,27 +30,32 @@ describe('ItemKind', () => {
 
     test('subclass', () => {
         interface MyKindMakeOptions extends Item.MakeOptions {
-            quantity?: number;
+            weight: number;
         }
 
-        class MyItem extends Item.ItemKind {
+        class MyItemKind extends Item.ItemKind {
             constructor(config: Item.KindOptions) {
                 super(config);
             }
 
             init(item: Item.Item, config?: Partial<MyKindMakeOptions>) {
                 super.init(item, config);
-                if (config && config.quantity) {
-                    item.quantity = config.quantity;
+                if (config && config.weight) {
+                    // @ts-ignore
+                    item.weight = config.weight;
                 }
             }
         }
 
-        const kind = Item.install('MY_ITEM', new MyItem({ name: 'MyItem' }));
-        expect(kind).toBeInstanceOf(MyItem);
+        const kind = Item.install(
+            'MY_ITEM',
+            new MyItemKind({ name: 'MyItem' })
+        );
+        expect(kind).toBeInstanceOf(MyItemKind);
 
-        const item = Item.make('MY_ITEM', { quantity: 4 });
+        const item = Item.make('MY_ITEM', { weight: 4 });
         expect(item.kind).toBe(kind);
-        expect(item.quantity).toEqual(4);
+        // @ts-ignore
+        expect(item.weight).toEqual(4);
     });
 });

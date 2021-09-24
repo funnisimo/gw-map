@@ -19,6 +19,11 @@ export class Item extends Entity {
         this.kind = kind;
     }
 
+    copy(other: Item) {
+        super.copy(other);
+        this.quantity = other.quantity;
+    }
+
     itemFlags(): number {
         return this.flags.item;
     }

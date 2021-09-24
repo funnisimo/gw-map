@@ -63,4 +63,11 @@ describe('Actor', () => {
         expect(actor.canSee(6, 6)).toBeTruthy();
         expect(actor.canSee(18, 18)).toBeTruthy(); // nothing in the way
     });
+
+    test('clone', async () => {
+        const actor = Actor.from({ ch: '@', fg: 'white', name: 'An Actor' });
+        const other = actor.clone();
+        expect(other).toBeInstanceOf(Actor.Actor);
+        expect(other.kind).toBe(actor.kind);
+    });
 });

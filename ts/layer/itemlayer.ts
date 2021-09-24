@@ -3,7 +3,7 @@ import * as GWU from 'gw-utils';
 import { MapType, CellInfoType } from '../map/types';
 import { Item } from '../item';
 import { MapLayer } from './mapLayer';
-// import * as Flags from '../flags';
+import * as Flags from '../flags';
 
 export class ItemLayer extends MapLayer {
     constructor(map: MapType, name = 'item') {
@@ -14,102 +14,79 @@ export class ItemLayer extends MapLayer {
         for (let x = 0; x < this.map.width; ++x) {
             for (let y = 0; y < this.map.height; ++y) {
                 const cell = this.map.cell(x, y);
-                cell.item = null;
+                cell.clearCellFlag(Flags.Cell.HAS_ITEM);
             }
         }
+        this.map.items = [];
     }
 
     async addItem(
         x: number,
         y: number,
-        obj: Item,
+        item: Item,
         _opts?: any
     ): Promise<boolean> {
-        const item = obj as Item;
         if (item.isDestroyed) return false;
 
         const cell = this.map.cell(x, y);
         if (item.forbidsCell(cell)) return false;
 
-        if (obj.key && obj.key.matches(x, y) && cell.hasEffect('key')) {
-            await cell.fire('key', this.map, x, y);
-            if (obj.key.disposable) {
-                obj.destroy();
-                return true; // ??? didSomething?
+        cell.addItem(item);
+        item.depth = this.depth;
+
+        if (item.key && item.key.matches(x, y) && cell.hasEffect('key')) {
+            await cell.fire('key', this.map, x, y, { item });
+            if (item.key.disposable) {
+                cell.removeItem(item);
+                item.destroy();
+                return true; // TODO - ??? Is this correct!?!?
             }
         }
-
-        if (!GWU.list.push(cell, 'item', obj)) return false;
-        obj.x = x;
-        obj.y = y;
-        obj.depth = this.depth;
-        obj.map = this.map;
 
         if (cell.hasEffect('addItem')) {
             await cell.fire('addItem', this.map, x, y, { item });
         }
 
-        cell.needsRedraw = true;
-        // if (this.map.fov.isAnyKindOfVisible(x, y)) {
-        //     cell.clearCellFlag(
-        //         Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
-        //     );
-        // }
-
         return true;
     }
 
-    forceItem(x: number, y: number, obj: Item, _opts?: any): boolean {
+    forceItem(x: number, y: number, item: Item, _opts?: any): boolean {
         if (!this.map.hasXY(x, y)) return false;
 
-        if (this.map.hasXY(obj.x, obj.y)) {
-            const oldCell = this.map.cell(obj.x, obj.y);
-            GWU.list.remove(oldCell, 'item', obj);
-            obj.x = -1;
-            obj.y = -1;
+        // If item is already in map.items, then this is a move
+        if (this.map.items.includes(item)) {
+            const oldCell = this.map.cell(item.x, item.y);
+            oldCell.removeItem(item);
         }
 
         const cell = this.map.cell(x, y);
-        if (!GWU.list.push(cell, 'item', obj)) return false;
-        obj.x = x;
-        obj.y = y;
-        obj.depth = this.depth;
-        obj.map = this.map;
-
-        cell.needsRedraw = true;
-        // if (this.map.fov.isAnyKindOfVisible(x, y)) {
-        //     cell.clearCellFlag(
-        //         Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
-        //     );
-        // }
+        cell.addItem(item);
+        item.depth = this.depth;
 
         return true;
     }
 
-    async removeItem(obj: Item): Promise<boolean> {
-        const x = obj.x;
-        const y = obj.y;
+    async removeItem(item: Item): Promise<boolean> {
+        const x = item.x;
+        const y = item.y;
         const cell = this.map.cell(x, y);
-        if (!GWU.list.remove(cell, 'item', obj)) return false;
+        if (!cell.removeItem(item)) return false;
 
-        if (obj.key && obj.key.matches(x, y) && cell.hasEffect('nokey')) {
-            await cell.fire('nokey', this.map, x, y);
-        } else if (cell.hasEffect('removeItem')) {
-            await cell.fire('removeItem', this.map, x, y);
+        if (item.key && item.key.matches(x, y) && cell.hasEffect('nokey')) {
+            await cell.fire('nokey', this.map, x, y, { item });
         }
-
-        cell.needsRedraw = true;
-        // if (this.map.fov.isAnyKindOfVisible(x, y)) {
-        //     cell.clearCellFlag(
-        //         Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
-        //     );
-        // }
+        if (cell.hasEffect('removeItem')) {
+            await cell.fire('removeItem', this.map, x, y, { item });
+        }
 
         return true;
     }
 
     putAppearance(dest: GWU.sprite.Mixer, cell: CellInfoType) {
-        if (!cell.item) return;
-        dest.drawSprite(cell.item.sprite);
+        if (!cell.hasItem()) return;
+        const item = this.map.itemAt(cell.x, cell.y);
+        if (item) {
+            dest.drawSprite(item.sprite);
+        }
     }
 }

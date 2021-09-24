@@ -51,6 +51,8 @@ export class Map implements GWU.light.LightSystemSite, MapType {
     private _seed = 0;
     rng: GWU.rng.Random = GWU.rng.random;
     id = 'MAP';
+    actors: Actor[] = [];
+    items: Item[] = [];
 
     constructor(width: number, height: number, opts: Partial<MapOptions> = {}) {
         this.width = width;
@@ -161,17 +163,16 @@ export class Map implements GWU.light.LightSystemSite, MapType {
         return this.cell(x, y).hasItem();
     }
     itemAt(x: number, y: number): Item | null {
-        return this.cell(x, y).item;
+        return this.items.find((i) => i.isAt(x, y)) || null;
     }
     eachItem(cb: GWU.types.EachCb<Item>): void {
-        this.cells.forEach((cell) => {
-            GWU.list.forEach(cell.item, cb);
-        });
+        this.items.forEach(cb);
     }
     async addItem(x: number, y: number, item: Item): Promise<boolean> {
         if (!this.hasXY(x, y)) return false;
         for (let layer of this.layers) {
             if (layer && (await layer.addItem(x, y, item))) {
+                // this.items.push(item);
                 return true;
             }
         }
@@ -181,6 +182,7 @@ export class Map implements GWU.light.LightSystemSite, MapType {
         if (!this.hasXY(x, y)) return false;
         for (let layer of this.layers) {
             if (layer && layer.forceItem(x, y, item)) {
+                // this.items.push(item);
                 return true;
             }
         }
@@ -189,7 +191,11 @@ export class Map implements GWU.light.LightSystemSite, MapType {
 
     async removeItem(item: Item): Promise<boolean> {
         const layer = this.layers[item.depth] as Layer.ItemLayer;
-        return layer.removeItem(item);
+        if (await layer.removeItem(item)) {
+            // GWU.arrayDelete(this.items, item);
+            return true;
+        }
+        return false;
     }
     async moveItem(item: Item, dir: GWU.xy.Loc | number): Promise<boolean> {
         if (typeof dir === 'number') {
@@ -236,17 +242,16 @@ export class Map implements GWU.light.LightSystemSite, MapType {
         return this.cell(x, y).hasPlayer();
     }
     actorAt(x: number, y: number): Actor | null {
-        return this.cell(x, y).actor;
+        return this.actors.find((a) => a.isAt(x, y)) || null;
     }
     eachActor(cb: GWU.types.EachCb<Actor>): void {
-        this.cells.forEach((cell) => {
-            GWU.list.forEach(cell.actor, cb);
-        });
+        this.actors.forEach(cb);
     }
     async addActor(x: number, y: number, actor: Actor): Promise<boolean> {
         if (!this.hasXY(x, y)) return false;
         for (let layer of this.layers) {
             if (layer && (await layer.addActor(x, y, actor))) {
+                // this.actors.push(actor);
                 return true;
             }
         }
@@ -256,6 +261,7 @@ export class Map implements GWU.light.LightSystemSite, MapType {
         if (!this.hasXY(x, y)) return false;
         for (let layer of this.layers) {
             if (layer && layer.forceActor(x, y, actor)) {
+                // this.actors.push(actor);
                 return true;
             }
         }
@@ -263,7 +269,11 @@ export class Map implements GWU.light.LightSystemSite, MapType {
     }
     async removeActor(actor: Actor): Promise<boolean> {
         const layer = this.layers[actor.depth] as Layer.ActorLayer;
-        return layer.removeActor(actor);
+        if (await layer.removeActor(actor)) {
+            // GWU.arrayDelete(this.actors, actor);
+            return true;
+        }
+        return false;
     }
     async moveActor(actor: Actor, dir: GWU.xy.Loc | number): Promise<boolean> {
         if (typeof dir === 'number') {
@@ -313,9 +323,11 @@ export class Map implements GWU.light.LightSystemSite, MapType {
     //     return this.fov.isAnyKindOfVisible(x, y);
     // }
     hasKey(x: number, y: number): boolean {
-        if (!this.hasXY(x, y)) return false;
-        const cell = this.cell(x, y);
-        return cell.hasKey();
+        const actor = this.actorAt(x, y);
+        if (actor && actor.isKey(x, y)) return true;
+        const item = this.itemAt(x, y);
+        if (item && item.isKey(x, y)) return true;
+        return false;
     }
 
     count(cb: MapTestFn): number {
@@ -440,6 +452,9 @@ export class Map implements GWU.light.LightSystemSite, MapType {
         this.layers.forEach((l, depth) => {
             l.copy(src.layers[depth]);
         });
+
+        this.actors = src.actors.slice();
+        this.items = src.items.slice();
 
         this.flags.map = src.flags.map;
         // this.fov.needsUpdate = true;

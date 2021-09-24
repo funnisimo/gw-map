@@ -1,6 +1,6 @@
 import 'jest-extended';
 import '../../test/matchers';
-import * as UTILS from '../../test/utils';
+// import * as UTILS from '../../test/utils';
 import * as GWU from 'gw-utils';
 
 import * as Flags from '../flags';
@@ -88,11 +88,11 @@ describe('Cell', () => {
         const cell: Cell = new Cell(map, 1, 1, 'WALL');
         expect(cell.dump()).toEqual('#');
 
-        cell.item = UTILS.mockItem();
-        expect(cell.dump()).toEqual('!');
+        // cell.item = UTILS.mockItem();
+        // expect(cell.dump()).toEqual('!');
 
-        cell.actor = UTILS.mockActor();
-        expect(cell.dump()).toEqual('a');
+        // cell.actor = UTILS.mockActor();
+        // expect(cell.dump()).toEqual('a');
 
         const empty: Cell = new Cell(map, 1, 1);
         expect(empty.dump()).toEqual(Tile.tiles.NULL.sprite.ch);
@@ -319,22 +319,22 @@ describe('Cell', () => {
     // );
     // });
 
-    test('isNull - actor, item', () => {
-        const cell: Cell = new Cell(map, 1, 1);
-        expect(cell.isNull()).toBeTruthy();
+    // test('isNull - actor, item', () => {
+    //     const cell: Cell = new Cell(map, 1, 1);
+    //     expect(cell.isNull()).toBeTruthy();
 
-        cell.actor = UTILS.mockActor();
-        expect(cell.isNull()).toBeFalsy();
+    //     cell.actor = UTILS.mockActor();
+    //     expect(cell.isNull()).toBeFalsy();
 
-        cell.item = UTILS.mockItem();
-        expect(cell.isNull()).toBeFalsy();
+    //     cell.item = UTILS.mockItem();
+    //     expect(cell.isNull()).toBeFalsy();
 
-        cell.actor = null;
-        expect(cell.isNull()).toBeFalsy();
+    //     cell.actor = null;
+    //     expect(cell.isNull()).toBeFalsy();
 
-        cell.item = null;
-        expect(cell.isNull()).toBeTruthy();
-    });
+    //     cell.item = null;
+    //     expect(cell.isNull()).toBeTruthy();
+    // });
 
     // test('isWalkableNow + isMoveableNow - Bridge', () => {
     //     const cell: Cell = new Cell('LAKE');
@@ -746,50 +746,50 @@ describe('Cell', () => {
         expect(c.depthTile(Flags.Depth.GROUND)).toBe(Tile.tiles.FLOOR); // ignored priority
     });
 
-    test('item', () => {
-        const cell: Cell = new Cell(map, 1, 1, 'FLOOR');
-        expect(cell.item).toBeNull();
+    // test('item', () => {
+    //     const cell: Cell = new Cell(map, 1, 1, 'FLOOR');
+    //     expect(cell.item).toBeNull();
 
-        const item = UTILS.mockItem();
+    //     const item = UTILS.mockItem();
 
-        cell.needsRedraw = false;
-        cell.clearCellFlag(Flags.Cell.CHANGED);
-        expect(cell.hasItem()).toBeFalsy();
+    //     cell.needsRedraw = false;
+    //     cell.clearCellFlag(Flags.Cell.CHANGED);
+    //     expect(cell.hasItem()).toBeFalsy();
 
-        cell.item = item;
-        expect(cell.hasItem()).toBeTruthy();
-        expect(cell.needsRedraw).toBeTruthy();
-        expect(cell.changed).toBeTruthy();
+    //     cell.item = item;
+    //     expect(cell.hasItem()).toBeTruthy();
+    //     expect(cell.needsRedraw).toBeTruthy();
+    //     expect(cell.changed).toBeTruthy();
 
-        cell.needsRedraw = false;
-        cell.clearCellFlag(Flags.Cell.CHANGED);
-        cell.item = null;
-        expect(cell.hasItem()).toBeFalsy();
-        expect(cell.needsRedraw).toBeTruthy();
-        expect(cell.changed).toBeTruthy();
-    });
+    //     cell.needsRedraw = false;
+    //     cell.clearCellFlag(Flags.Cell.CHANGED);
+    //     cell.item = null;
+    //     expect(cell.hasItem()).toBeFalsy();
+    //     expect(cell.needsRedraw).toBeTruthy();
+    //     expect(cell.changed).toBeTruthy();
+    // });
 
-    test('actor', () => {
-        const cell: Cell = new Cell(map, 1, 1, 'FLOOR');
-        expect(cell.actor).toBeNull();
+    // test('actor', () => {
+    //     const cell: Cell = new Cell(map, 1, 1, 'FLOOR');
+    //     expect(cell.actor).toBeNull();
 
-        const actor = UTILS.mockActor();
-        cell.needsRedraw = false;
-        cell.clearCellFlag(Flags.Cell.CHANGED);
-        expect(cell.hasActor()).toBeFalsy();
+    //     const actor = UTILS.mockActor();
+    //     cell.needsRedraw = false;
+    //     cell.clearCellFlag(Flags.Cell.CHANGED);
+    //     expect(cell.hasActor()).toBeFalsy();
 
-        cell.actor = actor;
-        expect(cell.hasActor()).toBeTruthy();
-        expect(cell.needsRedraw).toBeTruthy();
-        expect(cell.changed).toBeTruthy();
+    //     cell.actor = actor;
+    //     expect(cell.hasActor()).toBeTruthy();
+    //     expect(cell.needsRedraw).toBeTruthy();
+    //     expect(cell.changed).toBeTruthy();
 
-        cell.needsRedraw = false;
-        cell.clearCellFlag(Flags.Cell.CHANGED);
-        cell.actor = null;
-        expect(cell.hasActor()).toBeFalsy();
-        expect(cell.needsRedraw).toBeTruthy();
-        expect(cell.changed).toBeTruthy();
-    });
+    //     cell.needsRedraw = false;
+    //     cell.clearCellFlag(Flags.Cell.CHANGED);
+    //     cell.actor = null;
+    //     expect(cell.hasActor()).toBeFalsy();
+    //     expect(cell.needsRedraw).toBeTruthy();
+    //     expect(cell.changed).toBeTruthy();
+    // });
 
     test('activatesOn', () => {
         const cell: Cell = new Cell(map, 1, 1, 'ENTER');

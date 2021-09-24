@@ -39,6 +39,29 @@ export class Entity implements EntityType {
         return this.hasEntityFlag(Flags.Entity.L_DESTROYED);
     }
 
+    isAt(x: number, y: number): boolean {
+        return this.x === x && this.y === y;
+    }
+
+    clone(): this {
+        const other: this = new (<new (k: EntityKind) => this>this.constructor)(
+            this.kind
+        );
+        other.copy(this);
+        return other;
+    }
+
+    copy(other: Entity) {
+        this.depth = other.depth;
+        this.light = other.light;
+        Object.assign(this.flags, other.flags);
+        this.next = other.next;
+        this.x = other.x;
+        this.y = other.y;
+        this.kind = other.kind;
+        this.id = other.id;
+    }
+
     canBeSeen(): boolean {
         return this.kind.canBeSeen(this);
     }
@@ -71,6 +94,10 @@ export class Entity implements EntityType {
         return this.hasEntityFlag(Flags.Entity.L_BLOCKS_EFFECTS);
     }
 
+    isKey(x: number, y: number) {
+        return this.key && this.key.matches(x, y);
+    }
+
     forbidsCell(cell: CellType): boolean {
         return this.kind.forbidsCell(cell, this);
     }
@@ -90,5 +117,9 @@ export class Entity implements EntityType {
     }
     getVerb(verb: string): string {
         return this.kind.getVerb(this, verb);
+    }
+
+    toString() {
+        return `${this.constructor.name}-${this.id} @ ${this.x},${this.y}`;
     }
 }
