@@ -4,6 +4,7 @@ import { Actor } from '../actor';
 import { Item } from '../item';
 import { Tile } from '../tile';
 import { EffectCtx } from '../effect/types';
+import { StatusDrawer } from '../entity/types';
 
 export interface CellFlags {
     cell: number;
@@ -106,6 +107,8 @@ export interface CellInfoType {
     putSnapshot(mixer: GWU.sprite.Mixer): void;
 
     readonly hasStableMemory: boolean;
+
+    drawStatus(sidebar: StatusDrawer): void;
 
     getDescription(): string;
     getFlavor(): string;

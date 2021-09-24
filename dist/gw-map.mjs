@@ -428,6 +428,9 @@ class Entity {
     getVerb(verb) {
         return this.kind.getVerb(this, verb);
     }
+    drawStatus(sidebar) {
+        this.kind.drawStatus(this, sidebar);
+    }
     toString() {
         return `${this.constructor.name}-${this.id} @ ${this.x},${this.y}`;
     }
@@ -499,6 +502,14 @@ class EntityKind {
     }
     getVerb(_entity, verb) {
         return verb;
+    }
+    drawStatus(entity, sidebar) {
+        if (!entity.map)
+            return;
+        if (entity.isDestroyed)
+            return;
+        entity.map.getAppearanceAt(entity.x, entity.y, sidebar.mixer);
+        sidebar.drawTitle(sidebar.mixer, entity.getName());
     }
 }
 
@@ -3003,6 +3014,12 @@ class Cell {
     }
     dump() {
         return this.highestPriorityTile().sprite.ch || ' ';
+    }
+    drawStatus(sidebar) {
+        if (!this.map)
+            return;
+        this.map.getAppearanceAt(this.x, this.y, sidebar.mixer);
+        sidebar.drawTitle(sidebar.mixer, this.getName());
     }
     toString() {
         return `Cell @ ${this.x},${this.y}`;

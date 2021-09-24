@@ -1,4 +1,5 @@
 import * as GWU from 'gw-utils';
+import { StatusDrawer } from '.';
 
 import { CellType } from '../map/types';
 import { Entity } from './entity';
@@ -107,5 +108,13 @@ export class EntityKind {
     }
     getVerb(_entity: Entity, verb: string): string {
         return verb;
+    }
+
+    drawStatus(entity: Entity, sidebar: StatusDrawer): void {
+        if (!entity.map) return;
+        if (entity.isDestroyed) return;
+
+        entity.map.getAppearanceAt(entity.x, entity.y, sidebar.mixer);
+        sidebar.drawTitle(sidebar.mixer, entity.getName());
     }
 }

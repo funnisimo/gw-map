@@ -4,6 +4,7 @@ import * as Flags from '../flags';
 import { CellType, CellInfoType, CellFlags, MapType, TileArray } from './types';
 import { Item } from '../item/item';
 import { Actor } from '../actor/actor';
+import { StatusDrawer } from '../entity/types';
 
 import * as TILE from '../tile';
 import * as Effect from '../effect';
@@ -549,6 +550,13 @@ export class Cell implements CellType {
 
     dump(): string {
         return this.highestPriorityTile().sprite.ch || ' ';
+    }
+
+    drawStatus(sidebar: StatusDrawer): void {
+        if (!this.map) return;
+
+        this.map.getAppearanceAt(this.x, this.y, sidebar.mixer);
+        sidebar.drawTitle(sidebar.mixer, this.getName());
     }
 
     toString() {

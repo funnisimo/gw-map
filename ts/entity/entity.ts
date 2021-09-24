@@ -1,6 +1,6 @@
 import * as GWU from 'gw-utils';
 
-import { FlagType, EntityType, KeyInfoType } from './types';
+import { FlagType, EntityType, KeyInfoType, StatusDrawer } from './types';
 import * as Flags from '../flags/entity';
 import { CellType, MapType } from '../map/types';
 import { EntityKind, TextOptions, FlavorOptions } from './kind';
@@ -117,6 +117,10 @@ export class Entity implements EntityType {
     }
     getVerb(verb: string): string {
         return this.kind.getVerb(this, verb);
+    }
+
+    drawStatus(sidebar: StatusDrawer): void {
+        this.kind.drawStatus(this, sidebar);
     }
 
     toString() {
