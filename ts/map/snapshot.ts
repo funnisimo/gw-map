@@ -17,7 +17,7 @@ export class SnapshotManager {
     cellVersion: GWU.grid.NumGrid;
     layerVersion: number[] = [];
     lightVersion = 0;
-    fovVersion = 0;
+    // fovVersion = 0;
     free: Snapshot[] = [];
 
     constructor(map: Map) {
@@ -53,13 +53,13 @@ export class SnapshotManager {
         if (snap.version !== this.lightVersion) {
             snap.map.light.copy(this.map.light);
         }
-        if (this.map.fov.changed) {
-            this.fovVersion = this.version;
-            this.map.fov.changed = false;
-        }
-        if (snap.version !== this.fovVersion) {
-            snap.map.fov.copy(this.map.fov);
-        }
+        // if (this.map.fov.changed) {
+        //     this.fovVersion = this.version;
+        //     this.map.fov.changed = false;
+        // }
+        // if (snap.version !== this.fovVersion) {
+        //     snap.map.fov.copy(this.map.fov);
+        // }
 
         // layers
         this.map.layers.forEach((layer, index) => {
@@ -95,10 +95,10 @@ export class SnapshotManager {
             this.lightVersion = snap.version;
         }
 
-        if (snap.version < this.fovVersion || this.map.fov.changed) {
-            this.map.fov.copy(snap.map.fov);
-            this.fovVersion = snap.version;
-        }
+        // if (snap.version < this.fovVersion || this.map.fov.changed) {
+        //     this.map.fov.copy(snap.map.fov);
+        //     this.fovVersion = snap.version;
+        // }
 
         // layers
         this.layerVersion.forEach((v, index) => {

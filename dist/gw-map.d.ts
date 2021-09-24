@@ -177,25 +177,25 @@ declare enum Horde$1 {
     HORDE_NEVER_OOD
 }
 
-type index_d$8_Depth = Depth;
-declare const index_d$8_Depth: typeof Depth;
-type index_d$8_DepthString = DepthString;
-type index_d$8_TileMech = TileMech;
-declare const index_d$8_TileMech: typeof TileMech;
-type index_d$8_Effect = Effect;
-declare const index_d$8_Effect: typeof Effect;
-declare namespace index_d$8 {
+type index_d$9_Depth = Depth;
+declare const index_d$9_Depth: typeof Depth;
+type index_d$9_DepthString = DepthString;
+type index_d$9_TileMech = TileMech;
+declare const index_d$9_TileMech: typeof TileMech;
+type index_d$9_Effect = Effect;
+declare const index_d$9_Effect: typeof Effect;
+declare namespace index_d$9 {
   export {
-    index_d$8_Depth as Depth,
-    index_d$8_DepthString as DepthString,
+    index_d$9_Depth as Depth,
+    index_d$9_DepthString as DepthString,
     Entity$1 as Entity,
     Actor$1 as Actor,
     Item$1 as Item,
     Tile$1 as Tile,
-    index_d$8_TileMech as TileMech,
+    index_d$9_TileMech as TileMech,
     Cell$1 as Cell,
     Map$1 as Map,
-    index_d$8_Effect as Effect,
+    index_d$9_Effect as Effect,
     Horde$1 as Horde,
   };
 }
@@ -228,6 +228,99 @@ declare function makeKeyInfo(x: number, y: number, disposable: boolean): KeyInfo
 
 interface ActorFlags extends FlagType$1 {
     actor: number;
+}
+
+interface FlagType extends FlagType$1 {
+    item: number;
+}
+
+interface KindOptions$2 extends KindOptions {
+}
+interface MakeOptions$2 extends MakeOptions {
+    quantity: number;
+}
+declare class ItemKind extends EntityKind {
+    constructor(config: KindOptions$2);
+    make(options?: Partial<MakeOptions$2>): Item;
+    init(item: Item, options?: Partial<MakeOptions$2>): void;
+}
+
+declare class Item extends Entity {
+    flags: FlagType;
+    quantity: number;
+    kind: ItemKind;
+    next: Item | null;
+    constructor(kind: ItemKind);
+    copy(other: Item): void;
+    itemFlags(): number;
+    hasItemFlag(flag: number): boolean;
+    hasAllItemFlags(flags: number): boolean;
+}
+
+declare function make$4(id: string | ItemKind, makeOptions?: any): Item;
+declare function makeRandom$1(opts: Partial<MatchOptions$2> | string, makeOptions?: any): Item;
+declare function from$4(info: string | ItemKind | KindOptions$2, makeOptions?: any): Item;
+declare const kinds$1: Record<string, ItemKind>;
+declare function install$4(id: string, kind: ItemKind | KindOptions$2): ItemKind;
+declare function get$3(id: string | ItemKind): ItemKind | null;
+declare function makeKind$1(info: KindOptions$2): ItemKind;
+interface MatchOptions$2 {
+    tags: string | string[];
+    forbidTags: string | string[];
+    rng: GWU.rng.Random;
+}
+declare function randomKind$1(opts?: Partial<MatchOptions$2> | string): ItemKind | null;
+
+type index_d$8_FlagType = FlagType;
+type index_d$8_ItemKind = ItemKind;
+declare const index_d$8_ItemKind: typeof ItemKind;
+type index_d$8_Item = Item;
+declare const index_d$8_Item: typeof Item;
+declare namespace index_d$8 {
+  export {
+    index_d$8_FlagType as FlagType,
+    KindOptions$2 as KindOptions,
+    MakeOptions$2 as MakeOptions,
+    index_d$8_ItemKind as ItemKind,
+    index_d$8_Item as Item,
+    make$4 as make,
+    makeRandom$1 as makeRandom,
+    from$4 as from,
+    kinds$1 as kinds,
+    install$4 as install,
+    get$3 as get,
+    makeKind$1 as makeKind,
+    MatchOptions$2 as MatchOptions,
+    randomKind$1 as randomKind,
+  };
+}
+
+interface PickupOptions {
+    admin: boolean;
+}
+interface DropOptions {
+    admin: boolean;
+}
+declare class Actor extends Entity {
+    flags: ActorFlags;
+    kind: ActorKind;
+    next: Actor | null;
+    leader: Actor | null;
+    items: Item | null;
+    fov: GWU.fov.FovSystem | null;
+    constructor(kind: ActorKind);
+    hasActorFlag(flag: number): boolean;
+    hasAllActorFlags(flags: number): boolean;
+    actorFlags(): number;
+    isPlayer(): boolean;
+    canSee(x: number, y: number): boolean;
+    canSee(entity: Entity): boolean;
+    canSeeOrSense(x: number, y: number): boolean;
+    canSeeOrSense(entity: Entity): boolean;
+    isAbleToSee(entity: Entity): boolean;
+    isAbleToSense(entity: Entity): boolean;
+    pickupItem(item: Item, opts?: Partial<PickupOptions>): Promise<boolean>;
+    dropItem(item: Item, opts?: Partial<DropOptions>): Promise<boolean>;
 }
 
 interface TileFlags extends FlagType$1 {
@@ -329,12 +422,12 @@ interface TileOptions extends GWU.sprite.SpriteConfig {
     light: GWU.light.LightBase | null;
     tags: string | string[];
 }
-declare function make$4(options: Partial<TileOptions>): Tile;
+declare function make$3(options: Partial<TileOptions>): Tile;
 declare const tiles: Record<string, Tile>;
 declare const all: Tile[];
 declare function get$2(id: string | number | Tile): Tile;
-declare function install$4(id: string, options: Partial<TileOptions>): Tile;
-declare function install$4(id: string, base: string, options: Partial<TileOptions>): Tile;
+declare function install$3(id: string, options: Partial<TileOptions>): Tile;
+declare function install$3(id: string, base: string, options: Partial<TileOptions>): Tile;
 declare function installAll$2(tiles: Record<string, Partial<TileOptions>>): void;
 
 declare const flags: {
@@ -358,75 +451,12 @@ declare namespace index_d$7 {
     index_d$7_TileConfig as TileConfig,
     index_d$7_Tile as Tile,
     index_d$7_TileOptions as TileOptions,
-    make$4 as make,
+    make$3 as make,
     index_d$7_tiles as tiles,
     index_d$7_all as all,
     get$2 as get,
-    install$4 as install,
-    installAll$2 as installAll,
-  };
-}
-
-interface FlagType extends FlagType$1 {
-    item: number;
-}
-
-declare class Item extends Entity {
-    flags: FlagType;
-    quantity: number;
-    kind: ItemKind;
-    next: Item | null;
-    constructor(kind: ItemKind);
-    itemFlags(): number;
-    hasItemFlag(flag: number): boolean;
-    hasAllItemFlags(flags: number): boolean;
-}
-
-interface KindOptions$2 extends KindOptions {
-}
-interface MakeOptions$2 extends MakeOptions {
-}
-declare class ItemKind extends EntityKind {
-    constructor(config: KindOptions$2);
-    make(options?: Partial<MakeOptions$2>): Item;
-    init(item: Item, options?: Partial<MakeOptions$2>): void;
-}
-
-declare function make$3(id: string | ItemKind, makeOptions?: any): Item;
-declare function makeRandom$1(opts: Partial<MatchOptions$2> | string, makeOptions?: any): Item;
-declare function from$4(info: string | ItemKind | KindOptions$2, makeOptions?: any): Item;
-declare const kinds$1: Record<string, ItemKind>;
-declare function install$3(id: string, kind: ItemKind | KindOptions$2): ItemKind;
-declare function get$1(id: string | ItemKind): ItemKind | null;
-declare function makeKind$1(info: KindOptions$2): ItemKind;
-interface MatchOptions$2 {
-    tags: string | string[];
-    forbidTags: string | string[];
-    rng: GWU.rng.Random;
-}
-declare function randomKind$1(opts?: Partial<MatchOptions$2> | string): ItemKind | null;
-
-type index_d$6_FlagType = FlagType;
-type index_d$6_ItemKind = ItemKind;
-declare const index_d$6_ItemKind: typeof ItemKind;
-type index_d$6_Item = Item;
-declare const index_d$6_Item: typeof Item;
-declare namespace index_d$6 {
-  export {
-    index_d$6_FlagType as FlagType,
-    KindOptions$2 as KindOptions,
-    MakeOptions$2 as MakeOptions,
-    index_d$6_ItemKind as ItemKind,
-    index_d$6_Item as Item,
-    make$3 as make,
-    makeRandom$1 as makeRandom,
-    from$4 as from,
-    kinds$1 as kinds,
     install$3 as install,
-    get$1 as get,
-    makeKind$1 as makeKind,
-    MatchOptions$2 as MatchOptions,
-    randomKind$1 as randomKind,
+    installAll$2 as installAll,
   };
 }
 
@@ -462,7 +492,7 @@ declare class FnEffect extends Handler {
 declare class MessageEffect extends Handler {
     constructor();
     make(src: Partial<EffectConfig>, dest: EffectInfo): boolean;
-    fire(config: EffectInfo, map: MapType, x: number, y: number, ctx: EffectCtx): Promise<boolean>;
+    fire(config: EffectInfo, _map: MapType, x: number, y: number, ctx: EffectCtx): Promise<boolean>;
 }
 
 declare class ActivateMachineEffect extends Handler {
@@ -507,99 +537,90 @@ declare function clearCells(map: MapType, spawnMap: GWU.grid.NumGrid, flags?: nu
 declare function evacuateCreatures(map: MapType, blockingMap: GWU.grid.NumGrid): boolean;
 declare function evacuateItems(map: MapType, blockingMap: GWU.grid.NumGrid): boolean;
 
-type index_d$5_EffectInfo = EffectInfo;
-type index_d$5_EffectCtx = EffectCtx;
-type index_d$5_EffectConfig = EffectConfig;
-type index_d$5_EffectBase = EffectBase;
-type index_d$5_Handler = Handler;
-declare const index_d$5_Handler: typeof Handler;
-declare const index_d$5_handlers: typeof handlers;
-declare const index_d$5_installHandler: typeof installHandler;
-declare const index_d$5_reset: typeof reset;
-declare const index_d$5_resetAll: typeof resetAll;
-declare const index_d$5_effects: typeof effects;
-declare const index_d$5_fire: typeof fire;
-type index_d$5_EmitEffect = EmitEffect;
-declare const index_d$5_EmitEffect: typeof EmitEffect;
-type index_d$5_FnEffect = FnEffect;
-declare const index_d$5_FnEffect: typeof FnEffect;
-type index_d$5_MessageEffect = MessageEffect;
-declare const index_d$5_MessageEffect: typeof MessageEffect;
-type index_d$5_ActivateMachineEffect = ActivateMachineEffect;
-declare const index_d$5_ActivateMachineEffect: typeof ActivateMachineEffect;
-type index_d$5_EffectEffect = EffectEffect;
-declare const index_d$5_EffectEffect: typeof EffectEffect;
-type index_d$5_SpawnConfig = SpawnConfig;
-type index_d$5_SpawnInfo = SpawnInfo;
-type index_d$5_SpawnEffect = SpawnEffect;
-declare const index_d$5_SpawnEffect: typeof SpawnEffect;
-declare const index_d$5_spawnTiles: typeof spawnTiles;
-declare const index_d$5_computeSpawnMap: typeof computeSpawnMap;
-declare const index_d$5_clearCells: typeof clearCells;
-declare const index_d$5_evacuateCreatures: typeof evacuateCreatures;
-declare const index_d$5_evacuateItems: typeof evacuateItems;
-declare namespace index_d$5 {
+type index_d$6_EffectInfo = EffectInfo;
+type index_d$6_EffectCtx = EffectCtx;
+type index_d$6_EffectConfig = EffectConfig;
+type index_d$6_EffectBase = EffectBase;
+type index_d$6_Handler = Handler;
+declare const index_d$6_Handler: typeof Handler;
+declare const index_d$6_handlers: typeof handlers;
+declare const index_d$6_installHandler: typeof installHandler;
+declare const index_d$6_reset: typeof reset;
+declare const index_d$6_resetAll: typeof resetAll;
+declare const index_d$6_effects: typeof effects;
+declare const index_d$6_fire: typeof fire;
+type index_d$6_EmitEffect = EmitEffect;
+declare const index_d$6_EmitEffect: typeof EmitEffect;
+type index_d$6_FnEffect = FnEffect;
+declare const index_d$6_FnEffect: typeof FnEffect;
+type index_d$6_MessageEffect = MessageEffect;
+declare const index_d$6_MessageEffect: typeof MessageEffect;
+type index_d$6_ActivateMachineEffect = ActivateMachineEffect;
+declare const index_d$6_ActivateMachineEffect: typeof ActivateMachineEffect;
+type index_d$6_EffectEffect = EffectEffect;
+declare const index_d$6_EffectEffect: typeof EffectEffect;
+type index_d$6_SpawnConfig = SpawnConfig;
+type index_d$6_SpawnInfo = SpawnInfo;
+type index_d$6_SpawnEffect = SpawnEffect;
+declare const index_d$6_SpawnEffect: typeof SpawnEffect;
+declare const index_d$6_spawnTiles: typeof spawnTiles;
+declare const index_d$6_computeSpawnMap: typeof computeSpawnMap;
+declare const index_d$6_clearCells: typeof clearCells;
+declare const index_d$6_evacuateCreatures: typeof evacuateCreatures;
+declare const index_d$6_evacuateItems: typeof evacuateItems;
+declare namespace index_d$6 {
   export {
-    index_d$5_EffectInfo as EffectInfo,
-    index_d$5_EffectCtx as EffectCtx,
-    index_d$5_EffectConfig as EffectConfig,
-    index_d$5_EffectBase as EffectBase,
-    index_d$5_Handler as Handler,
-    index_d$5_handlers as handlers,
-    index_d$5_installHandler as installHandler,
+    index_d$6_EffectInfo as EffectInfo,
+    index_d$6_EffectCtx as EffectCtx,
+    index_d$6_EffectConfig as EffectConfig,
+    index_d$6_EffectBase as EffectBase,
+    index_d$6_Handler as Handler,
+    index_d$6_handlers as handlers,
+    index_d$6_installHandler as installHandler,
     make$2 as make,
     from$3 as from,
-    index_d$5_reset as reset,
-    index_d$5_resetAll as resetAll,
-    index_d$5_effects as effects,
+    index_d$6_reset as reset,
+    index_d$6_resetAll as resetAll,
+    index_d$6_effects as effects,
     install$2 as install,
     installAll$1 as installAll,
-    index_d$5_fire as fire,
-    index_d$5_EmitEffect as EmitEffect,
-    index_d$5_FnEffect as FnEffect,
-    index_d$5_MessageEffect as MessageEffect,
-    index_d$5_ActivateMachineEffect as ActivateMachineEffect,
-    index_d$5_EffectEffect as EffectEffect,
-    index_d$5_SpawnConfig as SpawnConfig,
-    index_d$5_SpawnInfo as SpawnInfo,
-    index_d$5_SpawnEffect as SpawnEffect,
-    index_d$5_spawnTiles as spawnTiles,
-    index_d$5_computeSpawnMap as computeSpawnMap,
-    index_d$5_clearCells as clearCells,
-    index_d$5_evacuateCreatures as evacuateCreatures,
-    index_d$5_evacuateItems as evacuateItems,
+    index_d$6_fire as fire,
+    index_d$6_EmitEffect as EmitEffect,
+    index_d$6_FnEffect as FnEffect,
+    index_d$6_MessageEffect as MessageEffect,
+    index_d$6_ActivateMachineEffect as ActivateMachineEffect,
+    index_d$6_EffectEffect as EffectEffect,
+    index_d$6_SpawnConfig as SpawnConfig,
+    index_d$6_SpawnInfo as SpawnInfo,
+    index_d$6_SpawnEffect as SpawnEffect,
+    index_d$6_spawnTiles as spawnTiles,
+    index_d$6_computeSpawnMap as computeSpawnMap,
+    index_d$6_clearCells as clearCells,
+    index_d$6_evacuateCreatures as evacuateCreatures,
+    index_d$6_evacuateItems as evacuateItems,
   };
 }
 
 declare type EachCb<T> = (t: T) => any;
-declare type MatchCb<T> = (t: T) => boolean;
-declare type ReduceCb<T> = (out: any, t: T) => any;
-declare class CellEntities {
-    cell: Cell;
-    constructor(cell: Cell);
-    eachItem(cb: EachCb<Item>): void;
-    eachActor(cb: EachCb<Actor>): void;
-    forEach(cb: EachCb<Entity>): void;
-    some(cb: MatchCb<Entity>): boolean;
-    reduce(cb: ReduceCb<Entity>, start?: any): any;
-}
 declare class Cell implements CellType {
     flags: CellFlags;
     chokeCount: number;
     tiles: TileArray;
     machineId: number;
-    _actor: Actor | null;
-    _item: Item | null;
-    _entities: CellEntities;
     map: MapType;
     x: number;
     y: number;
+    snapshot: GWU.sprite.Mixer;
     constructor(map: MapType, x: number, y: number, groundTile?: number | string | Tile);
-    copy(other: Cell): void;
+    getSnapshot(dest: GWU.sprite.Mixer): void;
+    putSnapshot(src: GWU.sprite.Mixer): void;
+    get hasStableSnapshot(): boolean;
+    get hasStableMemory(): boolean;
+    copy(other: CellInfoType): void;
     hasCellFlag(flag: number): boolean;
     setCellFlag(flag: number): void;
     clearCellFlag(flag: number): void;
-    hasEntityFlag(flag: number, withEntities?: boolean): boolean;
+    hasEntityFlag(flag: number): boolean;
     hasAllEntityFlags(flags: number): boolean;
     hasTileFlag(flag: number): boolean;
     hasAllTileFlags(flags: number): boolean;
@@ -609,11 +630,9 @@ declare class Cell implements CellType {
     hasAllTileTags(tags: string[]): boolean;
     hasAnyTileTag(tags: string[]): boolean;
     cellFlags(): number;
-    entityFlags(withEntities?: boolean): number;
+    entityFlags(): number;
     tileFlags(): number;
     tileMechFlags(): number;
-    itemFlags(): number;
-    actorFlags(): number;
     get needsRedraw(): boolean;
     set needsRedraw(v: boolean);
     get changed(): boolean;
@@ -628,12 +647,12 @@ declare class Cell implements CellType {
     tileWithObjectFlag(flag: number): Tile | null;
     tileWithFlag(flag: number): Tile | null;
     tileWithMechFlag(flag: number): Tile | null;
-    blocksVision(withEntities?: boolean): boolean;
-    blocksPathing(withEntities?: boolean): boolean;
-    blocksMove(withEntities?: boolean): boolean;
-    blocksEffects(withEntities?: boolean): boolean;
+    blocksVision(): boolean;
+    blocksPathing(): boolean;
+    blocksMove(): boolean;
+    blocksEffects(): boolean;
     blocksLayer(depth: number): boolean;
-    isEmpty(): boolean;
+    isNull(): boolean;
     isPassable(): boolean;
     isWall(): boolean;
     isStairs(): boolean;
@@ -650,18 +669,17 @@ declare class Cell implements CellType {
     _activate(effect: string | EffectInfo, map: MapType, x: number, y: number, ctx: Partial<EffectCtx>): Promise<boolean>;
     hasEffect(name: string): boolean;
     hasItem(): boolean;
-    get item(): Item | null;
-    set item(val: Item | null);
+    addItem(item: Item): void;
     removeItem(item: Item): boolean;
     hasActor(): boolean;
     hasPlayer(): boolean;
-    get actor(): Actor | null;
-    set actor(val: Actor | null);
+    addActor(actor: Actor): void;
     removeActor(actor: Actor): boolean;
     getDescription(): string;
     getFlavor(): string;
     getName(opts?: {}): string;
     dump(): string;
+    toString(): string;
 }
 
 declare class MapLayer {
@@ -682,30 +700,34 @@ declare class MapLayer {
     forceItem(_x: number, _y: number, _item: Item): boolean;
     removeItem(_item: Item): Promise<boolean> | boolean;
     tick(_dt: number): Promise<boolean> | boolean;
+    putAppearance(_dest: GWU.sprite.Mixer, _cell: CellInfoType): void;
 }
 
 declare class TileLayer extends MapLayer {
     constructor(map: MapType, name?: string);
     setTile(x: number, y: number, tile: Tile, opts?: SetTileOptions): boolean;
+    clear(): void;
     clearTile(x: number, y: number): boolean;
     tick(_dt: number): Promise<boolean>;
-    putAppearance(dest: GWU.sprite.Mixer, x: number, y: number): void;
+    putAppearance(dest: GWU.sprite.Mixer, cell: CellInfoType): void;
 }
 
 declare class ActorLayer extends MapLayer {
     constructor(map: MapType, name?: string);
+    clear(): void;
     addActor(x: number, y: number, obj: Actor, _opts?: any): Promise<boolean>;
     forceActor(x: number, y: number, actor: Actor, _opts?: any): boolean;
     removeActor(actor: Actor): Promise<boolean>;
-    putAppearance(dest: GWU.sprite.Mixer, x: number, y: number): void;
+    putAppearance(dest: GWU.sprite.Mixer, cell: CellInfoType): void;
 }
 
 declare class ItemLayer extends MapLayer {
     constructor(map: MapType, name?: string);
-    addItem(x: number, y: number, obj: Item, _opts?: any): Promise<boolean>;
-    forceItem(x: number, y: number, obj: Item, _opts?: any): boolean;
-    removeItem(obj: Item): Promise<boolean>;
-    putAppearance(dest: GWU.sprite.Mixer, x: number, y: number): void;
+    clear(): void;
+    addItem(x: number, y: number, item: Item, _opts?: any): Promise<boolean>;
+    forceItem(x: number, y: number, item: Item, _opts?: any): boolean;
+    removeItem(item: Item): Promise<boolean>;
+    putAppearance(dest: GWU.sprite.Mixer, cell: CellInfoType): void;
 }
 
 declare class GasLayer extends TileLayer {
@@ -720,7 +742,7 @@ declare class GasLayer extends TileLayer {
     calcOpacity(volume: number): number;
     updateCellVolume(x: number, y: number, startingVolume: GWU.grid.NumGrid): void;
     spread(startingVolume: GWU.grid.NumGrid): void;
-    putAppearance(dest: GWU.sprite.Mixer, x: number, y: number): void;
+    putAppearance(dest: GWU.sprite.Mixer, cell: CellInfoType): void;
 }
 
 declare class FireLayer extends TileLayer {
@@ -729,42 +751,34 @@ declare class FireLayer extends TileLayer {
     exposeToFire(x: number, y: number, alwaysIgnite?: boolean): Promise<boolean>;
 }
 
-type index_d$4_MapLayer = MapLayer;
-declare const index_d$4_MapLayer: typeof MapLayer;
-type index_d$4_TileLayer = TileLayer;
-declare const index_d$4_TileLayer: typeof TileLayer;
-type index_d$4_ActorLayer = ActorLayer;
-declare const index_d$4_ActorLayer: typeof ActorLayer;
-type index_d$4_ItemLayer = ItemLayer;
-declare const index_d$4_ItemLayer: typeof ItemLayer;
-type index_d$4_GasLayer = GasLayer;
-declare const index_d$4_GasLayer: typeof GasLayer;
-type index_d$4_FireLayer = FireLayer;
-declare const index_d$4_FireLayer: typeof FireLayer;
-declare namespace index_d$4 {
+type index_d$5_MapLayer = MapLayer;
+declare const index_d$5_MapLayer: typeof MapLayer;
+type index_d$5_TileLayer = TileLayer;
+declare const index_d$5_TileLayer: typeof TileLayer;
+type index_d$5_ActorLayer = ActorLayer;
+declare const index_d$5_ActorLayer: typeof ActorLayer;
+type index_d$5_ItemLayer = ItemLayer;
+declare const index_d$5_ItemLayer: typeof ItemLayer;
+type index_d$5_GasLayer = GasLayer;
+declare const index_d$5_GasLayer: typeof GasLayer;
+type index_d$5_FireLayer = FireLayer;
+declare const index_d$5_FireLayer: typeof FireLayer;
+declare namespace index_d$5 {
   export {
-    index_d$4_MapLayer as MapLayer,
-    index_d$4_TileLayer as TileLayer,
-    index_d$4_ActorLayer as ActorLayer,
-    index_d$4_ItemLayer as ItemLayer,
-    index_d$4_GasLayer as GasLayer,
-    index_d$4_FireLayer as FireLayer,
+    index_d$5_MapLayer as MapLayer,
+    index_d$5_TileLayer as TileLayer,
+    index_d$5_ActorLayer as ActorLayer,
+    index_d$5_ItemLayer as ItemLayer,
+    index_d$5_GasLayer as GasLayer,
+    index_d$5_FireLayer as FireLayer,
   };
 }
 
-declare class CellMemory extends Cell {
-    snapshot: GWU.sprite.Mixer;
-    constructor(map: Map, x: number, y: number);
-    clear(): void;
-    store(cell: Cell): void;
-    getSnapshot(dest: GWU.sprite.Mixer): void;
-    putSnapshot(src: GWU.sprite.Mixer): void;
-}
-
-interface MapOptions extends GWU.light.LightSystemOptions, GWU.fov.FovSystemOptions {
+interface MapOptions extends GWU.light.LightSystemOptions {
     tile: string | true;
     boundary: string | true;
     seed: number;
+    id: string;
 }
 declare type LayerType = TileLayer | ActorLayer | ItemLayer;
 interface MapDrawOptions {
@@ -776,7 +790,7 @@ interface MapDrawOptions {
     mapOffsetY: number;
     force: boolean;
 }
-declare class Map implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType {
+declare class Map implements GWU.light.LightSystemSite, MapType {
     width: number;
     height: number;
     cells: GWU.grid.Grid<Cell>;
@@ -785,17 +799,16 @@ declare class Map implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType
         map: 0;
     };
     light: GWU.light.LightSystemType;
-    fov: GWU.fov.FovSystemType;
     properties: Record<string, any>;
-    _memory: GWU.grid.Grid<CellMemory>;
     machineCount: number;
     private _seed;
     rng: GWU.rng.Random;
+    id: string;
+    actors: Actor[];
+    items: Item[];
     constructor(width: number, height: number, opts?: Partial<MapOptions>);
     get seed(): number;
     set seed(v: number);
-    memory(x: number, y: number): CellMemory;
-    knowledge(x: number, y: number): CellInfoType;
     initLayers(): void;
     addLayer(depth: number | keyof typeof Depth, layer: LayerType): void;
     removeLayer(depth: number | keyof typeof Depth): void;
@@ -805,7 +818,6 @@ declare class Map implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType
     cell(x: number, y: number): CellType;
     get(x: number, y: number): CellType | undefined;
     eachCell(cb: EachCellCb): void;
-    drawInto(dest: GWU.canvas.Canvas | GWU.canvas.DataBuffer, opts?: Partial<MapDrawOptions> | boolean): void;
     hasItem(x: number, y: number): boolean;
     itemAt(x: number, y: number): Item | null;
     eachItem(cb: GWU.types.EachCb<Item>): void;
@@ -820,7 +832,6 @@ declare class Map implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType
     forceActor(x: number, y: number, actor: Actor): boolean;
     removeActor(actor: Actor): Promise<boolean>;
     moveActor(actor: Actor, dir: GWU.xy.Loc | number): Promise<boolean>;
-    isVisible(x: number, y: number): boolean;
     hasKey(x: number, y: number): boolean;
     count(cb: MapTestFn): number;
     dump(fmt?: GWU.grid.GridFormat<Cell>, log?: {
@@ -835,7 +846,7 @@ declare class Map implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType
     clear(): void;
     clearCell(x: number, y: number, tile?: number | string | Tile): void;
     fill(tile: string | number | Tile, boundary?: string | number | Tile): void;
-    hasTile(x: number, y: number, tile: string | number | Tile, useMemory?: boolean): boolean;
+    hasTile(x: number, y: number, tile: string | number | Tile): boolean;
     forceTile(x: number, y: number, tile: string | number | Tile): boolean;
     setTile(x: number, y: number, tile: string | number | Tile, opts?: SetTileOptions): boolean;
     clearTiles(x: number, y: number, tile?: number | string | Tile): void;
@@ -845,6 +856,8 @@ declare class Map implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType
     fire(event: string, x: number, y: number, ctx?: Partial<EffectCtx>): Promise<boolean>;
     fireAll(event: string, ctx?: Partial<EffectCtx>): Promise<boolean>;
     activateMachine(machineId: number, originX: number, originY: number, ctx?: Partial<EffectCtx>): Promise<boolean>;
+    drawInto(dest: GWU.canvas.Canvas | GWU.canvas.DataBuffer, opts?: Partial<MapDrawOptions> | boolean): void;
+    getCellAppearance(cell: CellType, dest: GWU.sprite.Mixer): void;
     getAppearanceAt(x: number, y: number, dest: GWU.sprite.Mixer): void;
     hasActor(x: number, y: number): boolean;
     eachGlowLight(cb: GWU.light.LightCb): void;
@@ -854,9 +867,7 @@ declare class Map implements GWU.light.LightSystemSite, GWU.fov.FovSite, MapType
     hasVisibleLight(x: number, y: number): boolean;
     blocksVision(x: number, y: number): boolean;
     onCellRevealed(_x: number, _y: number): void;
-    redrawCell(x: number, y: number, clearMemory?: boolean): void;
-    clearMemory(x: number, y: number): void;
-    storeMemory(x: number, y: number, updateSnapshot?: boolean): void;
+    redrawCell(x: number, y: number): void;
 }
 declare function make$1(w: number, h: number, floor?: string, boundary?: string): Map;
 declare function make$1(w: number, h: number, floor: string): Map;
@@ -883,7 +894,6 @@ declare class SnapshotManager {
     cellVersion: GWU.grid.NumGrid;
     layerVersion: number[];
     lightVersion: number;
-    fovVersion: number;
     free: Snapshot[];
     constructor(map: Map);
     takeNew(): Snapshot;
@@ -893,107 +903,87 @@ declare class SnapshotManager {
 
 declare function isHallway(map: Map, x: number, y: number): boolean;
 
-type index_d$3_CellFlags = CellFlags;
-type index_d$3_MapFlags = MapFlags;
-type index_d$3_SetOptions = SetOptions;
-type index_d$3_SetTileOptions = SetTileOptions;
-type index_d$3_TileData = TileData;
-type index_d$3_TileArray = TileArray;
-type index_d$3_CellInfoType = CellInfoType;
-type index_d$3_CellType = CellType;
-type index_d$3_EachCellCb = EachCellCb;
-type index_d$3_EachItemCb = EachItemCb;
-type index_d$3_EachActorCb = EachActorCb;
-type index_d$3_MapTestFn = MapTestFn;
-type index_d$3_MapType = MapType;
-type index_d$3_Cell = Cell;
-declare const index_d$3_Cell: typeof Cell;
-type index_d$3_MapOptions = MapOptions;
-type index_d$3_LayerType = LayerType;
-type index_d$3_MapDrawOptions = MapDrawOptions;
-type index_d$3_Map = Map;
-declare const index_d$3_Map: typeof Map;
-declare const index_d$3_analyze: typeof analyze;
-declare const index_d$3_updateChokepoints: typeof updateChokepoints;
-declare const index_d$3_floodFillCount: typeof floodFillCount;
-declare const index_d$3_updateLoopiness: typeof updateLoopiness;
-declare const index_d$3_resetLoopiness: typeof resetLoopiness;
-declare const index_d$3_checkLoopiness: typeof checkLoopiness;
-declare const index_d$3_fillInnerLoopGrid: typeof fillInnerLoopGrid;
-declare const index_d$3_cleanLoopiness: typeof cleanLoopiness;
-type index_d$3_CellMemory = CellMemory;
-declare const index_d$3_CellMemory: typeof CellMemory;
-type index_d$3_Snapshot = Snapshot;
-declare const index_d$3_Snapshot: typeof Snapshot;
-type index_d$3_SnapshotManager = SnapshotManager;
-declare const index_d$3_SnapshotManager: typeof SnapshotManager;
-declare const index_d$3_isHallway: typeof isHallway;
-declare namespace index_d$3 {
+type index_d$4_CellFlags = CellFlags;
+type index_d$4_MapFlags = MapFlags;
+type index_d$4_SetOptions = SetOptions;
+type index_d$4_SetTileOptions = SetTileOptions;
+type index_d$4_TileData = TileData;
+type index_d$4_TileArray = TileArray;
+type index_d$4_CellInfoType = CellInfoType;
+type index_d$4_CellType = CellType;
+type index_d$4_EachCellCb = EachCellCb;
+type index_d$4_EachItemCb = EachItemCb;
+type index_d$4_EachActorCb = EachActorCb;
+type index_d$4_MapTestFn = MapTestFn;
+type index_d$4_MapType = MapType;
+type index_d$4_Cell = Cell;
+declare const index_d$4_Cell: typeof Cell;
+type index_d$4_MapOptions = MapOptions;
+type index_d$4_LayerType = LayerType;
+type index_d$4_MapDrawOptions = MapDrawOptions;
+type index_d$4_Map = Map;
+declare const index_d$4_Map: typeof Map;
+declare const index_d$4_analyze: typeof analyze;
+declare const index_d$4_updateChokepoints: typeof updateChokepoints;
+declare const index_d$4_floodFillCount: typeof floodFillCount;
+declare const index_d$4_updateLoopiness: typeof updateLoopiness;
+declare const index_d$4_resetLoopiness: typeof resetLoopiness;
+declare const index_d$4_checkLoopiness: typeof checkLoopiness;
+declare const index_d$4_fillInnerLoopGrid: typeof fillInnerLoopGrid;
+declare const index_d$4_cleanLoopiness: typeof cleanLoopiness;
+type index_d$4_Snapshot = Snapshot;
+declare const index_d$4_Snapshot: typeof Snapshot;
+type index_d$4_SnapshotManager = SnapshotManager;
+declare const index_d$4_SnapshotManager: typeof SnapshotManager;
+declare const index_d$4_isHallway: typeof isHallway;
+declare namespace index_d$4 {
   export {
-    index_d$3_CellFlags as CellFlags,
-    index_d$3_MapFlags as MapFlags,
-    index_d$3_SetOptions as SetOptions,
-    index_d$3_SetTileOptions as SetTileOptions,
-    index_d$3_TileData as TileData,
-    index_d$3_TileArray as TileArray,
-    index_d$3_CellInfoType as CellInfoType,
-    index_d$3_CellType as CellType,
-    index_d$3_EachCellCb as EachCellCb,
-    index_d$3_EachItemCb as EachItemCb,
-    index_d$3_EachActorCb as EachActorCb,
-    index_d$3_MapTestFn as MapTestFn,
-    index_d$3_MapType as MapType,
-    index_d$3_Cell as Cell,
-    index_d$3_MapOptions as MapOptions,
-    index_d$3_LayerType as LayerType,
-    index_d$3_MapDrawOptions as MapDrawOptions,
-    index_d$3_Map as Map,
+    index_d$4_CellFlags as CellFlags,
+    index_d$4_MapFlags as MapFlags,
+    index_d$4_SetOptions as SetOptions,
+    index_d$4_SetTileOptions as SetTileOptions,
+    index_d$4_TileData as TileData,
+    index_d$4_TileArray as TileArray,
+    index_d$4_CellInfoType as CellInfoType,
+    index_d$4_CellType as CellType,
+    index_d$4_EachCellCb as EachCellCb,
+    index_d$4_EachItemCb as EachItemCb,
+    index_d$4_EachActorCb as EachActorCb,
+    index_d$4_MapTestFn as MapTestFn,
+    index_d$4_MapType as MapType,
+    index_d$4_Cell as Cell,
+    index_d$4_MapOptions as MapOptions,
+    index_d$4_LayerType as LayerType,
+    index_d$4_MapDrawOptions as MapDrawOptions,
+    index_d$4_Map as Map,
     make$1 as make,
     from$2 as from,
-    index_d$3_analyze as analyze,
-    index_d$3_updateChokepoints as updateChokepoints,
-    index_d$3_floodFillCount as floodFillCount,
-    index_d$3_updateLoopiness as updateLoopiness,
-    index_d$3_resetLoopiness as resetLoopiness,
-    index_d$3_checkLoopiness as checkLoopiness,
-    index_d$3_fillInnerLoopGrid as fillInnerLoopGrid,
-    index_d$3_cleanLoopiness as cleanLoopiness,
-    index_d$3_CellMemory as CellMemory,
-    index_d$3_Snapshot as Snapshot,
-    index_d$3_SnapshotManager as SnapshotManager,
-    index_d$3_isHallway as isHallway,
+    index_d$4_analyze as analyze,
+    index_d$4_updateChokepoints as updateChokepoints,
+    index_d$4_floodFillCount as floodFillCount,
+    index_d$4_updateLoopiness as updateLoopiness,
+    index_d$4_resetLoopiness as resetLoopiness,
+    index_d$4_checkLoopiness as checkLoopiness,
+    index_d$4_fillInnerLoopGrid as fillInnerLoopGrid,
+    index_d$4_cleanLoopiness as cleanLoopiness,
+    index_d$4_Snapshot as Snapshot,
+    index_d$4_SnapshotManager as SnapshotManager,
+    index_d$4_isHallway as isHallway,
   };
-}
-
-interface PickupOptions {
-    admin: boolean;
-}
-interface DropOptions {
-    admin: boolean;
-}
-declare class Actor extends Entity {
-    flags: ActorFlags;
-    kind: ActorKind;
-    next: Actor | null;
-    leader: Actor | null;
-    items: Item | null;
-    constructor(kind: ActorKind);
-    hasActorFlag(flag: number): boolean;
-    hasAllActorFlags(flags: number): boolean;
-    actorFlags(): number;
-    isPlayer(): boolean;
-    pickupItem(item: Item, opts?: Partial<PickupOptions>): Promise<boolean>;
-    dropItem(item: Item, opts?: Partial<DropOptions>): Promise<boolean>;
 }
 
 interface KindOptions$1 extends KindOptions {
 }
 interface MakeOptions$1 extends MakeOptions {
+    fov: GWU.fov.FovSystem;
 }
 declare class ActorKind extends EntityKind {
     constructor(opts: KindOptions$1);
     make(options?: Partial<MakeOptions$1>): Actor;
     init(actor: Actor, options?: Partial<MakeOptions$1>): void;
+    canSeeEntity(_actor: Actor, _entity: Entity): boolean;
+    isAbleToSee(_actor: Actor, _entity: Entity): boolean;
+    isAbleToSense(_actor: Actor, _entity: Entity): boolean;
     forbidsCell(cell: CellType, actor?: Actor): boolean;
     avoidsCell(cell: CellType, actor?: Actor): boolean;
     getFlavor(actor: Actor, opts?: FlavorOptions): string;
@@ -1006,7 +996,7 @@ declare function makeRandom(opts: Partial<MatchOptions$1> | string, makeOptions?
 declare function from$1(info: string | ActorKind | KindOptions$1, makeOptions?: any): Actor;
 declare const kinds: Record<string, ActorKind>;
 declare function install$1(id: string, kind: ActorKind | KindOptions$1): ActorKind;
-declare function get(id: string | ActorKind): ActorKind | null;
+declare function get$1(id: string | ActorKind): ActorKind | null;
 declare function makeKind(info: KindOptions$1): ActorKind;
 interface MatchOptions$1 {
     tags: string | string[];
@@ -1015,37 +1005,36 @@ interface MatchOptions$1 {
 }
 declare function randomKind(opts?: Partial<MatchOptions$1> | string): ActorKind | null;
 
-type index_d$2_ActorFlags = ActorFlags;
-type index_d$2_ActorKind = ActorKind;
-declare const index_d$2_ActorKind: typeof ActorKind;
-type index_d$2_PickupOptions = PickupOptions;
-type index_d$2_DropOptions = DropOptions;
-type index_d$2_Actor = Actor;
-declare const index_d$2_Actor: typeof Actor;
-declare const index_d$2_make: typeof make;
-declare const index_d$2_makeRandom: typeof makeRandom;
-declare const index_d$2_kinds: typeof kinds;
-declare const index_d$2_get: typeof get;
-declare const index_d$2_makeKind: typeof makeKind;
-declare const index_d$2_randomKind: typeof randomKind;
-declare namespace index_d$2 {
+type index_d$3_ActorFlags = ActorFlags;
+type index_d$3_ActorKind = ActorKind;
+declare const index_d$3_ActorKind: typeof ActorKind;
+type index_d$3_PickupOptions = PickupOptions;
+type index_d$3_DropOptions = DropOptions;
+type index_d$3_Actor = Actor;
+declare const index_d$3_Actor: typeof Actor;
+declare const index_d$3_make: typeof make;
+declare const index_d$3_makeRandom: typeof makeRandom;
+declare const index_d$3_kinds: typeof kinds;
+declare const index_d$3_makeKind: typeof makeKind;
+declare const index_d$3_randomKind: typeof randomKind;
+declare namespace index_d$3 {
   export {
-    index_d$2_ActorFlags as ActorFlags,
+    index_d$3_ActorFlags as ActorFlags,
     KindOptions$1 as KindOptions,
     MakeOptions$1 as MakeOptions,
-    index_d$2_ActorKind as ActorKind,
-    index_d$2_PickupOptions as PickupOptions,
-    index_d$2_DropOptions as DropOptions,
-    index_d$2_Actor as Actor,
-    index_d$2_make as make,
-    index_d$2_makeRandom as makeRandom,
+    index_d$3_ActorKind as ActorKind,
+    index_d$3_PickupOptions as PickupOptions,
+    index_d$3_DropOptions as DropOptions,
+    index_d$3_Actor as Actor,
+    index_d$3_make as make,
+    index_d$3_makeRandom as makeRandom,
     from$1 as from,
-    index_d$2_kinds as kinds,
+    index_d$3_kinds as kinds,
     install$1 as install,
-    index_d$2_get as get,
-    index_d$2_makeKind as makeKind,
+    get$1 as get,
+    index_d$3_makeKind as makeKind,
     MatchOptions$1 as MatchOptions,
-    index_d$2_randomKind as randomKind,
+    index_d$3_randomKind as randomKind,
   };
 }
 
@@ -1067,11 +1056,13 @@ declare type SetTileOptions = Partial<SetOptions>;
 declare type TileData = Tile | null;
 declare type TileArray = [Tile, ...TileData[]];
 interface CellInfoType {
+    readonly flags: CellFlags;
     readonly chokeCount: number;
     readonly machineId: number;
     readonly needsRedraw: boolean;
     readonly x: number;
     readonly y: number;
+    readonly map: MapType;
     readonly tiles: TileArray;
     hasCellFlag(flag: number): boolean;
     hasTileFlag(flag: number): boolean;
@@ -1083,8 +1074,6 @@ interface CellInfoType {
     entityFlags(): number;
     tileFlags(): number;
     tileMechFlags(): number;
-    itemFlags(): number;
-    actorFlags(): number;
     blocksVision(): boolean;
     blocksPathing(): boolean;
     blocksMove(): boolean;
@@ -1094,6 +1083,8 @@ interface CellInfoType {
     isFloor(): boolean;
     isPassable(): boolean;
     isSecretlyPassable(): boolean;
+    isNull(): boolean;
+    isGateSite(): boolean;
     depthPriority(depth: number): number;
     highestPriority(): number;
     blocksLayer(depth: number): boolean;
@@ -1106,36 +1097,33 @@ interface CellInfoType {
     hasAllTileTags(tags: string[]): boolean;
     hasAnyTileTag(tags: string[]): boolean;
     hasItem(): boolean;
-    readonly item: Item | null;
     hasActor(): boolean;
     hasPlayer(): boolean;
-    readonly actor: Actor | null;
+    eachGlowLight(cb: (light: GWU.light.LightType) => any): void;
+    hasEffect(name: string): boolean;
+    readonly hasStableSnapshot: boolean;
+    getSnapshot(mixer: GWU.sprite.Mixer): void;
+    putSnapshot(mixer: GWU.sprite.Mixer): void;
+    readonly hasStableMemory: boolean;
     getDescription(): string;
     getFlavor(): string;
     getName(opts: any): string;
 }
 interface CellType extends CellInfoType {
-    flags: CellFlags;
-    actor: Actor | null;
-    item: Item | null;
     chokeCount: number;
     machineId: number;
-    x: number;
-    y: number;
     setCellFlag(flag: number): void;
     clearCellFlag(flag: number): void;
     setTile(tile: Tile): boolean;
     clear(tile?: number | string | Tile): void;
     clearDepth(depth: number): boolean;
     clearTiles(tile?: string | number | Tile): void;
-    isEmpty(): boolean;
-    isGateSite(): boolean;
-    removeActor(actor: Actor): boolean;
+    addItem(item: Item): void;
     removeItem(item: Item): boolean;
-    eachGlowLight(cb: (light: GWU.light.LightType) => any): void;
+    addActor(actor: Actor): void;
+    removeActor(actor: Actor): boolean;
     fire(event: string, map: MapType, x: number, y: number, ctx?: Partial<EffectCtx>): Promise<boolean> | boolean;
-    hasEffect(name: string): boolean;
-    copy(other: CellType): void;
+    copy(other: CellInfoType): void;
     needsRedraw: boolean;
     readonly changed: boolean;
 }
@@ -1147,12 +1135,13 @@ interface MapType {
     readonly width: number;
     readonly height: number;
     readonly rng: GWU.rng.Random;
+    readonly id: string;
+    actors: Actor[];
+    items: Item[];
     light: GWU.light.LightSystemType;
-    fov: GWU.fov.FovSystemType;
     properties: Record<string, any>;
     hasXY(x: number, y: number): boolean;
     isBoundaryXY(x: number, y: number): boolean;
-    memory(x: number, y: number): CellInfoType;
     cell(x: number, y: number): CellType;
     get(x: number, y: number): CellType | undefined;
     eachCell(cb: EachCellCb): void;
@@ -1161,12 +1150,13 @@ interface MapType {
     forceItem(x: number, y: number, item: Item): boolean;
     removeItem(item: Item): Promise<boolean>;
     moveItem(item: Item, dir: GWU.xy.Loc | number): Promise<boolean>;
+    itemAt(x: number, y: number): Item | null;
     eachActor(cb: EachActorCb): void;
     addActor(x: number, y: number, actor: Actor): Promise<boolean>;
     forceActor(x: number, y: number, actor: Actor): boolean;
     removeActor(actor: Actor): Promise<boolean>;
     moveActor(actor: Actor, dir: GWU.xy.Loc | number): Promise<boolean>;
-    isVisible(x: number, y: number): boolean;
+    actorAt(x: number, y: number): Actor | null;
     hasKey(x: number, y: number): boolean;
     hasMapFlag(flag: number): boolean;
     setMapFlag(flag: number): void;
@@ -1196,10 +1186,13 @@ declare class Entity implements EntityType {
     kind: EntityKind;
     key: KeyInfoType | null;
     machineHome: number;
-    lastSeen: GWU.xy.XY | null;
+    id: string;
     constructor(kind: EntityKind);
     get sprite(): GWU.sprite.Sprite;
     get isDestroyed(): boolean;
+    isAt(x: number, y: number): boolean;
+    clone(): this;
+    copy(other: Entity): void;
     canBeSeen(): boolean;
     destroy(): void;
     hasEntityFlag(flag: number): boolean;
@@ -1209,12 +1202,14 @@ declare class Entity implements EntityType {
     blocksVision(): boolean;
     blocksPathing(): boolean;
     blocksEffects(): boolean;
+    isKey(x: number, y: number): boolean | null;
     forbidsCell(cell: CellType): boolean;
     avoidsCell(cell: CellType): boolean;
     getName(opts?: TextOptions): string;
     getDescription(opts?: TextOptions): string;
     getFlavor(opts?: FlavorOptions): string;
     getVerb(verb: string): string;
+    toString(): string;
 }
 
 interface TextOptions {
@@ -1255,32 +1250,32 @@ declare class EntityKind {
     getVerb(_entity: Entity, verb: string): string;
 }
 
-type index_d$1_KeyInfoType = KeyInfoType;
-type index_d$1_EntityType = EntityType;
-type index_d$1_KeyInfo = KeyInfo;
-declare const index_d$1_KeyInfo: typeof KeyInfo;
-declare const index_d$1_makeKeyInfo: typeof makeKeyInfo;
-type index_d$1_TextOptions = TextOptions;
-type index_d$1_FlavorOptions = FlavorOptions;
-type index_d$1_KindOptions = KindOptions;
-type index_d$1_MakeOptions = MakeOptions;
-type index_d$1_EntityKind = EntityKind;
-declare const index_d$1_EntityKind: typeof EntityKind;
-type index_d$1_Entity = Entity;
-declare const index_d$1_Entity: typeof Entity;
-declare namespace index_d$1 {
+type index_d$2_KeyInfoType = KeyInfoType;
+type index_d$2_EntityType = EntityType;
+type index_d$2_KeyInfo = KeyInfo;
+declare const index_d$2_KeyInfo: typeof KeyInfo;
+declare const index_d$2_makeKeyInfo: typeof makeKeyInfo;
+type index_d$2_TextOptions = TextOptions;
+type index_d$2_FlavorOptions = FlavorOptions;
+type index_d$2_KindOptions = KindOptions;
+type index_d$2_MakeOptions = MakeOptions;
+type index_d$2_EntityKind = EntityKind;
+declare const index_d$2_EntityKind: typeof EntityKind;
+type index_d$2_Entity = Entity;
+declare const index_d$2_Entity: typeof Entity;
+declare namespace index_d$2 {
   export {
-    index_d$1_KeyInfoType as KeyInfoType,
+    index_d$2_KeyInfoType as KeyInfoType,
     FlagType$1 as FlagType,
-    index_d$1_EntityType as EntityType,
-    index_d$1_KeyInfo as KeyInfo,
-    index_d$1_makeKeyInfo as makeKeyInfo,
-    index_d$1_TextOptions as TextOptions,
-    index_d$1_FlavorOptions as FlavorOptions,
-    index_d$1_KindOptions as KindOptions,
-    index_d$1_MakeOptions as MakeOptions,
-    index_d$1_EntityKind as EntityKind,
-    index_d$1_Entity as Entity,
+    index_d$2_EntityType as EntityType,
+    index_d$2_KeyInfo as KeyInfo,
+    index_d$2_makeKeyInfo as makeKeyInfo,
+    index_d$2_TextOptions as TextOptions,
+    index_d$2_FlavorOptions as FlavorOptions,
+    index_d$2_KindOptions as KindOptions,
+    index_d$2_MakeOptions as MakeOptions,
+    index_d$2_EntityKind as EntityKind,
+    index_d$2_Entity as Entity,
   };
 }
 
@@ -1316,7 +1311,7 @@ interface HordeFlagsType {
     horde: number;
 }
 interface SpawnOptions {
-    canBeVisible: boolean;
+    canSpawn: GWU.xy.XYMatchFunc;
     rng: GWU.rng.Random;
     machine: number;
 }
@@ -1327,7 +1322,7 @@ declare class Horde {
     frequency: GWU.frequency.FrequencyFn;
     flags: HordeFlagsType;
     constructor(config: HordeConfig);
-    spawn(map: Map, x?: number, y?: number, opts?: Partial<SpawnOptions> | boolean): Promise<Actor | null>;
+    spawn(map: Map, x?: number, y?: number, opts?: Partial<SpawnOptions>): Promise<Actor | null>;
     _spawnLeader(map: Map, x: number, y: number, opts: SpawnOptions): Promise<Actor | null>;
     _addLeader(leader: Actor, map: Map, x: number, y: number, _opts: SpawnOptions): Promise<boolean>;
     _addMember(member: Actor, map: Map, x: number, y: number, leader: Actor, _opts: SpawnOptions): Promise<boolean>;
@@ -1352,30 +1347,81 @@ interface MatchOptions {
 }
 declare function random(opts?: Partial<MatchOptions> | string): Horde | null;
 
-type index_d_HordeConfig = HordeConfig;
-type index_d_HordeFlagsType = HordeFlagsType;
-type index_d_SpawnOptions = SpawnOptions;
-type index_d_Horde = Horde;
-declare const index_d_Horde: typeof Horde;
-declare const index_d_hordes: typeof hordes;
-declare const index_d_install: typeof install;
-declare const index_d_installAll: typeof installAll;
-declare const index_d_from: typeof from;
-type index_d_MatchOptions = MatchOptions;
-declare const index_d_random: typeof random;
-declare namespace index_d {
+type index_d$1_HordeConfig = HordeConfig;
+type index_d$1_HordeFlagsType = HordeFlagsType;
+type index_d$1_SpawnOptions = SpawnOptions;
+type index_d$1_Horde = Horde;
+declare const index_d$1_Horde: typeof Horde;
+declare const index_d$1_hordes: typeof hordes;
+declare const index_d$1_install: typeof install;
+declare const index_d$1_installAll: typeof installAll;
+declare const index_d$1_from: typeof from;
+type index_d$1_MatchOptions = MatchOptions;
+declare const index_d$1_random: typeof random;
+declare namespace index_d$1 {
   export {
-    index_d_HordeConfig as HordeConfig,
-    index_d_HordeFlagsType as HordeFlagsType,
-    index_d_SpawnOptions as SpawnOptions,
-    index_d_Horde as Horde,
-    index_d_hordes as hordes,
-    index_d_install as install,
-    index_d_installAll as installAll,
-    index_d_from as from,
-    index_d_MatchOptions as MatchOptions,
-    index_d_random as random,
+    index_d$1_HordeConfig as HordeConfig,
+    index_d$1_HordeFlagsType as HordeFlagsType,
+    index_d$1_SpawnOptions as SpawnOptions,
+    index_d$1_Horde as Horde,
+    index_d$1_hordes as hordes,
+    index_d$1_install as install,
+    index_d$1_installAll as installAll,
+    index_d$1_from as from,
+    index_d$1_MatchOptions as MatchOptions,
+    index_d$1_random as random,
   };
 }
 
-export { index_d$2 as actor, index_d$5 as effect, index_d$1 as entity, index_d$8 as flags, index_d as horde, index_d$6 as item, index_d$4 as layer, index_d$3 as map, path_d as path, index_d$7 as tile };
+interface ActorInfo {
+    actor: Actor;
+    readonly x: number;
+    readonly y: number;
+}
+interface ItemInfo {
+    item: Item;
+    readonly x: number;
+    readonly y: number;
+}
+declare class Memory extends Map {
+    source: Map;
+    constructor(map: Map);
+    cell(x: number, y: number): CellType;
+    memory(x: number, y: number): CellType;
+    isMemory(x: number, y: number): boolean;
+    setTile(): boolean;
+    addItem(): Promise<boolean>;
+    forceItem(): boolean;
+    removeItem(): Promise<boolean>;
+    moveItem(): Promise<boolean>;
+    eachItem(cb: GWU.types.EachCb<Item>): void;
+    addActor(): Promise<boolean>;
+    forceActor(): boolean;
+    removeActor(): Promise<boolean>;
+    moveActor(): Promise<boolean>;
+    eachActor(cb: GWU.types.EachCb<Actor>): void;
+    storeMemory(x: number, y: number): void;
+    forget(x: number, y: number): void;
+    onFovChange(x: number, y: number, isVisible: boolean): void;
+}
+
+declare function store(actor: Actor, map: Map, memory: Memory): void;
+declare function get(actor: Actor, map: Map): Memory;
+
+type index_d_ActorInfo = ActorInfo;
+type index_d_ItemInfo = ItemInfo;
+type index_d_Memory = Memory;
+declare const index_d_Memory: typeof Memory;
+declare const index_d_store: typeof store;
+declare const index_d_get: typeof get;
+declare namespace index_d {
+  export {
+    index_d_ActorInfo as ActorInfo,
+    index_d_ItemInfo as ItemInfo,
+    index_d_Memory as Memory,
+    index_d_store as store,
+    index_d_get as get,
+  };
+}
+
+export { index_d$3 as actor, index_d$6 as effect, index_d$2 as entity, index_d$9 as flags, index_d$1 as horde, index_d$8 as item, index_d$5 as layer, index_d$4 as map, index_d as memory, path_d as path, index_d$7 as tile };

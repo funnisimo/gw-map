@@ -5,6 +5,8 @@ import * as Flags from '../flags/entity';
 import { CellType, MapType } from '../map/types';
 import { EntityKind, TextOptions, FlavorOptions } from './kind';
 
+let lastId = 0;
+
 export class Entity implements EntityType {
     depth: number;
     light: GWU.light.LightType | null;
@@ -16,7 +18,7 @@ export class Entity implements EntityType {
     kind: EntityKind;
     key: KeyInfoType | null = null;
     machineHome = 0;
-    lastSeen: GWU.xy.XY | null = null;
+    id: string;
 
     constructor(kind: EntityKind) {
         this.depth = 1; // default - TODO - enum/const
@@ -26,6 +28,7 @@ export class Entity implements EntityType {
         this.x = -1;
         this.y = -1;
         this.kind = kind;
+        this.id = '' + ++lastId;
     }
 
     get sprite(): GWU.sprite.Sprite {
@@ -34,6 +37,29 @@ export class Entity implements EntityType {
 
     get isDestroyed(): boolean {
         return this.hasEntityFlag(Flags.Entity.L_DESTROYED);
+    }
+
+    isAt(x: number, y: number): boolean {
+        return this.x === x && this.y === y;
+    }
+
+    clone(): this {
+        const other: this = new (<new (k: EntityKind) => this>this.constructor)(
+            this.kind
+        );
+        other.copy(this);
+        return other;
+    }
+
+    copy(other: Entity) {
+        this.depth = other.depth;
+        this.light = other.light;
+        Object.assign(this.flags, other.flags);
+        this.next = other.next;
+        this.x = other.x;
+        this.y = other.y;
+        this.kind = other.kind;
+        this.id = other.id;
     }
 
     canBeSeen(): boolean {
@@ -68,6 +94,10 @@ export class Entity implements EntityType {
         return this.hasEntityFlag(Flags.Entity.L_BLOCKS_EFFECTS);
     }
 
+    isKey(x: number, y: number) {
+        return this.key && this.key.matches(x, y);
+    }
+
     forbidsCell(cell: CellType): boolean {
         return this.kind.forbidsCell(cell, this);
     }
@@ -87,5 +117,9 @@ export class Entity implements EntityType {
     }
     getVerb(verb: string): string {
         return this.kind.getVerb(this, verb);
+    }
+
+    toString() {
+        return `${this.constructor.name}-${this.id} @ ${this.x},${this.y}`;
     }
 }

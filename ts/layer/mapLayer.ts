@@ -1,4 +1,5 @@
-import { MapType } from '../map/types';
+import * as GWU from 'gw-utils';
+import { MapType, CellInfoType } from '../map/types';
 import * as Tile from '../tile';
 import * as Actor from '../actor';
 import * as Item from '../item';
@@ -60,4 +61,6 @@ export class MapLayer {
     tick(_dt: number): Promise<boolean> | boolean {
         return false;
     }
+
+    putAppearance(_dest: GWU.sprite.Mixer, _cell: CellInfoType) {}
 }

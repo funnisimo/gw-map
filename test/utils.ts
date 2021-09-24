@@ -52,7 +52,7 @@ export function mockCell(map: Map.Map, x: number, y: number): Map.Cell {
 
 export function mockMap(w = 10, h = 10): Map.Map {
     const map = Map.make(w, h);
-    jest.spyOn(map, 'isVisible').mockReturnValue(true);
+    // jest.spyOn(map, 'isVisible').mockReturnValue(true);
     return map;
 }
 

@@ -790,7 +790,7 @@ describe('tile effect', () => {
             next: { tile: 'PRESSURE_PLATE' },
         });
 
-        const map = Map.make(21, 11, { visible: true, tile: 'WALL' });
+        const map = Map.make(21, 11, { tile: 'WALL' });
 
         GWU.xy.forRect(1, 1, 9, 9, (x, y) => map.forceTile(x, y, 'FLOOR'));
         GWU.xy.forRect(11, 1, 9, 9, (x, y) => map.forceTile(x, y, 'FLOOR'));

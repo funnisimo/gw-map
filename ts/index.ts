@@ -8,3 +8,4 @@ export * as map from './map';
 export * as effect from './effect';
 export * as path from './path';
 export * as horde from './horde';
+export * as memory from './memory';

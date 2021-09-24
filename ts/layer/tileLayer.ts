@@ -1,7 +1,7 @@
 import * as GWU from 'gw-utils';
 
 import * as Tile from '../tile';
-import { MapType } from '../map/types';
+import { MapType, CellInfoType } from '../map/types';
 import * as Flags from '../flags';
 import { SetTileOptions } from '../map/types';
 import { MapLayer } from './mapLayer';
@@ -64,11 +64,11 @@ export class TileLayer extends MapLayer {
             this.map.setMapFlag(Flags.Map.MAP_SIDEBAR_TILES_CHANGED);
         }
 
-        if (this.map.fov.isAnyKindOfVisible(x, y)) {
-            cell.clearCellFlag(
-                Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
-            );
-        }
+        // if (this.map.fov.isAnyKindOfVisible(x, y)) {
+        //     cell.clearCellFlag(
+        //         Flags.Cell.STABLE_MEMORY | Flags.Cell.STABLE_SNAPSHOT
+        //     );
+        // }
 
         if (tile.hasTileFlag(Flags.Tile.T_IS_FIRE)) {
             cell.setCellFlag(Flags.Cell.CAUGHT_FIRE_THIS_TURN);
@@ -84,6 +84,15 @@ export class TileLayer extends MapLayer {
         // }
 
         return true;
+    }
+
+    clear() {
+        for (let x = 0; x < this.map.width; ++x) {
+            for (let y = 0; y < this.map.height; ++y) {
+                const cell = this.map.cell(x, y);
+                cell.clearDepth(this.depth);
+            }
+        }
     }
 
     clearTile(x: number, y: number) {
@@ -115,8 +124,7 @@ export class TileLayer extends MapLayer {
         return true;
     }
 
-    putAppearance(dest: GWU.sprite.Mixer, x: number, y: number) {
-        const cell = this.map.cell(x, y);
+    putAppearance(dest: GWU.sprite.Mixer, cell: CellInfoType) {
         const tile = cell.depthTile(this.depth);
         if (tile) {
             dest.drawSprite(tile.sprite);
