@@ -122,7 +122,7 @@ export class FireLayer extends TileLayer {
             //     }
             // });
 
-            await cell.fire(event, this.map, x, y, {
+            await cell.fireEvent(event, {
                 force: true,
             });
 

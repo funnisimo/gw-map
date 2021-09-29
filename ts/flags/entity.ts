@@ -22,6 +22,8 @@ export enum Entity {
     L_BRIGHT_MEMORY = Fl(15), // no blue fade when this tile is out of sight
     L_INVERT_WHEN_HIGHLIGHTED = Fl(16), // will flip fore and back colors when highlighted with pathing
 
+    L_ON_MAP = Fl(17), // entity is currently on a map
+
     L_BLOCKED_BY_STAIRS = L_BLOCKS_ITEMS |
         L_BLOCKS_SURFACE |
         L_BLOCKS_GAS |

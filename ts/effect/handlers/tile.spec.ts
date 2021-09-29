@@ -583,9 +583,7 @@ describe('tile effect', () => {
             const cell = map.cell(ctx.x, ctx.y);
             map.setTile(ctx.x, ctx.y, 'ALTAR');
 
-            await expect(
-                cell.fire('fire', map, ctx.x, ctx.y, ctx)
-            ).resolves.toBeTruthy();
+            await expect(cell.fireEvent('fire', ctx)).resolves.toBeTruthy();
             expect(fn).toHaveBeenCalledTimes(1);
         });
 
@@ -604,12 +602,12 @@ describe('tile effect', () => {
             map.setTile(ctx.x, ctx.y, 'ALTAR');
             const actor = UTILS.mockActor();
 
-            await map.addActor(ctx.x, ctx.y, actor);
+            map.addActor(ctx.x, ctx.y, actor);
             expect(actor).toBeAtXY(ctx.x, ctx.y);
             expect(cell.hasActor()).toBeTruthy();
             grid[ctx.x][ctx.y] = 1;
 
-            await cell.fire('fire', map, ctx.x, ctx.y);
+            await cell.fireEvent('fire');
             expect(actor.forbidsCell).toHaveBeenCalled();
             expect(actor).not.toBeAtXY(ctx.x, ctx.y);
             expect(cell.hasActor()).toBeFalsy();
@@ -631,12 +629,12 @@ describe('tile effect', () => {
 
             const item = UTILS.mockItem();
 
-            await map.addItem(ctx.x, ctx.y, item);
+            map.addItem(ctx.x, ctx.y, item);
             expect(item).toBeAtXY(ctx.x, ctx.y);
             expect(cell.hasItem()).toBeTruthy();
             grid[ctx.x][ctx.y] = 1;
 
-            await cell.fire('fire', map, ctx.x, ctx.y, ctx);
+            await cell.fireEvent('fire', ctx);
             expect(item.forbidsCell).toHaveBeenCalled();
             expect(item).not.toBeAtXY(ctx.x, ctx.y);
             expect(cell.hasItem()).toBeFalsy();

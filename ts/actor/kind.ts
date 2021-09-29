@@ -1,19 +1,29 @@
 import * as GWU from 'gw-utils';
 import * as Entity from '../entity';
+import * as Flags from '../flags';
 import { CellType } from '../map';
 import { Actor, PickupOptions, DropOptions } from './actor';
 import { Item } from '../item/item';
 import { FlavorOptions } from '../entity';
+import { Memory } from '../memory';
 
-export interface KindOptions extends Entity.KindOptions {}
+export interface KindOptions extends Entity.KindOptions {
+    flags?: GWU.flag.FlagBase;
+}
 
 export interface MakeOptions extends Entity.MakeOptions {
-    fov: GWU.fov.FovSystem;
+    fov?: GWU.fov.FovSystem;
+    memory?: Memory;
 }
 
 export class ActorKind extends Entity.EntityKind {
+    flags = { actor: 0 };
+
     constructor(opts: KindOptions) {
         super(opts);
+        if (opts.flags) {
+            this.flags.actor = GWU.flag.from(Flags.Actor, opts.flags);
+        }
     }
 
     make(options?: Partial<MakeOptions>): Actor {
@@ -24,7 +34,16 @@ export class ActorKind extends Entity.EntityKind {
 
     init(actor: Actor, options: Partial<MakeOptions> = {}) {
         super.init(actor, options);
-        actor.fov = options.fov || null;
+        if (options.fov) {
+            actor.fov = options.fov;
+        }
+        if (options.memory) {
+            actor.memory = options.memory;
+        }
+    }
+
+    hasActorFlag(flag: number): boolean {
+        return !!(this.flags.actor & flag);
     }
 
     canSeeEntity(_actor: Actor, _entity: Entity.Entity): boolean {

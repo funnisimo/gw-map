@@ -2,7 +2,7 @@ import * as GWU from 'gw-utils';
 import { Actor } from '../actor/actor';
 import { Item } from '../item/item';
 import { Map } from '../map/map';
-import { CellType } from '../map/types';
+import { CellType, MapType } from '../map/types';
 import * as Flags from '../flags';
 
 export interface ActorInfo {
@@ -19,9 +19,9 @@ export interface ItemInfo {
 
 export class Memory extends Map {
     // actor: Actor;
-    source: Map;
+    source: MapType;
 
-    constructor(map: Map) {
+    constructor(map: MapType) {
         super(map.width, map.height);
         // this.actor = actor;
         this.source = map;
@@ -48,18 +48,26 @@ export class Memory extends Map {
         throw new Error('Cannot set tiles on memory.');
     }
 
-    async addItem(): Promise<boolean> {
+    addItem(
+        x: number,
+        y: number,
+        item: Item,
+        fireEffects: boolean
+    ): boolean | Promise<boolean>;
+    addItem(x: number, y: number, item: Item): boolean;
+    addItem(): boolean | Promise<boolean> {
         throw new Error('Cannot add Items to memory!');
     }
-    forceItem(): boolean {
-        throw new Error('Cannot force Items in memory!');
-    }
-    async removeItem(): Promise<boolean> {
+
+    removeItem(item: Item, fireEffects: boolean): boolean | Promise<boolean>;
+    removeItem(item: Item): boolean;
+    removeItem(): boolean | Promise<boolean> {
         throw new Error('Cannot remove Items from memory!');
     }
-    async moveItem(): Promise<boolean> {
-        throw new Error('Cannot move Items on memory!');
-    }
+
+    // async moveItem(): Promise<boolean> {
+    //     throw new Error('Cannot move Items on memory!');
+    // }
     eachItem(cb: GWU.types.EachCb<Item>): void {
         this.source.eachItem((i) => {
             if (!this.isMemory(i.x, i.y)) {
@@ -77,18 +85,26 @@ export class Memory extends Map {
         this.items.forEach(cb);
     }
 
-    async addActor(): Promise<boolean> {
+    addActor(
+        x: number,
+        y: number,
+        actor: Actor,
+        fireEffects: boolean
+    ): boolean | Promise<boolean>;
+    addActor(x: number, y: number, actor: Actor): boolean;
+    addActor(): boolean | Promise<boolean> {
         throw new Error('Cannot add Actors to memory!');
     }
-    forceActor(): boolean {
-        throw new Error('Cannot force Actors in memory!');
-    }
-    async removeActor(): Promise<boolean> {
+
+    removeActor(actor: Actor, fireEffects: boolean): boolean | Promise<boolean>;
+    removeActor(actor: Actor): boolean;
+    removeActor(): boolean | Promise<boolean> {
         throw new Error('Cannot remove Actors from memory!');
     }
-    async moveActor(): Promise<boolean> {
-        throw new Error('Cannot move Actors on memory!');
-    }
+
+    // async moveActor(): Promise<boolean> {
+    //     throw new Error('Cannot move Actors on memory!');
+    // }
     eachActor(cb: GWU.types.EachCb<Actor>): void {
         this.source.eachActor((a) => {
             if (!this.isMemory(a.x, a.y)) {
@@ -109,6 +125,11 @@ export class Memory extends Map {
     storeMemory(x: number, y: number) {
         const mem = this.memory(x, y);
 
+        const currentList = mem.hasEntityFlag(
+            Flags.Entity.L_LIST_IN_SIDEBAR,
+            true
+        );
+
         // cleanup any old items+actors
         if (mem.hasItem()) {
             this.items = this.items.filter((i) => i.x !== x || i.y !== y);
@@ -121,23 +142,41 @@ export class Memory extends Map {
         mem.copy(cell);
         mem.setCellFlag(Flags.Cell.STABLE_MEMORY);
 
+        let newList = mem.hasEntityFlag(Flags.Entity.L_LIST_IN_SIDEBAR);
+
         // add any current items+actors
         if (cell.hasItem()) {
             const item = this.source.itemAt(x, y);
             if (item) {
                 this.items.push(item.clone());
+                if (item.hasEntityFlag(Flags.Entity.L_LIST_IN_SIDEBAR)) {
+                    newList = true;
+                }
             }
         }
         if (cell.hasActor()) {
             const actor = this.source.actorAt(x, y);
             if (actor) {
                 this.actors.push(actor.clone());
+                if (actor.hasEntityFlag(Flags.Entity.L_LIST_IN_SIDEBAR)) {
+                    newList = true;
+                }
             }
         }
+
+        if (currentList != newList) {
+            this.setMapFlag(Flags.Map.MAP_SIDEBAR_TILES_CHANGED);
+        }
+
+        this.light.setLight(x, y, this.source.light.getLight(x, y));
     }
 
     forget(x: number, y: number) {
         const mem = this.memory(x, y);
+        const currentList = mem.hasEntityFlag(
+            Flags.Entity.L_LIST_IN_SIDEBAR,
+            true
+        );
 
         // cleanup any old items+actors
         if (mem.hasItem()) {
@@ -148,6 +187,14 @@ export class Memory extends Map {
         }
 
         mem.clearCellFlag(Flags.Cell.STABLE_MEMORY);
+
+        let newList = this.source
+            .cell(x, y)
+            .hasEntityFlag(Flags.Entity.L_LIST_IN_SIDEBAR, true);
+
+        if (currentList != newList) {
+            this.setMapFlag(Flags.Map.MAP_SIDEBAR_TILES_CHANGED);
+        }
     }
 
     onFovChange(x: number, y: number, isVisible: boolean) {

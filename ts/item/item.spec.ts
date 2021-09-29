@@ -1,4 +1,4 @@
-import * as GWU from 'gw-utils';
+// import * as GWU from 'gw-utils';
 import * as Item from '.';
 import * as Map from '../map';
 
@@ -17,15 +17,15 @@ describe('Item', () => {
         expect(await map.addItem(5, 5, item)).toBeTruthy();
         expect(map.itemAt(5, 5)).toBe(item);
 
-        expect(await map.moveItem(item, GWU.xy.RIGHT)).toBeTruthy();
-        expect(map.itemAt(5, 5)).toBe(null);
-        expect(map.itemAt(6, 5)).toBe(item);
+        // expect(await map.moveItem(item, GWU.xy.RIGHT)).toBeTruthy();
+        // expect(map.itemAt(5, 5)).toBe(null);
+        // expect(map.itemAt(6, 5)).toBe(item);
 
         expect(await map.removeItem(item)).toBeTruthy();
-        expect(map.itemAt(6, 5)).toBe(null);
+        expect(map.itemAt(5, 5)).toBe(null);
 
         expect(await map.removeItem(item)).toBeFalsy();
-        expect(await map.moveItem(item, GWU.xy.UP)).toBeFalsy();
+        // expect(await map.moveItem(item, GWU.xy.UP)).toBeFalsy();
     });
 
     test.only('clone', () => {

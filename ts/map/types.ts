@@ -39,14 +39,16 @@ export interface CellInfoType {
     readonly y: number;
     readonly map: MapType;
     readonly tiles: TileArray;
+    readonly actor: Actor | null;
+    readonly item: Item | null;
 
     // Flags
 
     hasCellFlag(flag: number): boolean;
     hasTileFlag(flag: number): boolean;
     hasAllTileFlags(flags: number): boolean;
-    hasEntityFlag(flag: number): boolean;
-    hasAllEntityFlags(flags: number): boolean;
+    hasEntityFlag(flag: number, withEntities?: boolean): boolean;
+    hasAllEntityFlags(flags: number, withEntities?: boolean): boolean;
     hasTileMechFlag(flag: number): boolean;
 
     cellFlags(): number;
@@ -101,6 +103,8 @@ export interface CellInfoType {
     // Info
 
     hasEffect(name: string): boolean;
+    needsToFire(): boolean;
+    willFire(name: string): boolean;
 
     readonly hasStableSnapshot: boolean;
     getSnapshot(mixer: GWU.sprite.Mixer): void;
@@ -125,27 +129,23 @@ export interface CellType extends CellInfoType {
     clearCellFlag(flag: number): void;
 
     // @returns - whether or not the change results in a change to the cell lighting.
-    setTile(tile: Tile): boolean;
+    setTile(tile: Tile, opts?: SetTileOptions): boolean;
     clear(tile?: number | string | Tile): void;
     clearDepth(depth: number): boolean;
 
     clearTiles(tile?: string | number | Tile): void;
 
-    addItem(item: Item): void;
-    removeItem(item: Item): boolean;
+    addItem(item: Item, withEffects?: boolean): void;
+    removeItem(item: Item, withEffects?: boolean): boolean;
 
-    addActor(actor: Actor): void;
-    removeActor(actor: Actor): boolean;
+    addActor(actor: Actor, withEffects?: boolean): void;
+    removeActor(actor: Actor, withEffects?: boolean): boolean;
 
     // Effects
 
-    fire(
-        event: string,
-        map: MapType,
-        x: number,
-        y: number,
-        ctx?: Partial<EffectCtx>
-    ): Promise<boolean> | boolean;
+    fireEvent(event: string, ctx?: Partial<EffectCtx>): Promise<boolean>;
+    fireAll(): Promise<boolean>;
+    clearEvents(): void;
 
     copy(other: CellInfoType): void;
     needsRedraw: boolean;
@@ -169,7 +169,7 @@ export type MapTestFn = (
     map: MapType
 ) => boolean;
 
-export interface MapType {
+export interface MapType extends GWU.fov.FovSite {
     readonly width: number;
     readonly height: number;
     readonly rng: GWU.rng.Random;
@@ -193,20 +193,38 @@ export interface MapType {
 
     // itemAt(x: number, y: number): Item | null;
     eachItem(cb: EachItemCb): void;
-    addItem(x: number, y: number, item: Item): Promise<boolean>;
-    forceItem(x: number, y: number, item: Item): boolean;
-    removeItem(item: Item): Promise<boolean>;
-    moveItem(item: Item, dir: GWU.xy.Loc | number): Promise<boolean>;
+
+    addItem(
+        x: number,
+        y: number,
+        item: Item,
+        fireEffects: boolean
+    ): boolean | Promise<boolean>;
+    addItem(x: number, y: number, item: Item): boolean;
+
+    removeItem(item: Item, fireEffects: boolean): boolean | Promise<boolean>;
+    removeItem(item: Item): boolean;
+
+    // moveItem(item: Item, dir: GWU.xy.Loc | number): Promise<boolean>;
     itemAt(x: number, y: number): Item | null;
 
     // Actors
 
     // actorAt(x: number, y: number): Actor | null;
     eachActor(cb: EachActorCb): void;
-    addActor(x: number, y: number, actor: Actor): Promise<boolean>;
-    forceActor(x: number, y: number, actor: Actor): boolean;
-    removeActor(actor: Actor): Promise<boolean>;
-    moveActor(actor: Actor, dir: GWU.xy.Loc | number): Promise<boolean>;
+
+    addActor(
+        x: number,
+        y: number,
+        actor: Actor,
+        fireEffects: boolean
+    ): boolean | Promise<boolean>;
+    addActor(x: number, y: number, actor: Actor): boolean;
+
+    removeActor(actor: Actor, fireEffects: boolean): boolean | Promise<boolean>;
+    removeActor(actor: Actor): boolean;
+
+    // moveActor(actor: Actor, dir: GWU.xy.Loc | number): Promise<boolean>;
     actorAt(x: number, y: number): Actor | null;
 
     // Information

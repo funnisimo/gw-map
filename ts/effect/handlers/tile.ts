@@ -542,7 +542,8 @@ export function evacuateCreatures(map: MapType, blockingMap: GWU.grid.NumGrid) {
             return !a.forbidsCell(c);
         });
         if (loc && loc[0] >= 0 && loc[1] >= 0) {
-            map.forceActor(loc[0], loc[1], a);
+            map.removeActor(a);
+            map.addActor(loc[0], loc[1], a);
             // map.redrawXY(loc[0], loc[1]);
             didSomething = true;
         }
@@ -561,7 +562,8 @@ export function evacuateItems(map: MapType, blockingMap: GWU.grid.NumGrid) {
             return !i.forbidsCell(dest);
         });
         if (loc && loc[0] >= 0 && loc[1] >= 0) {
-            map.forceItem(loc[0], loc[1], i);
+            map.removeItem(i);
+            map.addItem(loc[0], loc[1], i);
             // map.redrawXY(loc[0], loc[1]);
             didSomething = true;
         }

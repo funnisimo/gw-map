@@ -6,9 +6,9 @@ const Fl = GWU.flag.fl;
 // CELL
 
 export enum Cell {
-    SEARCHED_FROM_HERE = Fl(0), // Player already auto-searched from here; can't auto search here again
-    PRESSURE_PLATE_DEPRESSED = Fl(1), // so that traps do not trigger repeatedly while you stand on them
-    KNOWN_TO_BE_TRAP_FREE = Fl(2), // keep track of where the player has stepped as he knows no traps are there
+    PRESSURE_PLATE_DEPRESSED = Fl(0), // so that traps do not trigger repeatedly while you stand on them
+    SEARCHED_FROM_HERE = Fl(1), // Player already auto-searched from here; can't auto search here again
+    KNOWN_TO_BE_SAFE = Fl(2), // keep track of where the player has stepped as he knows no traps are there
 
     CAUGHT_FIRE_THIS_TURN = Fl(3), // so that fire does not spread asymmetrically
     EVENT_FIRED_THIS_TURN = Fl(4), // so we don't update cells that have already changed this turn
@@ -26,17 +26,16 @@ export enum Cell {
     STABLE_MEMORY = Fl(14), //
     STABLE_SNAPSHOT = Fl(15), //
 
-    // These are to help memory
-    HAS_SURFACE = Fl(16),
-    HAS_LIQUID = Fl(17),
-    HAS_GAS = Fl(18),
-    HAS_PLAYER = Fl(19),
-    HAS_ACTOR = Fl(20),
-    HAS_DORMANT_MONSTER = Fl(21), // hidden monster on the square
-    HAS_ITEM = Fl(22),
+    // These are to speed checks
+    HAS_PLAYER = Fl(16),
+    HAS_ACTOR = Fl(27),
+    HAS_DORMANT_MONSTER = Fl(18), // hidden monster on the square
+    HAS_ITEM = Fl(19),
 
-    IS_IN_PATH = Fl(23), // the yellow trail leading to the cursor
-    IS_CURSOR = Fl(24), // the current cursor
+    IS_IN_PATH = Fl(20), // the yellow trail leading to the cursor
+    IS_CURSOR = Fl(21), // the current cursor
+
+    HAS_TICK_EFFECT = Fl(22),
 
     IS_WIRED = Fl(26),
     IS_CIRCUIT_BREAKER = Fl(27),
@@ -53,7 +52,7 @@ export enum Cell {
         STABLE_MEMORY |
         SEARCHED_FROM_HERE |
         PRESSURE_PLATE_DEPRESSED |
-        KNOWN_TO_BE_TRAP_FREE |
+        KNOWN_TO_BE_SAFE |
         IS_IN_LOOP |
         IS_CHOKEPOINT |
         IS_GATE_SITE |

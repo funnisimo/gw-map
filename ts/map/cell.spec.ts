@@ -297,7 +297,7 @@ describe('Cell', () => {
     test('hasTile', () => {
         const cell: Cell = new Cell(map, 1, 1, 'BRIDGE');
         expect(cell.hasTile('WALL')).toBeFalsy();
-        expect(cell.hasTile('LAKE')).toBeFalsy(); // groundTile not handled in Cell (see TileLayer);
+        expect(cell.hasTile('LAKE')).toBeTruthy(); // groundTile replaced if it is NULL
         expect(cell.hasTile(Tile.tiles.BRIDGE)).toBeTruthy();
     });
 
@@ -696,8 +696,8 @@ describe('Cell', () => {
         expect(cell.needsRedraw).toBeTrue();
         expect(cell.changed).toBeTrue();
 
-        // groundTile not handled in cell - look in layer
-        expect(cell.depthTile(Flags.Depth.GROUND)).toEqual(Tile.tiles.NULL);
+        // groundTile replaced if it is NULL
+        expect(cell.depthTile(Flags.Depth.GROUND)).toEqual(Tile.tiles.LAKE);
         expect(cell.depthTile(Flags.Depth.SURFACE)).toEqual(Tile.tiles.BRIDGE);
         expect(cell.isNull()).toBeFalsy();
     });
@@ -712,8 +712,8 @@ describe('Cell', () => {
 
         const cell: Cell = new Cell(map, 1, 1, 'FLOOR');
         cell.setTile(fire);
-        // Fire handled in TileLayer...
-        expect(cell.hasCellFlag(Flags.Cell.CAUGHT_FIRE_THIS_TURN)).toBeFalsy();
+        // Fire noticed
+        expect(cell.hasCellFlag(Flags.Cell.CAUGHT_FIRE_THIS_TURN)).toBeTruthy();
     });
 
     test('setTile(UNKNOWN) - will be ignored', () => {
@@ -740,10 +740,15 @@ describe('Cell', () => {
         expect(c.setTile(wall)).toBeTruthy();
         expect(c.setTile(wall)).toBeFalsy();
         expect(c.depthTile(Flags.Depth.GROUND)).toBe(Tile.tiles.WALL);
+
         // c.setTile(floor, true); // checks priority
         // expect(c.ground).toEqual(wall);  // 2 has better priority
-        expect(c.setTile(floor)).toBeTruthy();
-        expect(c.depthTile(Flags.Depth.GROUND)).toBe(Tile.tiles.FLOOR); // ignored priority
+
+        expect(c.setTile(floor)).toBeFalsy();
+        expect(c.depthTile(Flags.Depth.GROUND)).toBe(Tile.tiles.WALL); // preserve priority
+
+        expect(c.setTile(floor, { superpriority: true })).toBeTruthy();
+        expect(c.depthTile(Flags.Depth.GROUND)).toBe(Tile.tiles.FLOOR); // superpriority
     });
 
     // test('item', () => {
@@ -801,7 +806,7 @@ describe('Cell', () => {
         const cell: Cell = new Cell(map, 1, 1, 'LOW_CHANCE');
         // UTILS.mockRandom();
         GWU.rng.random.seed(12345);
-        expect(await cell.fire('enter', map, 5, 5, {})).toBeFalsy();
+        expect(await cell.fireEvent('enter')).toBeFalsy();
     });
 
     test('clearDepth', () => {

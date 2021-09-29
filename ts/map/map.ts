@@ -16,6 +16,8 @@ import {
 } from './types';
 // import { CellMemory } from './cellMemory';
 import * as Effect from '../effect';
+import { CellDrawer, MapDrawOptions } from '../draw/types';
+import { BasicDrawer } from '../draw/basic';
 
 export interface MapOptions extends GWU.light.LightSystemOptions {
     // GWU.fov.FovSystemOptions {
@@ -23,19 +25,10 @@ export interface MapOptions extends GWU.light.LightSystemOptions {
     boundary: string | true;
     seed: number;
     id: string;
+    drawer: CellDrawer;
 }
 
 export type LayerType = Layer.TileLayer | Layer.ActorLayer | Layer.ItemLayer;
-
-export interface MapDrawOptions {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    mapOffsetX: number;
-    mapOffsetY: number;
-    force: boolean;
-}
 
 export class Map implements GWU.light.LightSystemSite, MapType {
     width: number;
@@ -53,6 +46,7 @@ export class Map implements GWU.light.LightSystemSite, MapType {
     id = 'MAP';
     actors: Actor[] = [];
     items: Item[] = [];
+    drawer: CellDrawer;
 
     constructor(width: number, height: number, opts: Partial<MapOptions> = {}) {
         this.width = width;
@@ -62,6 +56,7 @@ export class Map implements GWU.light.LightSystemSite, MapType {
         if (opts.id) {
             this.id = opts.id;
         }
+        this.drawer = opts.drawer || new BasicDrawer();
 
         this.cells = GWU.grid.make(
             width,
@@ -168,73 +163,73 @@ export class Map implements GWU.light.LightSystemSite, MapType {
     eachItem(cb: GWU.types.EachCb<Item>): void {
         this.items.forEach(cb);
     }
-    async addItem(x: number, y: number, item: Item): Promise<boolean> {
+
+    addItem(
+        x: number,
+        y: number,
+        item: Item,
+        fireEffects: boolean
+    ): boolean | Promise<boolean>;
+    addItem(x: number, y: number, item: Item): boolean;
+    addItem(
+        x: number,
+        y: number,
+        item: Item,
+        fireEffects = false
+    ): boolean | Promise<boolean> {
         if (!this.hasXY(x, y)) return false;
-        for (let layer of this.layers) {
-            if (layer && (await layer.addItem(x, y, item))) {
-                // this.items.push(item);
-                return true;
-            }
-        }
-        return false;
-    }
-    forceItem(x: number, y: number, item: Item): boolean {
-        if (!this.hasXY(x, y)) return false;
-        for (let layer of this.layers) {
-            if (layer && layer.forceItem(x, y, item)) {
-                // this.items.push(item);
-                return true;
-            }
-        }
-        return false;
+        const cell = this.cell(x, y);
+        cell.addItem(item, fireEffects);
+        if (!fireEffects) return true;
+        return cell.fireAll().then(() => true);
     }
 
-    async removeItem(item: Item): Promise<boolean> {
-        const layer = this.layers[item.depth] as Layer.ItemLayer;
-        if (await layer.removeItem(item)) {
-            // GWU.arrayDelete(this.items, item);
-            return true;
-        }
-        return false;
+    removeItem(item: Item, fireEffects: boolean): boolean | Promise<boolean>;
+    removeItem(item: Item): boolean;
+    removeItem(item: Item, fireEffects = false): boolean | Promise<boolean> {
+        const cell = this.cell(item.x, item.y);
+        if (!cell.removeItem(item, fireEffects)) return false;
+        if (!fireEffects) return true;
+        return cell.fireAll().then(() => true);
     }
-    async moveItem(item: Item, dir: GWU.xy.Loc | number): Promise<boolean> {
-        if (typeof dir === 'number') {
-            dir = GWU.xy.DIRS[dir];
-        }
-        const oldX = item.x;
-        const oldY = item.y;
-        const x = oldX + dir[0];
-        const y = oldY + dir[1];
-        if (!this.hasXY(x, y)) return false;
+    // async moveItem(item: Item, dir: GWU.xy.Loc | number): Promise<boolean> {
+    //     if (typeof dir === 'number') {
+    //         dir = GWU.xy.DIRS[dir];
+    //     }
+    //     const oldX = item.x;
+    //     const oldY = item.y;
+    //     const x = oldX + dir[0];
+    //     const y = oldY + dir[1];
+    //     if (!this.hasXY(x, y)) return false;
 
-        const layer = this.layers[item.depth] as Layer.ItemLayer;
-        if (!(await layer.removeItem(item))) return false;
-        if (!(await this.addItem(x, y, item))) {
-            layer.forceItem(item.x, item.y, item);
-            return false;
-        }
+    //     const layer = this.layers[item.depth] as Layer.ItemLayer;
+    //     if (!(await layer.removeItem(item))) return false;
+    //     if (!(await this.addItem(x, y, item))) {
+    //         layer.forceItem(item.x, item.y, item);
+    //         return false;
+    //     }
 
-        // const wasVisible = this.fov.isAnyKindOfVisible(oldX, oldY);
-        // const isVisible = this.fov.isAnyKindOfVisible(x, y);
-        // if (isVisible && !wasVisible) {
-        //     if (item.lastSeen) {
-        //         this._memory[item.lastSeen.x][item.lastSeen.y].removeItem(item);
-        //         this.clearCellFlag(
-        //             item.lastSeen.x,
-        //             item.lastSeen.y,
-        //             Flags.Cell.STABLE_SNAPSHOT
-        //         );
-        //         item.lastSeen = null;
-        //     }
-        // } else if (wasVisible && !isVisible) {
-        //     const mem = this._memory[x][y];
-        //     mem.item = item;
-        //     this.clearCellFlag(x, y, Flags.Cell.STABLE_SNAPSHOT);
-        //     item.lastSeen = this.cell(x, y);
-        // }
+    //     // const wasVisible = this.fov.isAnyKindOfVisible(oldX, oldY);
+    //     // const isVisible = this.fov.isAnyKindOfVisible(x, y);
+    //     // if (isVisible && !wasVisible) {
+    //     //     if (item.lastSeen) {
+    //     //         this._memory[item.lastSeen.x][item.lastSeen.y].removeItem(item);
+    //     //         this.clearCellFlag(
+    //     //             item.lastSeen.x,
+    //     //             item.lastSeen.y,
+    //     //             Flags.Cell.STABLE_SNAPSHOT
+    //     //         );
+    //     //         item.lastSeen = null;
+    //     //     }
+    //     // } else if (wasVisible && !isVisible) {
+    //     //     const mem = this._memory[x][y];
+    //     //     mem.item = item;
+    //     //     this.clearCellFlag(x, y, Flags.Cell.STABLE_SNAPSHOT);
+    //     //     item.lastSeen = this.cell(x, y);
+    //     // }
 
-        return true;
-    }
+    //     return true;
+    // }
 
     // Actors
 
@@ -247,75 +242,77 @@ export class Map implements GWU.light.LightSystemSite, MapType {
     eachActor(cb: GWU.types.EachCb<Actor>): void {
         this.actors.forEach(cb);
     }
-    async addActor(x: number, y: number, actor: Actor): Promise<boolean> {
+    addActor(
+        x: number,
+        y: number,
+        actor: Actor,
+        fireEffects: boolean
+    ): boolean | Promise<boolean>;
+    addActor(x: number, y: number, actor: Actor): boolean;
+    addActor(
+        x: number,
+        y: number,
+        actor: Actor,
+        fireEffects = false
+    ): boolean | Promise<boolean> {
         if (!this.hasXY(x, y)) return false;
-        for (let layer of this.layers) {
-            if (layer && (await layer.addActor(x, y, actor))) {
-                // this.actors.push(actor);
-                return true;
-            }
-        }
-        return false;
-    }
-    forceActor(x: number, y: number, actor: Actor): boolean {
-        if (!this.hasXY(x, y)) return false;
-        for (let layer of this.layers) {
-            if (layer && layer.forceActor(x, y, actor)) {
-                // this.actors.push(actor);
-                return true;
-            }
-        }
-        return false;
-    }
-    async removeActor(actor: Actor): Promise<boolean> {
-        const layer = this.layers[actor.depth] as Layer.ActorLayer;
-        if (await layer.removeActor(actor)) {
-            // GWU.arrayDelete(this.actors, actor);
-            return true;
-        }
-        return false;
-    }
-    async moveActor(actor: Actor, dir: GWU.xy.Loc | number): Promise<boolean> {
-        if (typeof dir === 'number') {
-            dir = GWU.xy.DIRS[dir];
-        }
-        const oldX = actor.x;
-        const oldY = actor.y;
-        const x = oldX + dir[0];
-        const y = oldY + dir[1];
+        const cell = this.cell(x, y);
+        cell.addActor(actor, fireEffects);
+        if (!fireEffects) return true;
 
-        if (!this.hasXY(x, y)) return false;
-
-        const layer = this.layers[actor.depth] as Layer.ActorLayer;
-        if (!(await layer.removeActor(actor))) return false;
-        if (!(await layer.addActor(x, y, actor))) {
-            layer.forceActor(actor.x, actor.y, actor);
-            return false;
-        }
-
-        // const wasVisible = this.fov.isAnyKindOfVisible(oldX, oldY);
-        // const isVisible = this.fov.isAnyKindOfVisible(x, y);
-        // if (isVisible && !wasVisible) {
-        //     if (actor.lastSeen) {
-        //         this._memory[actor.lastSeen.x][actor.lastSeen.y].removeActor(
-        //             actor
-        //         );
-        //         this.clearCellFlag(
-        //             actor.lastSeen.x,
-        //             actor.lastSeen.y,
-        //             Flags.Cell.STABLE_SNAPSHOT
-        //         );
-        //         actor.lastSeen = null;
-        //     }
-        // } else if (wasVisible && !isVisible) {
-        //     const mem = this._memory[x][y];
-        //     mem.actor = actor;
-        //     this.clearCellFlag(x, y, Flags.Cell.STABLE_SNAPSHOT);
-        //     actor.lastSeen = this.cell(x, y);
-        // }
-
-        return true;
+        return cell.fireAll().then(() => true);
     }
+
+    removeActor(actor: Actor, fireEffects: boolean): boolean | Promise<boolean>;
+    removeActor(actor: Actor): boolean;
+    removeActor(actor: Actor, fireEffects = false): boolean | Promise<boolean> {
+        const cell = this.cell(actor.x, actor.y);
+        if (!cell.removeActor(actor, fireEffects)) return false;
+        if (!fireEffects) return true;
+
+        return cell.fireAll().then(() => true);
+    }
+    // async moveActor(actor: Actor, dir: GWU.xy.Loc | number): Promise<boolean> {
+    //     if (typeof dir === 'number') {
+    //         dir = GWU.xy.DIRS[dir];
+    //     }
+    //     const oldX = actor.x;
+    //     const oldY = actor.y;
+    //     const x = oldX + dir[0];
+    //     const y = oldY + dir[1];
+
+    //     if (!this.hasXY(x, y)) return false;
+
+    //     const layer = this.layers[actor.depth] as Layer.ActorLayer;
+    //     if (!(await layer.removeActor(actor))) return false;
+    //     if (!(await layer.addActor(x, y, actor))) {
+    //         layer.forceActor(actor.x, actor.y, actor);
+    //         return false;
+    //     }
+
+    //     // const wasVisible = this.fov.isAnyKindOfVisible(oldX, oldY);
+    //     // const isVisible = this.fov.isAnyKindOfVisible(x, y);
+    //     // if (isVisible && !wasVisible) {
+    //     //     if (actor.lastSeen) {
+    //     //         this._memory[actor.lastSeen.x][actor.lastSeen.y].removeActor(
+    //     //             actor
+    //     //         );
+    //     //         this.clearCellFlag(
+    //     //             actor.lastSeen.x,
+    //     //             actor.lastSeen.y,
+    //     //             Flags.Cell.STABLE_SNAPSHOT
+    //     //         );
+    //     //         actor.lastSeen = null;
+    //     //     }
+    //     // } else if (wasVisible && !isVisible) {
+    //     //     const mem = this._memory[x][y];
+    //     //     mem.actor = actor;
+    //     //     this.clearCellFlag(x, y, Flags.Cell.STABLE_SNAPSHOT);
+    //     //     actor.lastSeen = this.cell(x, y);
+    //     // }
+
+    //     return true;
+    // }
 
     // Information
 
@@ -334,12 +331,8 @@ export class Map implements GWU.light.LightSystemSite, MapType {
         return this.cells.count((cell, x, y) => cb(cell, x, y, this));
     }
     dump(fmt?: GWU.grid.GridFormat<Cell>, log = console.log) {
-        const mixer = new GWU.sprite.Mixer();
-
-        const getCh = (_cell: Cell, x: number, y: number) => {
-            this.getAppearanceAt(x, y, mixer);
-            if (mixer.ch < 0) return ' ';
-            return mixer.ch as string;
+        const getCh = (cell: Cell) => {
+            return cell.dump();
         };
         this.cells.dump(fmt || getCh, log);
     }
@@ -479,7 +472,7 @@ export class Map implements GWU.light.LightSystemSite, MapType {
         ctx: Partial<Effect.EffectCtx> = {}
     ): Promise<boolean> {
         const cell = this.cell(x, y);
-        return cell.fire(event, this, x, y, ctx);
+        return cell.fireEvent(event, ctx);
     }
 
     async fireAll(
@@ -546,7 +539,7 @@ export class Map implements GWU.light.LightSystemSite, MapType {
             if (cell.hasCellFlag(Flags.Cell.EVENT_FIRED_THIS_TURN)) return;
             for (let depth = 0; depth <= Flags.Depth.GAS; ++depth) {
                 if (w & GWU.flag.fl(depth)) {
-                    await cell.fire(event, this, x, y, {
+                    await cell.fireEvent(event, {
                         force: true,
                         depth,
                     });
@@ -573,8 +566,7 @@ export class Map implements GWU.light.LightSystemSite, MapType {
                 if (cell.machineId !== machineId) continue;
                 if (cell.hasEffect('machine')) {
                     didSomething =
-                        (await cell.fire('machine', this, x, y, ctx)) ||
-                        didSomething;
+                        (await cell.fireEvent('machine', ctx)) || didSomething;
                 }
             }
         }
@@ -585,61 +577,14 @@ export class Map implements GWU.light.LightSystemSite, MapType {
 
     drawInto(
         dest: GWU.canvas.Canvas | GWU.canvas.DataBuffer,
-        opts: Partial<MapDrawOptions> | boolean = {}
+        opts?: Partial<MapDrawOptions>
     ) {
-        const buffer: GWU.canvas.DataBuffer =
-            dest instanceof GWU.canvas.Canvas ? dest.buffer : dest;
-
-        if (typeof opts === 'boolean') opts = { force: opts };
-        const mixer = new GWU.sprite.Mixer();
-        for (let x = 0; x < buffer.width; ++x) {
-            for (let y = 0; y < buffer.height; ++y) {
-                this.getAppearanceAt(x, y, mixer);
-                buffer.drawSprite(x, y, mixer);
-            }
-        }
-    }
-
-    getCellAppearance(cell: CellType, dest: GWU.sprite.Mixer) {
-        dest.blackOut();
-        const isVisible = true; // this.fov.isAnyKindOfVisible(x, y);
-        const isRevealed = true; // this.fov.isRevealed(x, y);
-
-        const needSnapshot = !cell.hasCellFlag(Flags.Cell.STABLE_SNAPSHOT);
-        if (needSnapshot || (cell.needsRedraw && isVisible)) {
-            this.layers.forEach((layer) => layer.putAppearance(dest, cell));
-
-            if (dest.dances) {
-                cell.setCellFlag(Flags.Cell.COLORS_DANCE);
-            } else {
-                cell.clearCellFlag(Flags.Cell.COLORS_DANCE);
-            }
-
-            dest.bake();
-            cell.putSnapshot(dest);
-            cell.needsRedraw = false;
-            cell.setCellFlag(Flags.Cell.STABLE_SNAPSHOT);
-        } else {
-            cell.getSnapshot(dest);
-        }
-
-        if (isVisible) {
-            const light = this.light.getLight(cell.x, cell.y);
-            dest.multiply(light);
-        } else if (isRevealed) {
-            dest.scale(50);
-        } else {
-            dest.blackOut();
-        }
-
-        if (cell.hasEntityFlag(Flags.Entity.L_VISUALLY_DISTINCT)) {
-            GWU.color.separate(dest.fg, dest.bg);
-        }
+        this.drawer.drawInto(dest, this, opts);
     }
 
     getAppearanceAt(x: number, y: number, dest: GWU.sprite.Mixer) {
         const cell = this.cell(x, y);
-        return this.getCellAppearance(cell, dest);
+        return this.drawer.drawCell(dest, cell);
     }
 
     // // LightSystemSite
@@ -669,72 +614,11 @@ export class Map implements GWU.light.LightSystemSite, MapType {
     blocksVision(x: number, y: number): boolean {
         return this.cell(x, y).blocksVision();
     }
-    onCellRevealed(_x: number, _y: number): void {
-        // if (DATA.automationActive) {
-        // if (cell.item) {
-        //     const theItem: GW.types.ItemType = cell.item;
-        //     if (
-        //         theItem.hasObjectFlag(ObjectFlags.L_INTERRUPT_WHEN_SEEN)
-        //     ) {
-        //         GW.message.add(
-        //             '§you§ §see§ ΩitemMessageColorΩ§item§∆.',
-        //             {
-        //                 item: theItem,
-        //                 actor: DATA.player,
-        //             }
-        //         );
-        //     }
-        // }
-        // if (
-        //     !(this.fov.isMagicMapped(x, y)) &&
-        //     this.site.hasObjectFlag(
-        //         x,
-        //         y,
-        //         ObjectFlags.L_INTERRUPT_WHEN_SEEN
-        //     )
-        // ) {
-        //     const tile = cell.tileWithLayerFlag(
-        //         ObjectFlags.L_INTERRUPT_WHEN_SEEN
-        //     );
-        //     if (tile) {
-        //         GW.message.add(
-        //             '§you§ §see§ ΩbackgroundMessageColorΩ§item§∆.',
-        //             {
-        //                 actor: DATA.player,
-        //                 item: tile.name,
-        //             }
-        //         );
-        //     }
-        // }
-    }
-    redrawCell(x: number, y: number): void {
-        // if (clearMemory) {
-        //     this.clearMemory(x, y);
-        // }
-        this.cell(x, y).needsRedraw = true;
-    }
-    // clearMemory(x: number, y: number): void {
-    //     this._memory[x][y].clear();
-    // }
-    // storeMemory(x: number, y: number, updateSnapshot = false): void {
-    //     const cell = this.cell(x,y);
-    //     const memory = this._memory[x][y];
-    //     memory.store(cell);
-    //     cell.setCellFlag(Flags.Cell.STABLE_MEMORY);
-    //     if (updateSnapshot || !cell.hasCellFlag(Flags.Cell.STABLE_SNAPSHOT)) {
-    //         const dest = memory.snapshot;
-    //         dest.blackOut();
-    //         this.layers.forEach((layer) => layer.putAppearance(dest, x, y));
-    //         dest.bake();
-    //         cell.setCellFlag(Flags.Cell.STABLE_SNAPSHOT);
-    //     }
-    // }
-
-    // // DigSite
-
-    // isWall(x: number, y: number, useMemory = false): boolean {
-    //     const info = this.cell(x, y, useMemory);
-    //     return info.blocksMove() && info.blocksVision();
+    // redrawCell(x: number, y: number): void {
+    //     // if (clearMemory) {
+    //     //     this.clearMemory(x, y);
+    //     // }
+    //     this.cell(x, y).needsRedraw = true;
     // }
 }
 

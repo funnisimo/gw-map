@@ -12,18 +12,18 @@ describe('Actor', () => {
 
         const map = Map.make(20, 20, 'FLOOR', 'WALL');
 
-        expect(await map.addActor(5, 5, actor)).toBeTruthy();
+        expect(map.addActor(5, 5, actor, false)).toBeTruthy();
         expect(map.actorAt(5, 5)).toBe(actor);
 
-        expect(await map.moveActor(actor, GWU.xy.LEFT)).toBeTruthy();
+        // expect(await map.moveActor(actor, GWU.xy.LEFT)).toBeTruthy();
+        // expect(map.actorAt(5, 5)).toBe(null);
+        // expect(map.actorAt(4, 5)).toBe(actor);
+
+        expect(map.removeActor(actor, false)).toBeTruthy();
         expect(map.actorAt(5, 5)).toBe(null);
-        expect(map.actorAt(4, 5)).toBe(actor);
 
-        expect(await map.removeActor(actor)).toBeTruthy();
-        expect(map.actorAt(4, 5)).toBe(null);
-
-        expect(await map.removeActor(actor)).toBeFalsy();
-        expect(await map.moveActor(actor, GWU.xy.UP)).toBeFalsy();
+        expect(map.removeActor(actor)).toBeFalsy();
+        // expect(await map.moveActor(actor, GWU.xy.UP)).toBeFalsy();
     });
 
     test('actor with fov', async () => {
@@ -39,7 +39,7 @@ describe('Actor', () => {
             { fov }
         );
 
-        expect(await map.addActor(5, 5, actor)).toBeTruthy();
+        expect(map.addActor(5, 5, actor)).toBeTruthy();
         expect(map.actorAt(5, 5)).toBe(actor);
 
         fov.update(5, 5, 5);
@@ -57,7 +57,7 @@ describe('Actor', () => {
             fg: 'green',
         });
 
-        expect(await map.addActor(5, 5, actor)).toBeTruthy();
+        expect(map.addActor(5, 5, actor)).toBeTruthy();
         expect(map.actorAt(5, 5)).toBe(actor);
 
         expect(actor.canSee(6, 6)).toBeTruthy();

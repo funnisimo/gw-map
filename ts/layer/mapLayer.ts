@@ -1,5 +1,4 @@
-import * as GWU from 'gw-utils';
-import { MapType, CellInfoType } from '../map/types';
+import { MapType, SetTileOptions } from '../map/types';
 import * as Tile from '../tile';
 import * as Actor from '../actor';
 import * as Item from '../item';
@@ -21,7 +20,12 @@ export class MapLayer {
     copy(_other: MapLayer) {}
     clear() {}
 
-    setTile(_x: number, _y: number, _tile: Tile.Tile): boolean {
+    setTile(
+        _x: number,
+        _y: number,
+        _tile: Tile.Tile,
+        _opts?: SetTileOptions
+    ): boolean {
         return false;
     }
     clearTile(_x: number, _y: number): boolean {
@@ -61,6 +65,4 @@ export class MapLayer {
     tick(_dt: number): Promise<boolean> | boolean {
         return false;
     }
-
-    putAppearance(_dest: GWU.sprite.Mixer, _cell: CellInfoType) {}
 }

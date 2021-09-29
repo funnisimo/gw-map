@@ -1,11 +1,11 @@
 import { Actor } from '../actor/actor';
-import { Map } from '../map/map';
+import { MapType } from '../map/types';
 import { Memory } from './memory';
 
 type MemoryRecord = Record<string, Memory>;
 const cache: Record<string, MemoryRecord> = {};
 
-export function store(actor: Actor, map: Map, memory: Memory) {
+export function store(actor: Actor, map: MapType, memory: Memory) {
     let actorMemory = cache[actor.id];
     if (!actorMemory) {
         cache[actor.id] = actorMemory = {};
@@ -13,7 +13,7 @@ export function store(actor: Actor, map: Map, memory: Memory) {
     actorMemory[map.id] = memory;
 }
 
-export function get(actor: Actor, map: Map): Memory {
+export function get(actor: Actor, map: MapType): Memory {
     let actorMemory = cache[actor.id];
     if (actorMemory) {
         const memory = actorMemory[map.id];

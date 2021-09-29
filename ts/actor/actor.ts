@@ -4,6 +4,8 @@ import { ActorFlags } from './types';
 import * as Flags from '../flags';
 import { ActorKind } from './kind';
 import { Item } from '../item';
+import { MapType } from '../map';
+import * as Memory from '../memory';
 
 export interface PickupOptions {
     admin: boolean;
@@ -21,6 +23,7 @@ export class Actor extends Entity.Entity {
     leader: Actor | null = null;
     items: Item | null = null;
     fov: GWU.fov.FovSystem | null = null;
+    memory: Memory.Memory | null = null;
 
     constructor(kind: ActorKind) {
         super(kind);
@@ -42,6 +45,28 @@ export class Actor extends Entity.Entity {
 
     isPlayer() {
         return this.hasActorFlag(Flags.Actor.IS_PLAYER);
+    }
+
+    addToMap(map: MapType, x: number, y: number): boolean {
+        if (!super.addToMap(map, x, y)) return false;
+
+        if (this.kind.hasActorFlag(Flags.Actor.HAS_MEMORY)) {
+            this.memory = Memory.get(this, map);
+        }
+        if (this.kind.hasActorFlag(Flags.Actor.USES_FOV)) {
+            this.fov = new GWU.fov.FovSystem(map);
+            if (this.memory) {
+                this.fov.onFovChange = this.memory;
+            }
+        }
+        return true;
+    }
+
+    removeFromMap() {
+        if (this._map && this.memory) {
+            Memory.store(this, this._map, this.memory);
+        }
+        super.removeFromMap();
     }
 
     /////////////// VISIBILITY

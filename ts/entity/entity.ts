@@ -14,7 +14,7 @@ export class Entity implements EntityType {
     next: Entity | null;
     x: number;
     y: number;
-    map: MapType | null = null;
+    _map: MapType | null = null;
     kind: EntityKind;
     key: KeyInfoType | null = null;
     machineHome = 0;
@@ -29,6 +29,28 @@ export class Entity implements EntityType {
         this.y = -1;
         this.kind = kind;
         this.id = '' + ++lastId;
+    }
+
+    get map(): MapType | null {
+        return this._map;
+    }
+
+    addToMap(map: MapType, x: number, y: number): boolean {
+        if (this.hasEntityFlag(Flags.Entity.L_ON_MAP)) {
+            throw new Error('Entity is currently on a map!');
+        }
+        this.x = x;
+        this.y = y;
+        this.setEntityFlag(Flags.Entity.L_ON_MAP);
+        if (this._map === map) {
+            return false;
+        }
+        this._map = map;
+        return true;
+    }
+
+    removeFromMap() {
+        this.clearEntityFlag(Flags.Entity.L_ON_MAP);
     }
 
     get sprite(): GWU.sprite.Sprite {
@@ -76,6 +98,12 @@ export class Entity implements EntityType {
     hasAllEntityFlags(flags: number) {
         return (this.flags.entity & flags) === flags;
     }
+    setEntityFlag(flag: number) {
+        this.flags.entity |= flag;
+    }
+    clearEntityFlag(flag: number) {
+        this.flags.entity &= ~flag;
+    }
 
     hasTag(tag: string): boolean {
         return this.kind.tags.includes(tag);
@@ -121,6 +149,9 @@ export class Entity implements EntityType {
 
     drawStatus(sidebar: StatusDrawer): void {
         this.kind.drawStatus(this, sidebar);
+    }
+    drawInto(dest: GWU.sprite.Mixer, _observer?: Entity) {
+        dest.drawSprite(this.sprite);
     }
 
     toString() {

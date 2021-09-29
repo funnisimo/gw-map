@@ -74,7 +74,9 @@ describe('memory', () => {
         expect(cellMem.hasStableMemory).toBeFalsy(); // visible
 
         // actor walks into FOV
-        await map.moveActor(actor, GWU.xy.LEFT);
+        // await map.moveActor(actor, GWU.xy.LEFT);
+        map.removeActor(actor);
+        map.addActor(actor.x - 1, actor.y, actor);
         fov.update(5, 5, 5); // no fov change - player stood still
         expect(map.actorAt(10, 5)).toBe(actor);
         expect(memory.cell(10, 5).hasStableMemory).toBeFalsy();
@@ -82,7 +84,8 @@ describe('memory', () => {
         expect(memory.actorAt(11, 5)).toBeNull(); // never seen!
 
         // actor walks off
-        await map.moveActor(actor, GWU.xy.RIGHT);
+        map.removeActor(actor);
+        map.addActor(actor.x + 1, actor.y, actor);
         fov.update(5, 5, 5); // no fov change - player stood still
 
         // nothing changes - no fov change

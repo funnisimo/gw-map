@@ -48,10 +48,12 @@ describe('Special Effects', () => {
         for (let i = 1; i < items.length; ++i) {
             const item = items[i]!;
             const prevItem = items[i - 1]!;
-            map.forceItem(item.x, item.y, prevItem);
+            map.removeItem(prevItem);
+            map.addItem(item.x, item.y, prevItem);
         }
         const lastItem = items[items.length - 1]!;
-        map.forceItem(lastLoc[0], lastLoc[1], lastItem);
+        map.removeItem(lastItem);
+        map.addItem(lastLoc[0], lastLoc[1], lastItem);
         return true;
     }
 
@@ -65,7 +67,7 @@ describe('Special Effects', () => {
             priority: 100 - 17,
             flags: 'L_BLOCKS_SURFACE, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT',
             effects: {
-                addItem: {
+                add_item: {
                     fn: swapItems,
                     next: { effect: 'DF_ALTAR_SWAP' },
                 },
@@ -156,12 +158,12 @@ describe('Special Effects', () => {
         expect(map.cell(15, 15).machineId).toEqual(3);
 
         const hat = Item.make('HAT');
-        expect(await map.addItem(5, 5, hat)).toBeTruthy();
+        expect(await map.addItem(5, 5, hat, true)).toBeTruthy();
         expect(hat).toBeAtXY(5, 5);
         expect(map.itemAt(5, 5)).toBe(hat);
 
         const coat = Item.make('COAT');
-        expect(await map.addItem(15, 15, coat)).toBeTruthy(); // causes position swap!
+        expect(await map.addItem(15, 15, coat, true)).toBeTruthy(); // causes position swap!
         expect(map.itemAt(5, 5)).not.toBeNull();
         expect(map.itemAt(15, 15)).not.toBeNull();
 
