@@ -829,13 +829,13 @@ declare class Actor extends Entity {
     items: Item | null;
     fov: GWU.fov.FovSystem | null;
     memory: Memory | null;
+    visionDistance: number;
     constructor(kind: ActorKind);
+    copy(other: Actor): void;
     hasActorFlag(flag: number): boolean;
     hasAllActorFlags(flags: number): boolean;
     actorFlags(): number;
     isPlayer(): boolean;
-    addToMap(map: MapType, x: number, y: number): boolean;
-    removeFromMap(): void;
     canSee(x: number, y: number): boolean;
     canSee(entity: Entity): boolean;
     canSeeOrSense(x: number, y: number): boolean;
@@ -1034,6 +1034,7 @@ declare namespace index_d$4 {
 
 interface KindOptions$1 extends KindOptions {
     flags?: GWU.flag.FlagBase;
+    vision?: number;
 }
 interface MakeOptions$1 extends MakeOptions {
     fov?: GWU.fov.FovSystem;
@@ -1043,9 +1044,12 @@ declare class ActorKind extends EntityKind {
     flags: {
         actor: number;
     };
+    vision: Record<string, number>;
     constructor(opts: KindOptions$1);
     make(options?: Partial<MakeOptions$1>): Actor;
     init(actor: Actor, options?: Partial<MakeOptions$1>): void;
+    addToMap(actor: Actor, map: MapType): void;
+    removeFromMap(actor: Actor): void;
     hasActorFlag(flag: number): boolean;
     canSeeEntity(_actor: Actor, _entity: Entity): boolean;
     isAbleToSee(_actor: Actor, _entity: Entity): boolean;
@@ -1322,6 +1326,8 @@ declare class EntityKind {
     constructor(config: KindOptions);
     make(opts?: Partial<MakeOptions>): Entity;
     init(entity: Entity, opts?: Partial<MakeOptions>): void;
+    addToMap(_entity: Entity, _map: MapType): void;
+    removeFromMap(_entity: Entity): void;
     canBeSeen(_entity: Entity): boolean;
     forbidsCell(cell: CellType, _entity?: Entity): boolean;
     avoidsCell(cell: CellType, _entity?: Entity): boolean;

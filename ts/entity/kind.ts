@@ -1,7 +1,7 @@
 import * as GWU from 'gw-utils';
 import { StatusDrawer } from '.';
 
-import { CellType } from '../map/types';
+import { CellType, MapType } from '../map/types';
 import { Entity } from './entity';
 
 export interface TextOptions {
@@ -74,6 +74,9 @@ export class EntityKind {
             entity.machineHome = opts.machineHome;
         }
     }
+
+    addToMap(_entity: Entity, _map: MapType) {}
+    removeFromMap(_entity: Entity) {}
 
     canBeSeen(_entity: Entity): boolean {
         return true;

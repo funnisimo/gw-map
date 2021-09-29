@@ -15,6 +15,8 @@ describe('Actor', () => {
         expect(map.addActor(5, 5, actor, false)).toBeTruthy();
         expect(map.actorAt(5, 5)).toBe(actor);
 
+        expect(actor.visionDistance).toEqual(99);
+
         // expect(await map.moveActor(actor, GWU.xy.LEFT)).toBeTruthy();
         // expect(map.actorAt(5, 5)).toBe(null);
         // expect(map.actorAt(4, 5)).toBe(actor);
@@ -24,6 +26,17 @@ describe('Actor', () => {
 
         expect(map.removeActor(actor)).toBeFalsy();
         // expect(await map.moveActor(actor, GWU.xy.UP)).toBeFalsy();
+    });
+
+    test('vision', () => {
+        const actor = Actor.from({
+            name: 'an actor',
+            ch: 'a',
+            fg: 'green',
+            vision: 5,
+        });
+
+        expect(actor.visionDistance).toEqual(5);
     });
 
     test('actor with fov', async () => {

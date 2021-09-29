@@ -1,28 +1,33 @@
 import * as GWU from 'gw-utils';
 import * as Entity from '../entity';
 import * as Flags from '../flags';
-import { CellType } from '../map';
+import { CellType, MapType } from '../map';
 import { Actor, PickupOptions, DropOptions } from './actor';
 import { Item } from '../item/item';
 import { FlavorOptions } from '../entity';
-import { Memory } from '../memory';
+import * as Memory from '../memory';
 
 export interface KindOptions extends Entity.KindOptions {
     flags?: GWU.flag.FlagBase;
+    vision?: number;
 }
 
 export interface MakeOptions extends Entity.MakeOptions {
     fov?: GWU.fov.FovSystem;
-    memory?: Memory;
+    memory?: Memory.Memory;
 }
 
 export class ActorKind extends Entity.EntityKind {
     flags = { actor: 0 };
+    vision: Record<string, number> = {};
 
     constructor(opts: KindOptions) {
         super(opts);
         if (opts.flags) {
             this.flags.actor = GWU.flag.from(Flags.Actor, opts.flags);
+        }
+        if (opts.vision) {
+            this.vision.normal = opts.vision;
         }
     }
 
@@ -39,6 +44,30 @@ export class ActorKind extends Entity.EntityKind {
         }
         if (options.memory) {
             actor.memory = options.memory;
+        }
+        if (this.vision.normal) {
+            actor.visionDistance = this.vision.normal;
+        }
+    }
+
+    addToMap(actor: Actor, map: MapType) {
+        super.addToMap(actor, map);
+        if (this.hasActorFlag(Flags.Actor.HAS_MEMORY)) {
+            actor.memory = Memory.get(actor, map);
+        }
+        if (this.hasActorFlag(Flags.Actor.USES_FOV)) {
+            actor.fov = new GWU.fov.FovSystem(map);
+            actor.fov.follow = actor;
+            if (actor.memory) {
+                actor.fov.onFovChange = actor.memory;
+            }
+        }
+    }
+
+    removeFromMap(actor: Actor) {
+        super.removeFromMap(actor);
+        if (actor._map && actor.memory) {
+            Memory.store(actor, actor._map, actor.memory);
         }
     }
 

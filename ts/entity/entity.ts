@@ -46,11 +46,13 @@ export class Entity implements EntityType {
             return false;
         }
         this._map = map;
+        this.kind.addToMap(this, map);
         return true;
     }
 
     removeFromMap() {
         this.clearEntityFlag(Flags.Entity.L_ON_MAP);
+        this.kind.removeFromMap(this);
     }
 
     get sprite(): GWU.sprite.Sprite {
