@@ -1,5 +1,5 @@
 import * as GWU from 'gw-utils';
-import { StatusDrawer } from '.';
+import { StatusDrawer } from './types';
 
 import { CellType, MapType } from '../map/types';
 import { Entity } from './entity';

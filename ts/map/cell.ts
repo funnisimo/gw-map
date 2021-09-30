@@ -565,7 +565,7 @@ export class Cell implements CellType {
         item.addToMap(this.map, this.x, this.y);
         this.map.items.push(item);
         this.needsRedraw = true;
-        this.clearCellFlag(Flags.Cell.STABLE_SNAPSHOT);
+        // this.clearCellFlag(Flags.Cell.STABLE_SNAPSHOT);
 
         if (withEffects) {
             if (
@@ -604,7 +604,7 @@ export class Cell implements CellType {
         this.map.items.splice(foundIndex, 1); // delete the item
         item.removeFromMap();
         this.needsRedraw = true;
-        this.clearCellFlag(Flags.Cell.STABLE_SNAPSHOT);
+        // this.clearCellFlag(Flags.Cell.STABLE_SNAPSHOT);
 
         if (withEffects) {
             if (item.isKey(this.x, this.y) && this.hasEffect('no_key')) {
@@ -649,7 +649,7 @@ export class Cell implements CellType {
         actor.addToMap(this.map, this.x, this.y);
         this.map.actors.push(actor);
         this.needsRedraw = true;
-        this.clearCellFlag(Flags.Cell.STABLE_SNAPSHOT);
+        // this.clearCellFlag(Flags.Cell.STABLE_SNAPSHOT);
 
         if (withEffects) {
             if (actor.isKey(this.x, this.y) && this.hasEffect('key')) {
@@ -698,7 +698,7 @@ export class Cell implements CellType {
         actor.removeFromMap();
         this.map.actors.splice(foundIndex, 1); // delete the actor
         this.needsRedraw = true;
-        this.clearCellFlag(Flags.Cell.STABLE_SNAPSHOT);
+        // this.clearCellFlag(Flags.Cell.STABLE_SNAPSHOT);
 
         if (withEffects) {
             if (actor.isKey(this.x, this.y) && this.hasEffect('no_key')) {

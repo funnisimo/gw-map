@@ -32,9 +32,6 @@ export enum Cell {
     HAS_DORMANT_MONSTER = Fl(18), // hidden monster on the square
     HAS_ITEM = Fl(19),
 
-    IS_IN_PATH = Fl(20), // the yellow trail leading to the cursor
-    IS_CURSOR = Fl(21), // the current cursor
-
     HAS_TICK_EFFECT = Fl(22),
 
     IS_WIRED = Fl(26),

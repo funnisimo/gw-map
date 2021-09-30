@@ -123,7 +123,7 @@ export class Memory extends Map {
     }
 
     storeMemory(x: number, y: number) {
-        const mem = this.memory(x, y);
+        const mem = this.cells[x][y];
 
         const currentList = mem.hasEntityFlag(
             Flags.Entity.L_LIST_IN_SIDEBAR,
@@ -141,6 +141,7 @@ export class Memory extends Map {
         const cell = this.source.cell(x, y);
         mem.copy(cell);
         mem.setCellFlag(Flags.Cell.STABLE_MEMORY);
+        mem.map = this; // so that drawing this cell results in using the right map
 
         let newList = mem.hasEntityFlag(Flags.Entity.L_LIST_IN_SIDEBAR);
 
@@ -148,8 +149,10 @@ export class Memory extends Map {
         if (cell.hasItem()) {
             const item = this.source.itemAt(x, y);
             if (item) {
-                this.items.push(item.clone());
-                if (item.hasEntityFlag(Flags.Entity.L_LIST_IN_SIDEBAR)) {
+                const copy = item.clone();
+                copy._map = this; // memory is map
+                this.items.push(copy);
+                if (copy.hasEntityFlag(Flags.Entity.L_LIST_IN_SIDEBAR)) {
                     newList = true;
                 }
             }
@@ -157,8 +160,10 @@ export class Memory extends Map {
         if (cell.hasActor()) {
             const actor = this.source.actorAt(x, y);
             if (actor) {
-                this.actors.push(actor.clone());
-                if (actor.hasEntityFlag(Flags.Entity.L_LIST_IN_SIDEBAR)) {
+                const copy = actor.clone();
+                copy._map = this; // memory is map
+                this.actors.push(copy);
+                if (copy.hasEntityFlag(Flags.Entity.L_LIST_IN_SIDEBAR)) {
                     newList = true;
                 }
             }

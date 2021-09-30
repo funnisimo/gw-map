@@ -99,8 +99,10 @@ describe('memory', () => {
         memory.drawInto(buffer);
 
         fov.update(5, 5, 5); // and back out of view
-        expect(memory.actorAt(11, 5)).not.toBeNull(); // actor clone
-        expect(memory.actorAt(11, 5)).not.toBe(actor); // actor clone
+        const memActor = memory.actorAt(11, 5)!;
+        expect(memActor).not.toBeNull(); // actor clone
+        expect(memActor._map).toBe(memory);
+        expect(memActor).not.toBe(actor); // actor clone
 
         expect(memory.cell(11, 5).hasStableMemory).toBeTruthy();
         expect(memory.cell(11, 5).hasStableSnapshot).toBeTruthy();

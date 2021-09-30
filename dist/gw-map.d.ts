@@ -109,8 +109,6 @@ declare enum Cell$1 {
     HAS_ACTOR,
     HAS_DORMANT_MONSTER,
     HAS_ITEM,
-    IS_IN_PATH,
-    IS_CURSOR,
     HAS_TICK_EFFECT,
     IS_WIRED,
     IS_CIRCUIT_BREAKER,
