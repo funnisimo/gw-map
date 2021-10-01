@@ -31,6 +31,8 @@ declare enum Entity$1 {
     L_BRIGHT_MEMORY,
     L_INVERT_WHEN_HIGHLIGHTED,
     L_ON_MAP,
+    DEFAULT_ACTOR,
+    DEFAULT_ITEM,
     L_BLOCKED_BY_STAIRS,
     L_BLOCKS_SCENT,
     L_DIVIDES_LEVEL,
@@ -42,10 +44,12 @@ declare enum Entity$1 {
 declare enum Actor$1 {
     IS_PLAYER,
     HAS_MEMORY,
-    USES_FOV
+    USES_FOV,
+    DEFAULT = 0
 }
 
 declare enum Item$1 {
+    DEFAULT = 0
 }
 
 declare enum Tile$1 {
@@ -243,11 +247,13 @@ interface FlagType extends FlagType$1 {
 }
 
 interface KindOptions$2 extends KindOptions {
+    flags?: GWU.flag.FlagBase;
 }
 interface MakeOptions$2 extends MakeOptions {
     quantity: number;
 }
 declare class ItemKind extends EntityKind {
+    flags: FlagType;
     constructor(config: KindOptions$2);
     make(options?: Partial<MakeOptions$2>): Item;
     init(item: Item, options?: Partial<MakeOptions$2>): void;
@@ -1039,9 +1045,7 @@ interface MakeOptions$1 extends MakeOptions {
     memory?: Memory;
 }
 declare class ActorKind extends EntityKind {
-    flags: {
-        actor: number;
-    };
+    flags: ActorFlags;
     vision: Record<string, number>;
     constructor(opts: KindOptions$1);
     make(options?: Partial<MakeOptions$1>): Actor;

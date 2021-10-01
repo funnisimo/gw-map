@@ -24,6 +24,9 @@ export enum Entity {
 
     L_ON_MAP = Fl(17), // entity is currently on a map
 
+    DEFAULT_ACTOR = L_LIST_IN_SIDEBAR,
+    DEFAULT_ITEM = L_LIST_IN_SIDEBAR,
+
     L_BLOCKED_BY_STAIRS = L_BLOCKS_ITEMS |
         L_BLOCKS_SURFACE |
         L_BLOCKS_GAS |

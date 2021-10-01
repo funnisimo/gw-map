@@ -6,6 +6,7 @@ import { Actor, PickupOptions, DropOptions } from './actor';
 import { Item } from '../item/item';
 import { FlavorOptions } from '../entity';
 import * as Memory from '../memory';
+import { ActorFlags } from '.';
 
 export interface KindOptions extends Entity.KindOptions {
     flags?: GWU.flag.FlagBase;
@@ -18,13 +19,25 @@ export interface MakeOptions extends Entity.MakeOptions {
 }
 
 export class ActorKind extends Entity.EntityKind {
-    flags = { actor: 0 };
+    flags: ActorFlags = {
+        actor: Flags.Actor.DEFAULT,
+        entity: Flags.Entity.DEFAULT_ACTOR,
+    };
     vision: Record<string, number> = {};
 
     constructor(opts: KindOptions) {
         super(opts);
         if (opts.flags) {
-            this.flags.actor = GWU.flag.from(Flags.Actor, opts.flags);
+            this.flags.actor = GWU.flag.from(
+                Flags.Actor,
+                this.flags.actor,
+                opts.flags
+            );
+            this.flags.entity = GWU.flag.from(
+                Flags.Entity,
+                this.flags.entity,
+                opts.flags
+            );
         }
         if (opts.vision) {
             this.vision.normal = opts.vision;
@@ -39,6 +52,7 @@ export class ActorKind extends Entity.EntityKind {
 
     init(actor: Actor, options: Partial<MakeOptions> = {}) {
         super.init(actor, options);
+        Object.assign(actor.flags, this.flags);
         if (options.fov) {
             actor.fov = options.fov;
         }

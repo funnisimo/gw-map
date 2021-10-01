@@ -1,1 +1,3 @@
-export enum Item {}
+export enum Item {
+    DEFAULT = 0,
+}
