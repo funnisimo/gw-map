@@ -11,12 +11,13 @@ import {
 } from './types';
 import { Item } from '../item/item';
 import { Actor } from '../actor/actor';
-import { StatusDrawer } from '../entity/types';
 
 import * as TILE from '../tile';
 import * as Effect from '../effect';
 
 type EachCb<T> = (t: T) => any;
+
+GWU.color.install('cellStatusName', 'light_blue');
 
 // class CellEntities {
 //     cell: Cell;
@@ -757,11 +758,15 @@ export class Cell implements CellType {
         return this.highestPriorityTile().sprite.ch || ' ';
     }
 
-    drawStatus(sidebar: StatusDrawer): void {
-        if (!this.map) return;
-
-        this.map.getAppearanceAt(this.x, this.y, sidebar.mixer);
-        sidebar.drawTitle(sidebar.mixer, this.getName());
+    drawStatus(buffer: GWU.canvas.DataBuffer, bounds: GWU.xy.Bounds): number {
+        const lines = buffer.wrapText(
+            bounds.x + 1,
+            bounds.y,
+            bounds.width - 1,
+            this.getName(),
+            'cellStatusName'
+        );
+        return lines;
     }
 
     toString() {

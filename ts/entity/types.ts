@@ -20,26 +20,26 @@ export interface EntityType extends GWU.xy.XY {
     next: EntityType | null;
 }
 
-export interface StatusDrawer {
-    // These are here in case you want to do something on your own...
-    readonly bounds: GWU.xy.Bounds;
-    readonly buffer: GWU.canvas.DataBuffer;
-    readonly mixer: GWU.sprite.Mixer;
-    currentY: number;
+// export interface StatusDrawer {
+//     // These are here in case you want to do something on your own...
+//     readonly bounds: GWU.xy.Bounds;
+//     readonly buffer: GWU.canvas.DataBuffer;
+//     readonly mixer: GWU.sprite.Mixer;
+//     currentY: number;
 
-    // These are the preferred methods
-    drawTitle(
-        cell: GWU.sprite.Mixer,
-        title: string,
-        fg?: GWU.color.ColorBase
-    ): void;
-    drawTextLine(text: string, fg?: GWU.color.ColorBase): void;
-    drawProgressBar(
-        val: number,
-        max: number,
-        text: string,
-        color?: GWU.color.ColorBase,
-        bg?: GWU.color.ColorBase,
-        fg?: GWU.color.ColorBase
-    ): void;
-}
+//     // These are the preferred methods
+//     drawTitle(
+//         cell: GWU.sprite.Mixer,
+//         title: string,
+//         fg?: GWU.color.ColorBase
+//     ): void;
+//     drawTextLine(text: string, fg?: GWU.color.ColorBase): void;
+//     drawProgressBar(
+//         val: number,
+//         max: number,
+//         text: string,
+//         color?: GWU.color.ColorBase,
+//         bg?: GWU.color.ColorBase,
+//         fg?: GWU.color.ColorBase
+//     ): void;
+// }

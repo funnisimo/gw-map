@@ -1,5 +1,4 @@
 import * as GWU from 'gw-utils';
-import { StatusDrawer } from './types';
 
 import { CellType, MapType } from '../map/types';
 import { Entity } from './entity';
@@ -113,11 +112,26 @@ export class EntityKind {
         return verb;
     }
 
-    drawStatus(entity: Entity, sidebar: StatusDrawer): void {
-        if (!entity.map) return;
-        if (entity.isDestroyed) return;
+    drawStatus(
+        entity: Entity,
+        buffer: GWU.canvas.DataBuffer,
+        bounds: GWU.xy.Bounds
+    ): number {
+        if (!entity.map) return 0;
+        if (entity.isDestroyed) return 0;
 
-        entity.map.getAppearanceAt(entity.x, entity.y, sidebar.mixer);
-        sidebar.drawTitle(sidebar.mixer, entity.getName());
+        const mixer = new GWU.sprite.Mixer();
+
+        entity.map.getAppearanceAt(entity.x, entity.y, mixer);
+
+        buffer.drawSprite(bounds.x + 1, bounds.y, mixer);
+        buffer.wrapText(
+            bounds.x + 3,
+            bounds.y,
+            bounds.width - 3,
+            entity.getName(),
+            'purple'
+        );
+        return 1;
     }
 }

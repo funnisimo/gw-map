@@ -219,15 +219,6 @@ interface EntityType extends GWU.xy.XY {
     flags: FlagType$1;
     next: EntityType | null;
 }
-interface StatusDrawer {
-    readonly bounds: GWU.xy.Bounds;
-    readonly buffer: GWU.canvas.DataBuffer;
-    readonly mixer: GWU.sprite.Mixer;
-    currentY: number;
-    drawTitle(cell: GWU.sprite.Mixer, title: string, fg?: GWU.color.ColorBase): void;
-    drawTextLine(text: string, fg?: GWU.color.ColorBase): void;
-    drawProgressBar(val: number, max: number, text: string, color?: GWU.color.ColorBase, bg?: GWU.color.ColorBase, fg?: GWU.color.ColorBase): void;
-}
 
 declare class KeyInfo implements KeyInfoType {
     x: number;
@@ -936,7 +927,7 @@ declare class Cell implements CellType {
     getFlavor(): string;
     getName(opts?: {}): string;
     dump(): string;
-    drawStatus(sidebar: StatusDrawer): void;
+    drawStatus(buffer: GWU.canvas.DataBuffer, bounds: GWU.xy.Bounds): number;
     toString(): string;
 }
 
@@ -1182,7 +1173,7 @@ interface CellInfoType {
     getSnapshot(mixer: GWU.sprite.Mixer): void;
     putSnapshot(mixer: GWU.sprite.Mixer): void;
     readonly hasStableMemory: boolean;
-    drawStatus(sidebar: StatusDrawer): void;
+    drawStatus(buffer: GWU.canvas.DataBuffer, bounds: GWU.xy.Bounds): number;
     getDescription(): string;
     getFlavor(): string;
     getName(opts: any): string;
@@ -1294,7 +1285,7 @@ declare class Entity implements EntityType {
     getDescription(opts?: TextOptions): string;
     getFlavor(opts?: FlavorOptions): string;
     getVerb(verb: string): string;
-    drawStatus(sidebar: StatusDrawer): void;
+    drawStatus(buffer: GWU.canvas.DataBuffer, bounds: GWU.xy.Bounds): number;
     drawInto(dest: GWU.sprite.Mixer, _observer?: Entity): void;
     toString(): string;
 }
@@ -1337,12 +1328,11 @@ declare class EntityKind {
     getDescription(_entity: Entity, _opts?: TextOptions): string;
     getFlavor(_entity: Entity, _opts?: FlavorOptions): string;
     getVerb(_entity: Entity, verb: string): string;
-    drawStatus(entity: Entity, sidebar: StatusDrawer): void;
+    drawStatus(entity: Entity, buffer: GWU.canvas.DataBuffer, bounds: GWU.xy.Bounds): number;
 }
 
 type index_d$2_KeyInfoType = KeyInfoType;
 type index_d$2_EntityType = EntityType;
-type index_d$2_StatusDrawer = StatusDrawer;
 type index_d$2_KeyInfo = KeyInfo;
 declare const index_d$2_KeyInfo: typeof KeyInfo;
 declare const index_d$2_makeKeyInfo: typeof makeKeyInfo;
@@ -1359,7 +1349,6 @@ declare namespace index_d$2 {
     index_d$2_KeyInfoType as KeyInfoType,
     FlagType$1 as FlagType,
     index_d$2_EntityType as EntityType,
-    index_d$2_StatusDrawer as StatusDrawer,
     index_d$2_KeyInfo as KeyInfo,
     index_d$2_makeKeyInfo as makeKeyInfo,
     index_d$2_TextOptions as TextOptions,

@@ -1,6 +1,6 @@
 import * as GWU from 'gw-utils';
 
-import { FlagType, EntityType, KeyInfoType, StatusDrawer } from './types';
+import { FlagType, EntityType, KeyInfoType } from './types';
 import * as Flags from '../flags/entity';
 import { CellType, MapType } from '../map/types';
 import { EntityKind, TextOptions, FlavorOptions } from './kind';
@@ -149,8 +149,8 @@ export class Entity implements EntityType {
         return this.kind.getVerb(this, verb);
     }
 
-    drawStatus(sidebar: StatusDrawer): void {
-        this.kind.drawStatus(this, sidebar);
+    drawStatus(buffer: GWU.canvas.DataBuffer, bounds: GWU.xy.Bounds): number {
+        return this.kind.drawStatus(this, buffer, bounds);
     }
     drawInto(dest: GWU.sprite.Mixer, _observer?: Entity) {
         dest.drawSprite(this.sprite);
