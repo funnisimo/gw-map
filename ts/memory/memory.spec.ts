@@ -31,11 +31,11 @@ describe('memory', () => {
         const map = Map.make(20, 20, 'FLOOR', 'WALL');
         const buffer = GWU.canvas.makeDataBuffer(map.width, map.height);
         const memory = new Memory(map);
-        const fov = new GWU.fov.FovSystem(map, { onFovChange: memory });
+        const onFovChange = jest.spyOn(memory, 'onFovChange');
+
+        const fov = new GWU.fov.FovSystem(map, { callback: memory });
         expect(fov.isAnyKindOfVisible(5, 5)).toBeFalsy();
         map.drawInto(buffer); // sets STABLE_SNAPSHOT
-
-        const onFovChange = jest.spyOn(memory, 'onFovChange');
 
         const cellMem = memory.cell(5, 5);
         expect(cellMem.hasStableMemory).toBeTruthy(); // not visible
@@ -54,15 +54,15 @@ describe('memory', () => {
         const map = Map.make(20, 20, 'FLOOR', 'WALL');
         const buffer = GWU.canvas.makeDataBuffer(map.width, map.height);
         const memory = new Memory(map);
-        const fov = new GWU.fov.FovSystem(map, { onFovChange: memory });
+        jest.spyOn(memory, 'onFovChange');
+
+        const fov = new GWU.fov.FovSystem(map, { callback: memory });
         expect(fov.isAnyKindOfVisible(5, 5)).toBeFalsy();
         const actor = Actor.from({ ch: '@', fg: 'white', name: 'Actor' });
         await map.addActor(11, 5, actor);
         expect(fov.isAnyKindOfVisible(11, 5)).toBeFalsy();
         map.drawInto(buffer); // sets STABLE_SNAPSHOT for whole map
         memory.drawInto(buffer); // sets STABLE_SNAPSHOT for whole memory
-
-        jest.spyOn(memory, 'onFovChange');
 
         const cellMem = memory.cell(10, 5);
         expect(cellMem.hasStableMemory).toBeTruthy(); // not visible

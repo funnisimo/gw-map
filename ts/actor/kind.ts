@@ -73,7 +73,7 @@ export class ActorKind extends Entity.EntityKind {
             actor.fov = new GWU.fov.FovSystem(map);
             actor.fov.follow = actor;
             if (actor.memory) {
-                actor.fov.onFovChange = actor.memory;
+                actor.fov.callback = actor.memory;
             }
         }
     }
