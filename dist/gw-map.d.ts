@@ -745,7 +745,7 @@ declare class Map implements GWU.light.LightSystemSite, MapType {
     fire(event: string, x: number, y: number, ctx?: Partial<EffectCtx>): Promise<boolean>;
     fireAll(event: string, ctx?: Partial<EffectCtx>): Promise<boolean>;
     activateMachine(machineId: number, originX: number, originY: number, ctx?: Partial<EffectCtx>): Promise<boolean>;
-    drawInto(dest: GWU.canvas.Canvas | GWU.canvas.DataBuffer, opts?: Partial<MapDrawOptions>): void;
+    drawInto(dest: BufferSource | GWU.canvas.DataBuffer, opts?: Partial<MapDrawOptions>): void;
     getAppearanceAt(x: number, y: number, dest: GWU.sprite.Mixer): boolean;
     hasActor(x: number, y: number): boolean;
     eachGlowLight(cb: GWU.light.LightCb): void;

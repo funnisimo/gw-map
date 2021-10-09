@@ -16,7 +16,7 @@ import {
 } from './types';
 // import { CellMemory } from './cellMemory';
 import * as Effect from '../effect';
-import { CellDrawer, MapDrawOptions } from '../draw/types';
+import { CellDrawer, MapDrawOptions, BufferSource } from '../draw/types';
 import { BasicDrawer } from '../draw/basic';
 
 export interface MapOptions extends GWU.light.LightSystemOptions {
@@ -576,7 +576,7 @@ export class Map implements GWU.light.LightSystemSite, MapType {
     // DRAW
 
     drawInto(
-        dest: GWU.canvas.Canvas | GWU.canvas.DataBuffer,
+        dest: BufferSource | GWU.canvas.DataBuffer,
         opts?: Partial<MapDrawOptions>
     ) {
         this.drawer.drawInto(dest, this, opts);
