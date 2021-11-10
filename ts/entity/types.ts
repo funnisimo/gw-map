@@ -23,7 +23,7 @@ export interface EntityType extends GWU.xy.XY {
 // export interface StatusDrawer {
 //     // These are here in case you want to do something on your own...
 //     readonly bounds: GWU.xy.Bounds;
-//     readonly buffer: GWU.canvas.DataBuffer;
+//     readonly buffer: GWU.buffer.Buffer;
 //     readonly mixer: GWU.sprite.Mixer;
 //     currentY: number;
 

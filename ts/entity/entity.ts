@@ -149,7 +149,7 @@ export class Entity implements EntityType {
         return this.kind.getVerb(this, verb);
     }
 
-    drawStatus(buffer: GWU.canvas.DataBuffer, bounds: GWU.xy.Bounds): number {
+    drawStatus(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number {
         return this.kind.drawStatus(this, buffer, bounds);
     }
     drawInto(dest: GWU.sprite.Mixer, _observer?: Entity) {

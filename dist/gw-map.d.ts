@@ -663,11 +663,11 @@ interface MapDrawOptions {
     fov?: GWU.fov.FovTracker;
 }
 interface BufferSource {
-    buffer: GWU.canvas.DataBuffer;
+    buffer: GWU.buffer.Buffer;
 }
 interface CellDrawer {
     drawCell: CellDrawFn;
-    drawInto(dest: BufferSource | GWU.canvas.DataBuffer, map: MapType, opts?: Partial<MapDrawOptions>): void;
+    drawInto(dest: BufferSource | GWU.buffer.Buffer, map: MapType, opts?: Partial<MapDrawOptions>): void;
 }
 
 interface MapOptions extends GWU.light.LightSystemOptions {
@@ -745,7 +745,7 @@ declare class Map implements GWU.light.LightSystemSite, MapType {
     fire(event: string, x: number, y: number, ctx?: Partial<EffectCtx>): Promise<boolean>;
     fireAll(event: string, ctx?: Partial<EffectCtx>): Promise<boolean>;
     activateMachine(machineId: number, originX: number, originY: number, ctx?: Partial<EffectCtx>): Promise<boolean>;
-    drawInto(dest: BufferSource | GWU.canvas.DataBuffer, opts?: Partial<MapDrawOptions>): void;
+    drawInto(dest: BufferSource | GWU.buffer.Buffer, opts?: Partial<MapDrawOptions>): void;
     getAppearanceAt(x: number, y: number, dest: GWU.sprite.Mixer): boolean;
     hasActor(x: number, y: number): boolean;
     eachGlowLight(cb: GWU.light.LightCb): void;
@@ -927,7 +927,7 @@ declare class Cell implements CellType {
     getFlavor(): string;
     getName(opts?: {}): string;
     dump(): string;
-    drawStatus(buffer: GWU.canvas.DataBuffer, bounds: GWU.xy.Bounds): number;
+    drawStatus(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number;
     toString(): string;
 }
 
@@ -1173,7 +1173,7 @@ interface CellInfoType {
     getSnapshot(mixer: GWU.sprite.Mixer): void;
     putSnapshot(mixer: GWU.sprite.Mixer): void;
     readonly hasStableMemory: boolean;
-    drawStatus(buffer: GWU.canvas.DataBuffer, bounds: GWU.xy.Bounds): number;
+    drawStatus(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number;
     getDescription(): string;
     getFlavor(): string;
     getName(opts: any): string;
@@ -1285,7 +1285,7 @@ declare class Entity implements EntityType {
     getDescription(opts?: TextOptions): string;
     getFlavor(opts?: FlavorOptions): string;
     getVerb(verb: string): string;
-    drawStatus(buffer: GWU.canvas.DataBuffer, bounds: GWU.xy.Bounds): number;
+    drawStatus(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number;
     drawInto(dest: GWU.sprite.Mixer, _observer?: Entity): void;
     toString(): string;
 }
@@ -1328,7 +1328,7 @@ declare class EntityKind {
     getDescription(_entity: Entity, _opts?: TextOptions): string;
     getFlavor(_entity: Entity, _opts?: FlavorOptions): string;
     getVerb(_entity: Entity, verb: string): string;
-    drawStatus(entity: Entity, buffer: GWU.canvas.DataBuffer, bounds: GWU.xy.Bounds): number;
+    drawStatus(entity: Entity, buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number;
 }
 
 type index_d$2_KeyInfoType = KeyInfoType;
@@ -1456,7 +1456,7 @@ declare namespace index_d$1 {
 
 declare class BasicDrawer implements CellDrawer {
     isAnyKindOfVisible(_cell: CellType): boolean;
-    drawInto(dest: BufferSource | GWU.canvas.DataBuffer, map: MapType, opts?: Partial<MapDrawOptions>): void;
+    drawInto(dest: BufferSource | GWU.buffer.Buffer, map: MapType, opts?: Partial<MapDrawOptions>): void;
     drawCell(dest: GWU.sprite.Mixer, cell: CellType, fov?: GWU.fov.FovTracker): boolean;
     getAppearance(dest: GWU.sprite.Mixer, cell: CellType): void;
     applyLight(dest: GWU.sprite.Mixer, cell: CellType, fov?: GWU.fov.FovTracker): void;

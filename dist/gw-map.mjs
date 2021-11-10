@@ -2758,7 +2758,7 @@ class BasicDrawer {
         return true;
     }
     drawInto(dest, map, opts = {}) {
-        const buffer = dest instanceof GWU.canvas.DataBuffer ? dest : dest.buffer;
+        const buffer = dest instanceof GWU.buffer.Buffer ? dest : dest.buffer;
         const offsetX = opts.offsetX || 0;
         const offsetY = opts.offsetY || 0;
         const mixer = new GWU.sprite.Mixer();

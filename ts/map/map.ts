@@ -576,7 +576,7 @@ export class Map implements GWU.light.LightSystemSite, MapType {
     // DRAW
 
     drawInto(
-        dest: BufferSource | GWU.canvas.DataBuffer,
+        dest: BufferSource | GWU.buffer.Buffer,
         opts?: Partial<MapDrawOptions>
     ) {
         this.drawer.drawInto(dest, this, opts);

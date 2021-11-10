@@ -29,7 +29,7 @@ describe('memory', () => {
 
     test('fov moves around', () => {
         const map = Map.make(20, 20, 'FLOOR', 'WALL');
-        const buffer = GWU.canvas.makeBuffer(map.width, map.height);
+        const buffer = GWU.buffer.make(map.width, map.height);
         const memory = new Memory(map);
         const onFovChange = jest.spyOn(memory, 'onFovChange');
 
@@ -52,7 +52,7 @@ describe('memory', () => {
 
     test('actor moves around', async () => {
         const map = Map.make(20, 20, 'FLOOR', 'WALL');
-        const buffer = GWU.canvas.makeBuffer(map.width, map.height);
+        const buffer = GWU.buffer.make(map.width, map.height);
         const memory = new Memory(map);
         jest.spyOn(memory, 'onFovChange');
 

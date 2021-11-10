@@ -14,13 +14,13 @@ export interface MapDrawOptions {
 }
 
 export interface BufferSource {
-    buffer: GWU.canvas.DataBuffer;
+    buffer: GWU.buffer.Buffer;
 }
 
 export interface CellDrawer {
     drawCell: CellDrawFn;
     drawInto(
-        dest: BufferSource | GWU.canvas.DataBuffer,
+        dest: BufferSource | GWU.buffer.Buffer,
         map: MapType,
         opts?: Partial<MapDrawOptions>
     ): void;

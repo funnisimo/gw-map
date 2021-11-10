@@ -111,7 +111,7 @@ export interface CellInfoType {
 
     readonly hasStableMemory: boolean;
 
-    drawStatus(buffer: GWU.canvas.DataBuffer, bounds: GWU.xy.Bounds): number;
+    drawStatus(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number;
 
     getDescription(): string;
     getFlavor(): string;

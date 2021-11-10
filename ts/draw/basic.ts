@@ -9,12 +9,11 @@ export class BasicDrawer implements CellDrawer {
     }
 
     drawInto(
-        dest: BufferSource | GWU.canvas.DataBuffer,
+        dest: BufferSource | GWU.buffer.Buffer,
         map: MapType,
         opts: Partial<MapDrawOptions> = {}
     ) {
-        const buffer =
-            dest instanceof GWU.canvas.DataBuffer ? dest : dest.buffer;
+        const buffer = dest instanceof GWU.buffer.Buffer ? dest : dest.buffer;
 
         const offsetX = opts.offsetX || 0;
         const offsetY = opts.offsetY || 0;

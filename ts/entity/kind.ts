@@ -114,7 +114,7 @@ export class EntityKind {
 
     drawStatus(
         entity: Entity,
-        buffer: GWU.canvas.DataBuffer,
+        buffer: GWU.buffer.Buffer,
         bounds: GWU.xy.Bounds
     ): number {
         if (!entity.map) return 0;
