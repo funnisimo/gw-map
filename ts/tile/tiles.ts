@@ -1,3 +1,4 @@
+import * as GWU from 'gw-utils';
 import * as Tile from './tile';
 
 // These are the minimal set of tiles to make the diggers work
@@ -13,8 +14,8 @@ Tile.install('NULL', {
 
 Tile.install('FLOOR', {
     ch: '\u00b7',
-    fg: [30, 30, 30, 20, 0, 0, 0],
-    bg: [2, 2, 10, 0, 2, 2, 0],
+    fg: GWU.color.from([30, 30, 30]).rand(20, 0, 0, 0),
+    bg: GWU.color.from([2, 2, 10]).rand(0, 2, 2, 0),
     priority: 10,
     article: 'the',
     flavor: 'the stone floor',
@@ -25,8 +26,7 @@ Tile.install('DOOR', {
     fg: [100, 40, 40],
     bg: [30, 60, 60],
     priority: 30,
-    flags:
-        'T_IS_DOOR, L_BLOCKS_EFFECTS, L_BLOCKS_ITEMS, L_BLOCKS_VISION, L_VISUALLY_DISTINCT',
+    flags: 'T_IS_DOOR, L_BLOCKS_EFFECTS, L_BLOCKS_ITEMS, L_BLOCKS_VISION, L_VISUALLY_DISTINCT',
     article: 'a',
     effects: {
         enter: { tile: 'DOOR_OPEN' },
@@ -69,8 +69,7 @@ Tile.install('UP_STAIRS', {
     fg: [100, 50, 50],
     bg: [40, 20, 20],
     priority: 200,
-    flags:
-        'T_UP_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR',
+    flags: 'T_UP_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR',
     name: 'upward staircase',
     article: 'an',
     effects: {
@@ -83,8 +82,7 @@ Tile.install('DOWN_STAIRS', {
     fg: [100, 50, 50],
     bg: [40, 20, 20],
     priority: 200,
-    flags:
-        'T_DOWN_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR',
+    flags: 'T_DOWN_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR',
     name: 'downward staircase',
     article: 'a',
     effects: {
@@ -95,8 +93,8 @@ Tile.install('DOWN_STAIRS', {
 
 Tile.install('WALL', {
     ch: '#',
-    fg: [7, 7, 7, 0, 3, 3, 3],
-    bg: [40, 40, 40, 10, 10, 0, 5],
+    fg: GWU.color.from([7, 7, 7]).rand(0, 3, 3, 3),
+    bg: GWU.color.from([40, 40, 40]).rand(10, 10, 0, 5),
     priority: 100,
     flags: 'L_WALL_FLAGS',
     article: 'a',
@@ -107,8 +105,8 @@ Tile.install('WALL', {
 
 Tile.install('IMPREGNABLE', {
     ch: '#',
-    fg: [7, 7, 7, 0, 3, 3, 3],
-    bg: [40, 40, 40, 10, 10, 0, 5],
+    fg: GWU.color.from([7, 7, 7]).rand(0, 3, 3, 3),
+    bg: GWU.color.from([40, 40, 40]).rand(10, 10, 0, 5),
     priority: 100,
     flags: 'L_WALL_FLAGS, IMPREGNABLE',
     article: 'a',
@@ -119,8 +117,8 @@ Tile.install('IMPREGNABLE', {
 
 Tile.install('LAKE', {
     ch: '~',
-    fg: [5, 8, 20, 10, 0, 4, 15, true],
-    bg: [10, 15, 41, 6, 5, 5, 5, true],
+    fg: GWU.color.from([5, 8, 20]).dance(10, 0, 4, 15),
+    bg: GWU.color.from([10, 15, 41]).dance(6, 5, 5, 5),
     priority: 50,
     flags: 'T_DEEP_WATER',
     name: 'deep water',
@@ -130,8 +128,8 @@ Tile.install('LAKE', {
 
 Tile.install('SHALLOW', {
     ch: '\u00b7',
-    fg: [5, 8, 10, 10, 0, 4, 15, true],
-    bg: [10, 30, 30, 6, 0, 10, 10, true],
+    fg: GWU.color.from([5, 8, 10]).dance(10, 0, 4, 15),
+    bg: GWU.color.from([10, 30, 30]).dance(6, 0, 10, 10),
     priority: 20,
     name: 'shallow water',
     article: 'the',

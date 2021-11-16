@@ -57,7 +57,7 @@ export class BasicDrawer implements CellDrawer {
                 true
             )
         ) {
-            GWU.color.separate(dest.fg, dest.bg);
+            [dest.fg, dest.bg] = GWU.color.separate(dest.fg, dest.bg);
         }
         return true;
     }
@@ -95,7 +95,7 @@ export class BasicDrawer implements CellDrawer {
     //     }
 
     //     if (cell.hasEntityFlag(Flags.Entity.L_VISUALLY_DISTINCT)) {
-    //         GWU.color.separate(dest.fg, dest.bg);
+    //         [dest.fg, dest.bg] = GWU.color.separate(dest.fg, dest.bg);
     //     }
     // }
 
