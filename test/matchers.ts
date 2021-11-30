@@ -1,3 +1,4 @@
+const GWU = require('gw-utils');
 const diff = require('jest-diff').diff;
 
 export {};
@@ -129,14 +130,31 @@ function toBakeFrom(received: any, expected: any) {
     };
 
     let pass = false;
-    let e = expected;
+    const e = expected;
+    const r = received;
 
-    if (received) {
-        let r = received;
+    if (!e || !(e instanceof GWU.color.Color)) {
+        return {
+            actual: received,
+            message: () => 'Expected must be Color instance.',
+            pass: false,
+        };
+    }
+    if (!r || !(r instanceof GWU.color.Color)) {
+        return {
+            actual: received,
+            message: () => 'Did not receive Color instance.',
+            pass: false,
+        };
+    }
 
-        pass = r[0] >= e[0] && r[0] <= e[0] + e[3] + e[4];
-        pass = pass && r[1] >= e[1] && r[1] <= e[1] + e[3] + e[5];
-        pass = pass && r[2] >= e[2] && r[2] <= e[2] + e[3] + e[6];
+    pass = r._r === r._r && r._g === e._g && r._b == e._b;
+
+    if (!pass && e._rand) {
+        const rnd = e._rand;
+        pass = r._r >= e._r && r._r <= e._r + rnd[0] + rnd[1];
+        pass = pass && r._g >= e._g && r._g <= e._g + rnd[0] + rnd[2];
+        pass = pass && r._b >= e._b && r._b <= e._b + rnd[0] + rnd[3];
     }
 
     const message = pass

@@ -7,6 +7,7 @@ import { Tile } from '../tile';
 import * as Layer from '../layer';
 import { Item } from '../item';
 import { Actor } from '../actor';
+import { Entity } from '../entity';
 import {
     MapType,
     EachCellCb,
@@ -30,7 +31,8 @@ export interface MapOptions extends GWU.light.LightSystemOptions {
 
 export type LayerType = Layer.TileLayer | Layer.ActorLayer | Layer.ItemLayer;
 
-export class Map implements GWU.light.LightSystemSite, MapType {
+export class Map
+    implements GWU.light.LightSystemSite, MapType, GWU.tween.Animator {
     width: number;
     height: number;
     cells: GWU.grid.Grid<Cell>;
@@ -47,6 +49,8 @@ export class Map implements GWU.light.LightSystemSite, MapType {
     actors: Actor[] = [];
     items: Item[] = [];
     drawer: CellDrawer;
+    fx: Entity[] = [];
+    _animations: GWU.tween.Animation[] = [];
 
     constructor(width: number, height: number, opts: Partial<MapOptions> = {}) {
         this.width = width;
@@ -145,7 +149,7 @@ export class Map implements GWU.light.LightSystemSite, MapType {
     cell(x: number, y: number): CellType {
         return this.cells[x][y];
     }
-    get(x: number, y: number): CellType | undefined {
+    get(x: number, y: number): Cell | undefined {
         return this.cells.get(x, y);
     }
     eachCell(cb: EachCellCb) {
@@ -314,6 +318,43 @@ export class Map implements GWU.light.LightSystemSite, MapType {
     //     return true;
     // }
 
+    fxAt(x: number, y: number): Entity | null {
+        return this.fx.find((i) => i.isAt(x, y)) || null;
+    }
+    eachFx(cb: GWU.types.EachCb<Entity>): void {
+        this.fx.forEach(cb);
+    }
+
+    addFx(x: number, y: number, fx: Entity): boolean {
+        const cell = this.get(x, y);
+        if (!cell) return false;
+
+        fx.x = x;
+        fx.y = y;
+        cell._addFx(fx);
+        this.fx.push(fx);
+        return true;
+    }
+    moveFx(fx: Entity, x: number, y: number): boolean {
+        const current = this.get(fx.x, fx.y)!;
+        const updated = this.get(x, y);
+        if (!updated) return false;
+        current._removeFx(fx);
+        fx.x = x;
+        fx.y = y;
+        updated._addFx(fx);
+        return true;
+    }
+
+    removeFx(fx: Entity): boolean {
+        const cell = this.get(fx.x, fx.y);
+        GWU.arrayDelete(this.fx, fx);
+        if (cell) {
+            cell._removeFx(fx);
+        }
+        return true;
+    }
+
     // Information
 
     // isVisible(x: number, y: number): boolean {
@@ -349,11 +390,26 @@ export class Map implements GWU.light.LightSystemSite, MapType {
         this.flags.map &= ~flag;
     }
 
+    get needsRedraw(): boolean {
+        return this.hasMapFlag(Flags.Map.MAP_NEEDS_REDRAW);
+    }
+    set needsRedraw(v: boolean) {
+        if (v) this.setMapFlag(Flags.Map.MAP_NEEDS_REDRAW);
+        else this.clearMapFlag(Flags.Map.MAP_NEEDS_REDRAW);
+    }
+
+    hasCellFlag(x: number, y: number, flag: number) {
+        return this.cell(x, y).hasCellFlag(flag);
+    }
     setCellFlag(x: number, y: number, flag: number) {
         this.cell(x, y).setCellFlag(flag);
     }
     clearCellFlag(x: number, y: number, flag: number) {
         this.cell(x, y).clearCellFlag(flag);
+    }
+
+    hasEntityFlag(x: number, y: number, flag: number) {
+        return this.cell(x, y).hasEntityFlag(flag);
     }
 
     clear() {
@@ -422,7 +478,13 @@ export class Map implements GWU.light.LightSystemSite, MapType {
     }
 
     async tick(dt: number): Promise<boolean> {
-        let didSomething = await this.fireAll('tick');
+        let didSomething = false;
+        this._animations.forEach((a) => {
+            didSomething = a.tick(dt) || didSomething;
+        });
+        this._animations = this._animations.filter((a) => a.isRunning());
+
+        didSomething = (await this.fireAll('tick')) || didSomething;
         for (let layer of this.layers) {
             if (layer && (await layer.tick(dt))) {
                 didSomething = true;
@@ -620,6 +682,15 @@ export class Map implements GWU.light.LightSystemSite, MapType {
     //     // }
     //     this.cell(x, y).needsRedraw = true;
     // }
+
+    // Animator
+
+    addAnimation(a: GWU.tween.Animation): void {
+        this._animations.push(a);
+    }
+    removeAnimation(a: GWU.tween.Animation): void {
+        GWU.arrayDelete(this._animations, a);
+    }
 }
 
 export function make(

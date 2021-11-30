@@ -28,9 +28,10 @@ export enum Cell {
 
     // These are to speed checks
     HAS_PLAYER = Fl(16),
-    HAS_ACTOR = Fl(27),
+    HAS_ACTOR = Fl(17),
     HAS_DORMANT_MONSTER = Fl(18), // hidden monster on the square
     HAS_ITEM = Fl(19),
+    HAS_FX = Fl(20),
 
     HAS_TICK_EFFECT = Fl(22),
 

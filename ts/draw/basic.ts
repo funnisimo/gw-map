@@ -104,8 +104,6 @@ export class BasicDrawer implements CellDrawer {
         const surface = cell.tiles[Flags.Depth.SURFACE];
         const liquid = cell.tiles[Flags.Depth.LIQUID];
         const gas = cell.tiles[Flags.Depth.GAS]; // How to get volume!?!?!?!
-        const actor = cell.hasActor() ? cell.map.actorAt(cell.x, cell.y) : null;
-        const item = cell.hasItem() ? cell.map.itemAt(cell.x, cell.y) : null;
 
         dest.drawSprite(ground.sprite);
         if (surface) {
@@ -114,15 +112,21 @@ export class BasicDrawer implements CellDrawer {
         if (liquid) {
             dest.drawSprite(liquid.sprite);
         }
-        if (item) {
-            item.drawInto(dest);
+        if (cell.hasItem()) {
+            const item = cell.map.itemAt(cell.x, cell.y);
+            if (item) item.drawInto(dest);
         }
-        if (actor) {
-            actor.drawInto(dest);
+        if (cell.hasActor()) {
+            const actor = cell.map.actorAt(cell.x, cell.y);
+            if (actor) actor.drawInto(dest);
         }
         if (gas) {
             const opacity = GWU.rng.cosmetic.number(50) + 25;
             dest.drawSprite(gas.sprite, opacity);
+        }
+        if (cell.hasFx()) {
+            const fx = cell.map.fxAt(cell.x, cell.y);
+            if (fx) dest.drawSprite(fx.sprite);
         }
 
         if (dest.dances) {

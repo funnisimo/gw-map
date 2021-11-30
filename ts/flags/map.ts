@@ -7,6 +7,7 @@ const Fl = GWU.flag.fl;
 
 export enum Map {
     MAP_CHANGED = Fl(0),
+    MAP_NEEDS_REDRAW = Fl(1),
 
     MAP_ALWAYS_LIT = Fl(3),
     MAP_SAW_WELCOME = Fl(4),

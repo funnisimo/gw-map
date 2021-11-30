@@ -113,6 +113,7 @@ declare enum Cell$1 {
     HAS_ACTOR,
     HAS_DORMANT_MONSTER,
     HAS_ITEM,
+    HAS_FX,
     HAS_TICK_EFFECT,
     IS_WIRED,
     IS_CIRCUIT_BREAKER,
@@ -128,6 +129,7 @@ declare enum Cell$1 {
 
 declare enum Map$1 {
     MAP_CHANGED,
+    MAP_NEEDS_REDRAW,
     MAP_ALWAYS_LIT,
     MAP_SAW_WELCOME,
     MAP_NO_LIQUID,
@@ -262,7 +264,7 @@ declare class Item extends Entity {
     hasAllItemFlags(flags: number): boolean;
 }
 
-declare function make$4(id: string | ItemKind, makeOptions?: any): Item;
+declare function make$5(id: string | ItemKind, makeOptions?: any): Item;
 declare function makeRandom$1(opts: Partial<MatchOptions$2> | string, makeOptions?: any): Item;
 declare function from$4(info: string | ItemKind | KindOptions$2, makeOptions?: any): Item;
 declare const kinds$1: Record<string, ItemKind>;
@@ -288,7 +290,7 @@ declare namespace index_d$9 {
     MakeOptions$2 as MakeOptions,
     index_d$9_ItemKind as ItemKind,
     index_d$9_Item as Item,
-    make$4 as make,
+    make$5 as make,
     makeRandom$1 as makeRandom,
     from$4 as from,
     kinds$1 as kinds,
@@ -399,7 +401,7 @@ interface TileOptions extends GWU.sprite.SpriteConfig {
     light: GWU.light.LightBase | null;
     tags: string | string[];
 }
-declare function make$3(options: Partial<TileOptions>): Tile;
+declare function make$4(options: Partial<TileOptions>): Tile;
 declare const tiles: Record<string, Tile>;
 declare const all: Tile[];
 declare function get$2(id: string | number | Tile): Tile;
@@ -428,7 +430,7 @@ declare namespace index_d$8 {
     index_d$8_TileConfig as TileConfig,
     index_d$8_Tile as Tile,
     index_d$8_TileOptions as TileOptions,
-    make$3 as make,
+    make$4 as make,
     index_d$8_tiles as tiles,
     index_d$8_all as all,
     get$2 as get,
@@ -522,7 +524,7 @@ declare class Handler {
 declare const handlers: Record<string, Handler>;
 declare function installHandler(id: string, handler: Handler): void;
 
-declare function make$2(opts: EffectBase): EffectInfo;
+declare function make$3(opts: EffectBase): EffectInfo;
 declare function from$3(opts: EffectBase | string): EffectInfo;
 declare function reset(effect: EffectInfo): void;
 declare function resetAll(): void;
@@ -632,7 +634,7 @@ declare namespace index_d$6 {
     index_d$6_Handler as Handler,
     index_d$6_handlers as handlers,
     index_d$6_installHandler as installHandler,
-    make$2 as make,
+    make$3 as make,
     from$3 as from,
     index_d$6_reset as reset,
     index_d$6_resetAll as resetAll,
@@ -678,7 +680,7 @@ interface MapOptions extends GWU.light.LightSystemOptions {
     drawer: CellDrawer;
 }
 declare type LayerType = TileLayer | ActorLayer | ItemLayer;
-declare class Map implements GWU.light.LightSystemSite, MapType {
+declare class Map implements GWU.light.LightSystemSite, MapType, GWU.tween.Animator {
     width: number;
     height: number;
     cells: GWU.grid.Grid<Cell>;
@@ -695,6 +697,8 @@ declare class Map implements GWU.light.LightSystemSite, MapType {
     actors: Actor[];
     items: Item[];
     drawer: CellDrawer;
+    fx: Entity[];
+    _animations: GWU.tween.Animation[];
     constructor(width: number, height: number, opts?: Partial<MapOptions>);
     get seed(): number;
     set seed(v: number);
@@ -705,7 +709,7 @@ declare class Map implements GWU.light.LightSystemSite, MapType {
     hasXY(x: number, y: number): boolean;
     isBoundaryXY(x: number, y: number): boolean;
     cell(x: number, y: number): CellType;
-    get(x: number, y: number): CellType | undefined;
+    get(x: number, y: number): Cell | undefined;
     eachCell(cb: EachCellCb): void;
     hasItem(x: number, y: number): boolean;
     itemAt(x: number, y: number): Item | null;
@@ -721,6 +725,11 @@ declare class Map implements GWU.light.LightSystemSite, MapType {
     addActor(x: number, y: number, actor: Actor): boolean;
     removeActor(actor: Actor, fireEffects: boolean): boolean | Promise<boolean>;
     removeActor(actor: Actor): boolean;
+    fxAt(x: number, y: number): Entity | null;
+    eachFx(cb: GWU.types.EachCb<Entity>): void;
+    addFx(x: number, y: number, fx: Entity): boolean;
+    moveFx(fx: Entity, x: number, y: number): boolean;
+    removeFx(fx: Entity): boolean;
     hasKey(x: number, y: number): boolean;
     count(cb: MapTestFn): number;
     dump(fmt?: GWU.grid.GridFormat<Cell>, log?: {
@@ -730,8 +739,12 @@ declare class Map implements GWU.light.LightSystemSite, MapType {
     hasMapFlag(flag: number): boolean;
     setMapFlag(flag: number): void;
     clearMapFlag(flag: number): void;
+    get needsRedraw(): boolean;
+    set needsRedraw(v: boolean);
+    hasCellFlag(x: number, y: number, flag: number): boolean;
     setCellFlag(x: number, y: number, flag: number): void;
     clearCellFlag(x: number, y: number, flag: number): void;
+    hasEntityFlag(x: number, y: number, flag: number): boolean;
     clear(): void;
     clearCell(x: number, y: number, tile?: number | string | Tile): void;
     fill(tile: string | number | Tile, boundary?: string | number | Tile): void;
@@ -754,10 +767,12 @@ declare class Map implements GWU.light.LightSystemSite, MapType {
     lightingChanged(): boolean;
     hasVisibleLight(x: number, y: number): boolean;
     blocksVision(x: number, y: number): boolean;
+    addAnimation(a: GWU.tween.Animation): void;
+    removeAnimation(a: GWU.tween.Animation): void;
 }
-declare function make$1(w: number, h: number, floor?: string, boundary?: string): Map;
-declare function make$1(w: number, h: number, floor: string): Map;
-declare function make$1(w: number, h: number, opts: Partial<MapOptions>): Map;
+declare function make$2(w: number, h: number, floor?: string, boundary?: string): Map;
+declare function make$2(w: number, h: number, floor: string): Map;
+declare function make$2(w: number, h: number, opts: Partial<MapOptions>): Map;
 declare function from$2(prefab: string | string[] | GWU.grid.NumGrid, charToTile: Record<string, string | null>, opts?: Partial<MapOptions>): Map;
 
 interface ActorInfo {
@@ -923,6 +938,10 @@ declare class Cell implements CellType {
     get actor(): Actor | null;
     addActor(actor: Actor, withEffects?: boolean): void;
     removeActor(actor: Actor, withEffects?: boolean): boolean;
+    hasFx(): boolean;
+    get fx(): Entity | null;
+    _addFx(_fx: Entity): void;
+    _removeFx(_fx: Entity): void;
     getDescription(): string;
     getFlavor(): string;
     getName(opts?: {}): string;
@@ -1011,7 +1030,7 @@ declare namespace index_d$4 {
     index_d$4_MapOptions as MapOptions,
     index_d$4_LayerType as LayerType,
     index_d$4_Map as Map,
-    make$1 as make,
+    make$2 as make,
     from$2 as from,
     index_d$4_analyze as analyze,
     index_d$4_updateChokepoints as updateChokepoints,
@@ -1054,7 +1073,7 @@ declare class ActorKind extends EntityKind {
     dropItem(actor: Actor, item: Item, _opts?: Partial<DropOptions>): Promise<boolean>;
 }
 
-declare function make(id: string | ActorKind, makeOptions?: any): Actor;
+declare function make$1(id: string | ActorKind, makeOptions?: any): Actor;
 declare function makeRandom(opts: Partial<MatchOptions$1> | string, makeOptions?: any): Actor;
 declare function from$1(info: string | ActorKind | KindOptions$1, makeOptions?: any): Actor;
 declare const kinds: Record<string, ActorKind>;
@@ -1075,7 +1094,6 @@ type index_d$3_PickupOptions = PickupOptions;
 type index_d$3_DropOptions = DropOptions;
 type index_d$3_Actor = Actor;
 declare const index_d$3_Actor: typeof Actor;
-declare const index_d$3_make: typeof make;
 declare const index_d$3_makeRandom: typeof makeRandom;
 declare const index_d$3_kinds: typeof kinds;
 declare const index_d$3_get: typeof get;
@@ -1090,7 +1108,7 @@ declare namespace index_d$3 {
     index_d$3_PickupOptions as PickupOptions,
     index_d$3_DropOptions as DropOptions,
     index_d$3_Actor as Actor,
-    index_d$3_make as make,
+    make$1 as make,
     index_d$3_makeRandom as makeRandom,
     from$1 as from,
     index_d$3_kinds as kinds,
@@ -1165,6 +1183,7 @@ interface CellInfoType {
     hasItem(): boolean;
     hasActor(): boolean;
     hasPlayer(): boolean;
+    hasFx(): boolean;
     eachGlowLight(cb: (light: GWU.light.LightType) => any): void;
     hasEffect(name: string): boolean;
     needsToFire(): boolean;
@@ -1207,6 +1226,7 @@ interface MapType extends GWU.fov.FovSite {
     readonly height: number;
     readonly rng: GWU.rng.Random;
     readonly id: string;
+    needsRedraw: boolean;
     actors: Actor[];
     items: Item[];
     light: GWU.light.LightSystemType;
@@ -1228,6 +1248,10 @@ interface MapType extends GWU.fov.FovSite {
     removeActor(actor: Actor, fireEffects: boolean): boolean | Promise<boolean>;
     removeActor(actor: Actor): boolean;
     actorAt(x: number, y: number): Actor | null;
+    fxAt(x: number, y: number): Entity | null;
+    addFx(x: number, y: number, fx: Entity): boolean;
+    removeFx(fx: Entity): boolean;
+    moveFx(fx: Entity, x: number, y: number): boolean;
     hasKey(x: number, y: number): boolean;
     hasMapFlag(flag: number): boolean;
     setMapFlag(flag: number): void;
@@ -1297,16 +1321,19 @@ interface TextOptions {
 interface FlavorOptions extends TextOptions {
     action?: boolean;
 }
-interface KindOptions extends Partial<GWU.sprite.SpriteConfig> {
+interface KindOptions extends GWU.sprite.SpriteConfig {
     id?: string;
     name: string;
     flavor?: string;
     description?: string;
+    sprite?: GWU.sprite.SpriteConfig;
     tags?: string | string[];
     requiredTileTags?: string | string[];
 }
 interface MakeOptions {
-    machineHome: number;
+    machineHome?: number;
+    x?: number;
+    y?: number;
 }
 declare class EntityKind {
     id: string;
@@ -1317,8 +1344,8 @@ declare class EntityKind {
     tags: string[];
     requiredTileTags: string[];
     constructor(config: KindOptions);
-    make(opts?: Partial<MakeOptions>): Entity;
-    init(entity: Entity, opts?: Partial<MakeOptions>): void;
+    make(opts?: MakeOptions): Entity;
+    init(entity: Entity, opts?: MakeOptions): void;
     addToMap(_entity: Entity, _map: MapType): void;
     removeFromMap(_entity: Entity): void;
     canBeSeen(_entity: Entity): boolean;
@@ -1330,6 +1357,7 @@ declare class EntityKind {
     getVerb(_entity: Entity, verb: string): string;
     drawStatus(entity: Entity, buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number;
 }
+declare function make(opts: KindOptions, makeOpts?: MakeOptions): Entity;
 
 type index_d$2_KeyInfoType = KeyInfoType;
 type index_d$2_EntityType = EntityType;
@@ -1342,6 +1370,7 @@ type index_d$2_KindOptions = KindOptions;
 type index_d$2_MakeOptions = MakeOptions;
 type index_d$2_EntityKind = EntityKind;
 declare const index_d$2_EntityKind: typeof EntityKind;
+declare const index_d$2_make: typeof make;
 type index_d$2_Entity = Entity;
 declare const index_d$2_Entity: typeof Entity;
 declare namespace index_d$2 {
@@ -1356,6 +1385,7 @@ declare namespace index_d$2 {
     index_d$2_KindOptions as KindOptions,
     index_d$2_MakeOptions as MakeOptions,
     index_d$2_EntityKind as EntityKind,
+    index_d$2_make as make,
     index_d$2_Entity as Entity,
   };
 }
@@ -1478,4 +1508,93 @@ declare namespace index_d {
   };
 }
 
-export { index_d$3 as actor, index_d as draw, index_d$6 as effect, index_d$2 as entity, index_d$a as flags, index_d$1 as horde, index_d$9 as item, index_d$7 as layer, index_d$4 as map, index_d$5 as memory, path_d as path, index_d$8 as tile };
+declare type FxCallback = (result?: any) => any;
+declare type FxStepFn = (x: number, y: number) => boolean;
+interface FxOptions {
+    speed?: number;
+    duration?: number;
+    isRealTime?: boolean;
+}
+interface SpriteFxOptions extends FxOptions {
+    blink?: number;
+}
+declare function flashSprite(map: Map, x: number, y: number, sprite: string | GWU.sprite.SpriteConfig, duration?: number, count?: number, animator?: GWU.tween.Animator): Promise<boolean>;
+declare function hit(map: Map, target: GWU.xy.XY, sprite?: string | GWU.sprite.SpriteConfig, duration?: number, animator?: GWU.tween.Animator): Promise<void>;
+declare function miss(map: Map, target: GWU.xy.XY, sprite?: string | GWU.sprite.SpriteConfig, duration?: number, animator?: GWU.tween.Animator): Promise<void>;
+declare function fadeInOut(map: Map, x: number, y: number, sprite: string | GWU.sprite.SpriteConfig, duration?: number, animator?: GWU.tween.Animator): Promise<boolean>;
+interface MoveOptions {
+    speed?: number;
+    duration?: number;
+    stopBeforeWalls?: boolean;
+    stepFn?: FxStepFn;
+    animator?: GWU.tween.Animator;
+}
+declare function moveSprite(map: Map, source: GWU.xy.XY | GWU.xy.Loc, target: GWU.xy.XY | GWU.xy.Loc, sprite: string | GWU.sprite.SpriteConfig, opts?: MoveOptions): Promise<GWU.xy.XY>;
+declare function bolt(map: Map, source: GWU.xy.XY | GWU.xy.Loc, target: GWU.xy.XY | GWU.xy.Loc, sprite: string | GWU.sprite.SpriteConfig, opts?: MoveOptions): Promise<GWU.xy.XY>;
+interface ProjectileOptions extends MoveOptions {
+}
+declare function projectile(map: Map, source: Actor, target: Actor, sprite: string | GWU.sprite.SpriteConfig, opts?: ProjectileOptions): Promise<GWU.xy.XY>;
+interface BeamOptions {
+    fade?: number;
+    speed?: number;
+    duration?: number;
+    stopAtWalls?: boolean;
+    stopBeforeWalls?: boolean;
+    stepFn?: FxStepFn;
+    animator?: GWU.tween.Animator;
+}
+declare function beam(map: Map, from: GWU.xy.XY | GWU.xy.Loc, to: GWU.xy.XY | GWU.xy.Loc, sprite: string | GWU.sprite.SpriteConfig, opts?: BeamOptions): Promise<GWU.xy.XY>;
+declare type ExplosionShape = 'o' | 'x' | 'X' | '+' | '*';
+interface ExplosionOptions {
+    speed?: number;
+    duration?: number;
+    fade?: number;
+    shape?: ExplosionShape;
+    center?: boolean;
+    stepFn?: FxStepFn;
+    animator?: GWU.tween.Animator;
+}
+declare function explosion(map: Map, x: number, y: number, radius: number, sprite: string | GWU.sprite.SpriteConfig, opts?: ExplosionOptions): Promise<any[]>;
+
+type fx_d_FxCallback = FxCallback;
+type fx_d_FxStepFn = FxStepFn;
+type fx_d_FxOptions = FxOptions;
+type fx_d_SpriteFxOptions = SpriteFxOptions;
+declare const fx_d_flashSprite: typeof flashSprite;
+declare const fx_d_hit: typeof hit;
+declare const fx_d_miss: typeof miss;
+declare const fx_d_fadeInOut: typeof fadeInOut;
+type fx_d_MoveOptions = MoveOptions;
+declare const fx_d_moveSprite: typeof moveSprite;
+declare const fx_d_bolt: typeof bolt;
+type fx_d_ProjectileOptions = ProjectileOptions;
+declare const fx_d_projectile: typeof projectile;
+type fx_d_BeamOptions = BeamOptions;
+declare const fx_d_beam: typeof beam;
+type fx_d_ExplosionShape = ExplosionShape;
+type fx_d_ExplosionOptions = ExplosionOptions;
+declare const fx_d_explosion: typeof explosion;
+declare namespace fx_d {
+  export {
+    fx_d_FxCallback as FxCallback,
+    fx_d_FxStepFn as FxStepFn,
+    fx_d_FxOptions as FxOptions,
+    fx_d_SpriteFxOptions as SpriteFxOptions,
+    fx_d_flashSprite as flashSprite,
+    fx_d_hit as hit,
+    fx_d_miss as miss,
+    fx_d_fadeInOut as fadeInOut,
+    fx_d_MoveOptions as MoveOptions,
+    fx_d_moveSprite as moveSprite,
+    fx_d_bolt as bolt,
+    fx_d_ProjectileOptions as ProjectileOptions,
+    fx_d_projectile as projectile,
+    fx_d_BeamOptions as BeamOptions,
+    fx_d_beam as beam,
+    fx_d_ExplosionShape as ExplosionShape,
+    fx_d_ExplosionOptions as ExplosionOptions,
+    fx_d_explosion as explosion,
+  };
+}
+
+export { index_d$3 as actor, index_d as draw, index_d$6 as effect, index_d$2 as entity, index_d$a as flags, fx_d as fx, index_d$1 as horde, index_d$9 as item, index_d$7 as layer, index_d$4 as map, index_d$5 as memory, path_d as path, index_d$8 as tile };

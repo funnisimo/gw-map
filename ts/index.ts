@@ -10,3 +10,4 @@ export * as path from './path';
 export * as horde from './horde';
 export * as memory from './memory';
 export * as draw from './draw';
+export * as fx from './fx/fx';

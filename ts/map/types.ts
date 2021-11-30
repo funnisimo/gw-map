@@ -4,6 +4,7 @@ import { Actor } from '../actor';
 import { Item } from '../item';
 import { Tile } from '../tile';
 import { EffectCtx } from '../effect/types';
+import { Entity } from '../entity';
 
 export interface CellFlags {
     cell: number;
@@ -95,6 +96,8 @@ export interface CellInfoType {
     hasPlayer(): boolean;
     // readonly actor: Actor | null;
 
+    hasFx(): boolean;
+
     // Lights
 
     eachGlowLight(cb: (light: GWU.light.LightType) => any): void;
@@ -173,6 +176,9 @@ export interface MapType extends GWU.fov.FovSite {
     readonly height: number;
     readonly rng: GWU.rng.Random;
     readonly id: string;
+
+    needsRedraw: boolean;
+
     actors: Actor[];
     items: Item[];
 
@@ -225,6 +231,11 @@ export interface MapType extends GWU.fov.FovSite {
 
     // moveActor(actor: Actor, dir: GWU.xy.Loc | number): Promise<boolean>;
     actorAt(x: number, y: number): Actor | null;
+
+    fxAt(x: number, y: number): Entity | null;
+    addFx(x: number, y: number, fx: Entity): boolean;
+    removeFx(fx: Entity): boolean;
+    moveFx(fx: Entity, x: number, y: number): boolean;
 
     // Information
 

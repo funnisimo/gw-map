@@ -11,6 +11,7 @@ import {
 } from './types';
 import { Item } from '../item/item';
 import { Actor } from '../actor/actor';
+import { Entity } from '../entity';
 
 import * as TILE from '../tile';
 import * as Effect from '../effect';
@@ -233,6 +234,9 @@ export class Cell implements CellType {
     set needsRedraw(v: boolean) {
         if (v) {
             this.flags.cell |= Flags.Cell.NEEDS_REDRAW;
+            this.flags.cell &= ~Flags.Cell.STABLE_SNAPSHOT;
+
+            this.map.needsRedraw = true;
         } else {
             this.flags.cell &= ~Flags.Cell.NEEDS_REDRAW;
         }
@@ -732,6 +736,23 @@ export class Cell implements CellType {
         }
 
         return true;
+    }
+
+    hasFx(): boolean {
+        return !!(this.flags.cell & Flags.Cell.HAS_FX);
+    }
+    get fx(): Entity | null {
+        return this.map.fxAt(this.x, this.y);
+    }
+    _addFx(_fx: Entity) {
+        this.setCellFlag(Flags.Cell.HAS_FX);
+        this.needsRedraw = true;
+    }
+    _removeFx(_fx: Entity) {
+        if (!this.fx) {
+            this.clearCellFlag(Flags.Cell.HAS_FX);
+        }
+        this.needsRedraw = true;
     }
 
     getDescription() {

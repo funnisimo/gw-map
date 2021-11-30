@@ -12,18 +12,22 @@ export interface FlavorOptions extends TextOptions {
     action?: boolean;
 }
 
-export interface KindOptions extends Partial<GWU.sprite.SpriteConfig> {
+export interface KindOptions extends GWU.sprite.SpriteConfig {
     id?: string;
     name: string;
     flavor?: string;
     description?: string;
+
+    sprite?: GWU.sprite.SpriteConfig;
 
     tags?: string | string[];
     requiredTileTags?: string | string[];
 }
 
 export interface MakeOptions {
-    machineHome: number;
+    machineHome?: number;
+    x?: number;
+    y?: number;
 }
 
 export class EntityKind {
@@ -40,7 +44,7 @@ export class EntityKind {
         this.name = config.name;
         this.flavor = config.flavor || this.name;
         this.description = config.description || this.flavor;
-        this.sprite = GWU.sprite.make(config);
+        this.sprite = GWU.sprite.make(config.sprite ? config.sprite : config);
 
         if (config.tags) {
             if (typeof config.tags === 'string') {
@@ -62,13 +66,13 @@ export class EntityKind {
         }
     }
 
-    make(opts?: Partial<MakeOptions>): Entity {
+    make(opts?: MakeOptions): Entity {
         const entity = new Entity(this);
         this.init(entity, opts);
         return entity;
     }
 
-    init(entity: Entity, opts: Partial<MakeOptions> = {}) {
+    init(entity: Entity, opts: MakeOptions = {}) {
         if (opts.machineHome) {
             entity.machineHome = opts.machineHome;
         }
@@ -134,4 +138,9 @@ export class EntityKind {
         );
         return 1;
     }
+}
+
+export function make(opts: KindOptions, makeOpts: MakeOptions = {}): Entity {
+    const kind = new EntityKind(opts);
+    return kind.make(makeOpts);
 }
