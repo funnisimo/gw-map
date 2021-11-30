@@ -138,7 +138,7 @@ describe('Tile', () => {
         // expect(glassWall.getName()).toEqual('Glass Wall');
     });
 
-    test.only('extend again', () => {
+    test('extend again', () => {
         const locked = Tile.install('LOCKED_DOOR', {
             extends: 'DOOR',
             name: 'a locked door',
@@ -357,8 +357,7 @@ describe('Tile', () => {
             flavor: 'a heavy portcullis',
             description:
                 'The iron bars rattle but will not budge; they are firmly locked in place.',
-            flags:
-                '!L_BLOCKS_VISION, !L_BLOCKS_GAS, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT, T_CONNECTS_LEVEL',
+            flags: '!L_BLOCKS_VISION, !L_BLOCKS_GAS, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT, T_CONNECTS_LEVEL',
             effects: {
                 machine: {
                     tile: 'PORTCULLIS_DORMANT',

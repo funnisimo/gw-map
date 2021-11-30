@@ -28,7 +28,7 @@ describe('Item', () => {
         // expect(await map.moveItem(item, GWU.xy.UP)).toBeFalsy();
     });
 
-    test.only('clone', () => {
+    test('clone', () => {
         const item = Item.from({ ch: '!', name: 'An Item' }, { quantity: 2 });
         expect(item.quantity).toEqual(2);
 
