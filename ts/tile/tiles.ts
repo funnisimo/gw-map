@@ -1,6 +1,9 @@
 import * as GWU from 'gw-utils';
 import * as Tile from './tile';
 
+import '../effect/handlers';
+import '../effect/types';
+
 // These are the minimal set of tiles to make the diggers work
 Tile.install('NULL', {
     ch: '\u2205',
@@ -29,8 +32,8 @@ Tile.install('DOOR', {
     flags: 'T_IS_DOOR, L_BLOCKS_EFFECTS, L_BLOCKS_ITEMS, L_BLOCKS_VISION, L_VISUALLY_DISTINCT',
     article: 'a',
     effects: {
-        enter: { tile: 'DOOR_OPEN' },
-        open: { tile: 'DOOR_OPEN_ALWAYS' },
+        enter: 'TILE:DOOR_OPEN',
+        open: 'TILE:DOOR_OPEN_ALWAYS',
     },
     flavor: 'a closed door',
 });
@@ -46,12 +49,11 @@ Tile.install('DOOR_OPEN', 'DOOR', {
     effects: {
         tick: {
             chance: 100 * 100, // 100%
-            tile: 'DOOR',
-            flags: 'E_SUPERPRIORITY, E_ONLY_IF_EMPTY',
+            effects: 'TILE:DOOR~!',
         },
         enter: null,
         open: null,
-        close: { tile: 'DOOR', flags: 'E_SUPERPRIORITY, E_ONLY_IF_EMPTY' },
+        close: 'TILE:DOOR~!',
     },
     flavor: 'an open door',
 });
@@ -59,7 +61,7 @@ Tile.install('DOOR_OPEN', 'DOOR', {
 Tile.install('DOOR_OPEN_ALWAYS', 'DOOR_OPEN', {
     effects: {
         tick: null,
-        close: { tile: 'DOOR', flags: 'E_SUPERPRIORITY, E_ONLY_IF_EMPTY' },
+        close: 'TILE:DOOR~!',
     },
     flavor: 'an open door',
 });
@@ -73,7 +75,7 @@ Tile.install('UP_STAIRS', {
     name: 'upward staircase',
     article: 'an',
     effects: {
-        player: { emit: 'UP_STAIRS' },
+        player: 'EMIT:UP_STAIRS',
     },
     flavor: 'stairs leading upwards',
 });
@@ -86,7 +88,7 @@ Tile.install('DOWN_STAIRS', {
     name: 'downward staircase',
     article: 'a',
     effects: {
-        player: { emit: 'DOWN_STAIRS' },
+        player: 'EMIT:DOWN_STAIRS',
     },
     flavor: 'downward leading stairs',
 });

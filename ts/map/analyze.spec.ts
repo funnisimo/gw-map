@@ -5,6 +5,9 @@ import '../../test/matchers';
 import * as MAP from '.';
 import * as Flags from '../flags';
 
+import '../effect/handlers';
+import '../tile/tiles';
+
 describe('analyze', () => {
     let map: MAP.Map;
     const TILES = {

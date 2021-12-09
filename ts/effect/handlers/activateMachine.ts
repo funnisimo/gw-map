@@ -1,38 +1,18 @@
-import * as TYPES from '../types';
-import { Handler, installHandler } from '../handler';
-import { MapType } from '../../map/types';
+import { EffectFn, EffectCtx, installHandler, MapXY } from '../effect';
 
 //////////////////////////////////////////////
 // ActivateMachine
 
-export class ActivateMachineEffect extends Handler {
-    constructor() {
-        super();
-    }
-
-    make(src: Partial<TYPES.EffectConfig>, dest: TYPES.EffectInfo): boolean {
-        if (!src.activateMachine) return true;
-
-        dest.activateMachine = true;
-        return true;
-    }
-
-    async fire(
-        config: any,
-        map: MapType,
-        x: number,
-        y: number,
-        ctx: Partial<TYPES.EffectCtx>
-    ) {
-        if (config.activateMachine) {
-            const cell = map.cell(x, y);
-            const machine = cell.machineId;
-            if (!machine) return false;
-
-            return await map.activateMachine(machine, x, y, ctx);
-        }
-        return false;
-    }
+export function makeActivateMachine(): EffectFn {
+    return activateMachine.bind(undefined) as EffectFn;
 }
 
-installHandler('activateMachine', new ActivateMachineEffect());
+export function activateMachine(loc: MapXY, ctx: EffectCtx): boolean {
+    const cell = loc.map.cell(loc.x, loc.y);
+    const machine = cell.machineId;
+    if (!machine) return false;
+
+    return loc.map.activateMachine(machine, loc.x, loc.y, ctx);
+}
+
+installHandler('activateMachine', makeActivateMachine);

@@ -2,6 +2,9 @@
 import * as Actor from '.';
 import * as Map from '../map';
 
+import '../effect/handlers';
+import '../tile/tiles';
+
 describe('Actor - Player', () => {
     test('make', () => {
         const actor = Actor.from({

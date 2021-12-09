@@ -122,21 +122,17 @@ export class ActorKind extends Entity.EntityKind {
         return flavor;
     }
 
-    async pickupItem(
+    pickupItem(
         actor: Actor,
         item: Item,
         _opts?: Partial<PickupOptions>
-    ): Promise<boolean> {
+    ): boolean {
         if (!GWU.list.push(actor, 'items', item)) return false;
         // TODO - Pickup effects
         return true;
     }
 
-    async dropItem(
-        actor: Actor,
-        item: Item,
-        _opts?: Partial<DropOptions>
-    ): Promise<boolean> {
+    dropItem(actor: Actor, item: Item, _opts?: Partial<DropOptions>): boolean {
         if (!GWU.list.remove(actor, 'items', item)) return false;
         // TODO - Drop effects
         return true;

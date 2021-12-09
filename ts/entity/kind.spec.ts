@@ -3,6 +3,9 @@ import * as Entity from '.';
 import * as Map from '../map';
 import * as Tile from '../tile';
 
+import '../effect/handlers';
+import '../tile/tiles';
+
 describe('Entity Kind', () => {
     test('basics', () => {
         const kind = new Entity.EntityKind({

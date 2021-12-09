@@ -3,6 +3,9 @@ import * as Map from '../map';
 import * as Actor from '../actor';
 import { Memory } from './memory';
 
+import '../effect/handlers';
+import '../tile/tiles';
+
 describe('memory', () => {
     test('basic', () => {
         const map = Map.make(20, 20, 'FLOOR', 'WALL');
@@ -50,7 +53,7 @@ describe('memory', () => {
         expect(cellMem.hasStableMemory).toBeTruthy(); // not visible
     });
 
-    test('actor moves around', async () => {
+    test('actor moves around', () => {
         const map = Map.make(20, 20, 'FLOOR', 'WALL');
         const buffer = GWU.buffer.make(map.width, map.height);
         const memory = new Memory(map);
@@ -59,7 +62,7 @@ describe('memory', () => {
         const fov = new GWU.fov.FovSystem(map, { callback: memory });
         expect(fov.isAnyKindOfVisible(5, 5)).toBeFalsy();
         const actor = Actor.from({ ch: '@', fg: 'white', name: 'Actor' });
-        await map.addActor(11, 5, actor);
+        map.addActor(11, 5, actor);
         expect(fov.isAnyKindOfVisible(11, 5)).toBeFalsy();
         map.drawInto(buffer); // sets STABLE_SNAPSHOT for whole map
         memory.drawInto(buffer); // sets STABLE_SNAPSHOT for whole memory

@@ -3,7 +3,7 @@ import * as GWU from 'gw-utils';
 import { Actor } from '../actor';
 import { Item } from '../item';
 import { Tile } from '../tile';
-import { EffectCtx } from '../effect/types';
+import { EffectCtx } from '../effect/effect';
 import { Entity } from '../entity';
 
 export interface CellFlags {
@@ -105,8 +105,6 @@ export interface CellInfoType {
     // Info
 
     hasEffect(name: string): boolean;
-    needsToFire(): boolean;
-    willFire(name: string): boolean;
 
     readonly hasStableSnapshot: boolean;
     getSnapshot(mixer: GWU.sprite.Mixer): void;
@@ -137,17 +135,15 @@ export interface CellType extends CellInfoType {
 
     clearTiles(tile?: string | number | Tile): void;
 
-    addItem(item: Item, withEffects?: boolean): void;
+    addItem(item: Item, withEffects?: boolean): boolean;
     removeItem(item: Item, withEffects?: boolean): boolean;
 
-    addActor(actor: Actor, withEffects?: boolean): void;
+    addActor(actor: Actor, withEffects?: boolean): boolean;
     removeActor(actor: Actor, withEffects?: boolean): boolean;
 
     // Effects
 
-    fireEvent(event: string, ctx?: Partial<EffectCtx>): Promise<boolean>;
-    fireAll(): Promise<boolean>;
-    clearEvents(): void;
+    fireEvent(event: string, ctx?: Partial<EffectCtx>): boolean;
 
     copy(other: CellInfoType): void;
     needsRedraw: boolean;
@@ -171,7 +167,7 @@ export type MapTestFn = (
     map: MapType
 ) => boolean;
 
-export interface MapType extends GWU.fov.FovSite {
+export interface MapType extends GWU.fov.FovSite, GWU.tween.Animator {
     readonly width: number;
     readonly height: number;
     readonly rng: GWU.rng.Random;
@@ -199,38 +195,30 @@ export interface MapType extends GWU.fov.FovSite {
     // itemAt(x: number, y: number): Item | null;
     eachItem(cb: EachItemCb): void;
 
-    addItem(
-        x: number,
-        y: number,
-        item: Item,
-        fireEffects: boolean
-    ): boolean | Promise<boolean>;
+    addItem(x: number, y: number, item: Item, fireEffects: boolean): boolean;
     addItem(x: number, y: number, item: Item): boolean;
 
-    removeItem(item: Item, fireEffects: boolean): boolean | Promise<boolean>;
+    removeItem(item: Item, fireEffects: boolean): boolean;
     removeItem(item: Item): boolean;
 
-    // moveItem(item: Item, dir: GWU.xy.Loc | number): Promise<boolean>;
+    // moveItem(item: Item, dir: GWU.xy.Loc | number): boolean;
     itemAt(x: number, y: number): Item | null;
+    hasItem(x: number, y: number): boolean;
 
     // Actors
 
     // actorAt(x: number, y: number): Actor | null;
     eachActor(cb: EachActorCb): void;
 
-    addActor(
-        x: number,
-        y: number,
-        actor: Actor,
-        fireEffects: boolean
-    ): boolean | Promise<boolean>;
+    addActor(x: number, y: number, actor: Actor, fireEffects: boolean): boolean;
     addActor(x: number, y: number, actor: Actor): boolean;
 
-    removeActor(actor: Actor, fireEffects: boolean): boolean | Promise<boolean>;
+    removeActor(actor: Actor, fireEffects: boolean): boolean;
     removeActor(actor: Actor): boolean;
 
-    // moveActor(actor: Actor, dir: GWU.xy.Loc | number): Promise<boolean>;
+    // moveActor(actor: Actor, dir: GWU.xy.Loc | number): boolean;
     actorAt(x: number, y: number): Actor | null;
+    hasActor(x: number, y: number): boolean;
 
     fxAt(x: number, y: number): Entity | null;
     addFx(x: number, y: number, fx: Entity): boolean;
@@ -251,6 +239,8 @@ export interface MapType extends GWU.fov.FovSite {
     setCellFlag(x: number, y: number, flag: number): void;
     clearCellFlag(x: number, y: number, flag: number): void;
 
+    hasEntityFlag(x: number, y: number, flag: number): boolean;
+
     fill(tile: string, boundary?: string): void;
 
     hasTile(x: number, y: number, tile: string | number | Tile): boolean;
@@ -261,21 +251,24 @@ export interface MapType extends GWU.fov.FovSite {
         opts?: SetTileOptions
     ): boolean;
 
-    tick(dt: number): Promise<boolean>;
+    tick(dt: number): boolean;
     fire(
         event: string,
         x: number,
         y: number,
         ctx?: Partial<EffectCtx>
-    ): Promise<boolean>;
-    fireAll(event: string, ctx?: Partial<EffectCtx>): Promise<boolean>;
+    ): boolean;
+    fireAll(event: string, ctx?: Partial<EffectCtx>): boolean;
+
+    queueEvent(x: number, y: number, event: string, ctx: EffectCtx): void;
+    fireQueuedEvents(): void;
 
     activateMachine(
         machineId: number,
         originX: number,
         originY: number,
         ctx?: Partial<EffectCtx>
-    ): Promise<boolean>;
+    ): boolean;
 
     count(cb: MapTestFn): number;
     dump(fmt?: (cell: CellType) => string): void;

@@ -1,42 +1,20 @@
 import * as GWU from 'gw-utils';
 
-import * as TYPES from '../types';
-import { Handler, installHandler } from '../handler';
-import { MapType } from '../../map/types';
+import { installHandler, EffectFn, EffectCtx, MapXY } from '../effect';
 
 //////////////////////////////////////////////
 // EMIT
 
-export class EmitEffect extends Handler {
-    constructor() {
-        super();
-    }
+export function makeEmitHandler(config: any): EffectFn {
+    if (Array.isArray(config)) config = config[0];
+    if (typeof config !== 'string')
+        throw new Error('Invalid EMIT handler config - ' + config);
 
-    make(src: Partial<TYPES.EffectConfig>, dest: TYPES.EffectInfo): boolean {
-        if (!src.emit) return true;
-
-        if (typeof src.emit !== 'string') {
-            throw new Error(
-                'emit effects must be string name to emit: { emit: "EVENT" }'
-            );
-        }
-        dest.emit = src.emit;
-        return true;
-    }
-
-    async fire(
-        config: any,
-        _map: MapType,
-        x: number,
-        y: number,
-        ctx: TYPES.EffectCtx
-    ) {
-        if (config.emit) {
-            await GWU.events.emit(config.emit, x, y, ctx);
-            return true;
-        }
-        return false;
-    }
+    return emitEffect.bind(undefined, config) as EffectFn;
 }
 
-installHandler('emit', new EmitEffect());
+export function emitEffect(id: string, loc: MapXY, ctx: EffectCtx): boolean {
+    return GWU.events.emit(id, loc.x, loc.y, ctx);
+}
+
+installHandler('emit', makeEmitHandler);

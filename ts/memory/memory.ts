@@ -1,8 +1,9 @@
 import * as GWU from 'gw-utils';
 import { Actor } from '../actor/actor';
 import { Item } from '../item/item';
+import { MapType, CellType } from '../map/types';
+import { Cell } from '../map/cell';
 import { Map } from '../map/map';
-import { CellType, MapType } from '../map/types';
 import * as Flags from '../flags';
 
 export interface ActorInfo {
@@ -36,7 +37,7 @@ export class Memory extends Map {
         return cell;
     }
 
-    memory(x: number, y: number): CellType {
+    memory(x: number, y: number): Cell {
         return this.cells[x][y];
     }
 
@@ -48,24 +49,19 @@ export class Memory extends Map {
         throw new Error('Cannot set tiles on memory.');
     }
 
-    addItem(
-        x: number,
-        y: number,
-        item: Item,
-        fireEffects: boolean
-    ): boolean | Promise<boolean>;
+    addItem(x: number, y: number, item: Item, fireEffects: boolean): boolean;
     addItem(x: number, y: number, item: Item): boolean;
-    addItem(): boolean | Promise<boolean> {
+    addItem(): boolean {
         throw new Error('Cannot add Items to memory!');
     }
 
-    removeItem(item: Item, fireEffects: boolean): boolean | Promise<boolean>;
+    removeItem(item: Item, fireEffects: boolean): boolean;
     removeItem(item: Item): boolean;
-    removeItem(): boolean | Promise<boolean> {
+    removeItem(): boolean {
         throw new Error('Cannot remove Items from memory!');
     }
 
-    // async moveItem(): Promise<boolean> {
+    //  moveItem(): boolean {
     //     throw new Error('Cannot move Items on memory!');
     // }
     eachItem(cb: GWU.types.EachCb<Item>): void {
@@ -85,24 +81,19 @@ export class Memory extends Map {
         this.items.forEach(cb);
     }
 
-    addActor(
-        x: number,
-        y: number,
-        actor: Actor,
-        fireEffects: boolean
-    ): boolean | Promise<boolean>;
+    addActor(x: number, y: number, actor: Actor, fireEffects: boolean): boolean;
     addActor(x: number, y: number, actor: Actor): boolean;
-    addActor(): boolean | Promise<boolean> {
+    addActor(): boolean {
         throw new Error('Cannot add Actors to memory!');
     }
 
-    removeActor(actor: Actor, fireEffects: boolean): boolean | Promise<boolean>;
+    removeActor(actor: Actor, fireEffects: boolean): boolean;
     removeActor(actor: Actor): boolean;
-    removeActor(): boolean | Promise<boolean> {
+    removeActor(): boolean {
         throw new Error('Cannot remove Actors from memory!');
     }
 
-    // async moveActor(): Promise<boolean> {
+    //  moveActor(): boolean {
     //     throw new Error('Cannot move Actors on memory!');
     // }
     eachActor(cb: GWU.types.EachCb<Actor>): void {

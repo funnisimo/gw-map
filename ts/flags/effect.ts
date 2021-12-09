@@ -26,8 +26,10 @@ export enum Effect {
     E_BLOCKED_BY_OTHER_LAYERS = Fl(10), // Will not propagate into a cell if any layer in that cell has a superior priority.
     E_SUPERPRIORITY = Fl(11), // Will overwrite terrain of a superior priority.
 
-    E_SPREAD_CIRCLE = Fl(13), // Spread in a circle around the spot (using FOV), radius calculated using spread+decrement
-    E_SPREAD_LINE = Fl(14), // Spread in a line in one random direction
+    E_IGNORE_FOV = Fl(12),
+
+    // E_SPREAD_CIRCLE = Fl(13), // Spread in a circle around the spot (using FOV), radius calculated using spread+decrement
+    // E_SPREAD_LINE = Fl(14), // Spread in a line in one random direction
 
     E_EVACUATE_CREATURES = Fl(15), // Creatures in the effect area get moved outside of it
     E_EVACUATE_ITEMS = Fl(16), // Creatures in the effect area get moved outside of it

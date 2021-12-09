@@ -32,37 +32,29 @@ export class MapLayer {
         return false;
     }
 
-    addActor(
-        _x: number,
-        _y: number,
-        _actor: Actor.Actor
-    ): Promise<boolean> | boolean {
+    addActor(_x: number, _y: number, _actor: Actor.Actor): boolean {
         return false;
     }
     forceActor(_x: number, _y: number, _actor: Actor.Actor): boolean {
         return false;
     }
-    removeActor(_actor: Actor.Actor): Promise<boolean> | boolean {
+    removeActor(_actor: Actor.Actor): boolean {
         return false;
     }
 
-    addItem(
-        _x: number,
-        _y: number,
-        _item: Item.Item
-    ): Promise<boolean> | boolean {
+    addItem(_x: number, _y: number, _item: Item.Item): boolean {
         return false;
     }
     forceItem(_x: number, _y: number, _item: Item.Item): boolean {
         return false;
     }
 
-    removeItem(_item: Item.Item): Promise<boolean> | boolean {
+    removeItem(_item: Item.Item): boolean {
         return false;
     }
 
     // Time based changes to the layer (e.g. dissipate gasses)
-    tick(_dt: number): Promise<boolean> | boolean {
+    tick(_dt: number): boolean {
         return false;
     }
 }

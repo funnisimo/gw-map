@@ -31,8 +31,16 @@ export interface MapOptions extends GWU.light.LightSystemOptions {
 
 export type LayerType = Layer.TileLayer | Layer.ActorLayer | Layer.ItemLayer;
 
+interface QueuedEvent {
+    event: string;
+    ctx: Effect.EffectCtx;
+    x: number;
+    y: number;
+}
+
 export class Map
-    implements GWU.light.LightSystemSite, MapType, GWU.tween.Animator {
+    implements GWU.light.LightSystemSite, MapType, GWU.tween.Animator
+{
     width: number;
     height: number;
     cells: GWU.grid.Grid<Cell>;
@@ -51,6 +59,8 @@ export class Map
     drawer: CellDrawer;
     fx: Entity[] = [];
     _animations: GWU.tween.Animation[] = [];
+
+    _queuedEvents: QueuedEvent[] = [];
 
     constructor(width: number, height: number, opts: Partial<MapOptions> = {}) {
         this.width = width;
@@ -168,35 +178,36 @@ export class Map
         this.items.forEach(cb);
     }
 
-    addItem(
-        x: number,
-        y: number,
-        item: Item,
-        fireEffects: boolean
-    ): boolean | Promise<boolean>;
-    addItem(x: number, y: number, item: Item): boolean;
-    addItem(
+    addItem(x: number, y: number, item: Item, fireEffects = false): boolean {
+        if (!this.hasXY(x, y)) return false;
+        const cell = this.cell(x, y);
+        return cell.addItem(item, fireEffects);
+    }
+    addItemNear(
         x: number,
         y: number,
         item: Item,
         fireEffects = false
-    ): boolean | Promise<boolean> {
-        if (!this.hasXY(x, y)) return false;
-        const cell = this.cell(x, y);
-        cell.addItem(item, fireEffects);
-        if (!fireEffects) return true;
-        return cell.fireAll().then(() => true);
-    }
+    ): boolean {
+        const loc = this.rng.matchingLocNear(x, y, (i, j) => {
+            if (!this.hasXY(i, j)) return false;
+            const cell = this.cell(i, j);
+            if (cell.hasItem()) return false;
+            if (cell.blocksMove()) return false;
+            if (item.avoidsCell(cell)) return false;
+            return true;
+        });
 
-    removeItem(item: Item, fireEffects: boolean): boolean | Promise<boolean>;
-    removeItem(item: Item): boolean;
-    removeItem(item: Item, fireEffects = false): boolean | Promise<boolean> {
-        const cell = this.cell(item.x, item.y);
-        if (!cell.removeItem(item, fireEffects)) return false;
-        if (!fireEffects) return true;
-        return cell.fireAll().then(() => true);
+        if (!loc || loc[0] < 0) return false;
+
+        const cell = this.cell(loc[0], loc[1]);
+        return cell.addItem(item, fireEffects);
     }
-    // async moveItem(item: Item, dir: GWU.xy.Loc | number): Promise<boolean> {
+    removeItem(item: Item, fireEffects = false): boolean {
+        const cell = this.cell(item.x, item.y);
+        return cell.removeItem(item, fireEffects);
+    }
+    //  moveItem(item: Item, dir: GWU.xy.Loc | number): boolean {
     //     if (typeof dir === 'number') {
     //         dir = GWU.xy.DIRS[dir];
     //     }
@@ -207,8 +218,8 @@ export class Map
     //     if (!this.hasXY(x, y)) return false;
 
     //     const layer = this.layers[item.depth] as Layer.ItemLayer;
-    //     if (!(await layer.removeItem(item))) return false;
-    //     if (!(await this.addItem(x, y, item))) {
+    //     if (!( layer.removeItem(item))) return false;
+    //     if (!( this.addItem(x, y, item))) {
     //         layer.forceItem(item.x, item.y, item);
     //         return false;
     //     }
@@ -246,37 +257,38 @@ export class Map
     eachActor(cb: GWU.types.EachCb<Actor>): void {
         this.actors.forEach(cb);
     }
-    addActor(
-        x: number,
-        y: number,
-        actor: Actor,
-        fireEffects: boolean
-    ): boolean | Promise<boolean>;
-    addActor(x: number, y: number, actor: Actor): boolean;
-    addActor(
+    addActor(x: number, y: number, actor: Actor, fireEffects = false): boolean {
+        if (!this.hasXY(x, y)) return false;
+        const cell = this.cell(x, y);
+        return cell.addActor(actor, fireEffects);
+    }
+    addActorNear(
         x: number,
         y: number,
         actor: Actor,
         fireEffects = false
-    ): boolean | Promise<boolean> {
-        if (!this.hasXY(x, y)) return false;
-        const cell = this.cell(x, y);
-        cell.addActor(actor, fireEffects);
-        if (!fireEffects) return true;
+    ): boolean {
+        const loc = this.rng.matchingLocNear(x, y, (i, j) => {
+            if (!this.hasXY(i, j)) return false;
+            const cell = this.cell(i, j);
+            if (cell.hasActor()) return false;
+            if (cell.blocksMove()) return false;
+            if (actor.avoidsCell(cell)) return false;
+            return true;
+        });
 
-        return cell.fireAll().then(() => true);
+        if (!loc || loc[0] < 0) return false;
+
+        const cell = this.cell(loc[0], loc[1]);
+        return cell.addActor(actor, fireEffects);
     }
 
-    removeActor(actor: Actor, fireEffects: boolean): boolean | Promise<boolean>;
-    removeActor(actor: Actor): boolean;
-    removeActor(actor: Actor, fireEffects = false): boolean | Promise<boolean> {
+    removeActor(actor: Actor, fireEffects = false): boolean {
         const cell = this.cell(actor.x, actor.y);
-        if (!cell.removeActor(actor, fireEffects)) return false;
-        if (!fireEffects) return true;
-
-        return cell.fireAll().then(() => true);
+        return cell.removeActor(actor, fireEffects);
     }
-    // async moveActor(actor: Actor, dir: GWU.xy.Loc | number): Promise<boolean> {
+
+    //  moveActor(actor: Actor, dir: GWU.xy.Loc | number): boolean {
     //     if (typeof dir === 'number') {
     //         dir = GWU.xy.DIRS[dir];
     //     }
@@ -288,8 +300,8 @@ export class Map
     //     if (!this.hasXY(x, y)) return false;
 
     //     const layer = this.layers[actor.depth] as Layer.ActorLayer;
-    //     if (!(await layer.removeActor(actor))) return false;
-    //     if (!(await layer.addActor(x, y, actor))) {
+    //     if (!( layer.removeActor(actor))) return false;
+    //     if (!( layer.addActor(x, y, actor))) {
     //         layer.forceActor(actor.x, actor.y, actor);
     //         return false;
     //     }
@@ -456,11 +468,12 @@ export class Map
         x: number,
         y: number,
         tile: string | number | Tile,
-        opts?: SetTileOptions
+        opts?: SetTileOptions | true
     ) {
         if (!(tile instanceof TILE.Tile)) {
-            tile = TILE.get(tile);
-            if (!tile) return false;
+            const name = tile;
+            tile = TILE.get(name);
+            if (!tile) throw new Error('Failed to find tile: ' + name);
         }
         if (opts === true) {
             opts = { superpriority: true };
@@ -477,16 +490,16 @@ export class Map
         cell.clearTiles(tile);
     }
 
-    async tick(dt: number): Promise<boolean> {
+    tick(dt: number): boolean {
         let didSomething = false;
         this._animations.forEach((a) => {
             didSomething = a.tick(dt) || didSomething;
         });
         this._animations = this._animations.filter((a) => a.isRunning());
 
-        didSomething = (await this.fireAll('tick')) || didSomething;
+        didSomething = this.fireAll('tick') || didSomething;
         for (let layer of this.layers) {
-            if (layer && (await layer.tick(dt))) {
+            if (layer && layer.tick(dt)) {
                 didSomething = true;
             }
         }
@@ -527,20 +540,30 @@ export class Map
         return other;
     }
 
-    async fire(
+    queueEvent(x: number, y: number, event: string, ctx: Effect.EffectCtx) {
+        this._queuedEvents.push({ event, x, y, ctx });
+    }
+
+    fireQueuedEvents() {
+        for (let i = 0; i < this._queuedEvents.length; ++i) {
+            const info = this._queuedEvents[i];
+            const cell = this.cell(info.x, info.y);
+            cell.fireEvent(info.event, info.ctx);
+        }
+        this._queuedEvents.length = 0;
+    }
+
+    fire(
         event: string,
         x: number,
         y: number,
-        ctx: Partial<Effect.EffectCtx> = {}
-    ): Promise<boolean> {
+        ctx: Effect.EffectCtx = {}
+    ): boolean {
         const cell = this.cell(x, y);
         return cell.fireEvent(event, ctx);
     }
 
-    async fireAll(
-        event: string,
-        ctx: Partial<Effect.EffectCtx> = {}
-    ): Promise<boolean> {
+    fireAll(event: string, ctx: Effect.EffectCtx = {}): boolean {
         let didSomething = false;
         const willFire = GWU.grid.alloc(this.width, this.height);
 
@@ -595,15 +618,14 @@ export class Map
 
         // Then activate them - so that we don't activate the next generation as part of the forEach
         ctx.force = true;
-        await willFire.forEachAsync(async (w, x, y) => {
+        willFire.forEach((w, x, y) => {
             if (!w) return;
             const cell = this.cell(x, y);
             if (cell.hasCellFlag(Flags.Cell.EVENT_FIRED_THIS_TURN)) return;
             for (let depth = 0; depth <= Flags.Depth.GAS; ++depth) {
                 if (w & GWU.flag.fl(depth)) {
-                    await cell.fireEvent(event, {
+                    cell.fireEvent(event, {
                         force: true,
-                        depth,
                     });
                 }
             }
@@ -613,12 +635,12 @@ export class Map
         return didSomething;
     }
 
-    async activateMachine(
+    activateMachine(
         machineId: number,
         originX: number,
         originY: number,
-        ctx: Partial<Effect.EffectCtx> = {}
-    ): Promise<boolean> {
+        ctx: Effect.EffectCtx = {}
+    ): boolean {
         let didSomething = false;
         ctx.originX = originX;
         ctx.originY = originY;
@@ -628,7 +650,7 @@ export class Map
                 if (cell.machineId !== machineId) continue;
                 if (cell.hasEffect('machine')) {
                     didSomething =
-                        (await cell.fireEvent('machine', ctx)) || didSomething;
+                        cell.fireEvent('machine', ctx) || didSomething;
                 }
             }
         }

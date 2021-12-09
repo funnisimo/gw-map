@@ -4,7 +4,7 @@ import * as Map from '../map';
 import * as Flags from '../flags';
 
 describe('Actor', () => {
-    test('create and place', async () => {
+    test('create and place', () => {
         const actor = Actor.from({
             name: 'an actor',
             ch: 'a',
@@ -23,7 +23,7 @@ describe('Actor', () => {
             actor.hasEntityFlag(Flags.Entity.L_LIST_IN_SIDEBAR)
         ).toBeTruthy();
 
-        // expect(await map.moveActor(actor, GWU.xy.LEFT)).toBeTruthy();
+        // expect( map.moveActor(actor, GWU.xy.LEFT)).toBeTruthy();
         // expect(map.actorAt(5, 5)).toBe(null);
         // expect(map.actorAt(4, 5)).toBe(actor);
 
@@ -31,7 +31,7 @@ describe('Actor', () => {
         expect(map.actorAt(5, 5)).toBe(null);
 
         expect(map.removeActor(actor)).toBeFalsy();
-        // expect(await map.moveActor(actor, GWU.xy.UP)).toBeFalsy();
+        // expect( map.moveActor(actor, GWU.xy.UP)).toBeFalsy();
     });
 
     test('vision', () => {
@@ -45,7 +45,7 @@ describe('Actor', () => {
         expect(actor.visionDistance).toEqual(5);
     });
 
-    test('actor with fov', async () => {
+    test('actor with fov', () => {
         const map = Map.make(20, 20, 'FLOOR', 'WALL');
         const fov = new GWU.fov.FovSystem(map);
 
@@ -67,7 +67,7 @@ describe('Actor', () => {
         expect(actor.canSee(18, 18)).toBeFalsy();
     });
 
-    test('actor with NO fov', async () => {
+    test('actor with NO fov', () => {
         const map = Map.make(20, 20, 'FLOOR', 'WALL');
 
         const actor = Actor.from({
@@ -86,7 +86,7 @@ describe('Actor', () => {
         expect(actor.canSee(18, 18)).toBeTruthy(); // nothing in the way
     });
 
-    test('clone', async () => {
+    test('clone', () => {
         const actor = Actor.from({ ch: '@', fg: 'white', name: 'An Actor' });
         const other = actor.clone();
         expect(other).toBeInstanceOf(Actor.Actor);

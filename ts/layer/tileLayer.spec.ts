@@ -2,6 +2,9 @@ import * as Map from '../map';
 import * as Tile from '../tile';
 import * as Flags from '../flags';
 
+import '../effect/handlers';
+import '../tile/tiles';
+
 describe('tileLayer', () => {
     let map: Map.Map;
 
@@ -36,7 +39,7 @@ describe('tileLayer', () => {
         expect(map.hasTile(4, 4, 'ALTAR')).toBeTruthy();
     });
 
-    test('sidebar changed', async () => {
+    test('sidebar changed', () => {
         expect(map.hasMapFlag(Flags.Map.MAP_SIDEBAR_TILES_CHANGED)).toBeFalsy();
 
         map.setTile(4, 4, 'GRASS');

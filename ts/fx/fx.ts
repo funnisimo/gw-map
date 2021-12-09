@@ -1,5 +1,5 @@
 import * as GWU from 'gw-utils';
-import { Map } from '../map';
+import { MapType } from '../map';
 import { Actor } from '../actor';
 import * as Entity from '../entity';
 import * as Flags from '../flags';
@@ -22,7 +22,7 @@ export interface FxOptions {
 //     done: boolean;
 //     isRealTime: boolean;
 
-//     constructor(map: Map, opts: FxOptions = {}) {
+//     constructor(map: MapType, opts: FxOptions = {}) {
 //         this.map = map;
 //         this.isRealTime = opts.isRealTime || false;
 //         this.tilNextTurn = opts.speed || opts.duration || 1000;
@@ -64,7 +64,7 @@ export interface SpriteFxOptions extends FxOptions {
 //     y: number;
 
 //     constructor(
-//         map: Map,
+//         map: MapType,
 //         sprite: string | GWU.sprite.SpriteConfig,
 //         x: number,
 //         y: number,
@@ -116,7 +116,7 @@ export interface SpriteFxOptions extends FxOptions {
 // }
 
 export async function flashSprite(
-    map: Map,
+    map: MapType,
     x: number,
     y: number,
     sprite: string | GWU.sprite.SpriteConfig,
@@ -152,7 +152,7 @@ export async function flashSprite(
 GWU.sprite.install('bump', 'white', 50);
 
 export async function hit(
-    map: Map,
+    map: MapType,
     target: GWU.xy.XY,
     sprite?: string | GWU.sprite.SpriteConfig,
     duration?: number,
@@ -166,7 +166,7 @@ export async function hit(
 GWU.sprite.install('hit', 'red', 50);
 
 export async function miss(
-    map: Map,
+    map: MapType,
     target: GWU.xy.XY,
     sprite?: string | GWU.sprite.SpriteConfig,
     duration?: number,
@@ -180,7 +180,7 @@ export async function miss(
 GWU.sprite.install('miss', 'green', 50);
 
 export async function fadeInOut(
-    map: Map,
+    map: MapType,
     x: number,
     y: number,
     sprite: string | GWU.sprite.SpriteConfig,
@@ -221,7 +221,7 @@ export async function fadeInOut(
 //     stepFn: FxStepFn;
 
 //     constructor(
-//         map: Map,
+//         map: MapType,
 //         source: Actor,
 //         target: Actor,
 //         sprite: string | GWU.sprite.SpriteConfig,
@@ -286,7 +286,7 @@ export interface MoveOptions {
 }
 
 export async function moveSprite(
-    map: Map,
+    map: MapType,
     source: GWU.xy.XY | GWU.xy.Loc,
     target: GWU.xy.XY | GWU.xy.Loc,
     sprite: string | GWU.sprite.SpriteConfig,
@@ -354,16 +354,16 @@ export async function moveSprite(
         })
         .onFinish(() => {
             map.removeFx(entity);
+            return entity;
         });
 
     const animator = opts.animator || map;
     animator.addAnimation(tween);
-
-    return tween.start().then(() => entity);
+    return tween.start();
 }
 
 export function bolt(
-    map: Map,
+    map: MapType,
     source: GWU.xy.XY | GWU.xy.Loc,
     target: GWU.xy.XY | GWU.xy.Loc,
     sprite: string | GWU.sprite.SpriteConfig,
@@ -375,7 +375,7 @@ export function bolt(
 export interface ProjectileOptions extends MoveOptions {}
 
 export async function projectile(
-    map: Map,
+    map: MapType,
     source: Actor,
     target: Actor,
     sprite: string | GWU.sprite.SpriteConfig,
@@ -502,7 +502,7 @@ export interface BeamOptions {
 }
 
 export function beam(
-    map: Map,
+    map: MapType,
     from: GWU.xy.XY | GWU.xy.Loc,
     to: GWU.xy.XY | GWU.xy.Loc,
     sprite: string | GWU.sprite.SpriteConfig,
@@ -547,19 +547,15 @@ export function beam(
                     fadeInOut(map, loc[0], loc[1], sprite, opts.fade, animator)
                 );
             }
-        });
-
-    animator.addAnimation(tween);
-
-    return tween
-        .start()
-        .then(() => {
-            return Promise.all(promises);
         })
-        .then(() => {
+        .onFinish(async () => {
+            await Promise.all(promises);
             const loc = line[line.length - 1];
             return { x: loc[0], y: loc[1] };
         });
+
+    animator.addAnimation(tween);
+    return tween.start();
 }
 
 export type ExplosionShape = 'o' | 'x' | 'X' | '+' | '*';
@@ -581,7 +577,7 @@ class ExplosionFX extends FX {
 
     // TODO - take opts instead of individual params (do opts setup here)
     constructor(
-        map: Map,
+        map: MapType,
         fovGrid: GWU.grid.NumGrid | null,
         x: number,
         y: number,
@@ -750,7 +746,7 @@ function checkExplosionOpts(opts: ExplosionOptions) {
 }
 
 export function explosion(
-    map: Map,
+    map: MapType,
     x: number,
     y: number,
     radius: number,
@@ -819,20 +815,19 @@ export function explosion(
                 }
             }
         })
-        .onFinish(() => {
+        .onFinish(async (_obj: any, success: boolean) => {
             GWU.grid.free(grid);
+            await Promise.all(promises);
+            return success;
         });
 
     opts.animator.addAnimation(tween);
-
-    return tween.start().then(() => {
-        return Promise.all(promises);
-    });
+    return tween.start();
 }
 
 /*
 export function explosionFor(
-    map: Map,
+    map: MapType,
     grid: GWU.grid.NumGrid,
     x: number,
     y: number,

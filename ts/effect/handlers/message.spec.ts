@@ -22,33 +22,29 @@ describe('message', () => {
     });
 
     test('make', () => {
-        expect(() => Effect.make({ message: 1 })).toThrow();
-        expect(() => Effect.make({ message: null })).not.toThrow();
+        expect(() => Effect.make('MSG')).toThrow();
+        expect(() => Effect.make('MSG:Test')).not.toThrow();
     });
 
-    test('logs', async () => {
+    test('logs', () => {
         const map = UTILS.mockMap(10, 10);
-        const eff = Effect.make({ message: 'MSG' });
+        const eff = Effect.make('MSG:MSG');
         expect(eff).not.toBeNull();
 
-        const ctx = { map, x: 5, y: 5 };
-        await Effect.fire(eff, ctx.map, ctx.x, ctx.y, ctx);
-        expect(GWU.message.addAt).toHaveBeenCalledWith(
-            ctx.x,
-            ctx.y,
-            'MSG',
-            ctx
-        );
+        eff.trigger({ map, x: 5, y: 6 }, { aware: true });
+        expect(GWU.message.addAt).toHaveBeenCalledWith(5, 6, 'MSG', {
+            aware: true,
+        });
     });
 
-    // test('default make', async () => {
+    // test('default make',  () => {
     //     const map = UTILS.mockMap(10, 10);
     //     const eff = Effect.make('MSG2', 'message');
 
     //     expect(eff).not.toBeNull();
     //     jest.spyOn(MSG, 'add');
     //     const ctx = { map, x: 5, y: 5 };
-    //     await eff!.fire(ctx.map, ctx.x, ctx.y);
+    //      eff!.fire(ctx.map, ctx.x, ctx.y);
     //     expect(MSG.add).toHaveBeenCalledWith('MSG2', eff!.ctx);
     // });
 });

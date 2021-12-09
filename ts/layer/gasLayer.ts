@@ -48,7 +48,7 @@ export class GasLayer extends TileLayer {
         this.changed = other.changed;
     }
 
-    async tick(_dt: number): Promise<boolean> {
+    tick(_dt: number): boolean {
         if (!this.changed) return false;
         this.changed = false;
 

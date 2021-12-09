@@ -1,5 +1,6 @@
-import './tiles';
 import * as Tile from './tile';
+import '../effect/handlers';
+import './tiles';
 
 describe('Tiles', () => {
     test('BRIDGE', () => {

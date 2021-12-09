@@ -22,7 +22,7 @@ export class TileLayer extends MapLayer {
         return cell.clearDepth(this.depth);
     }
 
-    async tick(_dt: number): Promise<boolean> {
+    tick(_dt: number): boolean {
         // Run any tick effects
 
         // // Bookkeeping for fire, pressure plates and key-activated tiles.

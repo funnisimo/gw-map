@@ -9,29 +9,30 @@ describe('emit', () => {
         GWU.events.removeAllListeners();
     });
 
-    // test('not gonna happen', async () => {
+    // test('not gonna happen',  () => {
     //     const eff = Effect.make({ emit: 'TEST' });
-    //     await expect(Effect.effectEmit(eff, 3, 4)).resolves.toBeFalsy();
+    //      expect(Effect.effectEmit(eff, 3, 4)).resolves.toBeFalsy();
     // });
 
     test('make', () => {
-        expect(() => Effect.make({ emit: null })).not.toThrow();
-        expect(() => Effect.make({ emit: 1 })).toThrow();
+        expect(() => Effect.make('EMIT:ID')).not.toThrow();
+        expect(() => Effect.make('EMIT')).toThrow();
     });
 
-    test('emits', async () => {
+    test('emits', () => {
         const map = UTILS.mockMap(10, 10);
-        const eff = Effect.make({ emit: 'EMIT1' });
-
+        const eff = Effect.make('EMIT:EMIT1');
         expect(eff).not.toBeNull();
+
         const fn = jest.fn();
         GWU.events.on('EMIT1', fn);
-        const ctx = { map, x: 5, y: 5 };
-        await Effect.fire(eff, map, ctx.x, ctx.y, ctx);
-        expect(fn).toHaveBeenCalledWith('EMIT1', ctx.x, ctx.y, ctx);
+
+        const didSomething = eff.trigger({ map, x: 5, y: 6 });
+        expect(didSomething).toBeTruthy();
+        expect(fn).toHaveBeenCalledWith('EMIT1', 5, 6, expect.anything());
     });
 
-    // test('default make', async () => {
+    // test('default make',  () => {
     //     const map = UTILS.mockMap(10, 10);
     //     const eff = Effect.make('EMIT2', 'emit');
 
@@ -39,19 +40,17 @@ describe('emit', () => {
     //     const fn = jest.fn();
     //     Events.on('EMIT2', fn);
     //     const ctx = { map, x: 5, y: 5 };
-    //     await eff!.fire(ctx.map, ctx.x, ctx.y);
+    //      eff!.fire(ctx.map, ctx.x, ctx.y);
     //     expect(fn).toHaveBeenCalledWith('EMIT2', ctx.x, ctx.y, eff);
     // });
 
-    test('emit', async () => {
-        const te = Effect.install('TEST', {
-            emit: 'TACO',
-        });
+    test('emit', () => {
+        const te = Effect.install('TEST', 'EMIT:TACO');
 
         const fn = jest.fn();
         GWU.events.on('TACO', fn);
 
-        await Effect.fire(te, UTILS.mockMap(), 5, 5);
+        te.trigger({ map: UTILS.mockMap(), x: 5, y: 5 });
         expect(fn).toHaveBeenCalled();
     });
 });

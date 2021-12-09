@@ -4,64 +4,60 @@ import * as UTILS from '../../../test/utils';
 import * as Effect from '..';
 
 describe('fn', () => {
-    test('fn', async () => {
+    test('fn', () => {
         const map = UTILS.mockMap(10, 10);
         const fn = jest.fn();
-        const eff = Effect.make({ fn });
+        const eff = Effect.make(fn as Effect.EffectFn);
 
         expect(eff).not.toBeNull();
-        const ctx = { data: true };
-        await Effect.fire(eff, map, 5, 6, ctx);
-        expect(fn).toHaveBeenCalledWith(eff, map, 5, 6, ctx);
+        eff.trigger({ map, x: 5, y: 6 });
+        expect(fn).toHaveBeenCalled();
     });
 
-    test('default make', async () => {
+    test('default make', () => {
         const map = UTILS.mockMap(10, 10);
         const fn = jest.fn();
-        const eff = Effect.make(fn);
+        const eff = Effect.make({ effects: fn as Effect.EffectFn });
 
         expect(eff).not.toBeNull();
-        const ctx = { data: true };
-        await Effect.fire(eff, map, 5, 6, ctx);
-        expect(fn).toHaveBeenCalledWith(eff, map, 5, 6, ctx);
+        eff.trigger({ map, x: 5, y: 6 });
+        expect(fn).toHaveBeenCalled();
     });
 
-    test('didSomething calls next', async () => {
+    test('didSomething calls next', () => {
         const map = UTILS.mockMap(10, 10);
         const fn = jest.fn().mockReturnValue(true); // did something
         const nextFn = jest.fn();
 
-        const eff = Effect.make({ fn, next: nextFn });
+        const eff = Effect.make([fn, nextFn]);
         expect(eff).not.toBeNull();
 
-        const ctx = { data: true };
-        await Effect.fire(eff, map, 5, 6, ctx);
-        expect(fn).toHaveBeenCalledWith(eff, map, 5, 6, ctx);
-        expect(nextFn).toHaveBeenCalledWith(eff.next, map, 5, 6, ctx);
+        eff.trigger({ map, x: 5, y: 6 });
+        expect(fn).toHaveBeenCalled();
+        expect(nextFn).toHaveBeenCalled();
     });
 
-    test('did nothing does not call next', async () => {
+    test('did nothing still does next call', () => {
         const map = UTILS.mockMap(10, 10);
         const fn = jest.fn().mockReturnValue(false); // did nothing
         const nextFn = jest.fn();
 
-        const eff = Effect.make({ fn, next: nextFn });
+        const eff = Effect.make([fn, nextFn]);
         expect(eff).not.toBeNull();
 
-        const ctx = { data: true };
-        await Effect.fire(eff, map, 5, 6, ctx);
-        expect(fn).toHaveBeenCalledWith(eff, map, 5, 6, ctx);
-        expect(nextFn).not.toHaveBeenCalled();
+        eff.trigger({ map, x: 5, y: 6 });
+        expect(fn).toHaveBeenCalled();
+        expect(nextFn).toHaveBeenCalled();
     });
 
-    // test('default make - with type', async () => {
+    // test('default make - with type',  () => {
     //     const map = UTILS.mockMap(10, 10);
     //     const fn = jest.fn();
     //     const eff = Effect.make(fn, 'fn');
 
     //     expect(eff).not.toBeNull();
     //     const ctx = { map, x: 5, y: 5 };
-    //     await eff!.fire(ctx.map, 5, 6);
+    //      eff!.fire(ctx.map, 5, 6);
     //     expect(fn).toHaveBeenCalledWith(eff, 5, 6);
     // });
 });

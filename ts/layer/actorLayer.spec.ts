@@ -5,7 +5,7 @@ import '../../test/matchers';
 // import * as Actor from '../actor';
 
 describe('actorLayer', () => {
-    test.skip('moveActor - bumps into wall, fails', async () => {
+    test.skip('moveActor - bumps into wall, fails', () => {
         // const map = Map.make(20, 20, 'FLOOR', 'WALL');
         // const actor = Actor.from({ ch: '@', fg: 'white', name: 'an Actor' });
         // await map.addActor(1, 1, actor);

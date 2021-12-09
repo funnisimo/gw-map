@@ -16,7 +16,7 @@ export class FireLayer extends TileLayer {
         super(map, name);
     }
 
-    async tick(_dt: number): Promise<boolean> {
+    tick(_dt: number): boolean {
         // Run any tick effects
 
         // Bookkeeping for fire
@@ -35,10 +35,10 @@ export class FireLayer extends TileLayer {
                     cell.hasTileFlag(TileFlags.T_IS_FIRE) &&
                     !(cell.flags.cell & CellFlags.CAUGHT_FIRE_THIS_TURN)
                 ) {
-                    await this.exposeToFire(x, y, false);
+                    this.exposeToFire(x, y, false);
                     for (let d = 0; d < 4; ++d) {
                         const dir = GWU.xy.DIRS[d];
-                        await this.exposeToFire(x + dir[0], y + dir[1]);
+                        this.exposeToFire(x + dir[0], y + dir[1]);
                     }
                 }
             }
@@ -47,7 +47,7 @@ export class FireLayer extends TileLayer {
         return true;
     }
 
-    async exposeToFire(x: number, y: number, alwaysIgnite = false) {
+    exposeToFire(x: number, y: number, alwaysIgnite = false) {
         let ignitionChance = 0,
             bestExtinguishingPriority = 0,
             explosiveNeighborCount = 0;
@@ -122,7 +122,7 @@ export class FireLayer extends TileLayer {
             //     }
             // });
 
-            await cell.fireEvent(event, {
+            cell.fireEvent(event, {
                 force: true,
             });
 

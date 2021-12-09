@@ -3,6 +3,8 @@ import * as GWU from 'gw-utils';
 import * as Tile from './index';
 import { Entity as ObjectFlags, Depth } from '../flags';
 import * as Map from '../map';
+import '../effect/handlers';
+import './tiles';
 
 const COLORS = GWU.color.colors;
 
@@ -146,7 +148,7 @@ describe('Tile', () => {
             bg: 'teal',
             effects: {
                 enter: null,
-                key: { tile: 'DOOR' },
+                key: 'TILE:DOOR',
             },
         });
 
@@ -221,13 +223,13 @@ describe('Tile', () => {
         expect(carpet.depth).toEqual(Depth.SURFACE);
     });
 
-    test('can use objects for activations', async () => {
+    test('can use objects for activations', () => {
         const carpet = Tile.install('CARPET', {
             ch: '+',
             fg: '#f66',
             bg: '#ff6',
             effects: {
-                tick: { chance: 0, log: 'testing' },
+                tick: { chance: 0, effects: 'MSG:testing' },
             },
             depth: 'SURFACE',
         });
@@ -340,7 +342,7 @@ describe('Tile', () => {
         ).toBeFalsy();
     });
 
-    test('PORTCULLIS', async () => {
+    test('PORTCULLIS', () => {
         // Portcullis (closed, dormant)
         // [WALL_CHAR,		gray,					floorBackColor,		10,	0,	DF_PLAIN_FIRE,	0,			DF_OPEN_PORTCULLIS,	0,			NO_LIGHT,		(T_OBSTRUCTS_PASSABILITY | T_OBSTRUCTS_ITEMS), (TM_STAND_IN_TILE | TM_VANISHES_UPON_PROMOTION | TM_IS_WIRED | TM_LIST_IN_SIDEBAR | TM_VISUALLY_DISTINCT | TM_CONNECTS_LEVEL), "a heavy portcullis",	"The iron bars rattle but will not budge; they are firmly locked in place."],
         // [FLOOR_CHAR,	floorForeColor,		floorBackColor,		95,	0,	DF_PLAIN_FIRE,	0,			DF_ACTIVATE_PORTCULLIS,0,		NO_LIGHT,		(0), (TM_VANISHES_UPON_PROMOTION | TM_IS_WIRED),                                                    "the ground",			""],
@@ -359,13 +361,11 @@ describe('Tile', () => {
                 'The iron bars rattle but will not budge; they are firmly locked in place.',
             flags: '!L_BLOCKS_VISION, !L_BLOCKS_GAS, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT, T_CONNECTS_LEVEL',
             effects: {
-                machine: {
-                    tile: 'PORTCULLIS_DORMANT',
-                    message:
-                        'the portcullis slowly rises from the ground into a slot in the ceiling.',
-                    flash: true,
-                    flags: 'E_SUPERPRIORITY',
-                },
+                machine: [
+                    'TILE:PORTCULLIS_DORMANT!',
+                    'MSG:the portcullis slowly rises from the ground into a slot in the ceiling.',
+                    // 'FLASH:true',
+                ],
             },
         });
         expect(portcullis.blocksVision()).toBeFalsy();
@@ -377,11 +377,13 @@ describe('Tile', () => {
             priority: '+1',
             effects: {
                 machine: {
-                    tile: 'PORTCULLIS_CLOSED',
-                    message:
-                        'with a heavy mechanical sound, an iron portcullis falls from the ceiling!',
-                    flash: true,
+                    type: 'SPREAD:0:0',
                     flags: 'E_EVACUATE_CREATURES_FIRST',
+                    effects: [
+                        'TILE:PORTCULLIS_CLOSED',
+                        'MSG:with a heavy mechanical sound, an iron portcullis falls from the ceiling!',
+                        // 'FLASH:true'
+                    ],
                 },
             },
         });
@@ -396,12 +398,12 @@ describe('Tile', () => {
         expect(map.cell(5, 5).blocksMove()).toBeTruthy();
         expect(map.cell(5, 5).blocksVision()).toBeFalsy();
 
-        await map.fire('machine', 5, 5);
+        map.fire('machine', 5, 5);
         expect(map.hasTile(5, 5, 'PORTCULLIS_DORMANT')).toBeTruthy();
         expect(map.cell(5, 5).blocksMove()).toBeFalsy();
         expect(map.cell(5, 5).blocksVision()).toBeFalsy();
 
-        await map.fire('machine', 5, 5);
+        map.fire('machine', 5, 5);
         expect(map.hasTile(5, 5, 'PORTCULLIS_CLOSED')).toBeTruthy();
         expect(map.cell(5, 5).blocksMove()).toBeTruthy();
         expect(map.cell(5, 5).blocksVision()).toBeFalsy();
@@ -423,11 +425,11 @@ describe('Tile', () => {
             description: 'The lever moves.',
             flags: 'L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT, T_CONNECTS_LEVEL',
             effects: {
-                playerEnter: {
-                    tile: 'WALL_LEVER_PULLED',
-                    activateMachine: true,
-                    message: 'the lever moves.',
-                },
+                playerEnter: [
+                    'TILE:WALL_LEVER_PULLED',
+                    'activateMachine: true',
+                    'MSG:the lever moves.',
+                ],
             },
         });
         expect(lever.blocksVision()).toBeTruthy();

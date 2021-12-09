@@ -52,30 +52,30 @@ export class Horde {
         // if (config.requiredTile) this.requiredTile = config.requiredTile;
     }
 
-    async spawn(
+    spawn(
         map: Map.Map,
         x = -1,
         y = -1,
         opts: Partial<SpawnOptions> = {}
-    ): Promise<Actor.Actor | null> {
+    ): Actor.Actor | null {
         opts.canSpawn = opts.canSpawn || GWU.TRUE;
         opts.rng = opts.rng || map.rng;
         opts.machine = opts.machine ?? 0;
 
-        const leader = await this._spawnLeader(map, x, y, opts as SpawnOptions);
+        const leader = this._spawnLeader(map, x, y, opts as SpawnOptions);
         if (!leader) return null;
 
-        await this._spawnMembers(leader, map, opts as SpawnOptions);
+        this._spawnMembers(leader, map, opts as SpawnOptions);
 
         return leader;
     }
 
-    async _spawnLeader(
+    _spawnLeader(
         map: Map.Map,
         x: number,
         y: number,
         opts: SpawnOptions
-    ): Promise<Actor.Actor | null> {
+    ): Actor.Actor | null {
         const leaderKind = Actor.get(this.leader);
         if (!leaderKind) {
             throw new Error('Failed to find leader kind = ' + this.leader);
@@ -98,63 +98,61 @@ export class Horde {
 
         // pre-placement stuff?  machine? effect?
 
-        if (!(await this._addLeader(leader, map, x, y, opts))) {
+        if (!this._addLeader(leader, map, x, y, opts)) {
             return null;
         }
 
         return leader;
     }
 
-    async _addLeader(
+    _addLeader(
         leader: Actor.Actor,
         map: Map.Map,
         x: number,
         y: number,
         _opts: SpawnOptions
-    ): Promise<boolean> {
+    ): boolean {
         return map.addActor(x, y, leader);
     }
 
-    async _addMember(
+    _addMember(
         member: Actor.Actor,
         map: Map.Map,
         x: number,
         y: number,
         leader: Actor.Actor,
         _opts: SpawnOptions
-    ): Promise<boolean> {
+    ): boolean {
         member.leader = leader;
         return map.addActor(x, y, member);
     }
 
-    async _spawnMembers(
+    _spawnMembers(
         leader: Actor.Actor,
         map: Map.Map,
         opts: SpawnOptions
-    ): Promise<number> {
+    ): number {
         const entries = Object.entries(this.members);
 
         if (entries.length == 0) return 0;
 
         let count = 0;
-        await Promise.all(
-            entries.map(async ([kindId, countRange]) => {
-                const count = countRange.value(opts.rng);
-                for (let i = 0; i < count; ++i) {
-                    await this._spawnMember(kindId, map, leader, opts);
-                }
-            })
-        );
+        entries.forEach(([kindId, countRange]) => {
+            const count = countRange.value(opts.rng);
+            for (let i = 0; i < count; ++i) {
+                this._spawnMember(kindId, map, leader, opts);
+            }
+        });
 
         return count;
     }
 
-    async _spawnMember(
+    _spawnMember(
         kindId: string,
         map: Map.Map,
         leader: Actor.Actor,
         opts: SpawnOptions
-    ): Promise<Actor.Actor | null> {
+    ): Actor.Actor | null {
         const kind = Actor.get(kindId);
         if (!kind) {
             throw new Error('Failed to find member kind = ' + kindId);
@@ -164,8 +162,7 @@ export class Horde {
         if (!member) throw new Error('Failed to make horde member - ' + kindId);
 
         const [x, y] = this._pickMemberLoc(member, map, leader, opts) || [
-            -1,
-            -1,
+            -1, -1,
         ];
         if (x < 0 || y < 0) {
             return null;
@@ -173,7 +170,7 @@ export class Horde {
 
         // pre-placement stuff?  machine? effect?
 
-        if (!(await this._addMember(member, map, x, y, leader, opts))) {
+        if (!this._addMember(member, map, x, y, leader, opts)) {
             return null;
         }
 

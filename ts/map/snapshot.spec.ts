@@ -1,5 +1,8 @@
 import * as Map from '.';
 
+import '../effect/handlers';
+import '../tile/tiles';
+
 describe('Snapshot', () => {
     test('constructor', () => {
         const map = Map.make(10, 10, 'FLOOR', 'WALL');

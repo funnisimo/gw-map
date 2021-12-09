@@ -5,15 +5,17 @@ import * as Effect from '..';
 import * as Item from '../../item';
 import * as Map from '../../map';
 import * as Tile from '../../tile';
+import '../../tile/tiles';
+import { MapXY } from '../effect';
 
 describe('Special Effects', () => {
-    async function swapItems(
-        _config: Effect.EffectInfo,
-        map: Map.Map,
-        x: number,
-        y: number,
-        ctx: Effect.EffectCtx
-    ) {
+    let setup: Effect.Effect;
+
+    function swapItems(loc: MapXY, ctx: Effect.EffectCtx): boolean {
+        const map = loc.map;
+        const x = loc.x;
+        const y = loc.y;
+
         const cell = map.cell(x, y);
         if (!cell.hasItem()) return false;
         const myMachine = cell.machineId;
@@ -28,14 +30,11 @@ describe('Special Effects', () => {
                     y
             );
 
-        const tile = ctx.tile;
-
         let items: Item.Item[] = [item];
         map.eachItem((i) => {
             if (i === item) return; // do not use same item again
             const itemCell = map.cell(i.x, i.y);
             if (itemCell.machineId !== myMachine) return;
-            if (!itemCell.hasTile(tile)) return;
             items.push(i);
         });
 
@@ -59,6 +58,23 @@ describe('Special Effects', () => {
 
     beforeAll(() => {
         // TILES
+        // EFFECTS
+
+        Effect.install('DF_ALTAR_SWAP', {
+            tile: 'SWAP_ALTAR_INERT',
+            // msg: 'the items on the altars flash with a brilliant light!',
+            // flash: 'ENCHANTMENT_LIGHT',
+        });
+        // Effect.install('DF_MAGIC_PIPING', { spawn: 'PIPE_GLOWING:90:60' });
+        Effect.install('DF_INERT_PIPE', {
+            tile: 'PIPE_INERT',
+            // flash: 'ENCHANTMENT_LIGHT',
+        });
+        setup = Effect.install('DF_SWAP_ALTAR_SETUP', {
+            type: 'SPREAD:90:60',
+            tile: 'PIPE_GLOWING',
+            next: 'TILE:SWAP_ALTAR',
+        });
 
         Tile.install('SWAP_ALTAR', {
             ch: 'T',
@@ -67,10 +83,7 @@ describe('Special Effects', () => {
             priority: 100 - 17,
             flags: 'L_BLOCKS_SURFACE, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT',
             effects: {
-                add_item: {
-                    fn: swapItems,
-                    next: { effect: 'DF_ALTAR_SWAP' },
-                },
+                add_item: [swapItems, 'DF_ALTAR_SWAP'],
             },
             name: 'a commutation altar',
             description:
@@ -110,23 +123,6 @@ describe('Special Effects', () => {
             description: 'the inside of the glass pipes are charred.',
         });
 
-        // EFFECTS
-
-        Effect.install('DF_ALTAR_SWAP', {
-            tile: 'SWAP_ALTAR_INERT',
-            message: 'the items on the altars flash with a brilliant light!',
-            flash: 'ENCHANTMENT_LIGHT',
-        });
-        Effect.install('DF_MAGIC_PIPING', { tile: 'PIPE_GLOWING,90,60' });
-        Effect.install('DF_INERT_PIPE', {
-            tile: 'PIPE_INERT',
-            flash: 'ENCHANTMENT_LIGHT',
-        });
-        Effect.install('DF_SWAP_ALTAR_SETUP', {
-            effect: 'DF_MAGIC_PIPING',
-            tile: 'SWAP_ALTAR',
-        });
-
         // Items
 
         Item.install('HAT', {
@@ -150,20 +146,25 @@ describe('Special Effects', () => {
         map = Map.make(20, 20, 'FLOOR', 'WALL');
     });
 
-    test('swap items', async () => {
-        await Effect.fire('DF_SWAP_ALTAR_SETUP', map, 5, 5, { machine: 3 });
-        await Effect.fire('DF_SWAP_ALTAR_SETUP', map, 15, 15, { machine: 3 });
+    test('swap items', () => {
+        setup.trigger({ map, x: 5, y: 5 }, { machine: 3 });
+        setup.trigger({ map, x: 15, y: 15 }, { machine: 3 });
 
         expect(map.cell(5, 5).machineId).toEqual(3);
         expect(map.cell(15, 15).machineId).toEqual(3);
 
+        // map.dump();
+
         const hat = Item.make('HAT');
-        expect(await map.addItem(5, 5, hat, true)).toBeTruthy();
+        expect(map.addItem(5, 5, hat, true)).toBeTruthy();
+        // map.fireQueuedEvents();
         expect(hat).toBeAtXY(5, 5);
         expect(map.itemAt(5, 5)).toBe(hat);
 
         const coat = Item.make('COAT');
-        expect(await map.addItem(15, 15, coat, true)).toBeTruthy(); // causes position swap!
+        expect(map.addItem(15, 15, coat, true)).toBeTruthy(); // causes position swap!
+        // map.fireQueuedEvents();
+
         expect(map.itemAt(5, 5)).not.toBeNull();
         expect(map.itemAt(15, 15)).not.toBeNull();
 

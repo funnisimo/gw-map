@@ -3,15 +3,15 @@ import * as GWU from 'gw-utils';
 import * as Flags from '../flags';
 import {
     CellType,
-    CellInfoType,
     CellFlags,
-    MapType,
     TileArray,
     SetTileOptions,
+    MapType,
 } from './types';
 import { Item } from '../item/item';
 import { Actor } from '../actor/actor';
 import { Entity } from '../entity';
+import { Map } from './map';
 
 import * as TILE from '../tile';
 import * as Effect from '../effect';
@@ -97,10 +97,10 @@ export class Cell implements CellType {
     x = -1;
     y = -1;
     snapshot: GWU.sprite.Mixer;
-    toFire: Partial<Effect.EffectCtx>[] = [];
+    // toFire: Partial<Effect.EffectCtx>[] = [];
 
     constructor(
-        map: MapType,
+        map: Map,
         x: number,
         y: number,
         groundTile?: number | string | TILE.Tile
@@ -133,7 +133,7 @@ export class Cell implements CellType {
         return this.hasCellFlag(Flags.Cell.STABLE_MEMORY);
     }
 
-    copy(other: CellInfoType) {
+    copy(other: CellType) {
         Object.assign(this.flags, other.flags);
         this.chokeCount = other.chokeCount;
         this.tiles.length = other.tiles.length;
@@ -483,67 +483,36 @@ export class Cell implements CellType {
 
     // Effects
 
-    needsToFire(): boolean {
-        return this.toFire.length > 0;
-    }
-    willFire(event: string): boolean {
-        return !!this.toFire.find((ctx) => ctx.event === event);
-    }
-    clearEvents(): void {
-        this.toFire.length = 0;
-    }
     tileWithEffect(name: string): TILE.Tile | null {
         return this.tiles.find((t) => t?.hasEffect(name)) || null;
     }
 
-    async fireAll(): Promise<boolean> {
-        let ctx: Partial<Effect.EffectCtx>;
-        let didSomething = false;
-
-        for (ctx of this.toFire) {
-            didSomething =
-                (await this.fireEvent(ctx.event, ctx)) || didSomething;
-        }
-        this.toFire.length = 0; // clear
-
-        return didSomething;
-    }
-
-    async fireEvent(
-        event: string,
-        ctx: Partial<Effect.EffectCtx> = {}
-    ): Promise<boolean> {
-        ctx.cell = this;
+    fireEvent(event: string, ctx: Effect.EffectCtx = {}): boolean {
+        // ctx.cell = this;
         let didSomething = false;
 
         // console.log('fire event - %s', event);
-        for (ctx.tile of this.tiles) {
-            if (!ctx.tile || !ctx.tile.effects) continue;
-            const ev = ctx.tile.effects[event];
-            if (ev && (await this._activate(ev, ctx))) {
-                didSomething = true;
+        for (const tile of this.tiles) {
+            if (!tile || !tile.effects) continue;
+            const ev = tile.effects[event];
+            if (ev) {
+                const r = this._activate(ev, ctx);
+                if (r) {
+                    didSomething = true;
+                }
             }
         }
         return didSomething;
     }
 
-    async _activate(
-        effect: string | Effect.EffectInfo,
-        ctx: Partial<Effect.EffectCtx>
-    ) {
+    _activate(effect: string | Effect.Effect, ctx: Effect.EffectCtx): boolean {
         if (typeof effect === 'string') {
-            effect = Effect.effects[effect];
+            effect = Effect.installedEffects[effect];
         }
         let didSomething = false;
         if (effect) {
             // console.log(' - spawn event @%d,%d - %s', x, y, name);
-            didSomething = await Effect.fire(
-                effect,
-                this.map,
-                this.x,
-                this.y,
-                ctx
-            );
+            didSomething = effect.trigger(this, ctx);
             // cell.debug(" - spawned");
         }
         return didSomething;
@@ -565,7 +534,7 @@ export class Cell implements CellType {
         return this.map.itemAt(this.x, this.y);
     }
 
-    addItem(item: Item, withEffects = false): void {
+    addItem(item: Item, withEffects = false): boolean {
         this.setCellFlag(Flags.Cell.HAS_ITEM);
         item.addToMap(this.map, this.x, this.y);
         this.map.items.push(item);
@@ -578,19 +547,18 @@ export class Cell implements CellType {
                 item.key.matches(this.x, this.y) &&
                 this.hasEffect('key')
             ) {
-                const tile = this.tileWithEffect('key');
-                this.toFire.push({
-                    event: 'key',
+                this.fireEvent('key', {
                     key: item,
                     item,
-                    tile,
-                    cell: this,
                 });
             } else if (this.hasEffect('add_item')) {
-                const tile = this.tileWithEffect('add_item');
-                this.toFire.push({ event: 'add_item', item, tile, cell: this });
+                this.fireEvent('add_item', {
+                    key: item,
+                    item,
+                });
             }
         }
+        return true;
     }
     removeItem(item: Item, withEffects = false): boolean {
         let hasItems = false;
@@ -613,21 +581,14 @@ export class Cell implements CellType {
 
         if (withEffects) {
             if (item.isKey(this.x, this.y) && this.hasEffect('no_key')) {
-                const tile = this.tileWithEffect('no_key');
-                this.toFire.push({
-                    event: 'no_key',
+                this.fireEvent('no_key', {
                     key: item,
                     item,
-                    tile,
-                    cell: this,
                 });
             } else if (this.hasEffect('remove_item')) {
-                const tile = this.tileWithEffect('remove_item');
-                this.toFire.push({
-                    event: 'remove_item',
+                this.fireEvent('remove_item', {
+                    key: item,
                     item,
-                    tile,
-                    cell: this,
                 });
             }
         }
@@ -646,7 +607,7 @@ export class Cell implements CellType {
         return this.map.actorAt(this.x, this.y);
     }
 
-    addActor(actor: Actor, withEffects = false): void {
+    addActor(actor: Actor, withEffects = false): boolean {
         this.setCellFlag(Flags.Cell.HAS_ACTOR);
         if (actor.isPlayer()) {
             this.setCellFlag(Flags.Cell.HAS_PLAYER);
@@ -658,33 +619,22 @@ export class Cell implements CellType {
 
         if (withEffects) {
             if (actor.isKey(this.x, this.y) && this.hasEffect('key')) {
-                const tile = this.tileWithEffect('key');
-                this.toFire.push({
-                    event: 'key',
+                this.fireEvent('key', {
                     key: actor,
                     actor,
-                    tile,
-                    cell: this,
                 });
             } else if (actor.isPlayer() && this.hasEffect('add_player')) {
-                const tile = this.tileWithEffect('add_player');
-                this.toFire.push({
-                    event: 'add_player',
-                    actor,
+                this.fireEvent('add_player', {
                     player: actor,
-                    tile,
-                    cell: this,
+                    actor,
                 });
             } else if (this.hasEffect('add_actor')) {
-                const tile = this.tileWithEffect('add_actor');
-                this.toFire.push({
-                    event: 'add_actor',
+                this.fireEvent('add_actor', {
                     actor,
-                    tile,
-                    cell: this,
                 });
             }
         }
+        return true;
     }
     removeActor(actor: Actor, withEffects = false): boolean {
         let hasActor = false;
@@ -707,30 +657,18 @@ export class Cell implements CellType {
 
         if (withEffects) {
             if (actor.isKey(this.x, this.y) && this.hasEffect('no_key')) {
-                const tile = this.tileWithEffect('no_key');
-                this.toFire.push({
-                    event: 'no_key',
+                this.fireEvent('no_key', {
                     key: actor,
                     actor,
-                    tile,
-                    cell: this,
                 });
             } else if (actor.isPlayer() && this.hasEffect('remove_player')) {
-                const tile = this.tileWithEffect('remove_player');
-                this.toFire.push({
-                    event: 'remove_player',
+                this.fireEvent('remove_player', {
                     actor,
                     player: actor,
-                    tile,
-                    cell: this,
                 });
             } else if (this.hasEffect('remove_actor')) {
-                const tile = this.tileWithEffect('remove_actor');
-                this.toFire.push({
-                    event: 'remove_actor',
+                this.fireEvent('remove_actor', {
                     actor,
-                    tile,
-                    cell: this,
                 });
             }
         }

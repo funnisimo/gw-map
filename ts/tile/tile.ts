@@ -1,7 +1,6 @@
 import * as GWU from 'gw-utils';
 
-import { EffectInfo, EffectConfig } from '../effect/types';
-import { make as makeEffect } from '../effect/make';
+import { EffectBase, Effect, make as makeEffect } from '../effect/effect';
 import { TileFlags } from './types';
 import * as Flags from '../flags';
 
@@ -14,7 +13,7 @@ export interface TileConfig extends GWU.sprite.SpriteConfig {
     id: string;
     flags: TileFlags;
     dissipate: number;
-    effects: Record<string, EffectInfo | string>;
+    effects: Record<string, EffectBase | Effect>;
     priority: number;
     depth: number;
     light: GWU.light.LightType | null;
@@ -32,7 +31,7 @@ export class Tile {
     index = -1;
     flags: TileFlags;
     dissipate = 20 * 100; // 0%
-    effects: Record<string, string | EffectInfo> = {};
+    effects: Record<string, string | Effect> = {};
     sprite: GWU.sprite.Sprite;
     priority = 50;
     depth = 0;
@@ -191,7 +190,7 @@ export interface TileOptions extends GWU.sprite.SpriteConfig {
     dissipate: number;
     depth: Flags.Depth | Flags.DepthString;
 
-    effects: Record<string, Partial<EffectConfig> | string | null>;
+    effects: Record<string, EffectBase | null>;
     groundTile: string;
 
     light: GWU.light.LightBase | null;
@@ -239,7 +238,7 @@ export function make(options: Partial<TileOptions>) {
         priority = options.priority;
     }
 
-    const effects: Record<string, EffectInfo | string> = {};
+    const effects: Record<string, Effect | string> = {};
     Object.assign(effects, base.effects);
     if (options.effects) {
         Object.entries(options.effects).forEach(([key, value]) => {
@@ -248,12 +247,20 @@ export function make(options: Partial<TileOptions>) {
                 return;
             }
 
-            if (typeof value === 'string') {
+            if (typeof value === 'string' && !value.includes(':')) {
                 effects[key] = value;
                 return;
             }
 
-            effects[key] = makeEffect(value);
+            try {
+                effects[key] = makeEffect(value);
+            } catch (e: any) {
+                throw new Error(
+                    `Failed to add effect to tile => ${key} : ${JSON.stringify(
+                        value
+                    )} : ` + (e as Error).message
+                );
+            }
         });
     }
 

@@ -8,6 +8,9 @@ import * as Tile from '../tile';
 import * as Map from './map';
 import { Cell } from './cell';
 
+import '../effect/handlers';
+import '../tile/tiles';
+
 describe('Cell', () => {
     let map: Map.Map;
 
@@ -43,8 +46,7 @@ describe('Cell', () => {
             name: 'red gas',
             article: 'some',
             bg: 'red',
-            flags:
-                'T_SPONTANEOUSLY_IGNITES, T_IS_FLAMMABLE, T_CAUSES_EXPLOSIVE_DAMAGE, T_GAS',
+            flags: 'T_SPONTANEOUSLY_IGNITES, T_IS_FLAMMABLE, T_CAUSES_EXPLOSIVE_DAMAGE, T_GAS',
             depth: 'GAS',
         });
         Tile.install('BLUE_GAS', {
@@ -65,7 +67,7 @@ describe('Cell', () => {
             ch: '!',
             fg: 'red',
             effects: {
-                enter: { tile: 'FLOOR', chance: 1 },
+                enter: { effects: 'TILE:FLOOR', chance: 1 },
             },
         });
     });
@@ -802,11 +804,11 @@ describe('Cell', () => {
         expect(cell.hasEffect('fire')).toBeFalsy();
     });
 
-    test('fire', async () => {
+    test('fire', () => {
         const cell: Cell = new Cell(map, 1, 1, 'LOW_CHANCE');
         // UTILS.mockRandom();
         GWU.rng.random.seed(12345);
-        expect(await cell.fireEvent('enter')).toBeFalsy();
+        expect(cell.fireEvent('enter')).toBeFalsy();
     });
 
     test('clearDepth', () => {

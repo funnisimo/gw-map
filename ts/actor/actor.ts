@@ -108,14 +108,11 @@ export class Actor extends Entity.Entity {
 
     ////////////////// INVENTORY
 
-    async pickupItem(
-        item: Item,
-        opts?: Partial<PickupOptions>
-    ): Promise<boolean> {
+    pickupItem(item: Item, opts?: Partial<PickupOptions>): boolean {
         return this.kind.pickupItem(this, item, opts);
     }
 
-    async dropItem(item: Item, opts?: Partial<DropOptions>): Promise<boolean> {
+    dropItem(item: Item, opts?: Partial<DropOptions>): boolean {
         return this.kind.dropItem(this, item, opts);
     }
 }

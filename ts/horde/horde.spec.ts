@@ -7,6 +7,9 @@ import * as Horde from '.';
 import * as Tile from '../tile';
 import * as Map from '../map';
 
+import '../effect/handlers';
+import '../tile/tiles';
+
 describe('Horde', () => {
     beforeAll(() => {
         Actor.install('ACTOR', {
@@ -110,7 +113,7 @@ describe('Horde', () => {
         );
     });
 
-    test('requiredTile', async () => {
+    test('requiredTile', () => {
         // 	[MK_ARROW_TURRET, 0, null, null, 5, 13, 100, WALL, 0, HORDE_NO_PERIODIC_SPAWN],
 
         const audience = Horde.install('AUDIENCE', {
@@ -130,15 +133,15 @@ describe('Horde', () => {
         expect(Actor.kinds.SPECTATOR.avoidsCell(map.cell(5, 5))).toBeFalsy();
         expect(Actor.kinds.SPECTATOR.avoidsCell(map.cell(4, 4))).toBeTruthy();
 
-        expect(await audience.spawn(map, 4, 4)).toBeNull(); // Fails - avoids cell
+        expect(audience.spawn(map, 4, 4)).toBeNull(); // Fails - avoids cell
 
-        const spectator = await audience.spawn(map, 5, 5);
+        const spectator = audience.spawn(map, 5, 5);
         expect(spectator).not.toBeNull();
         expect(map.hasActor(5, 5)).toBeTruthy();
         expect(spectator).toBeAtXY(5, 5);
     });
 
-    test('members with required tile tags', async () => {
+    test('members with required tile tags', () => {
         const audience = Horde.install('AUDIENCE', {
             leader: 'SPECTATOR',
             frequency: '5-13',
@@ -152,7 +155,7 @@ describe('Horde', () => {
 
         GWU.xy.forRect(1, 1, 4, 4, (x, y) => map.setTile(x, y, 'CHAIR'));
 
-        const leader = await audience.spawn(map, 4, 4);
+        const leader = audience.spawn(map, 4, 4);
         expect(leader).toBeObject();
 
         // map.dump();

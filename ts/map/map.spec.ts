@@ -5,6 +5,9 @@ import * as Map from './map';
 import * as Tile from '../tile';
 import * as Flags from '../flags';
 
+import '../effect/handlers';
+import '../tile/tiles';
+
 describe('Map', () => {
     test('from', () => {
         Tile.install('GRASS', {

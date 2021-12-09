@@ -5,4 +5,4 @@ export const flags = { Tile, TileMech };
 export * from './types';
 export * from './tile';
 
-import './tiles';
+// import './tiles';

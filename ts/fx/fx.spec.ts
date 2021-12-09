@@ -6,6 +6,9 @@ import * as Tile from '../tile';
 import * as Map from '../map';
 import * as FX from './index';
 
+import '../effect/handlers';
+import '../tile/tiles';
+
 describe('FX', () => {
     beforeEach(() => {
         GWU.rng.cosmetic.seed(12345);
