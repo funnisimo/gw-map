@@ -1,5 +1,6 @@
 var MAP;
 var UI;
+var LAYER;
 var PLAYER;
 var animator;
 
@@ -34,7 +35,7 @@ function toggleGameTime() {
         animator = MAP;
     } else {
         text = 'Selected REAL TIME.';
-        animator = UI;
+        animator = LAYER;
     }
     UI.alert(500, text);
     return true;
@@ -120,7 +121,7 @@ function showFlash(e) {
 }
 
 function showHit(e) {
-    GWM.fx.hit(MAP, e);
+    GWM.fx.hit(MAP, e, 'hit', 100, LAYER);
 }
 
 function showBeam(e) {
@@ -132,7 +133,7 @@ function showBeam(e) {
         })
         .then((anim) => {
             console.log('beam end: ', anim.x, anim.y);
-            return GWM.fx.hit(MAP, anim);
+            return GWM.fx.hit(MAP, anim, 'hit', 100, LAYER);
         })
         .then(() => {
             console.log('- beam hit done');
@@ -150,7 +151,15 @@ function showBolt(e) {
         })
         .then((result) => {
             console.log('bolt hit:', result.x, result.y);
-            return GWM.fx.flashSprite(MAP, result.x, result.y, 'hit', 100, 3);
+            return GWM.fx.flashSprite(
+                MAP,
+                result.x,
+                result.y,
+                'hit',
+                100,
+                3,
+                LAYER
+            );
         })
         .then(() => {
             console.log('- hit done.');
@@ -170,7 +179,15 @@ function showProjectile(e) {
         })
         .then((anim) => {
             console.log('projectile hit:', anim.x, anim.y);
-            return GWM.fx.flashSprite(MAP, anim.x, anim.y, 'hit', 500, 1);
+            return GWM.fx.flashSprite(
+                MAP,
+                anim.x,
+                anim.y,
+                'hit',
+                500,
+                1,
+                LAYER
+            );
         });
 }
 
@@ -223,7 +240,7 @@ function rest(e) {
 }
 
 function showHelp() {
-    const layer = UI.startNewLayer();
+    const layer = new GWU.ui.Layer(UI);
     const buf = layer.buffer;
 
     let y = 2;
@@ -299,7 +316,7 @@ function showHelp() {
     // UI.draw();
     buf.render();
 
-    layer.run({
+    return layer.run({
         keypress() {
             this.finish();
         },
@@ -307,8 +324,6 @@ function showHelp() {
             this.finish();
         },
     });
-
-    return layer.promise;
 }
 
 const KEYMAP = {
@@ -333,7 +348,6 @@ const KEYMAP = {
 // start the environment
 async function start() {
     UI = new GWU.ui.UI({ width: 80, height: 30, div: 'game' });
-    animator = UI;
 
     await showHelp();
 
@@ -353,7 +367,10 @@ async function start() {
 
     // Should just keep listening to IO
 
-    const layer = UI.startNewLayer({
+    LAYER = new GWU.ui.Layer(UI);
+    animator = LAYER;
+
+    await LAYER.run({
         dir: movePlayer,
         keypress(e) {
             const cb = GWU.io.handlerFor(e, KEYMAP);
@@ -362,18 +379,14 @@ async function start() {
             // return true;
         },
         click: showFX,
-        draw(buffer) {
-            if (
-                !MAP.hasMapFlag(GWM.flags.Map.MAP_NEEDS_REDRAW) &&
-                !this.needsDraw
-            ) {
+        draw() {
+            if (!MAP.needsRedraw) {
                 return false;
             }
 
-            MAP.drawInto(buffer);
-            MAP.clearMapFlag(GWM.flags.Map.MAP_NEEDS_REDRAW);
-            this.needsDraw = false;
-            return true;
+            MAP.drawInto(LAYER.buffer);
+            MAP.needsRedraw = false;
+            LAYER.buffer.render();
         },
     });
 

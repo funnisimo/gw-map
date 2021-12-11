@@ -33,4 +33,9 @@ export class Item extends Entity {
     hasAllItemFlags(flags: number) {
         return (this.flags.item & flags) === flags;
     }
+
+    getAction(name: string): Kind.ItemActionBase | undefined {
+        const action = this.kind.actions[name];
+        return action;
+    }
 }

@@ -144,7 +144,7 @@ export async function flashSprite(
         });
 
     // realTime
-    animator = animator || GWU.loop;
+    animator = animator || GWU.io.loop;
     animator.addAnimation(tween);
     return tween.start();
 }
@@ -210,7 +210,7 @@ export async function fadeInOut(
         });
 
     // realTime
-    animator = animator || GWU.loop;
+    animator = animator || GWU.io.loop;
     animator.addAnimation(tween);
     return tween.start();
 }

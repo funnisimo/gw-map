@@ -11,6 +11,7 @@ import { ActorFlags } from '.';
 export interface KindOptions extends Entity.KindOptions {
     flags?: GWU.flag.FlagBase;
     vision?: number;
+    stats?: Record<string, GWU.range.RangeBase>;
 }
 
 export interface MakeOptions extends Entity.MakeOptions {
@@ -24,6 +25,7 @@ export class ActorKind extends Entity.EntityKind {
         entity: Flags.Entity.DEFAULT_ACTOR,
     };
     vision: Record<string, number> = {};
+    stats: Record<string, GWU.range.RangeBase>;
 
     constructor(opts: KindOptions) {
         super(opts);
@@ -42,6 +44,7 @@ export class ActorKind extends Entity.EntityKind {
         if (opts.vision) {
             this.vision.normal = opts.vision;
         }
+        this.stats = opts.stats || {};
     }
 
     make(options?: Partial<MakeOptions>): Actor {
@@ -62,6 +65,7 @@ export class ActorKind extends Entity.EntityKind {
         if (this.vision.normal) {
             actor.visionDistance = this.vision.normal;
         }
+        actor.stats.init(this.stats);
     }
 
     addToMap(actor: Actor, map: MapType) {

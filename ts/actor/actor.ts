@@ -5,6 +5,8 @@ import * as Flags from '../flags';
 import { ActorKind } from './kind';
 import { Item } from '../item';
 import * as Memory from '../memory';
+import { Status } from './status';
+import { Stats } from './stat';
 
 export interface PickupOptions {
     admin: boolean;
@@ -24,6 +26,8 @@ export class Actor extends Entity.Entity {
     fov: GWU.fov.FovSystem | null = null;
     memory: Memory.Memory | null = null;
     visionDistance = 99;
+    stats: Stats;
+    status: Status;
 
     constructor(kind: ActorKind) {
         super(kind);
@@ -31,6 +35,8 @@ export class Actor extends Entity.Entity {
         this.flags.actor = 0;
         this.depth = Flags.Depth.ACTOR;
         this.kind = kind;
+        this.stats = new Stats();
+        this.status = new Status();
     }
 
     copy(other: Actor) {
@@ -106,7 +112,23 @@ export class Actor extends Entity.Entity {
         return this.kind.isAbleToSense(this, entity);
     }
 
+    ////////////////// ACTOR
+
+    async act(): Promise<boolean> {
+        return true;
+    }
+
     ////////////////// INVENTORY
+
+    avoidsItem(_item: Item): boolean {
+        return false;
+    }
+
+    canAddItem(_item: Item): boolean {
+        return false;
+    }
+
+    addItem(_item: Item): void {}
 
     pickupItem(item: Item, opts?: Partial<PickupOptions>): boolean {
         return this.kind.pickupItem(this, item, opts);

@@ -14,6 +14,7 @@ On each page, click on any example to modify its source and re-run it by clickin
 
 ## Samples
 
+-   [Ananas de Caracas](/ananas)
 -   [FX](/fx)
 
 **Note:** Examples in this manual use the `SHOW()` function, which is not a part of `gw-core`. This helper function is available only in this Manual.

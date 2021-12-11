@@ -181,20 +181,20 @@ declare enum Horde$1 {
     HORDE_NEVER_OOD
 }
 
-type index_d$a_Depth = Depth;
-declare const index_d$a_Depth: typeof Depth;
-type index_d$a_DepthString = DepthString;
-type index_d$a_TileMech = TileMech;
-declare const index_d$a_TileMech: typeof TileMech;
-declare namespace index_d$a {
+type index_d$d_Depth = Depth;
+declare const index_d$d_Depth: typeof Depth;
+type index_d$d_DepthString = DepthString;
+type index_d$d_TileMech = TileMech;
+declare const index_d$d_TileMech: typeof TileMech;
+declare namespace index_d$d {
   export {
-    index_d$a_Depth as Depth,
-    index_d$a_DepthString as DepthString,
+    index_d$d_Depth as Depth,
+    index_d$d_DepthString as DepthString,
     Entity$1 as Entity,
     Actor$1 as Actor,
     Item$1 as Item,
     Tile$1 as Tile,
-    index_d$a_TileMech as TileMech,
+    index_d$d_TileMech as TileMech,
     Cell$1 as Cell,
     Map$1 as Map,
     Effect$1 as Effect,
@@ -228,6 +228,188 @@ declare class KeyInfo implements KeyInfoType {
 }
 declare function makeKeyInfo(x: number, y: number, disposable: boolean): KeyInfo;
 
+declare class PainMessages {
+    _msgs: string[];
+    constructor(msgs?: string[]);
+    add(msg: string): this;
+    get(pct: number, singular?: boolean): string;
+    _format(msg: string, singular?: boolean): string;
+}
+declare const painMessages: Record<string, PainMessages>;
+declare function installPain(id: string, pain: PainMessages | string[]): void;
+declare function getPain(id: string): PainMessages;
+
+declare type AdjustType = 'inc' | 'set' | 'dec' | 'min' | 'max';
+interface StatOptions {
+    value?: number;
+    max?: number;
+    rate?: number;
+}
+interface StatAdjustment {
+    over?: number;
+    bonus?: number;
+    value?: GWU.range.RangeBase | boolean;
+    max?: number | boolean;
+    rate?: number;
+    reset?: boolean;
+    name?: string;
+    stat?: string;
+}
+interface RegenInfo {
+    turns: number;
+    count: number;
+    elapsed: number;
+}
+declare class Stats {
+    _max: Record<string, number>;
+    _rate: Record<string, RegenInfo>;
+    _value: Record<string, number>;
+    constructor(opts?: Record<string, GWU.range.RangeBase>);
+    get(name: string): number;
+    max(name: string): number;
+    regen(name: string): RegenInfo | null;
+    init(opts: Record<string, GWU.range.RangeBase>): void;
+    set(name: string, v: GWU.range.RangeBase, max?: number): void;
+    gain(name: string, amount: GWU.range.RangeBase, allowOver?: boolean): void;
+    drain(name: string, amount: GWU.range.RangeBase): void;
+    raiseMax(name: string, amount: GWU.range.RangeBase, raiseValue?: boolean): void;
+    reduceMax(name: string, amount: GWU.range.RangeBase, lowerValue?: boolean): void;
+    setRegen(name: string, turns: number, count?: number): void;
+    regenAll(): void;
+    restore(name: string, value?: number): void;
+    adjust(name: string, type: AdjustType, amount: GWU.range.RangeBase): boolean;
+}
+
+declare type StatusCallback = (status: Status, name: string) => any;
+declare class Status {
+    _set: Record<string, boolean>;
+    _time: Record<string, number>;
+    _count: Record<string, number>;
+    _done: Record<string, StatusCallback | null>;
+    _value: Record<string, boolean>;
+    changed: StatusCallback | null;
+    clear(name: string): boolean;
+    get(name: string): boolean;
+    has(name: string): boolean;
+    _addDone(name: string, done?: StatusCallback): void;
+    /**
+     * Sets the count for a status variable.
+     * If setting the count turns on the status (it was off),
+     * then this function returns true.  Otherwise, false.
+     * The done variable is only set if there is no other done function
+     * already for this status.
+     * @param {string} name The name of the status to set.
+     * @param {number} count The count to set.
+     * @param {function} [done] The function to call whenever the count goes to 0.
+     * @returns {boolean} Whether or not setting the count turned the status on.
+     */
+    setCount(name: string, count: number, done: StatusCallback): boolean;
+    /**
+     * Increments the count for the status by the given amount (1=default)
+     * If incrementing the count turns on the status (it was off),
+     * then this function returns true.  Otherwise, false.
+     * The done variable is only set if there is no other done function
+     * already for this status.
+     * @param {string} name The name of the status to set.
+     * @param {number} [count=1] The count to incrmeent.
+     * @param {function} [done] The function to call whenever the count goes to 0.
+     * @returns {boolean} Whether or not incrementing the count turned the status on.
+     */
+    increment(name: string, count?: number, done?: StatusCallback): boolean;
+    /**
+     * Decrements the count for the status by the given amount (1=default)
+     * If decrementing the count turns off the status (it was on),
+     * then this function returns true.  Otherwise, false.
+     * Also, if the status is turned off, and a done function was set, then it
+     * is called.
+     * @param {string} name The name of the status to adjust.
+     * @param {number} [count=1] The count to decrement.
+     * @returns {boolean} Whether or not decrementing the count turned the status off.
+     */
+    decrement(name: string, count?: number): boolean;
+    /**
+     * Clears all counts from the given status.
+     * If clearing the count turns off the status (it was on),
+     * then this function returns true.  Otherwise, false.
+     * Also, if the status is turned off, and a done function was set, then it
+     * is called.
+     * @param {string} name The name of the status to adjust.
+     * @returns {boolean} Whether or not decrementing the count turned the status off.
+     */
+    clearCount(name: string): boolean;
+    /**
+     * Turns on the given status.
+     * @param {string} name The status to adjust.
+     * @param {function} [done] The function to call when the status is turned off.
+     * @returns {boolean} True if this turns on the status. (It could be on because of a time or count).
+     */
+    setOn(name: string, done?: StatusCallback): boolean;
+    /**
+     * Turns off the given status.
+     *
+     * @param {string} name The status to adjust.
+     * @returns {boolean} True if this turns off the status. (It could be on because of a time or count).
+     */
+    setOff(name: string): boolean;
+    /**
+     * Sets the time for a status variable.
+     * If setting the time turns on the status (it was off),
+     * then this function returns true.  Otherwise, false.
+     * The done variable is only set if there is no other done function
+     * already for this status.
+     * @param {string} name The name of the status to set.
+     * @param {GWU.range.RangeBase} time The time value to set.
+     * @param {function} [done] The function to call whenever the status goes false.
+     * @returns {boolean} Whether or not setting the time turned the status on.
+     */
+    setTime(name: string, value: GWU.range.RangeBase, done?: StatusCallback): boolean;
+    /**
+     * Adds to the time for a status variable.
+     * If adding to the time turns on the status (it was off),
+     * then this function returns true.  Otherwise, false.
+     * The done variable is only set if there is no other done function
+     * already for this status.
+     * @param {string} name The name of the status to set.
+     * @param {GWU.range.RangeBase} time The time value to add.
+     * @param {function} [done] The function to call whenever the status goes false.
+     * @returns {boolean} Whether or not adding the time turned the status on.
+     */
+    addTime(name: string, value?: GWU.range.RangeBase, done?: StatusCallback): boolean;
+    /**
+     * Removes time for a status variable.
+     * If removing to the time turns off the status (it was on),
+     * then this function returns true.  Otherwise, false.
+     * @param {string} name The name of the status to set.
+     * @param {GWU.range.RangeBase} time The time value to remove.
+     * @returns {boolean} Whether or not removing the time turned the status off.
+     */
+    removeTime(name: string, value?: GWU.range.RangeBase): boolean;
+    /**
+     * Removes all time for a status variable.
+     * If removing to the time turns off the status (it was on),
+     * then this function returns true.  Otherwise, false.
+     * @param {string} name The name of the status to set.
+     * @returns {boolean} Whether or not removing the time turned the status off.
+     */
+    clearTime(name: string): boolean;
+    /**
+     * Removes time for all status variables that have time.
+     * If removing the time turns off any status (it was on),
+     * then this function returns an object with all of those statuses as keys and false as the values.  Otherwise, false.
+     * @param {Status|object} source The object to set the status on.  If object.status is set then that is where the values are updated.
+     * @param {string} name The name of the status to set.
+     * @returns {boolean|object} false or an object with the names of the statuses that were cleared as keys and false as the values.
+     */
+    decayAllTimes(delta?: number): false | Record<string, boolean>;
+    /**
+     * Updates the value of the status and returns whether or not this change
+     * turned the status on or off (true = change, false = no change)
+     * @param {string} name The name of the status to update
+     * @returns {boolean} True if the value was turned on or off, False otherwise.
+     */
+    _update(name: string): boolean;
+}
+
 interface ActorFlags extends FlagType$1 {
     actor: number;
 }
@@ -236,37 +418,12 @@ interface FlagType extends FlagType$1 {
     item: number;
 }
 
-interface KindOptions$2 extends KindOptions {
-    flags?: GWU.flag.FlagBase;
-}
-interface MakeOptions$2 extends MakeOptions {
-    quantity: number;
-}
-declare class ItemKind extends EntityKind {
-    flags: FlagType;
-    constructor(config: KindOptions$2);
-    make(options?: Partial<MakeOptions$2>): Item;
-    init(item: Item, options?: Partial<MakeOptions$2>): void;
-}
-
-declare class Item extends Entity {
-    flags: FlagType;
-    quantity: number;
-    kind: ItemKind;
-    next: Item | null;
-    constructor(kind: ItemKind);
-    copy(other: Item): void;
-    itemFlags(): number;
-    hasItemFlag(flag: number): boolean;
-    hasAllItemFlags(flags: number): boolean;
-}
-
-declare function make$5(id: string | ItemKind, makeOptions?: any): Item;
+declare function make$6(id: string | ItemKind, makeOptions?: any): Item;
 declare function makeRandom$1(opts: Partial<MatchOptions$2> | string, makeOptions?: any): Item;
 declare function from$4(info: string | ItemKind | KindOptions$2, makeOptions?: any): Item;
 declare const kinds$1: Record<string, ItemKind>;
-declare function install$4(id: string, kind: ItemKind | KindOptions$2): ItemKind;
-declare function get$3(id: string | ItemKind): ItemKind | null;
+declare function install$5(id: string, kind: ItemKind | KindOptions$2): ItemKind;
+declare function get$4(id: string | ItemKind): ItemKind | null;
 declare function makeKind$1(info: KindOptions$2): ItemKind;
 interface MatchOptions$2 {
     tags: string | string[];
@@ -275,24 +432,28 @@ interface MatchOptions$2 {
 }
 declare function randomKind$1(opts?: Partial<MatchOptions$2> | string): ItemKind | null;
 
-type index_d$9_FlagType = FlagType;
-type index_d$9_ItemKind = ItemKind;
-declare const index_d$9_ItemKind: typeof ItemKind;
-type index_d$9_Item = Item;
-declare const index_d$9_Item: typeof Item;
-declare namespace index_d$9 {
+type index_d$c_FlagType = FlagType;
+type index_d$c_ItemActionFn = ItemActionFn;
+type index_d$c_ItemActionBase = ItemActionBase;
+type index_d$c_ItemKind = ItemKind;
+declare const index_d$c_ItemKind: typeof ItemKind;
+type index_d$c_Item = Item;
+declare const index_d$c_Item: typeof Item;
+declare namespace index_d$c {
   export {
-    index_d$9_FlagType as FlagType,
+    index_d$c_FlagType as FlagType,
+    index_d$c_ItemActionFn as ItemActionFn,
+    index_d$c_ItemActionBase as ItemActionBase,
     KindOptions$2 as KindOptions,
     MakeOptions$2 as MakeOptions,
-    index_d$9_ItemKind as ItemKind,
-    index_d$9_Item as Item,
-    make$5 as make,
+    index_d$c_ItemKind as ItemKind,
+    index_d$c_Item as Item,
+    make$6 as make,
     makeRandom$1 as makeRandom,
     from$4 as from,
     kinds$1 as kinds,
-    install$4 as install,
-    get$3 as get,
+    install$5 as install,
+    get$4 as get,
     makeKind$1 as makeKind,
     MatchOptions$2 as MatchOptions,
     randomKind$1 as randomKind,
@@ -349,10 +510,10 @@ interface EffectConfig {
     [key: string]: any;
 }
 declare type EffectBase = string | EffectFn | (string | EffectFn)[] | EffectConfig | Record<string, any>;
-declare function make$4(opts: EffectBase): Effect;
+declare function make$5(opts: EffectBase): Effect;
 declare function from$3(opts: EffectBase): Effect;
 declare const installedEffects: Record<string, Effect>;
-declare function install$3(id: string, config: EffectBase): Effect;
+declare function install$4(id: string, config: EffectBase): Effect;
 declare function installAll$2(effects: Record<string, EffectBase>): void;
 declare function resetAll(): void;
 
@@ -429,12 +590,12 @@ interface TileOptions extends GWU.sprite.SpriteConfig {
     light: GWU.light.LightBase | null;
     tags: string | string[];
 }
-declare function make$3(options: Partial<TileOptions>): Tile;
+declare function make$4(options: Partial<TileOptions>): Tile;
 declare const tiles: Record<string, Tile>;
 declare const all: Tile[];
-declare function get$2(id: string | number | Tile): Tile;
-declare function install$2(id: string, options: Partial<TileOptions>): Tile;
-declare function install$2(id: string, base: string, options: Partial<TileOptions>): Tile;
+declare function get$3(id: string | number | Tile): Tile;
+declare function install$3(id: string, options: Partial<TileOptions>): Tile;
+declare function install$3(id: string, base: string, options: Partial<TileOptions>): Tile;
 declare function installAll$1(tiles: Record<string, Partial<TileOptions>>): void;
 
 declare const flags: {
@@ -442,27 +603,27 @@ declare const flags: {
     TileMech: typeof TileMech;
 };
 
-declare const index_d$8_flags: typeof flags;
-type index_d$8_TileFlags = TileFlags;
-type index_d$8_TileConfig = TileConfig;
-type index_d$8_Tile = Tile;
-declare const index_d$8_Tile: typeof Tile;
-type index_d$8_TileOptions = TileOptions;
-declare const index_d$8_tiles: typeof tiles;
-declare const index_d$8_all: typeof all;
-declare namespace index_d$8 {
+declare const index_d$b_flags: typeof flags;
+type index_d$b_TileFlags = TileFlags;
+type index_d$b_TileConfig = TileConfig;
+type index_d$b_Tile = Tile;
+declare const index_d$b_Tile: typeof Tile;
+type index_d$b_TileOptions = TileOptions;
+declare const index_d$b_tiles: typeof tiles;
+declare const index_d$b_all: typeof all;
+declare namespace index_d$b {
   export {
-    index_d$8_flags as flags,
-    index_d$8_TileFlags as TileFlags,
+    index_d$b_flags as flags,
+    index_d$b_TileFlags as TileFlags,
     TextOptions$1 as TextOptions,
-    index_d$8_TileConfig as TileConfig,
-    index_d$8_Tile as Tile,
-    index_d$8_TileOptions as TileOptions,
-    make$3 as make,
-    index_d$8_tiles as tiles,
-    index_d$8_all as all,
-    get$2 as get,
-    install$2 as install,
+    index_d$b_TileConfig as TileConfig,
+    index_d$b_Tile as Tile,
+    index_d$b_TileOptions as TileOptions,
+    make$4 as make,
+    index_d$b_tiles as tiles,
+    index_d$b_all as all,
+    get$3 as get,
+    install$3 as install,
     installAll$1 as installAll,
   };
 }
@@ -522,26 +683,26 @@ declare class FireLayer extends TileLayer {
     exposeToFire(x: number, y: number, alwaysIgnite?: boolean): boolean;
 }
 
-type index_d$7_MapLayer = MapLayer;
-declare const index_d$7_MapLayer: typeof MapLayer;
-type index_d$7_TileLayer = TileLayer;
-declare const index_d$7_TileLayer: typeof TileLayer;
-type index_d$7_ActorLayer = ActorLayer;
-declare const index_d$7_ActorLayer: typeof ActorLayer;
-type index_d$7_ItemLayer = ItemLayer;
-declare const index_d$7_ItemLayer: typeof ItemLayer;
-type index_d$7_GasLayer = GasLayer;
-declare const index_d$7_GasLayer: typeof GasLayer;
-type index_d$7_FireLayer = FireLayer;
-declare const index_d$7_FireLayer: typeof FireLayer;
-declare namespace index_d$7 {
+type index_d$a_MapLayer = MapLayer;
+declare const index_d$a_MapLayer: typeof MapLayer;
+type index_d$a_TileLayer = TileLayer;
+declare const index_d$a_TileLayer: typeof TileLayer;
+type index_d$a_ActorLayer = ActorLayer;
+declare const index_d$a_ActorLayer: typeof ActorLayer;
+type index_d$a_ItemLayer = ItemLayer;
+declare const index_d$a_ItemLayer: typeof ItemLayer;
+type index_d$a_GasLayer = GasLayer;
+declare const index_d$a_GasLayer: typeof GasLayer;
+type index_d$a_FireLayer = FireLayer;
+declare const index_d$a_FireLayer: typeof FireLayer;
+declare namespace index_d$a {
   export {
-    index_d$7_MapLayer as MapLayer,
-    index_d$7_TileLayer as TileLayer,
-    index_d$7_ActorLayer as ActorLayer,
-    index_d$7_ItemLayer as ItemLayer,
-    index_d$7_GasLayer as GasLayer,
-    index_d$7_FireLayer as FireLayer,
+    index_d$a_MapLayer as MapLayer,
+    index_d$a_TileLayer as TileLayer,
+    index_d$a_ActorLayer as ActorLayer,
+    index_d$a_ItemLayer as ItemLayer,
+    index_d$a_GasLayer as GasLayer,
+    index_d$a_FireLayer as FireLayer,
   };
 }
 
@@ -595,86 +756,132 @@ declare function clearEffect(layers: number, loc: MapXY, _ctx: EffectCtx): boole
 declare function makeFeatureHandler(id: any): EffectFn;
 declare function featureEffect(id: string, loc: MapXY, ctx?: EffectCtx): boolean;
 
-type index_d$6_EffectCtx = EffectCtx;
-type index_d$6_MapXY = MapXY;
-type index_d$6_EffectFn = EffectFn;
-type index_d$6_HandlerFn = HandlerFn;
-declare const index_d$6_handlers: typeof handlers;
-declare const index_d$6_installHandler: typeof installHandler;
-type index_d$6_MakeEffectFn = MakeEffectFn;
-declare const index_d$6_effectTypes: typeof effectTypes;
-declare const index_d$6_installType: typeof installType;
-type index_d$6_Effect = Effect;
-type index_d$6_EffectConfig = EffectConfig;
-type index_d$6_EffectBase = EffectBase;
-declare const index_d$6_installedEffects: typeof installedEffects;
-declare const index_d$6_resetAll: typeof resetAll;
-type index_d$6_BasicEffect = BasicEffect;
-declare const index_d$6_BasicEffect: typeof BasicEffect;
-declare const index_d$6_makeBasicEffect: typeof makeBasicEffect;
-declare const index_d$6_makeSpreadEffect: typeof makeSpreadEffect;
-type index_d$6_SpreadEffect = SpreadEffect;
-declare const index_d$6_SpreadEffect: typeof SpreadEffect;
-declare const index_d$6_mapDisruptedBy: typeof mapDisruptedBy;
-declare const index_d$6_computeSpawnMap: typeof computeSpawnMap;
-declare const index_d$6_clearCells: typeof clearCells;
-declare const index_d$6_evacuateCreatures: typeof evacuateCreatures;
-declare const index_d$6_evacuateItems: typeof evacuateItems;
-declare const index_d$6_makeEmitHandler: typeof makeEmitHandler;
-declare const index_d$6_emitEffect: typeof emitEffect;
-declare const index_d$6_makeMessageHandler: typeof makeMessageHandler;
-declare const index_d$6_messageEffect: typeof messageEffect;
-declare const index_d$6_makeActivateMachine: typeof makeActivateMachine;
-declare const index_d$6_activateMachine: typeof activateMachine;
-type index_d$6_TileEffectOptions = TileEffectOptions;
-declare const index_d$6_makeTileHandler: typeof makeTileHandler;
-declare const index_d$6_tileEffect: typeof tileEffect;
-declare const index_d$6_makeClearHandler: typeof makeClearHandler;
-declare const index_d$6_clearEffect: typeof clearEffect;
-declare const index_d$6_makeFeatureHandler: typeof makeFeatureHandler;
-declare const index_d$6_featureEffect: typeof featureEffect;
-declare namespace index_d$6 {
+interface NoursihConfig {
+    type: AdjustType;
+    amount: GWU.range.RangeBase;
+}
+interface NourishInfo {
+    type: AdjustType;
+    amount: GWU.range.Range;
+}
+declare function makeNourishEffect(opts: any): EffectFn;
+declare function nourishEffect(config: NourishInfo, loc: MapXY, _ctx?: EffectCtx): boolean;
+declare namespace nourishEffect {
+    var _a: {
+        pukeMsg: string;
+    };
+    export { _a as default };
+}
+
+interface StatConfig {
+    stat: string;
+    type?: AdjustType;
+    amount?: GWU.range.RangeBase;
+}
+interface StatInfo {
+    stat: string;
+    type: AdjustType;
+    amount: GWU.range.Range;
+}
+declare function makeStatEffect(opts: any): EffectFn;
+declare function statEffect(config: StatInfo, loc: MapXY, _ctx?: EffectCtx): boolean;
+
+type index_d$9_EffectCtx = EffectCtx;
+type index_d$9_MapXY = MapXY;
+type index_d$9_EffectFn = EffectFn;
+type index_d$9_HandlerFn = HandlerFn;
+declare const index_d$9_handlers: typeof handlers;
+declare const index_d$9_installHandler: typeof installHandler;
+type index_d$9_MakeEffectFn = MakeEffectFn;
+declare const index_d$9_effectTypes: typeof effectTypes;
+declare const index_d$9_installType: typeof installType;
+type index_d$9_Effect = Effect;
+type index_d$9_EffectConfig = EffectConfig;
+type index_d$9_EffectBase = EffectBase;
+declare const index_d$9_installedEffects: typeof installedEffects;
+declare const index_d$9_resetAll: typeof resetAll;
+type index_d$9_BasicEffect = BasicEffect;
+declare const index_d$9_BasicEffect: typeof BasicEffect;
+declare const index_d$9_makeBasicEffect: typeof makeBasicEffect;
+declare const index_d$9_makeSpreadEffect: typeof makeSpreadEffect;
+type index_d$9_SpreadEffect = SpreadEffect;
+declare const index_d$9_SpreadEffect: typeof SpreadEffect;
+declare const index_d$9_mapDisruptedBy: typeof mapDisruptedBy;
+declare const index_d$9_computeSpawnMap: typeof computeSpawnMap;
+declare const index_d$9_clearCells: typeof clearCells;
+declare const index_d$9_evacuateCreatures: typeof evacuateCreatures;
+declare const index_d$9_evacuateItems: typeof evacuateItems;
+declare const index_d$9_makeEmitHandler: typeof makeEmitHandler;
+declare const index_d$9_emitEffect: typeof emitEffect;
+declare const index_d$9_makeMessageHandler: typeof makeMessageHandler;
+declare const index_d$9_messageEffect: typeof messageEffect;
+declare const index_d$9_makeActivateMachine: typeof makeActivateMachine;
+declare const index_d$9_activateMachine: typeof activateMachine;
+type index_d$9_TileEffectOptions = TileEffectOptions;
+declare const index_d$9_makeTileHandler: typeof makeTileHandler;
+declare const index_d$9_tileEffect: typeof tileEffect;
+declare const index_d$9_makeClearHandler: typeof makeClearHandler;
+declare const index_d$9_clearEffect: typeof clearEffect;
+declare const index_d$9_makeFeatureHandler: typeof makeFeatureHandler;
+declare const index_d$9_featureEffect: typeof featureEffect;
+type index_d$9_NoursihConfig = NoursihConfig;
+type index_d$9_NourishInfo = NourishInfo;
+declare const index_d$9_makeNourishEffect: typeof makeNourishEffect;
+declare const index_d$9_nourishEffect: typeof nourishEffect;
+type index_d$9_StatConfig = StatConfig;
+type index_d$9_StatInfo = StatInfo;
+declare const index_d$9_makeStatEffect: typeof makeStatEffect;
+declare const index_d$9_statEffect: typeof statEffect;
+declare namespace index_d$9 {
   export {
-    index_d$6_EffectCtx as EffectCtx,
-    index_d$6_MapXY as MapXY,
-    index_d$6_EffectFn as EffectFn,
-    index_d$6_HandlerFn as HandlerFn,
-    index_d$6_handlers as handlers,
-    index_d$6_installHandler as installHandler,
-    index_d$6_MakeEffectFn as MakeEffectFn,
-    index_d$6_effectTypes as effectTypes,
-    index_d$6_installType as installType,
-    index_d$6_Effect as Effect,
-    index_d$6_EffectConfig as EffectConfig,
-    index_d$6_EffectBase as EffectBase,
-    make$4 as make,
+    index_d$9_EffectCtx as EffectCtx,
+    index_d$9_MapXY as MapXY,
+    index_d$9_EffectFn as EffectFn,
+    index_d$9_HandlerFn as HandlerFn,
+    index_d$9_handlers as handlers,
+    index_d$9_installHandler as installHandler,
+    index_d$9_MakeEffectFn as MakeEffectFn,
+    index_d$9_effectTypes as effectTypes,
+    index_d$9_installType as installType,
+    index_d$9_Effect as Effect,
+    index_d$9_EffectConfig as EffectConfig,
+    index_d$9_EffectBase as EffectBase,
+    make$5 as make,
     from$3 as from,
-    index_d$6_installedEffects as installedEffects,
-    install$3 as install,
+    index_d$9_installedEffects as installedEffects,
+    install$4 as install,
     installAll$2 as installAll,
-    index_d$6_resetAll as resetAll,
-    index_d$6_BasicEffect as BasicEffect,
-    index_d$6_makeBasicEffect as makeBasicEffect,
-    index_d$6_makeSpreadEffect as makeSpreadEffect,
-    index_d$6_SpreadEffect as SpreadEffect,
-    index_d$6_mapDisruptedBy as mapDisruptedBy,
-    index_d$6_computeSpawnMap as computeSpawnMap,
-    index_d$6_clearCells as clearCells,
-    index_d$6_evacuateCreatures as evacuateCreatures,
-    index_d$6_evacuateItems as evacuateItems,
-    index_d$6_makeEmitHandler as makeEmitHandler,
-    index_d$6_emitEffect as emitEffect,
-    index_d$6_makeMessageHandler as makeMessageHandler,
-    index_d$6_messageEffect as messageEffect,
-    index_d$6_makeActivateMachine as makeActivateMachine,
-    index_d$6_activateMachine as activateMachine,
-    index_d$6_TileEffectOptions as TileEffectOptions,
-    index_d$6_makeTileHandler as makeTileHandler,
-    index_d$6_tileEffect as tileEffect,
-    index_d$6_makeClearHandler as makeClearHandler,
-    index_d$6_clearEffect as clearEffect,
-    index_d$6_makeFeatureHandler as makeFeatureHandler,
-    index_d$6_featureEffect as featureEffect,
+    index_d$9_resetAll as resetAll,
+    index_d$9_BasicEffect as BasicEffect,
+    index_d$9_makeBasicEffect as makeBasicEffect,
+    index_d$9_makeSpreadEffect as makeSpreadEffect,
+    index_d$9_SpreadEffect as SpreadEffect,
+    index_d$9_mapDisruptedBy as mapDisruptedBy,
+    index_d$9_computeSpawnMap as computeSpawnMap,
+    index_d$9_clearCells as clearCells,
+    index_d$9_evacuateCreatures as evacuateCreatures,
+    index_d$9_evacuateItems as evacuateItems,
+    index_d$9_makeEmitHandler as makeEmitHandler,
+    index_d$9_emitEffect as emitEffect,
+    index_d$9_makeMessageHandler as makeMessageHandler,
+    index_d$9_messageEffect as messageEffect,
+    index_d$9_makeActivateMachine as makeActivateMachine,
+    index_d$9_activateMachine as activateMachine,
+    index_d$9_TileEffectOptions as TileEffectOptions,
+    index_d$9_makeTileHandler as makeTileHandler,
+    index_d$9_tileEffect as tileEffect,
+    index_d$9_makeClearHandler as makeClearHandler,
+    index_d$9_clearEffect as clearEffect,
+    index_d$9_makeFeatureHandler as makeFeatureHandler,
+    index_d$9_featureEffect as featureEffect,
+    index_d$9_NoursihConfig as NoursihConfig,
+    index_d$9_NourishInfo as NourishInfo,
+    index_d$9_makeNourishEffect as makeNourishEffect,
+    index_d$9_nourishEffect as nourishEffect,
+    index_d$9_StatConfig as StatConfig,
+    index_d$9_StatInfo as StatInfo,
+    index_d$9_makeStatEffect as makeStatEffect,
+    index_d$9_statEffect as statEffect,
   };
 }
 
@@ -797,9 +1004,9 @@ declare class Map implements GWU.light.LightSystemSite, MapType, GWU.tween.Anima
     addAnimation(a: GWU.tween.Animation): void;
     removeAnimation(a: GWU.tween.Animation): void;
 }
-declare function make$2(w: number, h: number, floor?: string, boundary?: string): Map;
-declare function make$2(w: number, h: number, floor: string): Map;
-declare function make$2(w: number, h: number, opts: Partial<MapOptions>): Map;
+declare function make$3(w: number, h: number, floor?: string, boundary?: string): Map;
+declare function make$3(w: number, h: number, floor: string): Map;
+declare function make$3(w: number, h: number, opts: Partial<MapOptions>): Map;
 declare function from$2(prefab: string | string[] | GWU.grid.NumGrid, charToTile: Record<string, string | null>, opts?: Partial<MapOptions>): Map;
 
 interface ActorInfo {
@@ -835,20 +1042,20 @@ declare class Memory extends Map {
 }
 
 declare function store(actor: Actor, map: MapType, memory: Memory): void;
-declare function get$1(actor: Actor, map: MapType): Memory;
+declare function get$2(actor: Actor, map: MapType): Memory;
 
-type index_d$5_ActorInfo = ActorInfo;
-type index_d$5_ItemInfo = ItemInfo;
-type index_d$5_Memory = Memory;
-declare const index_d$5_Memory: typeof Memory;
-declare const index_d$5_store: typeof store;
-declare namespace index_d$5 {
+type index_d$8_ActorInfo = ActorInfo;
+type index_d$8_ItemInfo = ItemInfo;
+type index_d$8_Memory = Memory;
+declare const index_d$8_Memory: typeof Memory;
+declare const index_d$8_store: typeof store;
+declare namespace index_d$8 {
   export {
-    index_d$5_ActorInfo as ActorInfo,
-    index_d$5_ItemInfo as ItemInfo,
-    index_d$5_Memory as Memory,
-    index_d$5_store as store,
-    get$1 as get,
+    index_d$8_ActorInfo as ActorInfo,
+    index_d$8_ItemInfo as ItemInfo,
+    index_d$8_Memory as Memory,
+    index_d$8_store as store,
+    get$2 as get,
   };
 }
 
@@ -867,6 +1074,8 @@ declare class Actor extends Entity {
     fov: GWU.fov.FovSystem | null;
     memory: Memory | null;
     visionDistance: number;
+    stats: Stats;
+    status: Status;
     constructor(kind: ActorKind);
     copy(other: Actor): void;
     hasActorFlag(flag: number): boolean;
@@ -879,8 +1088,228 @@ declare class Actor extends Entity {
     canSeeOrSense(entity: Entity): boolean;
     isAbleToSee(entity: Entity): boolean;
     isAbleToSense(entity: Entity): boolean;
+    act(): Promise<boolean>;
+    avoidsItem(_item: Item): boolean;
+    canAddItem(_item: Item): boolean;
+    addItem(_item: Item): void;
     pickupItem(item: Item, opts?: Partial<PickupOptions>): boolean;
     dropItem(item: Item, opts?: Partial<DropOptions>): boolean;
+}
+
+interface SkillInfo {
+    has: boolean;
+    level: number;
+    disadvantage?: boolean;
+    advantage?: boolean;
+    fixed?: number;
+    bonus?: number;
+    succeed?: boolean;
+    fail?: boolean;
+}
+declare class Skill implements Readonly<SkillInfo> {
+    name: string;
+    _has?: boolean;
+    _level?: number;
+    _disadvantage?: boolean;
+    _advantage?: boolean;
+    _fixed?: number;
+    _bonus?: number;
+    _succeed?: boolean;
+    _fail?: boolean;
+    _parent?: Skill;
+    constructor(name: string);
+    get has(): boolean;
+    get level(): number;
+    get disadvantage(): boolean;
+    get advantage(): boolean;
+    get fixed(): number;
+    get bonus(): number;
+    get succeed(): boolean;
+    get fail(): boolean;
+    set(value: boolean | number): void;
+    _value(name: keyof this): number | boolean | undefined;
+    _bool(name: keyof this): boolean;
+    _int(name: keyof this): number;
+    adjust(adj: Partial<SkillInfo>): void;
+    clear(adj: Partial<SkillInfo>): void;
+}
+declare class Skills {
+    _skills: Record<string, Skill>;
+    constructor(vals?: Record<string, number | boolean>);
+    set(name: string, value: boolean | number): Skill;
+    get(name: string): Skill;
+    adjust(name: string, adj: Partial<SkillInfo> | number): Skill;
+}
+
+interface Modifier {
+    bonus?: number;
+}
+interface Adjustment extends Modifier {
+    fixed?: number;
+    min?: number;
+    max?: number;
+    sustain?: boolean;
+    base?: number;
+    restore?: boolean;
+}
+declare type ChangeCallback = (attributes: Attributes, name: string) => any;
+declare class Attributes {
+    _base: Record<string, number>;
+    _max: Record<string, number>;
+    _bonus: Record<string, Modifier[]>;
+    _sustain: Record<string, boolean>;
+    _value: Record<string, number>;
+    changed: ChangeCallback | null;
+    constructor(baseValues: Record<string, number> | number);
+    init(baseValues: Record<string, number> | number): void;
+    forEach(fn: (v: number) => any): void;
+    get(name: string): number;
+    set(name: string, value?: number): number;
+    base(name: string): number;
+    max(name: string): number;
+    sustain(name: string): boolean;
+    gain(name: string, delta: number, raiseMax?: boolean): number;
+    drain(name: string, loss: number, lowerMax?: boolean): number;
+    restore(name: string): number;
+    addBonus(name: string, bonus: number): number;
+    _addBonus(name: string, bonus: Adjustment): number;
+    clearBonus(name: string, bonus: number): number;
+    _clearBonus(name: string, bonus: number | Adjustment): number;
+    _calcValue(name: string): number;
+    adjust(name: string, adj: Adjustment | number): number | undefined;
+    clearAdjustment(name: string, adj: Adjustment | number): number | undefined;
+    _applyAdjustment(total: Adjustment, opts: Adjustment): void;
+}
+declare const attributes: Record<string, number>;
+declare function installAttribute(attr: string | Record<string, number>): void;
+declare function makeAttributes(defaults: Record<string, number>): Attributes;
+
+interface KindOptions$3 extends KindOptions$1 {
+    attributes?: Record<string, number>;
+    skills?: Record<string, number | boolean>;
+    stats?: Record<string, number>;
+}
+declare class PlayerKind extends ActorKind {
+    attributes: Attributes;
+    skills: Skills;
+    constructor(opts?: Partial<KindOptions$3>);
+    make(options?: MakeOptions$1): Player;
+}
+
+declare class Player extends Actor {
+    static default: {
+        ch: string;
+        fg: string;
+        name: string;
+    };
+    kind: PlayerKind;
+    constructor(kind: PlayerKind);
+}
+declare function make$2(options?: Partial<KindOptions$3>): Player;
+
+declare type ActionFn = (this: Game, actor: Actor, ev: GWU.io.Event) => Promise<boolean>;
+declare type ActionBase = boolean | ActionFn;
+declare const actions: Record<string, ActionFn>;
+declare function install$2(name: string, fn: ActionFn): void;
+declare function get$1(name: string): ActionFn | undefined;
+
+declare function moveDir(this: Game, actor: Actor, e: GWU.io.Event): Promise<boolean>;
+
+declare function pickup(this: Game, actor: Actor, _ev: GWU.io.Event): Promise<boolean>;
+
+type index_d$7_ActionFn = ActionFn;
+type index_d$7_ActionBase = ActionBase;
+declare const index_d$7_actions: typeof actions;
+declare const index_d$7_moveDir: typeof moveDir;
+declare const index_d$7_pickup: typeof pickup;
+declare namespace index_d$7 {
+  export {
+    index_d$7_ActionFn as ActionFn,
+    index_d$7_ActionBase as ActionBase,
+    index_d$7_actions as actions,
+    install$2 as install,
+    get$1 as get,
+    index_d$7_moveDir as moveDir,
+    index_d$7_pickup as pickup,
+  };
+}
+
+interface GameOptions extends GWU.ui.UIOptions {
+    makeMap: MakeMapFn;
+    makePlayer: MakePlayerFn;
+    startMap: StartMapFn;
+    keymap: Record<string, string | ActionFn>;
+}
+declare type MakeMapFn = (id: number) => Map;
+declare type MakePlayerFn = () => Player;
+declare type StartMapFn = (map: Map, player: Player) => void;
+declare class Game {
+    ui: GWU.ui.UI;
+    layer: GWU.ui.Layer;
+    buffer: GWU.canvas.Buffer;
+    io: GWU.io.Handler;
+    player: Player;
+    map: Map;
+    makeMap: MakeMapFn;
+    makePlayer: MakePlayerFn;
+    startMap: StartMapFn;
+    running: boolean;
+    keymap: Record<string, string | ActionFn>;
+    constructor(opts: GameOptions);
+    start(): Promise<void>;
+    draw(): void;
+    finish(): void;
+    runTurn(): Promise<void>;
+    animate(): Promise<void>;
+    playerTurn(player: Player): Promise<void>;
+}
+
+type index_d$6_GameOptions = GameOptions;
+type index_d$6_MakeMapFn = MakeMapFn;
+type index_d$6_MakePlayerFn = MakePlayerFn;
+type index_d$6_StartMapFn = StartMapFn;
+type index_d$6_Game = Game;
+declare const index_d$6_Game: typeof Game;
+declare namespace index_d$6 {
+  export {
+    index_d$6_GameOptions as GameOptions,
+    index_d$6_MakeMapFn as MakeMapFn,
+    index_d$6_MakePlayerFn as MakePlayerFn,
+    index_d$6_StartMapFn as StartMapFn,
+    index_d$6_Game as Game,
+  };
+}
+
+declare type ItemActionFn = (this: Game, actor: Actor, opts: {
+    item: Item;
+}) => Promise<boolean>;
+declare type ItemActionBase = boolean | ItemActionFn;
+interface KindOptions$2 extends KindOptions {
+    flags?: GWU.flag.FlagBase;
+    actions?: Record<string, ItemActionBase>;
+}
+interface MakeOptions$2 extends MakeOptions {
+    quantity: number;
+}
+declare class ItemKind extends EntityKind {
+    flags: FlagType;
+    actions: Record<string, ItemActionBase>;
+    constructor(config: KindOptions$2);
+    make(options?: Partial<MakeOptions$2>): Item;
+    init(item: Item, options?: Partial<MakeOptions$2>): void;
+}
+
+declare class Item extends Entity {
+    flags: FlagType;
+    quantity: number;
+    kind: ItemKind;
+    next: Item | null;
+    constructor(kind: ItemKind);
+    copy(other: Item): void;
+    itemFlags(): number;
+    hasItemFlag(flag: number): boolean;
+    hasAllItemFlags(flags: number): boolean;
+    getAction(name: string): ItemActionBase | undefined;
 }
 
 declare type EachCb<T> = (t: T) => any;
@@ -1001,76 +1430,77 @@ declare class SnapshotManager {
 
 declare function isHallway(map: Map, x: number, y: number): boolean;
 
-type index_d$4_CellFlags = CellFlags;
-type index_d$4_MapFlags = MapFlags;
-type index_d$4_SetOptions = SetOptions;
-type index_d$4_SetTileOptions = SetTileOptions;
-type index_d$4_TileData = TileData;
-type index_d$4_TileArray = TileArray;
-type index_d$4_CellInfoType = CellInfoType;
-type index_d$4_CellType = CellType;
-type index_d$4_EachCellCb = EachCellCb;
-type index_d$4_EachItemCb = EachItemCb;
-type index_d$4_EachActorCb = EachActorCb;
-type index_d$4_MapTestFn = MapTestFn;
-type index_d$4_MapType = MapType;
-type index_d$4_Cell = Cell;
-declare const index_d$4_Cell: typeof Cell;
-type index_d$4_MapOptions = MapOptions;
-type index_d$4_LayerType = LayerType;
-type index_d$4_Map = Map;
-declare const index_d$4_Map: typeof Map;
-declare const index_d$4_analyze: typeof analyze;
-declare const index_d$4_updateChokepoints: typeof updateChokepoints;
-declare const index_d$4_floodFillCount: typeof floodFillCount;
-declare const index_d$4_updateLoopiness: typeof updateLoopiness;
-declare const index_d$4_resetLoopiness: typeof resetLoopiness;
-declare const index_d$4_checkLoopiness: typeof checkLoopiness;
-declare const index_d$4_fillInnerLoopGrid: typeof fillInnerLoopGrid;
-declare const index_d$4_cleanLoopiness: typeof cleanLoopiness;
-type index_d$4_Snapshot = Snapshot;
-declare const index_d$4_Snapshot: typeof Snapshot;
-type index_d$4_SnapshotManager = SnapshotManager;
-declare const index_d$4_SnapshotManager: typeof SnapshotManager;
-declare const index_d$4_isHallway: typeof isHallway;
-declare namespace index_d$4 {
+type index_d$5_CellFlags = CellFlags;
+type index_d$5_MapFlags = MapFlags;
+type index_d$5_SetOptions = SetOptions;
+type index_d$5_SetTileOptions = SetTileOptions;
+type index_d$5_TileData = TileData;
+type index_d$5_TileArray = TileArray;
+type index_d$5_CellInfoType = CellInfoType;
+type index_d$5_CellType = CellType;
+type index_d$5_EachCellCb = EachCellCb;
+type index_d$5_EachItemCb = EachItemCb;
+type index_d$5_EachActorCb = EachActorCb;
+type index_d$5_MapTestFn = MapTestFn;
+type index_d$5_MapType = MapType;
+type index_d$5_Cell = Cell;
+declare const index_d$5_Cell: typeof Cell;
+type index_d$5_MapOptions = MapOptions;
+type index_d$5_LayerType = LayerType;
+type index_d$5_Map = Map;
+declare const index_d$5_Map: typeof Map;
+declare const index_d$5_analyze: typeof analyze;
+declare const index_d$5_updateChokepoints: typeof updateChokepoints;
+declare const index_d$5_floodFillCount: typeof floodFillCount;
+declare const index_d$5_updateLoopiness: typeof updateLoopiness;
+declare const index_d$5_resetLoopiness: typeof resetLoopiness;
+declare const index_d$5_checkLoopiness: typeof checkLoopiness;
+declare const index_d$5_fillInnerLoopGrid: typeof fillInnerLoopGrid;
+declare const index_d$5_cleanLoopiness: typeof cleanLoopiness;
+type index_d$5_Snapshot = Snapshot;
+declare const index_d$5_Snapshot: typeof Snapshot;
+type index_d$5_SnapshotManager = SnapshotManager;
+declare const index_d$5_SnapshotManager: typeof SnapshotManager;
+declare const index_d$5_isHallway: typeof isHallway;
+declare namespace index_d$5 {
   export {
-    index_d$4_CellFlags as CellFlags,
-    index_d$4_MapFlags as MapFlags,
-    index_d$4_SetOptions as SetOptions,
-    index_d$4_SetTileOptions as SetTileOptions,
-    index_d$4_TileData as TileData,
-    index_d$4_TileArray as TileArray,
-    index_d$4_CellInfoType as CellInfoType,
-    index_d$4_CellType as CellType,
-    index_d$4_EachCellCb as EachCellCb,
-    index_d$4_EachItemCb as EachItemCb,
-    index_d$4_EachActorCb as EachActorCb,
-    index_d$4_MapTestFn as MapTestFn,
-    index_d$4_MapType as MapType,
-    index_d$4_Cell as Cell,
-    index_d$4_MapOptions as MapOptions,
-    index_d$4_LayerType as LayerType,
-    index_d$4_Map as Map,
-    make$2 as make,
+    index_d$5_CellFlags as CellFlags,
+    index_d$5_MapFlags as MapFlags,
+    index_d$5_SetOptions as SetOptions,
+    index_d$5_SetTileOptions as SetTileOptions,
+    index_d$5_TileData as TileData,
+    index_d$5_TileArray as TileArray,
+    index_d$5_CellInfoType as CellInfoType,
+    index_d$5_CellType as CellType,
+    index_d$5_EachCellCb as EachCellCb,
+    index_d$5_EachItemCb as EachItemCb,
+    index_d$5_EachActorCb as EachActorCb,
+    index_d$5_MapTestFn as MapTestFn,
+    index_d$5_MapType as MapType,
+    index_d$5_Cell as Cell,
+    index_d$5_MapOptions as MapOptions,
+    index_d$5_LayerType as LayerType,
+    index_d$5_Map as Map,
+    make$3 as make,
     from$2 as from,
-    index_d$4_analyze as analyze,
-    index_d$4_updateChokepoints as updateChokepoints,
-    index_d$4_floodFillCount as floodFillCount,
-    index_d$4_updateLoopiness as updateLoopiness,
-    index_d$4_resetLoopiness as resetLoopiness,
-    index_d$4_checkLoopiness as checkLoopiness,
-    index_d$4_fillInnerLoopGrid as fillInnerLoopGrid,
-    index_d$4_cleanLoopiness as cleanLoopiness,
-    index_d$4_Snapshot as Snapshot,
-    index_d$4_SnapshotManager as SnapshotManager,
-    index_d$4_isHallway as isHallway,
+    index_d$5_analyze as analyze,
+    index_d$5_updateChokepoints as updateChokepoints,
+    index_d$5_floodFillCount as floodFillCount,
+    index_d$5_updateLoopiness as updateLoopiness,
+    index_d$5_resetLoopiness as resetLoopiness,
+    index_d$5_checkLoopiness as checkLoopiness,
+    index_d$5_fillInnerLoopGrid as fillInnerLoopGrid,
+    index_d$5_cleanLoopiness as cleanLoopiness,
+    index_d$5_Snapshot as Snapshot,
+    index_d$5_SnapshotManager as SnapshotManager,
+    index_d$5_isHallway as isHallway,
   };
 }
 
 interface KindOptions$1 extends KindOptions {
     flags?: GWU.flag.FlagBase;
     vision?: number;
+    stats?: Record<string, GWU.range.RangeBase>;
 }
 interface MakeOptions$1 extends MakeOptions {
     fov?: GWU.fov.FovSystem;
@@ -1079,6 +1509,7 @@ interface MakeOptions$1 extends MakeOptions {
 declare class ActorKind extends EntityKind {
     flags: ActorFlags;
     vision: Record<string, number>;
+    stats: Record<string, GWU.range.RangeBase>;
     constructor(opts: KindOptions$1);
     make(options?: Partial<MakeOptions$1>): Actor;
     init(actor: Actor, options?: Partial<MakeOptions$1>): void;
@@ -1109,36 +1540,61 @@ interface MatchOptions$1 {
 }
 declare function randomKind(opts?: Partial<MatchOptions$1> | string): ActorKind | null;
 
-type index_d$3_ActorFlags = ActorFlags;
-type index_d$3_ActorKind = ActorKind;
-declare const index_d$3_ActorKind: typeof ActorKind;
-type index_d$3_PickupOptions = PickupOptions;
-type index_d$3_DropOptions = DropOptions;
-type index_d$3_Actor = Actor;
-declare const index_d$3_Actor: typeof Actor;
-declare const index_d$3_makeRandom: typeof makeRandom;
-declare const index_d$3_kinds: typeof kinds;
-declare const index_d$3_get: typeof get;
-declare const index_d$3_makeKind: typeof makeKind;
-declare const index_d$3_randomKind: typeof randomKind;
-declare namespace index_d$3 {
+type index_d$4_PainMessages = PainMessages;
+declare const index_d$4_PainMessages: typeof PainMessages;
+declare const index_d$4_painMessages: typeof painMessages;
+declare const index_d$4_installPain: typeof installPain;
+declare const index_d$4_getPain: typeof getPain;
+type index_d$4_AdjustType = AdjustType;
+type index_d$4_StatOptions = StatOptions;
+type index_d$4_StatAdjustment = StatAdjustment;
+type index_d$4_RegenInfo = RegenInfo;
+type index_d$4_Stats = Stats;
+declare const index_d$4_Stats: typeof Stats;
+type index_d$4_StatusCallback = StatusCallback;
+type index_d$4_Status = Status;
+declare const index_d$4_Status: typeof Status;
+type index_d$4_ActorFlags = ActorFlags;
+type index_d$4_ActorKind = ActorKind;
+declare const index_d$4_ActorKind: typeof ActorKind;
+type index_d$4_PickupOptions = PickupOptions;
+type index_d$4_DropOptions = DropOptions;
+type index_d$4_Actor = Actor;
+declare const index_d$4_Actor: typeof Actor;
+declare const index_d$4_makeRandom: typeof makeRandom;
+declare const index_d$4_kinds: typeof kinds;
+declare const index_d$4_get: typeof get;
+declare const index_d$4_makeKind: typeof makeKind;
+declare const index_d$4_randomKind: typeof randomKind;
+declare namespace index_d$4 {
   export {
-    index_d$3_ActorFlags as ActorFlags,
+    index_d$4_PainMessages as PainMessages,
+    index_d$4_painMessages as painMessages,
+    index_d$4_installPain as installPain,
+    index_d$4_getPain as getPain,
+    index_d$4_AdjustType as AdjustType,
+    index_d$4_StatOptions as StatOptions,
+    index_d$4_StatAdjustment as StatAdjustment,
+    index_d$4_RegenInfo as RegenInfo,
+    index_d$4_Stats as Stats,
+    index_d$4_StatusCallback as StatusCallback,
+    index_d$4_Status as Status,
+    index_d$4_ActorFlags as ActorFlags,
     KindOptions$1 as KindOptions,
     MakeOptions$1 as MakeOptions,
-    index_d$3_ActorKind as ActorKind,
-    index_d$3_PickupOptions as PickupOptions,
-    index_d$3_DropOptions as DropOptions,
-    index_d$3_Actor as Actor,
+    index_d$4_ActorKind as ActorKind,
+    index_d$4_PickupOptions as PickupOptions,
+    index_d$4_DropOptions as DropOptions,
+    index_d$4_Actor as Actor,
     make$1 as make,
-    index_d$3_makeRandom as makeRandom,
+    index_d$4_makeRandom as makeRandom,
     from$1 as from,
-    index_d$3_kinds as kinds,
+    index_d$4_kinds as kinds,
     install$1 as install,
-    index_d$3_get as get,
-    index_d$3_makeKind as makeKind,
+    index_d$4_get as get,
+    index_d$4_makeKind as makeKind,
     MatchOptions$1 as MatchOptions,
-    index_d$3_randomKind as randomKind,
+    index_d$4_randomKind as randomKind,
   };
 }
 
@@ -1382,34 +1838,34 @@ declare class EntityKind {
 }
 declare function make(opts: KindOptions, makeOpts?: MakeOptions): Entity;
 
-type index_d$2_KeyInfoType = KeyInfoType;
-type index_d$2_EntityType = EntityType;
-type index_d$2_KeyInfo = KeyInfo;
-declare const index_d$2_KeyInfo: typeof KeyInfo;
-declare const index_d$2_makeKeyInfo: typeof makeKeyInfo;
-type index_d$2_TextOptions = TextOptions;
-type index_d$2_FlavorOptions = FlavorOptions;
-type index_d$2_KindOptions = KindOptions;
-type index_d$2_MakeOptions = MakeOptions;
-type index_d$2_EntityKind = EntityKind;
-declare const index_d$2_EntityKind: typeof EntityKind;
-declare const index_d$2_make: typeof make;
-type index_d$2_Entity = Entity;
-declare const index_d$2_Entity: typeof Entity;
-declare namespace index_d$2 {
+type index_d$3_KeyInfoType = KeyInfoType;
+type index_d$3_EntityType = EntityType;
+type index_d$3_KeyInfo = KeyInfo;
+declare const index_d$3_KeyInfo: typeof KeyInfo;
+declare const index_d$3_makeKeyInfo: typeof makeKeyInfo;
+type index_d$3_TextOptions = TextOptions;
+type index_d$3_FlavorOptions = FlavorOptions;
+type index_d$3_KindOptions = KindOptions;
+type index_d$3_MakeOptions = MakeOptions;
+type index_d$3_EntityKind = EntityKind;
+declare const index_d$3_EntityKind: typeof EntityKind;
+declare const index_d$3_make: typeof make;
+type index_d$3_Entity = Entity;
+declare const index_d$3_Entity: typeof Entity;
+declare namespace index_d$3 {
   export {
-    index_d$2_KeyInfoType as KeyInfoType,
+    index_d$3_KeyInfoType as KeyInfoType,
     FlagType$1 as FlagType,
-    index_d$2_EntityType as EntityType,
-    index_d$2_KeyInfo as KeyInfo,
-    index_d$2_makeKeyInfo as makeKeyInfo,
-    index_d$2_TextOptions as TextOptions,
-    index_d$2_FlavorOptions as FlavorOptions,
-    index_d$2_KindOptions as KindOptions,
-    index_d$2_MakeOptions as MakeOptions,
-    index_d$2_EntityKind as EntityKind,
-    index_d$2_make as make,
-    index_d$2_Entity as Entity,
+    index_d$3_EntityType as EntityType,
+    index_d$3_KeyInfo as KeyInfo,
+    index_d$3_makeKeyInfo as makeKeyInfo,
+    index_d$3_TextOptions as TextOptions,
+    index_d$3_FlavorOptions as FlavorOptions,
+    index_d$3_KindOptions as KindOptions,
+    index_d$3_MakeOptions as MakeOptions,
+    index_d$3_EntityKind as EntityKind,
+    index_d$3_make as make,
+    index_d$3_Entity as Entity,
   };
 }
 
@@ -1481,29 +1937,29 @@ interface MatchOptions {
 }
 declare function random(opts?: Partial<MatchOptions> | string): Horde | null;
 
-type index_d$1_HordeConfig = HordeConfig;
-type index_d$1_HordeFlagsType = HordeFlagsType;
-type index_d$1_SpawnOptions = SpawnOptions;
-type index_d$1_Horde = Horde;
-declare const index_d$1_Horde: typeof Horde;
-declare const index_d$1_hordes: typeof hordes;
-declare const index_d$1_install: typeof install;
-declare const index_d$1_installAll: typeof installAll;
-declare const index_d$1_from: typeof from;
-type index_d$1_MatchOptions = MatchOptions;
-declare const index_d$1_random: typeof random;
-declare namespace index_d$1 {
+type index_d$2_HordeConfig = HordeConfig;
+type index_d$2_HordeFlagsType = HordeFlagsType;
+type index_d$2_SpawnOptions = SpawnOptions;
+type index_d$2_Horde = Horde;
+declare const index_d$2_Horde: typeof Horde;
+declare const index_d$2_hordes: typeof hordes;
+declare const index_d$2_install: typeof install;
+declare const index_d$2_installAll: typeof installAll;
+declare const index_d$2_from: typeof from;
+type index_d$2_MatchOptions = MatchOptions;
+declare const index_d$2_random: typeof random;
+declare namespace index_d$2 {
   export {
-    index_d$1_HordeConfig as HordeConfig,
-    index_d$1_HordeFlagsType as HordeFlagsType,
-    index_d$1_SpawnOptions as SpawnOptions,
-    index_d$1_Horde as Horde,
-    index_d$1_hordes as hordes,
-    index_d$1_install as install,
-    index_d$1_installAll as installAll,
-    index_d$1_from as from,
-    index_d$1_MatchOptions as MatchOptions,
-    index_d$1_random as random,
+    index_d$2_HordeConfig as HordeConfig,
+    index_d$2_HordeFlagsType as HordeFlagsType,
+    index_d$2_SpawnOptions as SpawnOptions,
+    index_d$2_Horde as Horde,
+    index_d$2_hordes as hordes,
+    index_d$2_install as install,
+    index_d$2_installAll as installAll,
+    index_d$2_from as from,
+    index_d$2_MatchOptions as MatchOptions,
+    index_d$2_random as random,
   };
 }
 
@@ -1515,19 +1971,19 @@ declare class BasicDrawer implements CellDrawer {
     applyLight(dest: GWU.sprite.Mixer, cell: CellType, fov?: GWU.fov.FovTracker): void;
 }
 
-type index_d_CellDrawFn = CellDrawFn;
-type index_d_MapDrawOptions = MapDrawOptions;
-type index_d_BufferSource = BufferSource;
-type index_d_CellDrawer = CellDrawer;
-type index_d_BasicDrawer = BasicDrawer;
-declare const index_d_BasicDrawer: typeof BasicDrawer;
-declare namespace index_d {
+type index_d$1_CellDrawFn = CellDrawFn;
+type index_d$1_MapDrawOptions = MapDrawOptions;
+type index_d$1_BufferSource = BufferSource;
+type index_d$1_CellDrawer = CellDrawer;
+type index_d$1_BasicDrawer = BasicDrawer;
+declare const index_d$1_BasicDrawer: typeof BasicDrawer;
+declare namespace index_d$1 {
   export {
-    index_d_CellDrawFn as CellDrawFn,
-    index_d_MapDrawOptions as MapDrawOptions,
-    index_d_BufferSource as BufferSource,
-    index_d_CellDrawer as CellDrawer,
-    index_d_BasicDrawer as BasicDrawer,
+    index_d$1_CellDrawFn as CellDrawFn,
+    index_d$1_MapDrawOptions as MapDrawOptions,
+    index_d$1_BufferSource as BufferSource,
+    index_d$1_CellDrawer as CellDrawer,
+    index_d$1_BasicDrawer as BasicDrawer,
   };
 }
 
@@ -1620,4 +2076,37 @@ declare namespace fx_d {
   };
 }
 
-export { index_d$3 as actor, index_d as draw, index_d$6 as effect, index_d$2 as entity, index_d$a as flags, fx_d as fx, index_d$1 as horde, index_d$9 as item, index_d$7 as layer, index_d$4 as map, index_d$5 as memory, path_d as path, index_d$8 as tile };
+type index_d_Modifier = Modifier;
+type index_d_Adjustment = Adjustment;
+type index_d_ChangeCallback = ChangeCallback;
+type index_d_Attributes = Attributes;
+declare const index_d_Attributes: typeof Attributes;
+declare const index_d_attributes: typeof attributes;
+declare const index_d_installAttribute: typeof installAttribute;
+declare const index_d_makeAttributes: typeof makeAttributes;
+type index_d_SkillInfo = SkillInfo;
+type index_d_Skills = Skills;
+declare const index_d_Skills: typeof Skills;
+type index_d_PlayerKind = PlayerKind;
+declare const index_d_PlayerKind: typeof PlayerKind;
+type index_d_Player = Player;
+declare const index_d_Player: typeof Player;
+declare namespace index_d {
+  export {
+    index_d_Modifier as Modifier,
+    index_d_Adjustment as Adjustment,
+    index_d_ChangeCallback as ChangeCallback,
+    index_d_Attributes as Attributes,
+    index_d_attributes as attributes,
+    index_d_installAttribute as installAttribute,
+    index_d_makeAttributes as makeAttributes,
+    index_d_SkillInfo as SkillInfo,
+    index_d_Skills as Skills,
+    KindOptions$3 as KindOptions,
+    index_d_PlayerKind as PlayerKind,
+    index_d_Player as Player,
+    make$2 as make,
+  };
+}
+
+export { index_d$7 as action, index_d$4 as actor, index_d$1 as draw, index_d$9 as effect, index_d$3 as entity, index_d$d as flags, fx_d as fx, index_d$6 as game, index_d$2 as horde, index_d$c as item, index_d$a as layer, index_d$5 as map, index_d$8 as memory, path_d as path, index_d as player, index_d$b as tile };

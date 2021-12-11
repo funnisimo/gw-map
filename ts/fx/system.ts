@@ -13,9 +13,6 @@ export interface Animation {
     callback(v: AnimationCallback): void;
 }
 
-// const scheduler = GWU.scheduler;
-const IO = GWU.loop;
-
 let ANIMATIONS: Animation[] = [];
 
 export function busy(): boolean {
@@ -24,7 +21,7 @@ export function busy(): boolean {
 
 export async function playAll() {
     while (busy()) {
-        const e = await IO.nextEvent();
+        const e = await GWU.io.nextEvent();
         if (e && e.dt > 0) {
             ANIMATIONS.forEach((a) => a && a.tick(e.dt));
             ANIMATIONS = ANIMATIONS.filter((a) => a && a.isRunning());

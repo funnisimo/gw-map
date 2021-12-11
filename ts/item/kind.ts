@@ -2,11 +2,21 @@ import * as GWU from 'gw-utils';
 import * as Entity from '../entity';
 import * as Flags from '../flags';
 
+import { Actor } from '../actor/actor';
 import { Item } from './item';
 import { FlagType } from './types';
+import { Game } from '../game';
+
+export type ItemActionFn = (
+    this: Game,
+    actor: Actor,
+    opts: { item: Item }
+) => Promise<boolean>;
+export type ItemActionBase = boolean | ItemActionFn;
 
 export interface KindOptions extends Entity.KindOptions {
     flags?: GWU.flag.FlagBase;
+    actions?: Record<string, ItemActionBase>;
 }
 export interface MakeOptions extends Entity.MakeOptions {
     quantity: number;
@@ -17,6 +27,7 @@ export class ItemKind extends Entity.EntityKind {
         item: Flags.Item.DEFAULT,
         entity: Flags.Entity.DEFAULT_ACTOR,
     };
+    actions: Record<string, ItemActionBase> = {};
 
     constructor(config: KindOptions) {
         super(config);
@@ -31,6 +42,11 @@ export class ItemKind extends Entity.EntityKind {
                 this.flags.entity,
                 config.flags
             );
+        }
+        if (config.actions) {
+            Object.entries(config.actions).forEach(([key, value]) => {
+                this.actions[key] = value;
+            });
         }
     }
 
