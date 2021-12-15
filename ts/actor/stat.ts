@@ -93,6 +93,10 @@ export class Stats {
         return this._value[name];
     }
 
+    getPct(name: string): number {
+        return Math.round((100 * this._value[name]) / this._max[name]);
+    }
+
     max(name: string): number {
         return this._max[name] || 0;
     }

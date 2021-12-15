@@ -8,12 +8,13 @@ export * as layer from './layer';
 export * as map from './map';
 export * as path from './path';
 export * as horde from './horde';
-export * as action from './action';
+export * as action from './command';
 export * as memory from './memory';
 export * as draw from './draw';
 export * as fx from './fx/fx';
 export * as player from './player';
 export * as game from './game';
+export * as ai from './ai';
 
 import './effect/handlers';
 import './tile/tiles';

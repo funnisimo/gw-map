@@ -3,15 +3,22 @@ import * as Entity from '../entity';
 import * as Flags from '../flags';
 import { CellType, MapType } from '../map';
 import { Actor, PickupOptions, DropOptions } from './actor';
+import { ActorAiFn } from '../ai/ai';
 import { Item } from '../item/item';
 import { FlavorOptions } from '../entity';
 import * as Memory from '../memory';
-import { ActorFlags } from '.';
+import { ActorFlags } from './types';
+import * as AI from '../ai';
+import * as Action from './action';
 
 export interface KindOptions extends Entity.KindOptions {
     flags?: GWU.flag.FlagBase;
     vision?: number;
     stats?: Record<string, GWU.range.RangeBase>;
+    actions?: Record<string, Action.ActorActionBase>;
+    moveSpeed?: number; // 100 === normal
+    ai?: string | ActorAiFn;
+    bump?: Action.ActorActionFn | string | (Action.ActorActionFn | string)[];
 }
 
 export interface MakeOptions extends Entity.MakeOptions {
@@ -26,6 +33,11 @@ export class ActorKind extends Entity.EntityKind {
     };
     vision: Record<string, number> = {};
     stats: Record<string, GWU.range.RangeBase>;
+    actions: Record<string, Action.ActorActionBase> = {};
+    bump: (Action.ActorActionFn | string)[] = [];
+
+    moveSpeed = 100;
+    ai: ActorAiFn | null = null;
 
     constructor(opts: KindOptions) {
         super(opts);
@@ -45,6 +57,33 @@ export class ActorKind extends Entity.EntityKind {
             this.vision.normal = opts.vision;
         }
         this.stats = opts.stats || {};
+        if (opts.actions) {
+            Object.assign(this.actions, opts.actions);
+        }
+        if (opts.moveSpeed) {
+            this.moveSpeed = opts.moveSpeed;
+        }
+        if (opts.ai) {
+            if (typeof opts.ai === 'string') {
+                opts.ai = AI.ais[opts.ai];
+            }
+            if (typeof opts.ai === 'function') {
+                this.ai = opts.ai;
+            } else {
+                opts.ai = AI.ais['default'];
+            }
+        }
+        if (opts.bump) {
+            if (typeof opts.bump === 'string') {
+                opts.bump = opts.bump.split(/[|,]/g).map((t) => t.trim());
+            }
+            if (typeof opts.bump === 'function') {
+                opts.bump = [opts.bump];
+            }
+            if (Array.isArray(opts.bump)) {
+                this.bump = opts.bump.slice();
+            }
+        }
     }
 
     make(options?: Partial<MakeOptions>): Actor {

@@ -1,6 +1,6 @@
 // import * as GWM from 'gw-map';
 import { Actor } from '../actor';
-import { PlayerKind, KindOptions } from './kind';
+import { PlayerKind } from './kind';
 
 export class Player extends Actor {
     static default = {
@@ -14,9 +14,4 @@ export class Player extends Actor {
     constructor(kind: PlayerKind) {
         super(kind);
     }
-}
-
-export function make(options: Partial<KindOptions> = {}): Player {
-    const kind = new PlayerKind(options);
-    return new Player(kind);
 }

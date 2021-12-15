@@ -3,10 +3,14 @@ import * as Entity from '../entity';
 import { ActorFlags } from './types';
 import * as Flags from '../flags';
 import { ActorKind } from './kind';
+import { ActorActionFn, getAction, ActorActionBase } from './action';
 import { Item } from '../item';
 import * as Memory from '../memory';
 import { Status } from './status';
 import { Stats } from './stat';
+import { Game } from '../game';
+import { ActorAiFn } from '../ai/ai';
+import { MapType } from '../map/types';
 
 export interface PickupOptions {
     admin: boolean;
@@ -20,14 +24,21 @@ export class Actor extends Entity.Entity {
     // @ts-ignore - initialized in Entity
     flags: ActorFlags;
     kind: ActorKind;
-    next: Actor | null = null;
+    ai: ActorAiFn | null = null;
+
     leader: Actor | null = null;
-    items: Item | null = null;
+    items: Item | null = null; // inventory
+
     fov: GWU.fov.FovSystem | null = null;
     memory: Memory.Memory | null = null;
     visionDistance = 99;
     stats: Stats;
     status: Status;
+
+    data: Record<string, number> = {};
+    _costMap: GWU.grid.NumGrid | null = null;
+
+    next: Actor | null = null; // TODO - can we get rid of this?
 
     constructor(kind: ActorKind) {
         super(kind);
@@ -48,6 +59,14 @@ export class Actor extends Entity.Entity {
         this.visionDistance = other.visionDistance;
     }
 
+    destroy() {
+        this.setEntityFlag(Flags.Entity.L_DESTROYED);
+        if (this._costMap) {
+            GWU.grid.free(this._costMap);
+            this._costMap = null;
+        }
+    }
+
     hasActorFlag(flag: number) {
         return !!(this.flags.actor & flag);
     }
@@ -57,9 +76,35 @@ export class Actor extends Entity.Entity {
     actorFlags(): number {
         return this.flags.actor;
     }
+    setActorFlag(flag: number) {
+        this.flags.actor |= flag;
+    }
+    clearActorFlag(flag: number) {
+        this.flags.actor &= ~flag;
+    }
 
     isPlayer() {
         return this.hasActorFlag(Flags.Actor.IS_PLAYER);
+    }
+
+    isDead() {
+        return this.hasEntityFlag(Flags.Entity.L_DESTROYED);
+    }
+
+    getAction(name: string): ActorActionBase {
+        const action = this.kind.actions[name];
+        if (action === undefined) return true; // default is to do any action
+        if (action === true) {
+            return getAction(name) || true;
+        } else if (action === false) {
+            return false;
+        }
+
+        return action;
+    }
+
+    getBumpActions(): (ActorActionFn | string)[] {
+        return this.kind.bump;
     }
 
     /////////////// VISIBILITY
@@ -114,7 +159,34 @@ export class Actor extends Entity.Entity {
 
     ////////////////// ACTOR
 
-    async act(): Promise<boolean> {
+    async act(game: Game): Promise<number> {
+        if (this.ai) {
+            const r = await this.ai(game, this);
+            if (r) return r;
+        }
+
+        if (this.kind.ai) {
+            const r = await this.kind.ai(game, this);
+            if (r) return r;
+        }
+
+        // idle - always
+        return this.moveSpeed();
+    }
+
+    moveSpeed(): number {
+        return this.kind.moveSpeed;
+    }
+
+    startTurn() {}
+
+    endTurn(pct = 100): number {
+        return Math.floor((pct * this.moveSpeed()) / 100);
+    }
+
+    ///////
+
+    willAttack(_other: Actor): boolean {
         return true;
     }
 
@@ -136,5 +208,129 @@ export class Actor extends Entity.Entity {
 
     dropItem(item: Item, opts?: Partial<DropOptions>): boolean {
         return this.kind.dropItem(this, item, opts);
+    }
+
+    // PATHFINDING
+
+    addToMap(map: MapType, x: number, y: number): boolean {
+        const mapChanged = super.addToMap(map, x, y);
+        if (mapChanged) {
+            this.setActorFlag(Flags.Actor.STALE_COST_MAP);
+        }
+        return mapChanged;
+    }
+
+    removeFromMap() {
+        super.removeFromMap();
+        if (this._costMap) {
+            GWU.grid.free(this._costMap);
+            this._costMap = null;
+        }
+    }
+
+    /*
+    Calculates and returns the actor's move cost map.
+    Used in pathfinding.
+    */
+    costMap(): GWU.grid.NumGrid {
+        if (!this.map) {
+            throw new Error('Actor must have map to calculate costMap.');
+        }
+
+        const staleMap = this.hasActorFlag(Flags.Actor.STALE_COST_MAP);
+        if (staleMap && this._costMap) {
+            GWU.grid.free(this._costMap);
+            this._costMap = null;
+        }
+        if (!this._costMap) {
+            this._costMap = GWU.grid.alloc(this.map.width, this.map.height);
+        } else if (!staleMap) {
+            return this._costMap;
+        }
+
+        const kind = this.kind;
+        const map = this.map;
+        this._costMap.update((_v, x, y) => {
+            const cell = map.cell(x, y);
+            if (kind.forbidsCell(cell, this)) {
+                return cell.hasEntityFlag(Flags.Entity.L_BLOCKS_DIAGONAL)
+                    ? GWU.path.OBSTRUCTION
+                    : GWU.path.FORBIDDEN;
+            } else if (kind.avoidsCell(cell, this)) {
+                return GWU.path.AVOIDED;
+            }
+            return GWU.path.OK;
+        });
+
+        this.clearActorFlag(Flags.Actor.STALE_COST_MAP);
+
+        /*
+
+			if (cellHasTerrainFlag(i, j, T_OBSTRUCTS_PASSABILITY)
+            && (!cellHasTMFlag(i, j, TM_IS_SECRET) || (discoveredTerrainFlagsAtLoc(i, j) & T_OBSTRUCTS_PASSABILITY)))
+			{
+				playerCostMap[i][j] = monsterCostMap[i][j] = cellHasTerrainFlag(i, j, T_OBSTRUCTS_DIAGONAL_MOVEMENT) ? PDS_OBSTRUCTION : PDS_FORBIDDEN;
+			} else if (cellHasTerrainFlag(i, j, T_SACRED)) {
+					playerCostMap[i][j] = 1;
+					monsterCostMap[i][j] = PDS_FORBIDDEN;
+			} else if (cellHasTerrainFlag(i, j, T_LAVA_INSTA_DEATH)) {
+        monsterCostMap[i][j] = PDS_FORBIDDEN;
+        if (player.status[STATUS_LEVITATING] || !player.status[STATUS_IMMUNE_TO_FIRE]) {
+            playerCostMap[i][j] = 1;
+        } else {
+            playerCostMap[i][j] = PDS_FORBIDDEN;
+        }
+			} else {
+				if (pmap[i][j].flags & HAS_MONSTER) {
+					monst = monsterAtLoc(i, j);
+					if ((monst.creatureState == MONSTER_SLEEPING
+						 || monst.turnsSpentStationary > 2
+             || (monst.info.flags & MONST_GETS_TURN_ON_ACTIVATION)
+						 || monst.creatureState == MONSTER_ALLY)
+						&& monst.creatureState != MONSTER_FLEEING)
+					{
+						playerCostMap[i][j] = 1;
+						monsterCostMap[i][j] = PDS_FORBIDDEN;
+						continue;
+					}
+				}
+
+				if (cellHasTerrainFlag(i, j, (T_AUTO_DESCENT | T_IS_DF_TRAP))) {
+					monsterCostMap[i][j] = PDS_FORBIDDEN;
+          if (player.status[STATUS_LEVITATING]) {
+              playerCostMap[i][j] = 1;
+          } else {
+              playerCostMap[i][j] = PDS_FORBIDDEN;
+          }
+				} else if (cellHasTerrainFlag(i, j, T_IS_FIRE)) {
+					monsterCostMap[i][j] = PDS_FORBIDDEN;
+          if (player.status[STATUS_IMMUNE_TO_FIRE]) {
+              playerCostMap[i][j] = 1;
+          } else {
+              playerCostMap[i][j] = PDS_FORBIDDEN;
+          }
+				} else if (cellHasTerrainFlag(i, j, (T_IS_DEEP_WATER | T_SPONTANEOUSLY_IGNITES))) {
+          if (player.status[STATUS_LEVITATING]) {
+              playerCostMap[i][j] = 1;
+          } else {
+              playerCostMap[i][j] = 5;
+          }
+					monsterCostMap[i][j] = 5;
+        } else if (cellHasTerrainFlag(i, j, T_OBSTRUCTS_PASSABILITY)
+                   && cellHasTMFlag(i, j, TM_IS_SECRET) && !(discoveredTerrainFlagsAtLoc(i, j) & T_OBSTRUCTS_PASSABILITY)
+                   && !(pmap[i][j].flags & IN_FIELD_OF_VIEW))
+			 {
+            // Secret door that the player can't currently see
+            playerCostMap[i][j] = 100;
+            monsterCostMap[i][j] = 1;
+				} else {
+					playerCostMap[i][j] = monsterCostMap[i][j] = 1;
+				}
+			}
+		}
+	}
+        */
+
+        return this._costMap;
     }
 }

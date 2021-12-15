@@ -7,5 +7,7 @@ export enum Actor {
     HAS_MEMORY = Fl(1),
     USES_FOV = Fl(2),
 
+    STALE_COST_MAP = Fl(3),
+
     DEFAULT = 0,
 }

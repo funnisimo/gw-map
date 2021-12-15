@@ -29,15 +29,17 @@ describe('Effect', () => {
 
     beforeEach(() => {
         GWU.rng.random.seed(12345);
-        okFn = jest.fn();
-        GWU.events.on('OK', okFn);
 
         map = Map.make(20, 20, 'FLOOR', 'WALL');
+
+        okFn = jest.fn();
+        map.events.on('OK', okFn);
+
         xy = { map, x: 5, y: 6 };
     });
 
     afterEach(() => {
-        GWU.events.off('OK', okFn);
+        map.events.off('OK', okFn);
         GWU.data.gameHasEnded = false;
         jest.restoreAllMocks();
     });
@@ -167,7 +169,7 @@ describe('Effect', () => {
             const fn = jest.fn().mockImplementation(() => {
                 GWU.data.gameHasEnded = true;
             });
-            GWU.events.on('TACO', fn);
+            map.events.on('TACO', fn);
 
             expect(te.trigger(xy)).toBeTruthy();
             expect(fn).toHaveBeenCalledTimes(1);
@@ -311,7 +313,7 @@ describe('Effect', () => {
         describe('multiple effects', () => {
             afterEach(() => {
                 jest.restoreAllMocks();
-                GWU.events.removeAllListeners();
+                map.events.removeAllListeners();
             });
 
             test('emits', () => {
@@ -324,7 +326,7 @@ describe('Effect', () => {
                 const ctx = { map, x: 10, y: 10, aware: true };
 
                 const fn = jest.fn();
-                GWU.events.on('EMIT3', fn);
+                map.events.on('EMIT3', fn);
 
                 eff.trigger(ctx, ctx as EffectCtx);
 

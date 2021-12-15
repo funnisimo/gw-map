@@ -1,6 +1,10 @@
+import * as UTILS from '../node_modules/gw-utils/test/utils';
+import * as GWU from 'gw-utils';
+
 import * as Map from '../ts/map';
 import { Actor, ActorKind } from '../ts/actor';
 import { Item, ItemKind } from '../ts/item';
+import { Game } from '../ts/game';
 
 // export const rnd = jest.fn();
 // export const counts = new Array(100).fill(0);
@@ -54,6 +58,16 @@ export function mockMap(w = 10, h = 10): Map.Map {
     const map = Map.make(w, h);
     // jest.spyOn(map, 'isVisible').mockReturnValue(true);
     return map;
+}
+
+export function mockGame(map: Map.Map, player: Actor): jest.Mocked<Game> {
+    return {
+        ui: UTILS.mockUI(map.width, map.height),
+        map,
+        player,
+        scheduler: new GWU.scheduler.Scheduler(),
+        draw: jest.fn(),
+    } as unknown as jest.Mocked<Game>;
 }
 
 export function mockActor(): Actor {

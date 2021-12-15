@@ -1,12 +1,17 @@
 import 'jest-extended';
 import '../../../test/matchers';
-import * as UTILS from '../../../test/utils';
-import * as GWU from 'gw-utils';
 import * as Effect from '..';
+import * as Map from '../../map';
 
 describe('emit', () => {
+    let map: Map.Map;
+
+    beforeEach(() => {
+        map = Map.make(20, 20);
+    });
+
     afterEach(() => {
-        GWU.events.removeAllListeners();
+        map.events.removeAllListeners();
     });
 
     // test('not gonna happen',  () => {
@@ -20,16 +25,15 @@ describe('emit', () => {
     });
 
     test('emits', () => {
-        const map = UTILS.mockMap(10, 10);
         const eff = Effect.make('EMIT:EMIT1');
         expect(eff).not.toBeNull();
 
         const fn = jest.fn();
-        GWU.events.on('EMIT1', fn);
+        map.events.on('EMIT1', fn);
 
         const didSomething = eff.trigger({ map, x: 5, y: 6 });
         expect(didSomething).toBeTruthy();
-        expect(fn).toHaveBeenCalledWith('EMIT1', 5, 6, expect.anything());
+        expect(fn).toHaveBeenCalledWith({ map, x: 5, y: 6 }, expect.anything());
     });
 
     // test('default make',  () => {
@@ -48,9 +52,9 @@ describe('emit', () => {
         const te = Effect.install('TEST', 'EMIT:TACO');
 
         const fn = jest.fn();
-        GWU.events.on('TACO', fn);
+        map.events.on('TACO', fn);
 
-        te.trigger({ map: UTILS.mockMap(), x: 5, y: 5 });
+        te.trigger({ map, x: 5, y: 5 });
         expect(fn).toHaveBeenCalled();
     });
 });

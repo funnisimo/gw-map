@@ -1,21 +1,19 @@
 var GAME;
+var PLAYER;
+var PEDRO;
 
 GWM.item.install(
     'EMPTY_BOX',
     new GWM.item.ItemKind({
+        name: 'Box',
         ch: '*',
         fg: 'gold',
 
-        name: 'Box',
-
         actions: {
-            async pickup(actor, opts) {
-                if (!opts.item) {
-                    throw new Error('Invalid action - item required!');
-                }
-                await this.ui.alert('Empty!'); // this === GAME
-                this.map.removeItem(opts.item);
-                return false;
+            async pickup(game, actor, item) {
+                await game.ui.alert('Empty!'); // this === GAME
+                game.map.removeItem(item);
+                return actor.endTurn(); // handled
             },
         },
     })
@@ -24,26 +22,64 @@ GWM.item.install(
 GWM.item.install(
     'FULL_BOX',
     new GWM.item.ItemKind({
+        name: 'Box',
         ch: '*',
         fg: 'green',
 
-        name: 'Box',
-
         actions: {
-            async pickup(actor, opts) {
-                if (!opts.item) {
-                    throw new Error('Inavlid action - item required.');
-                }
-                await this.ui.alert('You found the ΩgoldΩAnanas∆!');
-                this.map.removeItem(opts.item);
-                this.finish(true);
-                return false;
+            async pickup(game, actor, item) {
+                await game.ui.alert('You found the ΩgoldΩAnanas∆!');
+                game.map.removeItem(item);
+                game.finish(true); // game over!
+                return actor.endTurn(); // handled
             },
         },
     })
 );
 
-function addBox(map, hasAnanas) {
+GWM.player.install('HERO', {
+    name: 'Hero',
+    stats: { health: 10 },
+
+    // these are actions that I am performing
+    actions: {
+        async pickup(game, actor) {
+            const item = game.map.itemAt(actor.x, actor.y);
+            if (!item) {
+                await game.ui.alert('No box here.');
+                return actor.endTurn(); // handled
+            }
+            return 0; // not handled
+        },
+        async gameOver(game, actor) {
+            await game.ui.alert('You should not have run into me, you thief!');
+            game.finish(false);
+            return -1;
+        },
+    },
+    bump: 'gameOver', // you do this when you bump into me
+});
+
+GWM.actor.install('PEDRO', {
+    name: 'Pedro',
+    ch: 'P',
+    fg: 'red',
+    ai(game, actor) {
+        return GWM.ai.moveToward(game, actor, game.player);
+    },
+
+    // these are actions that I am performing
+    actions: {
+        async gameOver(game, actor) {
+            await game.ui.alert('I got you, you nasty thief!');
+            game.finish(false);
+            return -1;
+        },
+    },
+    bump: 'gameOver', // you do this when you bump into me
+});
+
+function addRandomBox(map, hasAnanas) {
     const loc = GWU.random.matchingLoc(80, 40, (x, y) => {
         if (map.hasEntityFlag(x, y, GWM.flags.Entity.L_BLOCKS_MOVE))
             return false;
@@ -66,20 +102,25 @@ async function start() {
 
             // Add boxes randomly
             for (let c = 0; c < 8; ++c) {
-                addBox(map, false);
+                addRandomBox(map, false);
             }
-            addBox(map, true);
+            addRandomBox(map, true);
 
             return map;
         },
 
         makePlayer() {
-            return GWM.player.make({ name: 'Hero', stats: { health: 10 } });
+            PLAYER = GWM.player.make('HERO');
+            return PLAYER;
         },
 
         startMap(map, player) {
             // create and add the player
             map.addActorNear(40, 20, player);
+
+            // create and add Pedro
+            PEDRO = GWM.actor.make('PEDRO');
+            map.addActorNear(0, 0, PEDRO);
         },
 
         keymap: {

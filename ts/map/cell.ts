@@ -534,33 +534,21 @@ export class Cell implements CellType {
         return this.map.itemAt(this.x, this.y);
     }
 
-    addItem(item: Item, withEffects = false): boolean {
-        this.setCellFlag(Flags.Cell.HAS_ITEM);
-        item.addToMap(this.map, this.x, this.y);
-        this.map.items.push(item);
-        this.needsRedraw = true;
-        // this.clearCellFlag(Flags.Cell.STABLE_SNAPSHOT);
-
-        if (withEffects) {
-            if (
-                item.key &&
-                item.key.matches(this.x, this.y) &&
-                this.hasEffect('key')
-            ) {
-                this.fireEvent('key', {
-                    key: item,
-                    item,
-                });
-            } else if (this.hasEffect('add_item')) {
-                this.fireEvent('add_item', {
-                    key: item,
-                    item,
-                });
-            }
-        }
+    canAddItem(_item: Item): boolean {
         return true;
     }
-    removeItem(item: Item, withEffects = false): boolean {
+
+    canRemoveItem(_item: Item): boolean {
+        return true;
+    }
+
+    _addItem(_item: Item): boolean {
+        this.setCellFlag(Flags.Cell.HAS_ITEM);
+        this.needsRedraw = true;
+        // this.clearCellFlag(Flags.Cell.STABLE_SNAPSHOT);
+        return true;
+    }
+    _removeItem(item: Item): boolean {
         let hasItems = false;
         let foundIndex = -1;
         this.map.items.forEach((obj, index) => {
@@ -574,24 +562,8 @@ export class Cell implements CellType {
             this.clearCellFlag(Flags.Cell.HAS_ITEM);
         }
         if (foundIndex < 0) return false;
-        this.map.items.splice(foundIndex, 1); // delete the item
-        item.removeFromMap();
         this.needsRedraw = true;
         // this.clearCellFlag(Flags.Cell.STABLE_SNAPSHOT);
-
-        if (withEffects) {
-            if (item.isKey(this.x, this.y) && this.hasEffect('no_key')) {
-                this.fireEvent('no_key', {
-                    key: item,
-                    item,
-                });
-            } else if (this.hasEffect('remove_item')) {
-                this.fireEvent('remove_item', {
-                    key: item,
-                    item,
-                });
-            }
-        }
         return true;
     }
 
@@ -607,36 +579,25 @@ export class Cell implements CellType {
         return this.map.actorAt(this.x, this.y);
     }
 
-    addActor(actor: Actor, withEffects = false): boolean {
+    canAddActor(_actor: Actor): boolean {
+        return true;
+    }
+
+    canRemoveActor(_actor: Actor): boolean {
+        return true;
+    }
+
+    _addActor(actor: Actor): boolean {
         this.setCellFlag(Flags.Cell.HAS_ACTOR);
         if (actor.isPlayer()) {
             this.setCellFlag(Flags.Cell.HAS_PLAYER);
         }
-        actor.addToMap(this.map, this.x, this.y);
-        this.map.actors.push(actor);
         this.needsRedraw = true;
         // this.clearCellFlag(Flags.Cell.STABLE_SNAPSHOT);
 
-        if (withEffects) {
-            if (actor.isKey(this.x, this.y) && this.hasEffect('key')) {
-                this.fireEvent('key', {
-                    key: actor,
-                    actor,
-                });
-            } else if (actor.isPlayer() && this.hasEffect('add_player')) {
-                this.fireEvent('add_player', {
-                    player: actor,
-                    actor,
-                });
-            } else if (this.hasEffect('add_actor')) {
-                this.fireEvent('add_actor', {
-                    actor,
-                });
-            }
-        }
         return true;
     }
-    removeActor(actor: Actor, withEffects = false): boolean {
+    _removeActor(actor: Actor): boolean {
         let hasActor = false;
         let foundIndex = -1;
         this.map.actors.forEach((obj, index) => {
@@ -650,28 +611,8 @@ export class Cell implements CellType {
             this.clearCellFlag(Flags.Cell.HAS_ACTOR | Flags.Cell.HAS_PLAYER);
         }
         if (foundIndex < 0) return false;
-        actor.removeFromMap();
-        this.map.actors.splice(foundIndex, 1); // delete the actor
         this.needsRedraw = true;
         // this.clearCellFlag(Flags.Cell.STABLE_SNAPSHOT);
-
-        if (withEffects) {
-            if (actor.isKey(this.x, this.y) && this.hasEffect('no_key')) {
-                this.fireEvent('no_key', {
-                    key: actor,
-                    actor,
-                });
-            } else if (actor.isPlayer() && this.hasEffect('remove_player')) {
-                this.fireEvent('remove_player', {
-                    actor,
-                    player: actor,
-                });
-            } else if (this.hasEffect('remove_actor')) {
-                this.fireEvent('remove_actor', {
-                    actor,
-                });
-            }
-        }
 
         return true;
     }

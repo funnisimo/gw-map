@@ -19,6 +19,7 @@ import {
 import * as Effect from '../effect';
 import { CellDrawer, MapDrawOptions, BufferSource } from '../draw/types';
 import { BasicDrawer } from '../draw/basic';
+import { MapEvents } from '.';
 
 export interface MapOptions extends GWU.light.LightSystemOptions {
     // GWU.fov.FovSystemOptions {
@@ -29,20 +30,11 @@ export interface MapOptions extends GWU.light.LightSystemOptions {
     drawer: CellDrawer;
 }
 
-export type LayerType = Layer.TileLayer | Layer.ActorLayer | Layer.ItemLayer;
-
-interface QueuedEvent {
-    event: string;
-    ctx: Effect.EffectCtx;
-    x: number;
-    y: number;
-}
+export type LayerType = Layer.TileLayer;
 
 export class Map
     implements GWU.light.LightSystemSite, MapType, GWU.tween.Animator
 {
-    width: number;
-    height: number;
     cells: GWU.grid.Grid<Cell>;
     layers: LayerType[];
     flags: { map: 0 };
@@ -50,25 +42,26 @@ export class Map
     // fov: GWU.fov.FovSystemType;
     properties: Record<string, any>;
     // _memory: GWU.grid.Grid<CellMemory>;
-    machineCount = 0;
-    private _seed = 0;
+    // machineCount = 0;
+    // _seed = 0;
     rng: GWU.rng.Random = GWU.rng.random;
-    id = 'MAP';
+    // id = 'MAP';
     actors: Actor[] = [];
     items: Item[] = [];
     drawer: CellDrawer;
     fx: Entity[] = [];
-    _animations: GWU.tween.Animation[] = [];
 
-    _queuedEvents: QueuedEvent[] = [];
+    _animations: GWU.tween.Animation[] = [];
+    events: GWU.events.EventEmitter<MapEvents> =
+        new GWU.events.EventEmitter<MapEvents>();
 
     constructor(width: number, height: number, opts: Partial<MapOptions> = {}) {
-        this.width = width;
-        this.height = height;
         this.flags = { map: 0 };
         this.layers = [];
+        this.properties = { seed: 0 };
+
         if (opts.id) {
-            this.id = opts.id;
+            this.properties.id = opts.id;
         }
         this.drawer = opts.drawer || new BasicDrawer();
 
@@ -84,23 +77,29 @@ export class Map
         // );
 
         if (opts.seed) {
-            this._seed = opts.seed;
+            this.properties.seed = opts.seed;
             this.rng = GWU.rng.make(opts.seed);
         }
 
         this.light = new GWU.light.LightSystem(this, opts);
         // this.fov = new GWU.fov.FovSystem(this, opts);
-        this.properties = {};
 
         this.initLayers();
     }
 
     get seed(): number {
-        return this._seed;
+        return this.properties.seed;
     }
     set seed(v: number) {
-        this._seed = v;
+        this.properties.seed = v;
         this.rng = GWU.rng.make(v);
+    }
+
+    get width() {
+        return this.cells.width;
+    }
+    get height() {
+        return this.cells.height;
     }
 
     // memory(x: number, y: number): CellMemory {
@@ -121,8 +120,6 @@ export class Map
             new Layer.FireLayer(this, 'surface')
         );
         this.addLayer(Flags.Depth.GAS, new Layer.GasLayer(this, 'gas'));
-        this.addLayer(Flags.Depth.ITEM, new Layer.ItemLayer(this, 'item'));
-        this.addLayer(Flags.Depth.ACTOR, new Layer.ActorLayer(this, 'actor'));
     }
 
     addLayer(depth: number | keyof typeof Flags.Depth, layer: LayerType) {
@@ -159,6 +156,9 @@ export class Map
     cell(x: number, y: number): CellType {
         return this.cells[x][y];
     }
+    _cell(x: number, y: number): Cell {
+        return this.cells[x][y];
+    }
     get(x: number, y: number): Cell | undefined {
         return this.cells.get(x, y);
     }
@@ -180,9 +180,47 @@ export class Map
 
     addItem(x: number, y: number, item: Item, fireEffects = false): boolean {
         if (!this.hasXY(x, y)) return false;
-        const cell = this.cell(x, y);
-        return cell.addItem(item, fireEffects);
+        const cell = this._cell(x, y);
+        // if (!cell.canAddItem(item)) return false;
+
+        if (cell._addItem(item)) {
+            const index = this.items.indexOf(item);
+            if (index < 0) {
+                this.items.push(item);
+            }
+            item.addToMap(this, x, y);
+
+            if (fireEffects) {
+                this._fireAddItemEffects(item, cell);
+            }
+
+            if (index < 0) {
+                this.events.emit('item', this, item, true);
+            }
+
+            return true;
+        }
+        return false;
     }
+
+    _fireAddItemEffects(item: Item, cell: Cell) {
+        if (
+            item.key &&
+            item.key.matches(cell.x, cell.y) &&
+            cell.hasEffect('key')
+        ) {
+            cell.fireEvent('key', {
+                key: item,
+                item,
+            });
+        } else if (cell.hasEffect('add_item')) {
+            cell.fireEvent('add_item', {
+                key: item,
+                item,
+            });
+        }
+    }
+
     addItemNear(
         x: number,
         y: number,
@@ -191,7 +229,7 @@ export class Map
     ): boolean {
         const loc = this.rng.matchingLocNear(x, y, (i, j) => {
             if (!this.hasXY(i, j)) return false;
-            const cell = this.cell(i, j);
+            const cell = this._cell(i, j);
             if (cell.hasItem()) return false;
             if (cell.blocksMove()) return false;
             if (item.avoidsCell(cell)) return false;
@@ -199,14 +237,62 @@ export class Map
         });
 
         if (!loc || loc[0] < 0) return false;
-
-        const cell = this.cell(loc[0], loc[1]);
-        return cell.addItem(item, fireEffects);
+        return this.addItem(loc[0], loc[1], item, fireEffects);
     }
     removeItem(item: Item, fireEffects = false): boolean {
-        const cell = this.cell(item.x, item.y);
-        return cell.removeItem(item, fireEffects);
+        const cell = this._cell(item.x, item.y);
+        // if (!cell.canRemoveItem(item)) return false;
+
+        if (cell._removeItem(item)) {
+            if (fireEffects) {
+                this._fireRemoveItemEffects(item, cell);
+            }
+
+            GWU.arrayDelete(this.items, item);
+            item.removeFromMap();
+
+            this.events.emit('item', this, item, false);
+            return true;
+        }
+        return false;
     }
+
+    _fireRemoveItemEffects(item: Item, cell: Cell) {
+        if (item.isKey(cell.x, cell.y) && cell.hasEffect('no_key')) {
+            cell.fireEvent('no_key', {
+                key: item,
+                item,
+            });
+        } else if (cell.hasEffect('remove_item')) {
+            cell.fireEvent('remove_item', {
+                key: item,
+                item,
+            });
+        }
+    }
+
+    moveItem(item: Item, x: number, y: number, fireEffects = false) {
+        if (item.map !== this) throw new Error('Actor not on this map!');
+
+        const currentCell = this._cell(item.x, item.y);
+        const newCell = this._cell(x, y);
+
+        // if (!currentCell.canRemoveItem(item)) return false;
+        // if (!newCell.canAddItem(item)) return false;
+
+        currentCell._removeItem(item);
+        if (newCell._addItem(item)) {
+            if (fireEffects) {
+                this._fireRemoveItemEffects(item, currentCell);
+                this._fireAddItemEffects(item, newCell);
+            }
+
+            item.addToMap(this, x, y);
+        }
+
+        return true;
+    }
+
     //  moveItem(item: Item, dir: GWU.xy.Loc | number): boolean {
     //     if (typeof dir === 'number') {
     //         dir = GWU.xy.DIRS[dir];
@@ -259,9 +345,47 @@ export class Map
     }
     addActor(x: number, y: number, actor: Actor, fireEffects = false): boolean {
         if (!this.hasXY(x, y)) return false;
-        const cell = this.cell(x, y);
-        return cell.addActor(actor, fireEffects);
+        const cell = this._cell(x, y);
+        if (!cell.canAddActor(actor)) return false;
+
+        if (cell._addActor(actor)) {
+            const index = this.actors.indexOf(actor);
+            if (index < 0) {
+                this.actors.push(actor);
+            }
+            actor.addToMap(this, x, y);
+
+            if (fireEffects) {
+                this._fireAddActorEffects(actor, cell);
+            }
+
+            if (index < 0) {
+                this.events.emit('actor', this, actor, true);
+            }
+
+            return true;
+        }
+        return false;
     }
+
+    _fireAddActorEffects(actor: Actor, cell: Cell) {
+        if (actor.isKey(cell.x, cell.y) && cell.hasEffect('key')) {
+            cell.fireEvent('key', {
+                key: actor,
+                actor,
+            });
+        } else if (actor.isPlayer() && cell.hasEffect('add_player')) {
+            cell.fireEvent('add_player', {
+                player: actor,
+                actor,
+            });
+        } else if (cell.hasEffect('add_actor')) {
+            cell.fireEvent('add_actor', {
+                actor,
+            });
+        }
+    }
+
     addActorNear(
         x: number,
         y: number,
@@ -278,14 +402,69 @@ export class Map
         });
 
         if (!loc || loc[0] < 0) return false;
-
-        const cell = this.cell(loc[0], loc[1]);
-        return cell.addActor(actor, fireEffects);
+        return this.addActor(loc[0], loc[1], actor, fireEffects);
     }
 
     removeActor(actor: Actor, fireEffects = false): boolean {
-        const cell = this.cell(actor.x, actor.y);
-        return cell.removeActor(actor, fireEffects);
+        const cell = this._cell(actor.x, actor.y);
+        if (!cell.canRemoveActor(actor)) return false;
+
+        if (cell._removeActor(actor)) {
+            if (fireEffects) {
+                this._fireRemoveActorEffects(actor, cell);
+            }
+
+            actor.removeFromMap();
+            GWU.arrayDelete(this.actors, actor);
+
+            this.events.emit('actor', this, actor, false);
+            return true;
+        }
+        return false;
+    }
+
+    _fireRemoveActorEffects(actor: Actor, cell: Cell) {
+        if (actor.isKey(actor.x, actor.y) && cell.hasEffect('no_key')) {
+            cell.fireEvent('no_key', {
+                key: actor,
+                actor,
+            });
+        } else if (actor.isPlayer() && cell.hasEffect('remove_player')) {
+            cell.fireEvent('remove_player', {
+                actor,
+                player: actor,
+            });
+        } else if (cell.hasEffect('remove_actor')) {
+            cell.fireEvent('remove_actor', {
+                actor,
+            });
+        }
+    }
+
+    moveActor(
+        actor: Actor,
+        x: number,
+        y: number,
+        fireEffects = false
+    ): boolean {
+        if (actor.map !== this) throw new Error('Actor not on this map!');
+
+        const currentCell = this._cell(actor.x, actor.y);
+        const newCell = this._cell(x, y);
+
+        // if (!currentCell.canRemoveActor(actor)) return false;
+        // if (!newCell.canAddActor(actor)) return false;
+
+        currentCell._removeActor(actor);
+        if (newCell._addActor(actor)) {
+            actor.addToMap(this, x, y);
+            if (fireEffects) {
+                this._fireRemoveActorEffects(actor, currentCell);
+                this._fireAddActorEffects(actor, newCell);
+            }
+        }
+
+        return true;
     }
 
     //  moveActor(actor: Actor, dir: GWU.xy.Loc | number): boolean {
@@ -345,6 +524,7 @@ export class Map
         fx.y = y;
         cell._addFx(fx);
         this.fx.push(fx);
+        this.events.emit('fx', this, fx, true);
         return true;
     }
     moveFx(fx: Entity, x: number, y: number): boolean {
@@ -364,6 +544,7 @@ export class Map
         if (cell) {
             cell._removeFx(fx);
         }
+        this.events.emit('fx', this, fx, false);
         return true;
     }
 
@@ -528,8 +709,6 @@ export class Map
         // this.fov.needsUpdate = true;
         this.light.copy(src.light);
         this.rng = src.rng;
-        this.machineCount = src.machineCount;
-        this._seed = src._seed;
         this.properties = Object.assign({}, src.properties);
     }
 
@@ -538,19 +717,6 @@ export class Map
         const other: Map = new this.constructor(this.width, this.height);
         other.copy(this);
         return other;
-    }
-
-    queueEvent(x: number, y: number, event: string, ctx: Effect.EffectCtx) {
-        this._queuedEvents.push({ event, x, y, ctx });
-    }
-
-    fireQueuedEvents() {
-        for (let i = 0; i < this._queuedEvents.length; ++i) {
-            const info = this._queuedEvents[i];
-            const cell = this.cell(info.x, info.y);
-            cell.fireEvent(info.event, info.ctx);
-        }
-        this._queuedEvents.length = 0;
     }
 
     fire(

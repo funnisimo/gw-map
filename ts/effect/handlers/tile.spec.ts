@@ -15,7 +15,7 @@ describe('tile effect', () => {
         GWU.data.gameHasEnded = false;
 
         GWU.rng.random.seed(12345);
-        GWU.events.removeAllListeners();
+        map.events.removeAllListeners();
     });
 
     test('tile', () => {

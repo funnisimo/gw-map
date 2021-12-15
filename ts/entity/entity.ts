@@ -36,9 +36,6 @@ export class Entity implements EntityType {
     }
 
     addToMap(map: MapType, x: number, y: number): boolean {
-        if (this.hasEntityFlag(Flags.Entity.L_ON_MAP)) {
-            throw new Error('Entity is currently on a map!');
-        }
         this.x = x;
         this.y = y;
         this.setEntityFlag(Flags.Entity.L_ON_MAP);

@@ -89,8 +89,9 @@ export class EntityKind {
         if (
             this.requiredTileTags.length &&
             !cell.hasAllTileTags(this.requiredTileTags)
-        )
+        ) {
             return true;
+        }
         return false;
     }
 
@@ -98,8 +99,9 @@ export class EntityKind {
         if (
             this.requiredTileTags.length &&
             !cell.hasAnyTileTag(this.requiredTileTags)
-        )
+        ) {
             return true;
+        }
         return false;
     }
 

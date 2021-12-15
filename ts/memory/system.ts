@@ -10,13 +10,13 @@ export function store(actor: Actor, map: MapType, memory: Memory) {
     if (!actorMemory) {
         cache[actor.id] = actorMemory = {};
     }
-    actorMemory[map.id] = memory;
+    actorMemory[map.properties.id] = memory;
 }
 
 export function get(actor: Actor, map: MapType): Memory {
     let actorMemory = cache[actor.id];
     if (actorMemory) {
-        const memory = actorMemory[map.id];
+        const memory = actorMemory[map.properties.id];
         if (memory) return memory;
     }
     return new Memory(map);

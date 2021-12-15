@@ -2,15 +2,16 @@ import * as GWU from 'gw-utils';
 
 import * as MAP from '../map';
 import { Player } from '../player/player';
-import { Actor } from '../actor/actor';
-import * as Action from '../action';
+import * as Command from '../command';
 
 export interface GameOptions extends GWU.ui.UIOptions {
+    ui?: GWU.ui.UI;
+
     makeMap: MakeMapFn;
     makePlayer: MakePlayerFn;
     startMap: StartMapFn;
 
-    keymap: Record<string, string | Action.ActionFn>;
+    keymap: Record<string, string | Command.CommandFn>;
 }
 
 export type MakeMapFn = (id: number) => MAP.Map;
@@ -19,44 +20,54 @@ export type StartMapFn = (map: MAP.Map, player: Player) => void;
 
 export class Game {
     ui: GWU.ui.UI;
-    layer: GWU.ui.Layer;
-    buffer: GWU.canvas.Buffer;
-    io: GWU.io.Handler;
+    layer!: GWU.ui.Layer;
+    buffer!: GWU.canvas.Buffer;
+    io!: GWU.io.Handler;
 
+    scheduler!: GWU.scheduler.Scheduler;
     player!: Player;
     map!: MAP.Map;
 
-    makeMap: MakeMapFn;
-    makePlayer: MakePlayerFn;
-    startMap: StartMapFn;
+    _makeMap: MakeMapFn;
+    _makePlayer: MakePlayerFn;
+    _startMap: StartMapFn;
 
     running = false;
-    keymap: Record<string, string | Action.ActionFn> = {};
+    keymap: Record<string, string | Command.CommandFn> = {};
 
     constructor(opts: GameOptions) {
-        this.ui = new GWU.ui.UI(opts);
+        this.ui = opts.ui || new GWU.ui.UI(opts);
 
-        this.makeMap = opts.makeMap;
-        this.makePlayer = opts.makePlayer;
-        this.startMap = opts.startMap;
+        this._makeMap = opts.makeMap;
+        this._makePlayer = opts.makePlayer;
+        this._startMap = opts.startMap;
 
         if (opts.keymap) {
             Object.assign(this.keymap, opts.keymap);
         }
-
-        this.layer = new GWU.ui.Layer(this.ui);
-        this.buffer = this.layer.buffer;
-        this.io = this.layer.io;
     }
 
     async start() {
-        this.player = this.makePlayer();
-        this.map = this.makeMap(0);
-        this.startMap(this.map, this.player);
+        this.layer = new GWU.ui.Layer(this.ui);
+        this.buffer = this.layer.buffer;
+        this.io = this.layer.io;
 
         this.running = true;
+        this.scheduler = new GWU.scheduler.Scheduler();
+
+        this.player = this._makePlayer();
+
+        this.map = this._makeMap(0);
+        this._startMap(this.map, this.player);
+
+        this.map.actors.forEach((a) => {
+            this.scheduler.push(a, a.moveSpeed());
+        });
+
+        this.draw();
 
         while (this.running) {
+            await this.animate();
             await this.runTurn();
         }
     }
@@ -74,20 +85,26 @@ export class Game {
     }
 
     async runTurn() {
-        const actors = this.map.actors.slice() as Actor[];
-        for (let actor of actors) {
-            this.draw();
-
-            if (actor === this.player) {
-                await this.playerTurn(this.player);
-            } else {
-                await actor.act();
-            }
-
-            await this.animate();
+        const actor = this.scheduler.pop();
+        if (!actor) {
+            this.finish();
+            return;
         }
 
-        this.map.tick(50); // turn time
+        let nextTime = 0;
+        while (nextTime === 0) {
+            if (actor === this.player) {
+                nextTime = await this.playerTurn(actor);
+            } else if ('act' in actor) {
+                nextTime = await actor.act(this); // dt === 100 -- TODO
+            } else if ('tick' in actor) {
+                nextTime = await actor.tick();
+            }
+            this.draw();
+        }
+        if (nextTime >= 0) {
+            this.scheduler.push(actor, nextTime);
+        }
     }
 
     async animate() {
@@ -113,8 +130,8 @@ export class Game {
         clearInterval(timer);
     }
 
-    async playerTurn(player: Player) {
-        let done = false;
+    async playerTurn(player: Player): Promise<number> {
+        let done = 0;
 
         const timer = setInterval(() => {
             const tick = GWU.io.makeTickEvent(16);
@@ -129,14 +146,12 @@ export class Game {
                     const handler = GWU.io.handlerFor(ev, this.keymap);
                     if (handler) {
                         if (typeof handler === 'string') {
-                            const action = Action.get(handler);
+                            const action = Command.get(handler);
                             if (action) {
-                                await action.call(this, player, ev);
-                                done = true;
+                                done = await action.call(this, player, ev);
                             }
                         } else if (typeof handler === 'function') {
-                            await handler.call(this, player, ev);
-                            done = true;
+                            done = await handler.call(this, player, ev);
                         }
                     }
                 } else if (ev.type === GWU.io.TICK) {
@@ -146,5 +161,7 @@ export class Game {
         }
 
         clearInterval(timer);
+
+        return done;
     }
 }

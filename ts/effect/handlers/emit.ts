@@ -1,5 +1,3 @@
-import * as GWU from 'gw-utils';
-
 import { installHandler, EffectFn, EffectCtx, MapXY } from '../effect';
 
 //////////////////////////////////////////////
@@ -14,7 +12,7 @@ export function makeEmitHandler(config: any): EffectFn {
 }
 
 export function emitEffect(id: string, loc: MapXY, ctx: EffectCtx): boolean {
-    return GWU.events.emit(id, loc.x, loc.y, ctx);
+    return loc.map.events.emit(id, loc, ctx);
 }
 
 installHandler('emit', makeEmitHandler);

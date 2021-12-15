@@ -89,12 +89,16 @@ export interface CellInfoType {
 
     hasItem(): boolean;
     // readonly item: Item | null;
+    canAddItem(item: Item): boolean;
+    canRemoveItem(item: Item): boolean;
 
     // Actors
 
     hasActor(): boolean;
     hasPlayer(): boolean;
     // readonly actor: Actor | null;
+    canAddActor(actor: Actor): boolean;
+    canRemoveActor(actor: Actor): boolean;
 
     hasFx(): boolean;
 
@@ -135,11 +139,11 @@ export interface CellType extends CellInfoType {
 
     clearTiles(tile?: string | number | Tile): void;
 
-    addItem(item: Item, withEffects?: boolean): boolean;
-    removeItem(item: Item, withEffects?: boolean): boolean;
+    // addItem(item: Item, withEffects?: boolean): boolean;
+    // removeItem(item: Item, withEffects?: boolean): boolean;
 
-    addActor(actor: Actor, withEffects?: boolean): boolean;
-    removeActor(actor: Actor, withEffects?: boolean): boolean;
+    // addActor(actor: Actor, withEffects?: boolean): boolean;
+    // removeActor(actor: Actor, withEffects?: boolean): boolean;
 
     // Effects
 
@@ -167,11 +171,26 @@ export type MapTestFn = (
     map: MapType
 ) => boolean;
 
+export interface MapEvents extends GWU.events.Events {
+    // add or remove actor
+    actor: (map: MapType, actor: Actor, isNew: boolean) => void;
+
+    // add or remove item
+    item: (map: MapType, item: Item, isNew: boolean) => void;
+
+    // add or remove fx
+    fx: (map: MapType, fx: Entity, isNew: boolean) => void;
+
+    // change cell tiles
+    cell: (map: MapType, cell: CellType) => void;
+}
+
 export interface MapType extends GWU.fov.FovSite, GWU.tween.Animator {
     readonly width: number;
     readonly height: number;
     readonly rng: GWU.rng.Random;
-    readonly id: string;
+    readonly properties: Record<string, any>;
+    readonly events: GWU.events.EventEmitter<MapEvents>;
 
     needsRedraw: boolean;
 
@@ -180,7 +199,6 @@ export interface MapType extends GWU.fov.FovSite, GWU.tween.Animator {
 
     light: GWU.light.LightSystemType;
     // fov: GWU.fov.FovSystemType;
-    properties: Record<string, any>;
 
     hasXY(x: number, y: number): boolean;
     isBoundaryXY(x: number, y: number): boolean;
@@ -195,11 +213,9 @@ export interface MapType extends GWU.fov.FovSite, GWU.tween.Animator {
     // itemAt(x: number, y: number): Item | null;
     eachItem(cb: EachItemCb): void;
 
-    addItem(x: number, y: number, item: Item, fireEffects: boolean): boolean;
-    addItem(x: number, y: number, item: Item): boolean;
-
-    removeItem(item: Item, fireEffects: boolean): boolean;
-    removeItem(item: Item): boolean;
+    addItem(x: number, y: number, item: Item, fireEffects?: boolean): boolean;
+    removeItem(item: Item, fireEffects?: boolean): boolean;
+    moveItem(item: Item, x: number, y: number, fireEffects?: boolean): boolean;
 
     // moveItem(item: Item, dir: GWU.xy.Loc | number): boolean;
     itemAt(x: number, y: number): Item | null;
@@ -210,11 +226,19 @@ export interface MapType extends GWU.fov.FovSite, GWU.tween.Animator {
     // actorAt(x: number, y: number): Actor | null;
     eachActor(cb: EachActorCb): void;
 
-    addActor(x: number, y: number, actor: Actor, fireEffects: boolean): boolean;
-    addActor(x: number, y: number, actor: Actor): boolean;
-
-    removeActor(actor: Actor, fireEffects: boolean): boolean;
-    removeActor(actor: Actor): boolean;
+    addActor(
+        x: number,
+        y: number,
+        actor: Actor,
+        fireEffects?: boolean
+    ): boolean;
+    removeActor(actor: Actor, fireEffects?: boolean): boolean;
+    moveActor(
+        actor: Actor,
+        x: number,
+        y: number,
+        fireEffects?: boolean
+    ): boolean;
 
     // moveActor(actor: Actor, dir: GWU.xy.Loc | number): boolean;
     actorAt(x: number, y: number): Actor | null;
@@ -259,9 +283,6 @@ export interface MapType extends GWU.fov.FovSite, GWU.tween.Animator {
         ctx?: Partial<EffectCtx>
     ): boolean;
     fireAll(event: string, ctx?: Partial<EffectCtx>): boolean;
-
-    queueEvent(x: number, y: number, event: string, ctx: EffectCtx): void;
-    fireQueuedEvents(): void;
 
     activateMachine(
         machineId: number,
