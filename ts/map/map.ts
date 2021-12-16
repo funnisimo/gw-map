@@ -58,7 +58,7 @@ export class Map
     constructor(width: number, height: number, opts: Partial<MapOptions> = {}) {
         this.flags = { map: 0 };
         this.layers = [];
-        this.properties = { seed: 0 };
+        this.properties = { seed: 0, machineCount: 0 };
 
         if (opts.id) {
             this.properties.id = opts.id;
@@ -603,6 +603,10 @@ export class Map
 
     hasEntityFlag(x: number, y: number, flag: number) {
         return this.cell(x, y).hasEntityFlag(flag);
+    }
+
+    hasTileFlag(x: number, y: number, flag: number) {
+        return this.cell(x, y).hasTileFlag(flag);
     }
 
     clear() {

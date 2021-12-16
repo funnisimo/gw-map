@@ -81,9 +81,22 @@ GWM.actor.install('PEDRO', {
 
 function addRandomBox(map, hasAnanas) {
     const loc = GWU.random.matchingLoc(80, 40, (x, y) => {
-        if (map.hasEntityFlag(x, y, GWM.flags.Entity.L_BLOCKS_MOVE))
+        if (map.hasEntityFlag(x, y, GWM.flags.Entity.L_BLOCKS_MOVE)) {
             return false;
-        return GWU.xy.distanceBetween(x, y, 40, 20) > 15;
+        }
+        if (map.hasTileFlag(x, y, GWM.flags.Tile.T_ANY_LIQUID)) {
+            return false;
+        }
+        if (GWU.xy.distanceBetween(x, y, 40, 20) < 15) return false;
+
+        let ok = true;
+        map.eachItem((i) => {
+            if (GWU.xy.distanceBetween(x, y, i.x, i.y) < 10) {
+                ok = false;
+            }
+        });
+
+        return ok;
     });
     const item = GWM.item.make(hasAnanas ? 'FULL_BOX' : 'EMPTY_BOX');
     map.addItemNear(loc[0], loc[1], item);
@@ -97,8 +110,12 @@ async function start() {
         div: 'game',
 
         makeMap() {
+            const seed = GWU.random.number();
+            console.log('seed = ', seed);
+            // GWU.random.seed(seed);
+
             const map = GWM.map.make(80, 40, 'FLOOR', 'WALL');
-            GWD.digMap(map, { stairs: false });
+            GWD.digMap(map, { stairs: false, seed });
 
             // Add boxes randomly
             for (let c = 0; c < 8; ++c) {
@@ -127,7 +144,7 @@ async function start() {
             dir: 'moveDir',
             ' ': 'pickup',
             Q() {
-                this.finish();
+                GAME.finish(false);
             },
         },
     });

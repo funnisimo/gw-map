@@ -135,7 +135,8 @@ Tile.install('SHALLOW', {
     priority: 20,
     name: 'shallow water',
     article: 'the',
-    depth: 'SURFACE', // 'LIQUID'?
+    flags: 'T_SHALLOW_WATER',
+    // depth: 'LIQUID', // 'SURFACE'?
     flavor: 'some shallow water',
 });
 

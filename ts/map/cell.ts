@@ -655,6 +655,9 @@ export class Cell implements CellType {
             const item = this.map.itemAt(this.x, this.y);
             if (item && item.sprite.ch) return item.sprite.ch;
         }
+        if (this.hasTileFlag(Flags.Tile.T_BRIDGE)) {
+            return '=';
+        }
         return this.highestPriorityTile().sprite.ch || ' ';
     }
 

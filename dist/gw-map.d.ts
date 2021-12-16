@@ -58,6 +58,7 @@ declare enum Tile$1 {
     T_AUTO_DESCENT,
     T_LAVA,
     T_DEEP_WATER,
+    T_SHALLOW_WATER,
     T_IS_FLAMMABLE,
     T_SPONTANEOUSLY_IGNITES,
     T_IS_FIRE,
@@ -83,7 +84,8 @@ declare enum Tile$1 {
     T_DIVIDES_LEVEL,
     T_MOVES_ITEMS,
     T_CAN_BE_BRIDGED,
-    T_IS_DEEP_LIQUID
+    T_IS_DEEP_LIQUID,
+    T_ANY_LIQUID
 }
 
 declare enum TileMech {
@@ -1172,6 +1174,7 @@ declare class Map implements GWU.light.LightSystemSite, MapType, GWU.tween.Anima
     setCellFlag(x: number, y: number, flag: number): void;
     clearCellFlag(x: number, y: number, flag: number): void;
     hasEntityFlag(x: number, y: number, flag: number): boolean;
+    hasTileFlag(x: number, y: number, flag: number): boolean;
     clear(): void;
     clearCell(x: number, y: number, tile?: number | string | Tile): void;
     fill(tile: string | number | Tile, boundary?: string | number | Tile): void;

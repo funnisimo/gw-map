@@ -138,7 +138,7 @@ export class Game {
             this.layer.io.enqueue(tick);
         }, 16);
 
-        while (!done) {
+        while (!done && this.running) {
             const ev = await this.layer.io.nextEvent(-1);
 
             if (ev) {

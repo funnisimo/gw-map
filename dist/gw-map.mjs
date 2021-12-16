@@ -81,6 +81,7 @@ var Tile$1;
     Tile[Tile["T_AUTO_DESCENT"] = Fl$5(1)] = "T_AUTO_DESCENT";
     Tile[Tile["T_LAVA"] = Fl$5(2)] = "T_LAVA";
     Tile[Tile["T_DEEP_WATER"] = Fl$5(3)] = "T_DEEP_WATER";
+    Tile[Tile["T_SHALLOW_WATER"] = Fl$5(4)] = "T_SHALLOW_WATER";
     Tile[Tile["T_IS_FLAMMABLE"] = Fl$5(5)] = "T_IS_FLAMMABLE";
     Tile[Tile["T_SPONTANEOUSLY_IGNITES"] = Fl$5(6)] = "T_SPONTANEOUSLY_IGNITES";
     Tile[Tile["T_IS_FIRE"] = Fl$5(7)] = "T_IS_FIRE";
@@ -134,6 +135,7 @@ var Tile$1;
     //   T_CAUSES_PARALYSIS |
     //   T_CAUSES_NAUSEA,
     Tile[Tile["T_IS_DEEP_LIQUID"] = Tile.T_LAVA | Tile.T_AUTO_DESCENT | Tile.T_DEEP_WATER] = "T_IS_DEEP_LIQUID";
+    Tile[Tile["T_ANY_LIQUID"] = Tile.T_IS_DEEP_LIQUID | Tile.T_SHALLOW_WATER] = "T_ANY_LIQUID";
 })(Tile$1 || (Tile$1 = {}));
 
 const Fl$4 = GWU.flag.fl;
@@ -2956,6 +2958,9 @@ class Cell {
             if (item && item.sprite.ch)
                 return item.sprite.ch;
         }
+        if (this.hasTileFlag(Tile$1.T_BRIDGE)) {
+            return '=';
+        }
         return this.highestPriorityTile().sprite.ch || ' ';
     }
     drawStatus(buffer, bounds) {
@@ -3406,7 +3411,7 @@ class Map {
         this.events = new GWU.events.EventEmitter();
         this.flags = { map: 0 };
         this.layers = [];
-        this.properties = { seed: 0 };
+        this.properties = { seed: 0, machineCount: 0 };
         if (opts.id) {
             this.properties.id = opts.id;
         }
@@ -3879,6 +3884,9 @@ class Map {
     }
     hasEntityFlag(x, y, flag) {
         return this.cell(x, y).hasEntityFlag(flag);
+    }
+    hasTileFlag(x, y, flag) {
+        return this.cell(x, y).hasTileFlag(flag);
     }
     clear() {
         this.light.glowLightChanged = true;
@@ -6980,7 +6988,7 @@ class Game {
             const tick = GWU.io.makeTickEvent(16);
             this.layer.io.enqueue(tick);
         }, 16);
-        while (!done) {
+        while (!done && this.running) {
             const ev = await this.layer.io.nextEvent(-1);
             if (ev) {
                 if (ev.type === GWU.io.KEYPRESS) {
@@ -7134,7 +7142,8 @@ install$6('SHALLOW', {
     priority: 20,
     name: 'shallow water',
     article: 'the',
-    depth: 'SURFACE',
+    flags: 'T_SHALLOW_WATER',
+    // depth: 'LIQUID', // 'SURFACE'?
     flavor: 'some shallow water',
 });
 install$6('BRIDGE', {

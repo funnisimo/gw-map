@@ -10,6 +10,7 @@ export enum Tile {
     T_AUTO_DESCENT = Fl(1), // automatically drops creatures down a depth level and does some damage (2d6)
     T_LAVA = Fl(2), // kills any non-levitating non-fire-immune creature instantly
     T_DEEP_WATER = Fl(3), // steals items 50% of the time and moves them around randomly
+    T_SHALLOW_WATER = Fl(4),
 
     T_IS_FLAMMABLE = Fl(5), // terrain can catch fire
     T_SPONTANEOUSLY_IGNITES = Fl(6), // monsters avoid unless chasing player or immune to fire
@@ -73,4 +74,5 @@ export enum Tile {
     //   T_CAUSES_PARALYSIS |
     //   T_CAUSES_NAUSEA,
     T_IS_DEEP_LIQUID = T_LAVA | T_AUTO_DESCENT | T_DEEP_WATER,
+    T_ANY_LIQUID = T_IS_DEEP_LIQUID | T_SHALLOW_WATER,
 }
