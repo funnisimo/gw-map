@@ -141,7 +141,7 @@ Tile.install('SHALLOW', {
 });
 
 Tile.install('BRIDGE', {
-    ch: '=',
+    ch: '\u2630', // trigram/hamburger
     fg: [100, 40, 40],
     priority: 40,
     depth: 'SURFACE',
