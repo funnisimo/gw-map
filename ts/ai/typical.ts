@@ -4,6 +4,7 @@ import { getAction } from '../actor/action';
 import { Game } from '../game';
 import { Item } from '../item';
 import * as AI from './ai';
+import { wander } from './wander';
 
 export class AICtx {
     game: Game;
@@ -55,71 +56,103 @@ export async function typical(game: Game, actor: Actor): Promise<number> {
     if (!map) return -1; // actor not on map ?!?!
 
     const target = game.player;
-    if (!target.canSee(actor.x, actor.y)) {
-        // TODO - Use scent, menory, other teammates info, ...
-        // TODO - Wander
-        return standStill(game, actor);
-    }
+    const tryAttack = actor.canSee(target) && actor.willAttack(target);
 
-    const damagePct = 100 - actor.stats.getPct('health');
-    const morale = actor.stats.get('morale');
+    if (tryAttack) {
+        const damagePct = 100 - actor.stats.getPct('health');
+        const morale = actor.stats.get('morale');
 
-    const chargeChance = 100;
-    const retreatChance = 0;
+        const chargeChance = 100;
+        const retreatChance = 0;
 
-    const ctx = new AICtx(game, actor, target).start();
-    let result = 0;
+        const ctx = new AICtx(game, actor, target).start();
+        let result = 0;
 
-    if (damagePct > morale) {
-        if (canRunAwayFrom(game, actor, target, ctx)) {
-            result = await runAwayFrom(game, actor, target, ctx);
-        } else if (canAttack(game, actor, target, ctx)) {
-            result = await attack(game, actor, target, ctx);
+        if (damagePct > morale) {
+            if (canRunAwayFrom(game, actor, target, ctx)) {
+                result = await runAwayFrom(game, actor, target, ctx);
+            } else if (canAttack(game, actor, target, ctx)) {
+                result = await attack(game, actor, target, ctx);
+            }
+            return ctx.done(result);
         }
-        return ctx.done(result);
-    } else if (
-        tooFarFrom(game, actor, target, ctx) &&
-        canAttack(game, actor, target, ctx) &&
-        canMoveToward(game, actor, target, ctx)
-    ) {
-        if (GWU.random.chance(chargeChance)) {
+
+        if (
+            tooFarFrom(game, actor, target, ctx) &&
+            canAttack(game, actor, target, ctx) &&
+            canMoveToward(game, actor, target, ctx)
+        ) {
+            if (GWU.random.chance(chargeChance)) {
+                result = await moveToward(game, actor, target, ctx);
+            } else {
+                result = await attack(game, actor, target, ctx);
+            }
+            return ctx.done(result);
+        }
+
+        if (
+            tooCloseTo(game, actor, target, ctx) &&
+            canAttack(game, actor, target, ctx) &&
+            canMoveAwayFrom(game, actor, target, ctx)
+        ) {
+            if (GWU.random.chance(retreatChance)) {
+                result = await moveAwayFrom(game, actor, target, ctx);
+            } else {
+                result = await attack(game, actor, target, ctx);
+            }
+            return ctx.done(result);
+        }
+
+        if (canAttack(game, actor, target, ctx)) {
+            result = await attack(game, actor, target, ctx);
+            return ctx.done(result);
+        }
+
+        if (
+            tooFarFrom(game, actor, target, ctx) &&
+            canMoveToward(game, actor, target, ctx)
+        ) {
             result = await moveToward(game, actor, target, ctx);
-        } else {
-            result = await attack(game, actor, target, ctx);
+            return ctx.done(result);
         }
-        return ctx.done(result);
-    } else if (
-        tooCloseTo(game, actor, target, ctx) &&
-        canAttack(game, actor, target, ctx) &&
-        canMoveAwayFrom(game, actor, target, ctx)
-    ) {
-        if (GWU.random.chance(retreatChance)) {
+
+        if (
+            tooCloseTo(game, actor, target, ctx) &&
+            canMoveAwayFrom(game, actor, target, ctx)
+        ) {
             result = await moveAwayFrom(game, actor, target, ctx);
-        } else {
-            result = await attack(game, actor, target, ctx);
+            return ctx.done(result);
         }
-        return ctx.done(result);
-    } else if (canAttack(game, actor, target, ctx)) {
-        result = await attack(game, actor, target, ctx);
-        return ctx.done(result);
-    } else if (
-        tooFarFrom(game, actor, target, ctx) &&
-        canMoveToward(game, actor, target, ctx)
-    ) {
-        result = await moveToward(game, actor, target, ctx);
-        return ctx.done(result);
-    } else if (
-        tooCloseTo(game, actor, target, ctx) &&
-        canMoveAwayFrom(game, actor, target, ctx)
-    ) {
-        result = await moveAwayFrom(game, actor, target, ctx);
-        return ctx.done(result);
     }
 
-    // Wander?
-    // Scent?
-    result = await standStill(game, actor, ctx);
-    return ctx.done(result);
+    // TODO - Use scent, menory, other teammates info, ...
+
+    const wanderOpt = GWU.object.firstOpt(
+        'wander',
+        actor.ai,
+        actor.kind.ai,
+        false
+    );
+
+    if (wanderOpt) {
+        if (
+            actor.goalMap || // we have a current goal
+            typeof wanderOpt !== 'number' || // wander: true
+            GWU.random.chance(wanderOpt) // chance
+        ) {
+            const result = wander(game, actor);
+            if (result) return result;
+        } else {
+            const idle = getAction('idle');
+            if (idle) {
+                return idle(game, actor);
+            }
+        }
+    }
+
+    const standStill = getAction('standStill');
+    if (!standStill) throw new Error('No standStill action found for actors!');
+    return standStill(game, actor);
 }
 
 AI.install('typical', typical);
@@ -183,7 +216,10 @@ export async function moveToward(
 
     let result = 0;
     if (!step || (step[0] == 0 && step[1] == 0)) {
-        result = await standStill(game, actor, ctx);
+        const standStill = getAction('standStill');
+        if (!standStill)
+            throw new Error('No standStill action found for actors!');
+        result = await standStill(game, actor);
         return ctx.done(result);
     }
 
@@ -262,46 +298,45 @@ export async function runAwayFrom(
 
 export function canAttack(
     _game: Game,
-    _actor: Actor,
-    _target: Actor,
+    actor: Actor,
+    target: Actor,
     _ctx?: AICtx
 ): boolean {
     // has attack?
-    // attach affects player?
-    return false;
+    // attack affects player?
+    // cooldown?
+    return GWU.xy.distanceFromTo(actor, target) <= 1;
 }
 
 export async function attack(
-    _game: Game,
+    game: Game,
     actor: Actor,
-    _target: Actor,
+    target: Actor,
     _ctx?: AICtx
 ): Promise<number> {
-    return actor.moveSpeed();
+    console.log('attack!', actor.id, target.id);
+
+    let attack = actor.getAction('attack');
+    if (!attack) return 0;
+
+    return attack(game, actor);
 }
 
 export function tooFarFrom(
     _game: Game,
-    _actor: Actor,
-    _target: Actor,
+    actor: Actor,
+    target: Actor,
     _ctx?: AICtx
 ): boolean {
-    return false;
+    // diagonal?
+    return GWU.xy.distanceFromTo(actor, target) > 1;
 }
 
 export function tooCloseTo(
     _game: Game,
-    _actor: Actor,
-    _target: Actor,
+    actor: Actor,
+    target: Actor,
     _ctx?: AICtx
 ): boolean {
-    return false;
-}
-
-export async function standStill(
-    _game: Game,
-    actor: Actor,
-    _ctx?: AICtx
-): Promise<number> {
-    return actor.moveSpeed();
+    return GWU.xy.distanceFromTo(actor, target) < 1;
 }

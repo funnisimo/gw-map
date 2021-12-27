@@ -3,27 +3,21 @@ import { Player } from './player';
 
 import * as Actor from '../actor';
 
-export function make(id: string | PlayerKind, makeOptions?: any): Player {
-    const kind = Actor.get(id) as PlayerKind;
-    if (!kind) throw new Error('Failed to find item kind - ' + id);
-    return kind.make(makeOptions);
-}
-
-export function from(
-    info: string | PlayerKind | KindOptions,
+export function make(
+    id: string | PlayerKind | KindOptions,
     makeOptions?: any
 ): Player {
     let kind: PlayerKind;
-    if (typeof info === 'string') {
+    if (typeof id === 'string') {
         // @ts-ignore
-        kind = Actor.get(info);
-        if (!kind) throw new Error('Failed to find item kind - ' + info);
+        kind = Actor.get(id);
+        if (!kind) throw new Error('Failed to find item kind - ' + id);
         if (!(kind instanceof PlayerKind))
             throw new Error('Not a player kind.');
-    } else if (info instanceof PlayerKind) {
-        kind = info;
+    } else if (id instanceof PlayerKind) {
+        kind = id;
     } else {
-        kind = makeKind(info);
+        kind = makeKind(id);
     }
     return kind.make(makeOptions);
 }

@@ -90,11 +90,12 @@ export class Stats {
     }
 
     get(name: string): number {
-        return this._value[name];
+        return this._value[name] || 0;
     }
 
     getPct(name: string): number {
-        return Math.round((100 * this._value[name]) / this._max[name]);
+        const max = this.max(name);
+        return max ? Math.round((100 * this.get(name)) / max) : 0;
     }
 
     max(name: string): number {

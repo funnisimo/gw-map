@@ -1,6 +1,6 @@
 import * as GWU from 'gw-utils';
 
-import { install } from './command';
+import { installCommand } from './command';
 import * as Actor from '../actor';
 import { Game } from '../game/game';
 
@@ -13,4 +13,4 @@ export async function moveDir(this: Game, actor: Actor.Actor, e: GWU.io.Event) {
     return Actor.actions.moveDir(this, actor, e);
 }
 
-install('moveDir', moveDir);
+installCommand('moveDir', moveDir);

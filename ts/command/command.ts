@@ -13,10 +13,10 @@ export type CommandBase = boolean | CommandFn;
 
 export const actions: Record<string, CommandFn> = {};
 
-export function install(name: string, fn: CommandFn) {
+export function installCommand(name: string, fn: CommandFn) {
     actions[name] = fn;
 }
 
-export function get(name: string): CommandFn | undefined {
+export function getCommand(name: string): CommandFn | undefined {
     return actions[name];
 }

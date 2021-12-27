@@ -23,18 +23,21 @@ export async function moveDir(
     let result = 0;
 
     if (newCell.blocksMove()) {
+        if (ctx.try) return 0;
         FX.hit(map, newCell, 'hit', 100);
-        return actor.moveSpeed();
+        return actor.endTurn();
     }
 
     // can we leave?
     if (!currentCell.canRemoveActor(actor)) {
+        if (ctx.try) return 0;
         // canActorLeave must add appropriate message
-        return actor.moveSpeed();
+        return actor.endTurn();
     }
 
     // is there an actor there?
     if (newCell.hasActor() || newCell.hasItem()) {
+        if (ctx.try) return 0;
         const ctx2 = { actor: newCell.actor, item: newCell.item };
         result = await bump(game, actor, ctx2);
         if (result) return result;
@@ -42,7 +45,8 @@ export async function moveDir(
 
     // can we enter?
     if (!newCell.canAddActor(actor)) {
-        return actor.moveSpeed();
+        if (ctx.try) return 0;
+        return actor.endTurn();
     }
 
     if (!map.moveActor(actor, newX, newY)) {
@@ -50,7 +54,7 @@ export async function moveDir(
         return result;
     }
 
-    result = actor.moveSpeed();
+    result = actor.endTurn();
     return result;
 }
 

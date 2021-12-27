@@ -1,7 +1,7 @@
 import { Actor } from '..';
 // import * as Item from '../../item';
 import { Game } from '../../game';
-import { ActorActionCtx, getAction, installAction } from '../action';
+import { ActorActionCtx, installAction } from '../action';
 
 // BUMP
 //
@@ -32,30 +32,13 @@ export async function bump(
                                 action
                         );
                     }
-                    if (selfAction === true) {
-                        const baseAction = getAction(selfName);
-                        if (!baseAction) {
-                            throw new Error(
-                                'Cannot have bump self action for unknown action: ' +
-                                    selfName
-                            );
-                        }
-                        selfAction = baseAction;
-                    }
 
                     const ctx2 = Object.assign({}, ctx, { actor });
                     const result = await selfAction(game, other, ctx2);
                     if (result) return result;
                 } else {
                     const config = actor.getAction(action);
-                    if (config === true) {
-                        const baseAction = getAction(action);
-                        if (!baseAction)
-                            throw new Error(
-                                'Cannot find action for bump: ' + action
-                            );
-                        action = baseAction;
-                    } else if (config === false) {
+                    if (config === false) {
                         throw new Error(
                             'Cannot configure actor with bump action they cannot do: ' +
                                 action

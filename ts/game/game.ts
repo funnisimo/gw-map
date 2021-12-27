@@ -31,6 +31,7 @@ export class Game {
     _makeMap: MakeMapFn;
     _makePlayer: MakePlayerFn;
     _startMap: StartMapFn;
+    result: any = undefined;
 
     running = false;
     keymap: Record<string, string | Command.CommandFn> = {};
@@ -70,6 +71,8 @@ export class Game {
             await this.animate();
             await this.runTurn();
         }
+
+        return this.result;
     }
 
     draw() {
@@ -79,9 +82,10 @@ export class Game {
         }
     }
 
-    finish() {
+    finish(result?: any) {
         this.running = false;
         this.layer.finish();
+        this.result = result;
     }
 
     async runTurn() {
@@ -146,7 +150,7 @@ export class Game {
                     const handler = GWU.io.handlerFor(ev, this.keymap);
                     if (handler) {
                         if (typeof handler === 'string') {
-                            const action = Command.get(handler);
+                            const action = Command.getCommand(handler);
                             if (action) {
                                 done = await action.call(this, player, ev);
                             }

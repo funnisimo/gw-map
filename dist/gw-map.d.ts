@@ -45,7 +45,7 @@ declare enum Actor$1 {
     IS_PLAYER,
     HAS_MEMORY,
     USES_FOV,
-    STALE_COST_MAP,
+    STABLE_COST_MAP,
     DEFAULT = 0
 }
 
@@ -535,26 +535,27 @@ declare class Player extends Actor {
 declare type CommandFn = (this: Game, actor: Actor, ev: GWU.io.Event) => Promise<number>;
 declare type CommandBase = boolean | CommandFn;
 declare const actions: Record<string, CommandFn>;
-declare function install$7(name: string, fn: CommandFn): void;
-declare function get$5(name: string): CommandFn | undefined;
+declare function installCommand(name: string, fn: CommandFn): void;
+declare function getCommand(name: string): CommandFn | undefined;
 
 declare function moveDir$1(this: Game, actor: Actor, e: GWU.io.Event): Promise<number>;
 
-declare function pickup(this: Game, actor: Actor, _ev: GWU.io.Event): Promise<number>;
+declare function pickup$1(this: Game, actor: Actor, _ev: GWU.io.Event): Promise<number>;
 
 type index_d$e_CommandFn = CommandFn;
 type index_d$e_CommandBase = CommandBase;
 declare const index_d$e_actions: typeof actions;
-declare const index_d$e_pickup: typeof pickup;
+declare const index_d$e_installCommand: typeof installCommand;
+declare const index_d$e_getCommand: typeof getCommand;
 declare namespace index_d$e {
   export {
     index_d$e_CommandFn as CommandFn,
     index_d$e_CommandBase as CommandBase,
     index_d$e_actions as actions,
-    install$7 as install,
-    get$5 as get,
+    index_d$e_installCommand as installCommand,
+    index_d$e_getCommand as getCommand,
     moveDir$1 as moveDir,
-    index_d$e_pickup as pickup,
+    pickup$1 as pickup,
   };
 }
 
@@ -579,12 +580,13 @@ declare class Game {
     _makeMap: MakeMapFn;
     _makePlayer: MakePlayerFn;
     _startMap: StartMapFn;
+    result: any;
     running: boolean;
     keymap: Record<string, string | CommandFn>;
     constructor(opts: GameOptions);
-    start(): Promise<void>;
+    start(): Promise<any>;
     draw(): void;
-    finish(): void;
+    finish(result?: any): void;
     runTurn(): Promise<void>;
     animate(): Promise<void>;
     playerTurn(player: Player): Promise<number>;
@@ -623,9 +625,8 @@ declare class ItemKind extends EntityKind {
     init(item: Item, options?: Partial<MakeOptions$2>): void;
 }
 
-declare function make$6(id: string | ItemKind, makeOptions?: any): Item;
+declare function make$7(info: string | ItemKind | KindOptions$2, makeOptions?: any): Item;
 declare function makeRandom$1(opts: Partial<MatchOptions$2> | string, makeOptions?: any): Item;
-declare function from$5(info: string | ItemKind | KindOptions$2, makeOptions?: any): Item;
 declare const kinds$1: Record<string, ItemKind>;
 declare function install$6(id: string, kind: ItemKind | KindOptions$2): ItemKind;
 declare function get$4(id: string | ItemKind): ItemKind | null;
@@ -649,9 +650,8 @@ declare namespace index_d$c {
     MakeOptions$2 as MakeOptions,
     index_d$c_ItemKind as ItemKind,
     index_d$c_Item as Item,
-    make$6 as make,
+    make$7 as make,
     makeRandom$1 as makeRandom,
-    from$5 as from,
     kinds$1 as kinds,
     install$6 as install,
     get$4 as get,
@@ -666,9 +666,12 @@ interface ActorActionCtx {
     item?: Item | null;
     dir?: GWU.xy.Loc | null;
     loc?: GWU.xy.Loc | null;
+    try?: boolean;
+    quiet?: boolean;
 }
 declare type ActorActionFn = (game: Game, actor: Actor, ctx?: ActorActionCtx) => Promise<number>;
 declare type ActorActionBase = boolean | ActorActionFn;
+declare type ActorActionResult = false | ActorActionFn;
 declare const installedActions: Record<string, ActorActionFn>;
 declare function installAction(name: string, fn: ActorActionFn): void;
 declare function getAction(name: string): ActorActionFn | null;
@@ -723,8 +726,8 @@ interface EffectConfig {
     [key: string]: any;
 }
 declare type EffectBase = string | EffectFn | (string | EffectFn)[] | EffectConfig | Record<string, any>;
-declare function make$5(opts: EffectBase): Effect;
-declare function from$4(opts: EffectBase): Effect;
+declare function make$6(opts: EffectBase): Effect;
+declare function from$2(opts: EffectBase): Effect;
 declare const installedEffects: Record<string, Effect>;
 declare function install$5(id: string, config: EffectBase): Effect;
 declare function installAll$2(effects: Record<string, EffectBase>): void;
@@ -803,7 +806,7 @@ interface TileOptions extends GWU.sprite.SpriteConfig {
     light: GWU.light.LightBase | null;
     tags: string | string[];
 }
-declare function make$4(options: Partial<TileOptions>): Tile;
+declare function make$5(options: Partial<TileOptions>): Tile;
 declare const tiles: Record<string, Tile>;
 declare const all: Tile[];
 declare function get$3(id: string | number | Tile): Tile;
@@ -832,7 +835,7 @@ declare namespace index_d$b {
     index_d$b_TileConfig as TileConfig,
     index_d$b_Tile as Tile,
     index_d$b_TileOptions as TileOptions,
-    make$4 as make,
+    make$5 as make,
     index_d$b_tiles as tiles,
     index_d$b_all as all,
     get$3 as get,
@@ -1045,8 +1048,8 @@ declare namespace index_d$9 {
     index_d$9_Effect as Effect,
     index_d$9_EffectConfig as EffectConfig,
     index_d$9_EffectBase as EffectBase,
-    make$5 as make,
-    from$4 as from,
+    make$6 as make,
+    from$2 as from,
     index_d$9_installedEffects as installedEffects,
     install$5 as install,
     installAll$2 as installAll,
@@ -1200,10 +1203,10 @@ declare class Map implements GWU.light.LightSystemSite, MapType, GWU.tween.Anima
     addAnimation(a: GWU.tween.Animation): void;
     removeAnimation(a: GWU.tween.Animation): void;
 }
-declare function make$3(w: number, h: number, floor?: string, boundary?: string): Map;
-declare function make$3(w: number, h: number, floor: string): Map;
-declare function make$3(w: number, h: number, opts: Partial<MapOptions>): Map;
-declare function from$3(prefab: string | string[] | GWU.grid.NumGrid, charToTile: Record<string, string | null>, opts?: Partial<MapOptions>): Map;
+declare function make$4(w: number, h: number, floor?: string, boundary?: string): Map;
+declare function make$4(w: number, h: number, floor: string): Map;
+declare function make$4(w: number, h: number, opts: Partial<MapOptions>): Map;
+declare function from$1(prefab: string | string[] | GWU.grid.NumGrid, charToTile: Record<string, string | null>, opts?: Partial<MapOptions>): Map;
 
 interface ActorInfo {
     actor: Actor;
@@ -1255,9 +1258,18 @@ declare namespace index_d$8 {
   };
 }
 
+interface AIOptions {
+    fn?: ActorAiFn | string;
+    [field: string]: any;
+}
+interface AIConfig {
+    fn: ActorAiFn;
+    [field: string]: any;
+}
 declare type ActorAiFn = (game: Game, actor: Actor) => Promise<number>;
 declare const ais: Record<string, ActorAiFn>;
 declare function install$3(name: string, fn: ActorAiFn): void;
+declare function make$3(opts: AIOptions | string | ActorAiFn): AIConfig;
 
 interface PickupOptions {
     admin: boolean;
@@ -1268,7 +1280,7 @@ interface DropOptions {
 declare class Actor extends Entity {
     flags: ActorFlags;
     kind: ActorKind;
-    ai: ActorAiFn | null;
+    ai: AIConfig | null;
     leader: Actor | null;
     items: Item | null;
     fov: GWU.fov.FovSystem | null;
@@ -1278,6 +1290,7 @@ declare class Actor extends Entity {
     status: Status;
     data: Record<string, number>;
     _costMap: GWU.grid.NumGrid | null;
+    _goalMap: GWU.grid.NumGrid | null;
     next: Actor | null;
     constructor(kind: ActorKind);
     copy(other: Actor): void;
@@ -1289,7 +1302,7 @@ declare class Actor extends Entity {
     clearActorFlag(flag: number): void;
     isPlayer(): boolean;
     isDead(): boolean;
-    getAction(name: string): ActorActionBase;
+    getAction(name: string): ActorActionResult;
     getBumpActions(): (ActorActionFn | string)[];
     canSee(x: number, y: number): boolean;
     canSee(entity: Entity): boolean;
@@ -1302,6 +1315,7 @@ declare class Actor extends Entity {
     startTurn(): void;
     endTurn(pct?: number): number;
     willAttack(_other: Actor): boolean;
+    canPass(_other: Actor): boolean;
     avoidsItem(_item: Item): boolean;
     canAddItem(_item: Item): boolean;
     addItem(_item: Item): void;
@@ -1310,6 +1324,9 @@ declare class Actor extends Entity {
     addToMap(map: MapType, x: number, y: number): boolean;
     removeFromMap(): void;
     costMap(): GWU.grid.NumGrid;
+    get goalMap(): GWU.grid.NumGrid | null;
+    setGoal(x: number, y: number): GWU.grid.NumGrid;
+    clearGoal(): void;
 }
 
 declare type ItemActionFn = (game: Game, actor: Actor, item: Item) => Promise<number>;
@@ -1504,8 +1521,8 @@ declare namespace index_d$7 {
     index_d$7_MapOptions as MapOptions,
     index_d$7_LayerType as LayerType,
     index_d$7_Map as Map,
-    make$3 as make,
-    from$3 as from,
+    make$4 as make,
+    from$1 as from,
     index_d$7_analyze as analyze,
     index_d$7_updateChokepoints as updateChokepoints,
     index_d$7_floodFillCount as floodFillCount,
@@ -1520,13 +1537,80 @@ declare namespace index_d$7 {
   };
 }
 
+declare function fillSafetyMap(safetyMap: GWU.grid.NumGrid, actor: Actor, target: Actor): void;
+
+declare class AICtx {
+    game: Game;
+    actor: Actor;
+    target: Actor | null;
+    item: Item | null;
+    distanceMap: GWU.grid.NumGrid;
+    count: number;
+    constructor(game: Game, actor: Actor, target?: Actor);
+    start(): this;
+    done<T>(result: T): T;
+}
+declare function typical(game: Game, actor: Actor): Promise<number>;
+declare function canMoveToward(game: Game, actor: Actor, target: Actor, ctx?: AICtx): boolean;
+declare function moveToward(game: Game, actor: Actor, target: Actor, ctx?: AICtx): Promise<number>;
+declare function canMoveAwayFrom(game: Game, actor: Actor, target: Actor, ctx?: AICtx): boolean;
+declare function moveAwayFrom(_game: Game, actor: Actor, _target: Actor, _ctx?: AICtx): Promise<number>;
+declare function canRunAwayFrom(_game: Game, _actor: Actor, _target: Actor, _ctx?: AICtx): boolean;
+declare function runAwayFrom(_game: Game, actor: Actor, _target: Actor, _ctx?: AICtx): Promise<number>;
+declare function canAttack(_game: Game, actor: Actor, target: Actor, _ctx?: AICtx): boolean;
+declare function attack(game: Game, actor: Actor, target: Actor, _ctx?: AICtx): Promise<number>;
+declare function tooFarFrom(_game: Game, actor: Actor, target: Actor, _ctx?: AICtx): boolean;
+declare function tooCloseTo(_game: Game, actor: Actor, target: Actor, _ctx?: AICtx): boolean;
+
+declare const index_d$6_fillSafetyMap: typeof fillSafetyMap;
+type index_d$6_AIOptions = AIOptions;
+type index_d$6_AIConfig = AIConfig;
+type index_d$6_ActorAiFn = ActorAiFn;
+declare const index_d$6_ais: typeof ais;
+type index_d$6_AICtx = AICtx;
+declare const index_d$6_AICtx: typeof AICtx;
+declare const index_d$6_typical: typeof typical;
+declare const index_d$6_canMoveToward: typeof canMoveToward;
+declare const index_d$6_moveToward: typeof moveToward;
+declare const index_d$6_canMoveAwayFrom: typeof canMoveAwayFrom;
+declare const index_d$6_moveAwayFrom: typeof moveAwayFrom;
+declare const index_d$6_canRunAwayFrom: typeof canRunAwayFrom;
+declare const index_d$6_runAwayFrom: typeof runAwayFrom;
+declare const index_d$6_canAttack: typeof canAttack;
+declare const index_d$6_attack: typeof attack;
+declare const index_d$6_tooFarFrom: typeof tooFarFrom;
+declare const index_d$6_tooCloseTo: typeof tooCloseTo;
+declare namespace index_d$6 {
+  export {
+    index_d$6_fillSafetyMap as fillSafetyMap,
+    index_d$6_AIOptions as AIOptions,
+    index_d$6_AIConfig as AIConfig,
+    index_d$6_ActorAiFn as ActorAiFn,
+    index_d$6_ais as ais,
+    install$3 as install,
+    make$3 as make,
+    index_d$6_AICtx as AICtx,
+    index_d$6_typical as typical,
+    index_d$6_canMoveToward as canMoveToward,
+    index_d$6_moveToward as moveToward,
+    index_d$6_canMoveAwayFrom as canMoveAwayFrom,
+    index_d$6_moveAwayFrom as moveAwayFrom,
+    index_d$6_canRunAwayFrom as canRunAwayFrom,
+    index_d$6_runAwayFrom as runAwayFrom,
+    index_d$6_canAttack as canAttack,
+    index_d$6_attack as attack,
+    index_d$6_tooFarFrom as tooFarFrom,
+    index_d$6_tooCloseTo as tooCloseTo,
+  };
+}
+
 interface KindOptions$1 extends KindOptions {
     flags?: GWU.flag.FlagBase;
     vision?: number;
     stats?: Record<string, GWU.range.RangeBase>;
     actions?: Record<string, ActorActionBase>;
     moveSpeed?: number;
-    ai?: string | ActorAiFn;
+    ai?: string | ActorAiFn | AIOptions;
     bump?: ActorActionFn | string | (ActorActionFn | string)[];
 }
 interface MakeOptions$1 extends MakeOptions {
@@ -1540,7 +1624,7 @@ declare class ActorKind extends EntityKind {
     actions: Record<string, ActorActionBase>;
     bump: (ActorActionFn | string)[];
     moveSpeed: number;
-    ai: ActorAiFn | null;
+    ai: AIConfig;
     constructor(opts: KindOptions$1);
     make(options?: Partial<MakeOptions$1>): Actor;
     init(actor: Actor, options?: Partial<MakeOptions$1>): void;
@@ -1557,9 +1641,8 @@ declare class ActorKind extends EntityKind {
     dropItem(actor: Actor, item: Item, _opts?: Partial<DropOptions>): boolean;
 }
 
-declare function make$2(id: string | ActorKind, makeOptions?: any): Actor;
+declare function make$2(info: string | ActorKind | KindOptions$1, makeOptions?: any): Actor;
 declare function makeRandom(opts: Partial<MatchOptions$1> | string, makeOptions?: any): Actor;
-declare function from$2(info: string | ActorKind | KindOptions$1, makeOptions?: any): Actor;
 declare const kinds: Record<string, ActorKind>;
 declare function install$2(id: string, kind: ActorKind | KindOptions$1): ActorKind;
 declare function get$1(id: string | ActorKind): ActorKind | null;
@@ -1575,84 +1658,94 @@ declare function bump(game: Game, actor: Actor, ctx?: ActorActionCtx): Promise<n
 
 declare function moveDir(game: Game, actor: Actor, ctx?: ActorActionCtx): Promise<number>;
 
-declare function standStill$1(_game: Game, actor: Actor, _ctx?: ActorActionCtx): Promise<number>;
+declare function standStill(_game: Game, actor: Actor, _ctx?: ActorActionCtx): Promise<number>;
 
-declare const index_d$6_bump: typeof bump;
-declare const index_d$6_moveDir: typeof moveDir;
-declare namespace index_d$6 {
+declare function idle(game: Game, actor: Actor, _ctx?: ActorActionCtx): Promise<number>;
+
+declare function pickup(game: Game, actor: Actor, ctx?: ActorActionCtx): Promise<number>;
+
+declare const index_d$5_bump: typeof bump;
+declare const index_d$5_moveDir: typeof moveDir;
+declare const index_d$5_standStill: typeof standStill;
+declare const index_d$5_idle: typeof idle;
+declare const index_d$5_pickup: typeof pickup;
+declare namespace index_d$5 {
   export {
-    index_d$6_bump as bump,
-    index_d$6_moveDir as moveDir,
-    standStill$1 as standStill,
+    index_d$5_bump as bump,
+    index_d$5_moveDir as moveDir,
+    index_d$5_standStill as standStill,
+    index_d$5_idle as idle,
+    index_d$5_pickup as pickup,
   };
 }
 
-type index_d$5_PainMessages = PainMessages;
-declare const index_d$5_PainMessages: typeof PainMessages;
-declare const index_d$5_painMessages: typeof painMessages;
-declare const index_d$5_installPain: typeof installPain;
-declare const index_d$5_getPain: typeof getPain;
-type index_d$5_AdjustType = AdjustType;
-type index_d$5_StatOptions = StatOptions;
-type index_d$5_StatAdjustment = StatAdjustment;
-type index_d$5_RegenInfo = RegenInfo;
-type index_d$5_Stats = Stats;
-declare const index_d$5_Stats: typeof Stats;
-type index_d$5_StatusCallback = StatusCallback;
-type index_d$5_Status = Status;
-declare const index_d$5_Status: typeof Status;
-type index_d$5_ActorFlags = ActorFlags;
-type index_d$5_ActorKind = ActorKind;
-declare const index_d$5_ActorKind: typeof ActorKind;
-type index_d$5_PickupOptions = PickupOptions;
-type index_d$5_DropOptions = DropOptions;
-type index_d$5_Actor = Actor;
-declare const index_d$5_Actor: typeof Actor;
-declare const index_d$5_makeRandom: typeof makeRandom;
-declare const index_d$5_kinds: typeof kinds;
-declare const index_d$5_randomKind: typeof randomKind;
-type index_d$5_ActorActionCtx = ActorActionCtx;
-type index_d$5_ActorActionFn = ActorActionFn;
-type index_d$5_ActorActionBase = ActorActionBase;
-declare const index_d$5_installedActions: typeof installedActions;
-declare const index_d$5_installAction: typeof installAction;
-declare const index_d$5_getAction: typeof getAction;
-declare namespace index_d$5 {
+type index_d$4_PainMessages = PainMessages;
+declare const index_d$4_PainMessages: typeof PainMessages;
+declare const index_d$4_painMessages: typeof painMessages;
+declare const index_d$4_installPain: typeof installPain;
+declare const index_d$4_getPain: typeof getPain;
+type index_d$4_AdjustType = AdjustType;
+type index_d$4_StatOptions = StatOptions;
+type index_d$4_StatAdjustment = StatAdjustment;
+type index_d$4_RegenInfo = RegenInfo;
+type index_d$4_Stats = Stats;
+declare const index_d$4_Stats: typeof Stats;
+type index_d$4_StatusCallback = StatusCallback;
+type index_d$4_Status = Status;
+declare const index_d$4_Status: typeof Status;
+type index_d$4_ActorFlags = ActorFlags;
+type index_d$4_ActorKind = ActorKind;
+declare const index_d$4_ActorKind: typeof ActorKind;
+type index_d$4_PickupOptions = PickupOptions;
+type index_d$4_DropOptions = DropOptions;
+type index_d$4_Actor = Actor;
+declare const index_d$4_Actor: typeof Actor;
+declare const index_d$4_makeRandom: typeof makeRandom;
+declare const index_d$4_kinds: typeof kinds;
+declare const index_d$4_randomKind: typeof randomKind;
+type index_d$4_ActorActionCtx = ActorActionCtx;
+type index_d$4_ActorActionFn = ActorActionFn;
+type index_d$4_ActorActionBase = ActorActionBase;
+type index_d$4_ActorActionResult = ActorActionResult;
+declare const index_d$4_installedActions: typeof installedActions;
+declare const index_d$4_installAction: typeof installAction;
+declare const index_d$4_getAction: typeof getAction;
+declare namespace index_d$4 {
   export {
-    index_d$6 as actions,
-    index_d$5_PainMessages as PainMessages,
-    index_d$5_painMessages as painMessages,
-    index_d$5_installPain as installPain,
-    index_d$5_getPain as getPain,
-    index_d$5_AdjustType as AdjustType,
-    index_d$5_StatOptions as StatOptions,
-    index_d$5_StatAdjustment as StatAdjustment,
-    index_d$5_RegenInfo as RegenInfo,
-    index_d$5_Stats as Stats,
-    index_d$5_StatusCallback as StatusCallback,
-    index_d$5_Status as Status,
-    index_d$5_ActorFlags as ActorFlags,
+    index_d$5 as actions,
+    index_d$4_PainMessages as PainMessages,
+    index_d$4_painMessages as painMessages,
+    index_d$4_installPain as installPain,
+    index_d$4_getPain as getPain,
+    index_d$4_AdjustType as AdjustType,
+    index_d$4_StatOptions as StatOptions,
+    index_d$4_StatAdjustment as StatAdjustment,
+    index_d$4_RegenInfo as RegenInfo,
+    index_d$4_Stats as Stats,
+    index_d$4_StatusCallback as StatusCallback,
+    index_d$4_Status as Status,
+    index_d$4_ActorFlags as ActorFlags,
     KindOptions$1 as KindOptions,
     MakeOptions$1 as MakeOptions,
-    index_d$5_ActorKind as ActorKind,
-    index_d$5_PickupOptions as PickupOptions,
-    index_d$5_DropOptions as DropOptions,
-    index_d$5_Actor as Actor,
+    index_d$4_ActorKind as ActorKind,
+    index_d$4_PickupOptions as PickupOptions,
+    index_d$4_DropOptions as DropOptions,
+    index_d$4_Actor as Actor,
     make$2 as make,
-    index_d$5_makeRandom as makeRandom,
-    from$2 as from,
-    index_d$5_kinds as kinds,
+    index_d$4_makeRandom as makeRandom,
+    index_d$4_kinds as kinds,
     install$2 as install,
     get$1 as get,
     makeKind$1 as makeKind,
     MatchOptions$1 as MatchOptions,
-    index_d$5_randomKind as randomKind,
-    index_d$5_ActorActionCtx as ActorActionCtx,
-    index_d$5_ActorActionFn as ActorActionFn,
-    index_d$5_ActorActionBase as ActorActionBase,
-    index_d$5_installedActions as installedActions,
-    index_d$5_installAction as installAction,
-    index_d$5_getAction as getAction,
+    index_d$4_randomKind as randomKind,
+    index_d$4_ActorActionCtx as ActorActionCtx,
+    index_d$4_ActorActionFn as ActorActionFn,
+    index_d$4_ActorActionBase as ActorActionBase,
+    index_d$4_ActorActionResult as ActorActionResult,
+    index_d$4_installedActions as installedActions,
+    index_d$4_installAction as installAction,
+    index_d$4_getAction as getAction,
   };
 }
 
@@ -1898,33 +1991,33 @@ declare class EntityKind {
 }
 declare function make$1(opts: KindOptions, makeOpts?: MakeOptions): Entity;
 
-type index_d$4_KeyInfoType = KeyInfoType;
-type index_d$4_EntityType = EntityType;
-type index_d$4_KeyInfo = KeyInfo;
-declare const index_d$4_KeyInfo: typeof KeyInfo;
-declare const index_d$4_makeKeyInfo: typeof makeKeyInfo;
-type index_d$4_TextOptions = TextOptions;
-type index_d$4_FlavorOptions = FlavorOptions;
-type index_d$4_KindOptions = KindOptions;
-type index_d$4_MakeOptions = MakeOptions;
-type index_d$4_EntityKind = EntityKind;
-declare const index_d$4_EntityKind: typeof EntityKind;
-type index_d$4_Entity = Entity;
-declare const index_d$4_Entity: typeof Entity;
-declare namespace index_d$4 {
+type index_d$3_KeyInfoType = KeyInfoType;
+type index_d$3_EntityType = EntityType;
+type index_d$3_KeyInfo = KeyInfo;
+declare const index_d$3_KeyInfo: typeof KeyInfo;
+declare const index_d$3_makeKeyInfo: typeof makeKeyInfo;
+type index_d$3_TextOptions = TextOptions;
+type index_d$3_FlavorOptions = FlavorOptions;
+type index_d$3_KindOptions = KindOptions;
+type index_d$3_MakeOptions = MakeOptions;
+type index_d$3_EntityKind = EntityKind;
+declare const index_d$3_EntityKind: typeof EntityKind;
+type index_d$3_Entity = Entity;
+declare const index_d$3_Entity: typeof Entity;
+declare namespace index_d$3 {
   export {
-    index_d$4_KeyInfoType as KeyInfoType,
+    index_d$3_KeyInfoType as KeyInfoType,
     FlagType$1 as FlagType,
-    index_d$4_EntityType as EntityType,
-    index_d$4_KeyInfo as KeyInfo,
-    index_d$4_makeKeyInfo as makeKeyInfo,
-    index_d$4_TextOptions as TextOptions,
-    index_d$4_FlavorOptions as FlavorOptions,
-    index_d$4_KindOptions as KindOptions,
-    index_d$4_MakeOptions as MakeOptions,
-    index_d$4_EntityKind as EntityKind,
+    index_d$3_EntityType as EntityType,
+    index_d$3_KeyInfo as KeyInfo,
+    index_d$3_makeKeyInfo as makeKeyInfo,
+    index_d$3_TextOptions as TextOptions,
+    index_d$3_FlavorOptions as FlavorOptions,
+    index_d$3_KindOptions as KindOptions,
+    index_d$3_MakeOptions as MakeOptions,
+    index_d$3_EntityKind as EntityKind,
     make$1 as make,
-    index_d$4_Entity as Entity,
+    index_d$3_Entity as Entity,
   };
 }
 
@@ -1984,7 +2077,7 @@ declare class Horde {
 declare const hordes: Record<string, Horde>;
 declare function install$1(id: string, horde: string | Horde | HordeConfig): Horde;
 declare function installAll(hordes: Record<string, string | Horde | HordeConfig>): void;
-declare function from$1(id: string | Horde | HordeConfig): Horde;
+declare function from(id: string | Horde | HordeConfig): Horde;
 interface MatchOptions {
     tags: string | string[];
     forbidTags: string | string[];
@@ -1996,27 +2089,28 @@ interface MatchOptions {
 }
 declare function random(opts?: Partial<MatchOptions> | string): Horde | null;
 
-type index_d$3_HordeConfig = HordeConfig;
-type index_d$3_HordeFlagsType = HordeFlagsType;
-type index_d$3_SpawnOptions = SpawnOptions;
-type index_d$3_Horde = Horde;
-declare const index_d$3_Horde: typeof Horde;
-declare const index_d$3_hordes: typeof hordes;
-declare const index_d$3_installAll: typeof installAll;
-type index_d$3_MatchOptions = MatchOptions;
-declare const index_d$3_random: typeof random;
-declare namespace index_d$3 {
+type index_d$2_HordeConfig = HordeConfig;
+type index_d$2_HordeFlagsType = HordeFlagsType;
+type index_d$2_SpawnOptions = SpawnOptions;
+type index_d$2_Horde = Horde;
+declare const index_d$2_Horde: typeof Horde;
+declare const index_d$2_hordes: typeof hordes;
+declare const index_d$2_installAll: typeof installAll;
+declare const index_d$2_from: typeof from;
+type index_d$2_MatchOptions = MatchOptions;
+declare const index_d$2_random: typeof random;
+declare namespace index_d$2 {
   export {
-    index_d$3_HordeConfig as HordeConfig,
-    index_d$3_HordeFlagsType as HordeFlagsType,
-    index_d$3_SpawnOptions as SpawnOptions,
-    index_d$3_Horde as Horde,
-    index_d$3_hordes as hordes,
+    index_d$2_HordeConfig as HordeConfig,
+    index_d$2_HordeFlagsType as HordeFlagsType,
+    index_d$2_SpawnOptions as SpawnOptions,
+    index_d$2_Horde as Horde,
+    index_d$2_hordes as hordes,
     install$1 as install,
-    index_d$3_installAll as installAll,
-    from$1 as from,
-    index_d$3_MatchOptions as MatchOptions,
-    index_d$3_random as random,
+    index_d$2_installAll as installAll,
+    index_d$2_from as from,
+    index_d$2_MatchOptions as MatchOptions,
+    index_d$2_random as random,
   };
 }
 
@@ -2028,19 +2122,19 @@ declare class BasicDrawer implements CellDrawer {
     applyLight(dest: GWU.sprite.Mixer, cell: CellType, fov?: GWU.fov.FovTracker): void;
 }
 
-type index_d$2_CellDrawFn = CellDrawFn;
-type index_d$2_MapDrawOptions = MapDrawOptions;
-type index_d$2_BufferSource = BufferSource;
-type index_d$2_CellDrawer = CellDrawer;
-type index_d$2_BasicDrawer = BasicDrawer;
-declare const index_d$2_BasicDrawer: typeof BasicDrawer;
-declare namespace index_d$2 {
+type index_d$1_CellDrawFn = CellDrawFn;
+type index_d$1_MapDrawOptions = MapDrawOptions;
+type index_d$1_BufferSource = BufferSource;
+type index_d$1_CellDrawer = CellDrawer;
+type index_d$1_BasicDrawer = BasicDrawer;
+declare const index_d$1_BasicDrawer: typeof BasicDrawer;
+declare namespace index_d$1 {
   export {
-    index_d$2_CellDrawFn as CellDrawFn,
-    index_d$2_MapDrawOptions as MapDrawOptions,
-    index_d$2_BufferSource as BufferSource,
-    index_d$2_CellDrawer as CellDrawer,
-    index_d$2_BasicDrawer as BasicDrawer,
+    index_d$1_CellDrawFn as CellDrawFn,
+    index_d$1_MapDrawOptions as MapDrawOptions,
+    index_d$1_BufferSource as BufferSource,
+    index_d$1_CellDrawer as CellDrawer,
+    index_d$1_BasicDrawer as BasicDrawer,
   };
 }
 
@@ -2133,117 +2227,49 @@ declare namespace fx_d {
   };
 }
 
-declare function make(id: string | PlayerKind, makeOptions?: any): Player;
-declare function from(info: string | PlayerKind | KindOptions$3, makeOptions?: any): Player;
+declare function make(id: string | PlayerKind | KindOptions$3, makeOptions?: any): Player;
 declare function install(id: string, kind: PlayerKind | KindOptions$3): PlayerKind;
 declare function get(id: string | PlayerKind): PlayerKind | null;
 declare function makeKind(info: KindOptions$3): PlayerKind;
 
-type index_d$1_Modifier = Modifier;
-type index_d$1_Adjustment = Adjustment;
-type index_d$1_ChangeCallback = ChangeCallback;
-type index_d$1_Attributes = Attributes;
-declare const index_d$1_Attributes: typeof Attributes;
-declare const index_d$1_attributes: typeof attributes;
-declare const index_d$1_installAttribute: typeof installAttribute;
-declare const index_d$1_makeAttributes: typeof makeAttributes;
-type index_d$1_SkillInfo = SkillInfo;
-type index_d$1_Skills = Skills;
-declare const index_d$1_Skills: typeof Skills;
-type index_d$1_PlayerKind = PlayerKind;
-declare const index_d$1_PlayerKind: typeof PlayerKind;
-type index_d$1_Player = Player;
-declare const index_d$1_Player: typeof Player;
-declare const index_d$1_make: typeof make;
-declare const index_d$1_from: typeof from;
-declare const index_d$1_install: typeof install;
-declare const index_d$1_get: typeof get;
-declare const index_d$1_makeKind: typeof makeKind;
-declare namespace index_d$1 {
-  export {
-    index_d$1_Modifier as Modifier,
-    index_d$1_Adjustment as Adjustment,
-    index_d$1_ChangeCallback as ChangeCallback,
-    index_d$1_Attributes as Attributes,
-    index_d$1_attributes as attributes,
-    index_d$1_installAttribute as installAttribute,
-    index_d$1_makeAttributes as makeAttributes,
-    index_d$1_SkillInfo as SkillInfo,
-    index_d$1_Skills as Skills,
-    KindOptions$3 as KindOptions,
-    index_d$1_PlayerKind as PlayerKind,
-    index_d$1_Player as Player,
-    index_d$1_make as make,
-    index_d$1_from as from,
-    index_d$1_install as install,
-    index_d$1_get as get,
-    index_d$1_makeKind as makeKind,
-  };
-}
-
-declare function fillSafetyMap(safetyMap: GWU.grid.NumGrid, actor: Actor, target: Actor): void;
-
-declare class AICtx {
-    game: Game;
-    actor: Actor;
-    target: Actor | null;
-    item: Item | null;
-    distanceMap: GWU.grid.NumGrid;
-    count: number;
-    constructor(game: Game, actor: Actor, target?: Actor);
-    start(): this;
-    done<T>(result: T): T;
-}
-declare function typical(game: Game, actor: Actor): Promise<number>;
-declare function canMoveToward(game: Game, actor: Actor, target: Actor, ctx?: AICtx): boolean;
-declare function moveToward(game: Game, actor: Actor, target: Actor, ctx?: AICtx): Promise<number>;
-declare function canMoveAwayFrom(game: Game, actor: Actor, target: Actor, ctx?: AICtx): boolean;
-declare function moveAwayFrom(_game: Game, actor: Actor, _target: Actor, _ctx?: AICtx): Promise<number>;
-declare function canRunAwayFrom(_game: Game, _actor: Actor, _target: Actor, _ctx?: AICtx): boolean;
-declare function runAwayFrom(_game: Game, actor: Actor, _target: Actor, _ctx?: AICtx): Promise<number>;
-declare function canAttack(_game: Game, _actor: Actor, _target: Actor, _ctx?: AICtx): boolean;
-declare function attack(_game: Game, actor: Actor, _target: Actor, _ctx?: AICtx): Promise<number>;
-declare function tooFarFrom(_game: Game, _actor: Actor, _target: Actor, _ctx?: AICtx): boolean;
-declare function tooCloseTo(_game: Game, _actor: Actor, _target: Actor, _ctx?: AICtx): boolean;
-declare function standStill(_game: Game, actor: Actor, _ctx?: AICtx): Promise<number>;
-
-declare const index_d_fillSafetyMap: typeof fillSafetyMap;
-type index_d_ActorAiFn = ActorAiFn;
-declare const index_d_ais: typeof ais;
-type index_d_AICtx = AICtx;
-declare const index_d_AICtx: typeof AICtx;
-declare const index_d_typical: typeof typical;
-declare const index_d_canMoveToward: typeof canMoveToward;
-declare const index_d_moveToward: typeof moveToward;
-declare const index_d_canMoveAwayFrom: typeof canMoveAwayFrom;
-declare const index_d_moveAwayFrom: typeof moveAwayFrom;
-declare const index_d_canRunAwayFrom: typeof canRunAwayFrom;
-declare const index_d_runAwayFrom: typeof runAwayFrom;
-declare const index_d_canAttack: typeof canAttack;
-declare const index_d_attack: typeof attack;
-declare const index_d_tooFarFrom: typeof tooFarFrom;
-declare const index_d_tooCloseTo: typeof tooCloseTo;
-declare const index_d_standStill: typeof standStill;
+type index_d_Modifier = Modifier;
+type index_d_Adjustment = Adjustment;
+type index_d_ChangeCallback = ChangeCallback;
+type index_d_Attributes = Attributes;
+declare const index_d_Attributes: typeof Attributes;
+declare const index_d_attributes: typeof attributes;
+declare const index_d_installAttribute: typeof installAttribute;
+declare const index_d_makeAttributes: typeof makeAttributes;
+type index_d_SkillInfo = SkillInfo;
+type index_d_Skills = Skills;
+declare const index_d_Skills: typeof Skills;
+type index_d_PlayerKind = PlayerKind;
+declare const index_d_PlayerKind: typeof PlayerKind;
+type index_d_Player = Player;
+declare const index_d_Player: typeof Player;
+declare const index_d_make: typeof make;
+declare const index_d_install: typeof install;
+declare const index_d_get: typeof get;
+declare const index_d_makeKind: typeof makeKind;
 declare namespace index_d {
   export {
-    index_d_fillSafetyMap as fillSafetyMap,
-    index_d_ActorAiFn as ActorAiFn,
-    index_d_ais as ais,
-    install$3 as install,
-    index_d_AICtx as AICtx,
-    index_d_typical as typical,
-    index_d_canMoveToward as canMoveToward,
-    index_d_moveToward as moveToward,
-    index_d_canMoveAwayFrom as canMoveAwayFrom,
-    index_d_moveAwayFrom as moveAwayFrom,
-    index_d_canRunAwayFrom as canRunAwayFrom,
-    index_d_runAwayFrom as runAwayFrom,
-    index_d_canAttack as canAttack,
-    index_d_attack as attack,
-    index_d_tooFarFrom as tooFarFrom,
-    index_d_tooCloseTo as tooCloseTo,
-    index_d_standStill as standStill,
+    index_d_Modifier as Modifier,
+    index_d_Adjustment as Adjustment,
+    index_d_ChangeCallback as ChangeCallback,
+    index_d_Attributes as Attributes,
+    index_d_attributes as attributes,
+    index_d_installAttribute as installAttribute,
+    index_d_makeAttributes as makeAttributes,
+    index_d_SkillInfo as SkillInfo,
+    index_d_Skills as Skills,
+    KindOptions$3 as KindOptions,
+    index_d_PlayerKind as PlayerKind,
+    index_d_Player as Player,
+    index_d_make as make,
+    index_d_install as install,
+    index_d_get as get,
+    index_d_makeKind as makeKind,
   };
 }
 
-export { index_d$e as action, index_d$5 as actor, index_d as ai, index_d$2 as draw, index_d$9 as effect, index_d$4 as entity, index_d$f as flags, fx_d as fx, index_d$d as game, index_d$3 as horde, index_d$c as item, index_d$a as layer, index_d$7 as map, index_d$8 as memory, path_d as path, index_d$1 as player, index_d$b as tile };
+export { index_d$e as action, index_d$4 as actor, index_d$6 as ai, index_d$1 as draw, index_d$9 as effect, index_d$3 as entity, index_d$f as flags, fx_d as fx, index_d$d as game, index_d$2 as horde, index_d$c as item, index_d$a as layer, index_d$7 as map, index_d$8 as memory, path_d as path, index_d as player, index_d$b as tile };

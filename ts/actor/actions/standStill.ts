@@ -7,8 +7,7 @@ export async function standStill(
     actor: Actor,
     _ctx?: ActorActionCtx
 ): Promise<number> {
-    return actor.moveSpeed();
+    return actor.endTurn();
 }
 
 installAction('standStill', standStill);
-installAction('idle', standStill);

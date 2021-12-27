@@ -3,13 +3,13 @@ import * as Entity from '../entity';
 import { ActorFlags } from './types';
 import * as Flags from '../flags';
 import { ActorKind } from './kind';
-import { ActorActionFn, getAction, ActorActionBase } from './action';
+import { ActorActionFn, getAction, ActorActionResult } from './action';
 import { Item } from '../item';
 import * as Memory from '../memory';
 import { Status } from './status';
 import { Stats } from './stat';
 import { Game } from '../game';
-import { ActorAiFn } from '../ai/ai';
+import { AIConfig } from '../ai/ai';
 import { MapType } from '../map/types';
 
 export interface PickupOptions {
@@ -24,7 +24,7 @@ export class Actor extends Entity.Entity {
     // @ts-ignore - initialized in Entity
     flags: ActorFlags;
     kind: ActorKind;
-    ai: ActorAiFn | null = null;
+    ai: AIConfig | null = null;
 
     leader: Actor | null = null;
     items: Item | null = null; // inventory
@@ -37,6 +37,7 @@ export class Actor extends Entity.Entity {
 
     data: Record<string, number> = {};
     _costMap: GWU.grid.NumGrid | null = null;
+    _goalMap: GWU.grid.NumGrid | null = null;
 
     next: Actor | null = null; // TODO - can we get rid of this?
 
@@ -65,6 +66,10 @@ export class Actor extends Entity.Entity {
             GWU.grid.free(this._costMap);
             this._costMap = null;
         }
+        if (this._goalMap) {
+            GWU.grid.free(this._goalMap);
+            this._goalMap = null;
+        }
     }
 
     hasActorFlag(flag: number) {
@@ -91,11 +96,11 @@ export class Actor extends Entity.Entity {
         return this.hasEntityFlag(Flags.Entity.L_DESTROYED);
     }
 
-    getAction(name: string): ActorActionBase {
+    getAction(name: string): ActorActionResult {
         const action = this.kind.actions[name];
-        if (action === undefined) return true; // default is to do any action
-        if (action === true) {
-            return getAction(name) || true;
+        if (action === undefined || action === true) {
+            const main = getAction(name); // default is to do any action
+            return main || false;
         } else if (action === false) {
             return false;
         }
@@ -113,6 +118,9 @@ export class Actor extends Entity.Entity {
     canSee(entity: Entity.Entity): boolean;
     canSee(x: number | Entity.Entity, y?: number): boolean {
         if (x instanceof Entity.Entity) {
+            if (x instanceof Actor) {
+                if (x.fov) return x.fov.isDirectlyVisible(this.x, this.y);
+            }
             return this.canSee(x.x, x.y) && this.kind.isAbleToSee(this, x);
         }
         if (this.fov) {
@@ -160,13 +168,13 @@ export class Actor extends Entity.Entity {
     ////////////////// ACTOR
 
     async act(game: Game): Promise<number> {
-        if (this.ai) {
-            const r = await this.ai(game, this);
+        if (this.ai && this.ai.fn) {
+            const r = await this.ai.fn(game, this);
             if (r) return r;
         }
 
         if (this.kind.ai) {
-            const r = await this.kind.ai(game, this);
+            const r = await this.kind.ai.fn(game, this);
             if (r) return r;
         }
 
@@ -188,6 +196,10 @@ export class Actor extends Entity.Entity {
 
     willAttack(_other: Actor): boolean {
         return true;
+    }
+
+    canPass(_other: Actor): boolean {
+        return false;
     }
 
     ////////////////// INVENTORY
@@ -215,7 +227,7 @@ export class Actor extends Entity.Entity {
     addToMap(map: MapType, x: number, y: number): boolean {
         const mapChanged = super.addToMap(map, x, y);
         if (mapChanged) {
-            this.setActorFlag(Flags.Actor.STALE_COST_MAP);
+            this.clearActorFlag(Flags.Actor.STABLE_COST_MAP);
         }
         return mapChanged;
     }
@@ -225,6 +237,10 @@ export class Actor extends Entity.Entity {
         if (this._costMap) {
             GWU.grid.free(this._costMap);
             this._costMap = null;
+        }
+        if (this._goalMap) {
+            GWU.grid.free(this._goalMap);
+            this._goalMap = null;
         }
     }
 
@@ -237,7 +253,7 @@ export class Actor extends Entity.Entity {
             throw new Error('Actor must have map to calculate costMap.');
         }
 
-        const staleMap = this.hasActorFlag(Flags.Actor.STALE_COST_MAP);
+        const staleMap = !this.hasActorFlag(Flags.Actor.STABLE_COST_MAP);
         if (staleMap && this._costMap) {
             GWU.grid.free(this._costMap);
             this._costMap = null;
@@ -262,7 +278,7 @@ export class Actor extends Entity.Entity {
             return GWU.path.OK;
         });
 
-        this.clearActorFlag(Flags.Actor.STALE_COST_MAP);
+        this.setActorFlag(Flags.Actor.STABLE_COST_MAP);
 
         /*
 
@@ -332,5 +348,29 @@ export class Actor extends Entity.Entity {
         */
 
         return this._costMap;
+    }
+
+    get goalMap(): GWU.grid.NumGrid | null {
+        return this._goalMap;
+    }
+
+    setGoal(x: number, y: number): GWU.grid.NumGrid {
+        const map = this._map;
+        if (!map) throw new Error('No map to set goal with!');
+
+        if (!this._goalMap) {
+            this._goalMap = GWU.grid.alloc(map.width, map.height);
+        }
+
+        const goalMap = this._goalMap;
+        GWU.path.calculateDistances(goalMap, x, y, this.costMap());
+        return this._goalMap;
+    }
+
+    clearGoal() {
+        if (this._goalMap) {
+            GWU.grid.free(this._goalMap);
+            this._goalMap = null;
+        }
     }
 }

@@ -17,7 +17,7 @@ export interface KindOptions extends Entity.KindOptions {
     stats?: Record<string, GWU.range.RangeBase>;
     actions?: Record<string, Action.ActorActionBase>;
     moveSpeed?: number; // 100 === normal
-    ai?: string | ActorAiFn;
+    ai?: string | ActorAiFn | AI.AIOptions;
     bump?: Action.ActorActionFn | string | (Action.ActorActionFn | string)[];
 }
 
@@ -34,10 +34,10 @@ export class ActorKind extends Entity.EntityKind {
     vision: Record<string, number> = {};
     stats: Record<string, GWU.range.RangeBase>;
     actions: Record<string, Action.ActorActionBase> = {};
-    bump: (Action.ActorActionFn | string)[] = [];
+    bump: (Action.ActorActionFn | string)[] = ['attack'];
 
     moveSpeed = 100;
-    ai: ActorAiFn | null = null;
+    ai: AI.AIConfig;
 
     constructor(opts: KindOptions) {
         super(opts);
@@ -56,23 +56,15 @@ export class ActorKind extends Entity.EntityKind {
         if (opts.vision) {
             this.vision.normal = opts.vision;
         }
-        this.stats = opts.stats || {};
+        this.stats = Object.assign({ health: 1, morale: 100 }, opts.stats);
+
         if (opts.actions) {
             Object.assign(this.actions, opts.actions);
         }
         if (opts.moveSpeed) {
             this.moveSpeed = opts.moveSpeed;
         }
-        if (opts.ai) {
-            if (typeof opts.ai === 'string') {
-                opts.ai = AI.ais[opts.ai];
-            }
-            if (typeof opts.ai === 'function') {
-                this.ai = opts.ai;
-            } else {
-                opts.ai = AI.ais['default'];
-            }
-        }
+        this.ai = AI.make(opts.ai || 'default');
         if (opts.bump) {
             if (typeof opts.bump === 'string') {
                 opts.bump = opts.bump.split(/[|,]/g).map((t) => t.trim());

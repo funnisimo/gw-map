@@ -8,6 +8,9 @@ export interface ActorActionCtx {
     item?: Item | null;
     dir?: GWU.xy.Loc | null;
     loc?: GWU.xy.Loc | null;
+
+    try?: boolean;
+    quiet?: boolean;
 }
 
 export type ActorActionFn = (
@@ -17,6 +20,7 @@ export type ActorActionFn = (
 ) => Promise<number>;
 
 export type ActorActionBase = boolean | ActorActionFn;
+export type ActorActionResult = false | ActorActionFn;
 
 export const installedActions: Record<string, ActorActionFn> = {};
 

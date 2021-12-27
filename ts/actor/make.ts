@@ -2,25 +2,7 @@ import * as GWU from 'gw-utils';
 import { ActorKind, KindOptions } from './kind';
 import { Actor } from './actor';
 
-export function make(id: string | ActorKind, makeOptions?: any): Actor {
-    const kind = get(id);
-    if (!kind) throw new Error('Failed to find item kind - ' + id);
-    return kind.make(makeOptions);
-}
-
-export function makeRandom(
-    opts: Partial<MatchOptions> | string,
-    makeOptions?: any
-): Actor {
-    const kind = randomKind(opts);
-    if (!kind)
-        throw new Error(
-            'Failed to find item kind matching - ' + JSON.stringify(opts)
-        );
-    return kind.make(makeOptions);
-}
-
-export function from(
+export function make(
     info: string | ActorKind | KindOptions,
     makeOptions?: any
 ): Actor {
@@ -34,6 +16,18 @@ export function from(
     } else {
         kind = makeKind(info);
     }
+    return kind.make(makeOptions);
+}
+
+export function makeRandom(
+    opts: Partial<MatchOptions> | string,
+    makeOptions?: any
+): Actor {
+    const kind = randomKind(opts);
+    if (!kind)
+        throw new Error(
+            'Failed to find item kind matching - ' + JSON.stringify(opts)
+        );
     return kind.make(makeOptions);
 }
 

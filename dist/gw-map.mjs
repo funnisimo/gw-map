@@ -63,7 +63,7 @@ var Actor$1;
     Actor[Actor["IS_PLAYER"] = Fl$6(0)] = "IS_PLAYER";
     Actor[Actor["HAS_MEMORY"] = Fl$6(1)] = "HAS_MEMORY";
     Actor[Actor["USES_FOV"] = Fl$6(2)] = "USES_FOV";
-    Actor[Actor["STALE_COST_MAP"] = Fl$6(3)] = "STALE_COST_MAP";
+    Actor[Actor["STABLE_COST_MAP"] = Fl$6(3)] = "STABLE_COST_MAP";
     Actor[Actor["DEFAULT"] = 0] = "DEFAULT";
 })(Actor$1 || (Actor$1 = {}));
 
@@ -555,7 +555,7 @@ class EntityKind {
         return 1;
     }
 }
-function make$6(opts, makeOpts = {}) {
+function make$7(opts, makeOpts = {}) {
     const kind = new EntityKind(opts);
     return kind.make(makeOpts);
 }
@@ -565,7 +565,7 @@ var index$e = /*#__PURE__*/Object.freeze({
     KeyInfo: KeyInfo,
     makeKeyInfo: makeKeyInfo,
     EntityKind: EntityKind,
-    make: make$6,
+    make: make$7,
     Entity: Entity
 });
 
@@ -609,10 +609,11 @@ class Stats {
         this.init(opts);
     }
     get(name) {
-        return this._value[name];
+        return this._value[name] || 0;
     }
     getPct(name) {
-        return Math.round((100 * this._value[name]) / this._max[name]);
+        const max = this.max(name);
+        return max ? Math.round((100 * this.get(name)) / max) : 0;
     }
     max(name) {
         return this._max[name] || 0;
@@ -984,6 +985,7 @@ class Actor extends Entity {
         this.visionDistance = 99;
         this.data = {};
         this._costMap = null;
+        this._goalMap = null;
         this.next = null; // TODO - can we get rid of this?
         // @ts-ignore - initialized in Entity
         this.flags.actor = 0;
@@ -1005,6 +1007,10 @@ class Actor extends Entity {
         if (this._costMap) {
             GWU.grid.free(this._costMap);
             this._costMap = null;
+        }
+        if (this._goalMap) {
+            GWU.grid.free(this._goalMap);
+            this._goalMap = null;
         }
     }
     hasActorFlag(flag) {
@@ -1030,10 +1036,9 @@ class Actor extends Entity {
     }
     getAction(name) {
         const action = this.kind.actions[name];
-        if (action === undefined)
-            return true; // default is to do any action
-        if (action === true) {
-            return getAction(name) || true;
+        if (action === undefined || action === true) {
+            const main = getAction(name); // default is to do any action
+            return main || false;
         }
         else if (action === false) {
             return false;
@@ -1045,6 +1050,10 @@ class Actor extends Entity {
     }
     canSee(x, y) {
         if (x instanceof Entity) {
+            if (x instanceof Actor) {
+                if (x.fov)
+                    return x.fov.isDirectlyVisible(this.x, this.y);
+            }
             return this.canSee(x.x, x.y) && this.kind.isAbleToSee(this, x);
         }
         if (this.fov) {
@@ -1083,13 +1092,13 @@ class Actor extends Entity {
     }
     ////////////////// ACTOR
     async act(game) {
-        if (this.ai) {
-            const r = await this.ai(game, this);
+        if (this.ai && this.ai.fn) {
+            const r = await this.ai.fn(game, this);
             if (r)
                 return r;
         }
         if (this.kind.ai) {
-            const r = await this.kind.ai(game, this);
+            const r = await this.kind.ai.fn(game, this);
             if (r)
                 return r;
         }
@@ -1106,6 +1115,9 @@ class Actor extends Entity {
     ///////
     willAttack(_other) {
         return true;
+    }
+    canPass(_other) {
+        return false;
     }
     ////////////////// INVENTORY
     avoidsItem(_item) {
@@ -1125,7 +1137,7 @@ class Actor extends Entity {
     addToMap(map, x, y) {
         const mapChanged = super.addToMap(map, x, y);
         if (mapChanged) {
-            this.setActorFlag(Actor$1.STALE_COST_MAP);
+            this.clearActorFlag(Actor$1.STABLE_COST_MAP);
         }
         return mapChanged;
     }
@@ -1134,6 +1146,10 @@ class Actor extends Entity {
         if (this._costMap) {
             GWU.grid.free(this._costMap);
             this._costMap = null;
+        }
+        if (this._goalMap) {
+            GWU.grid.free(this._goalMap);
+            this._goalMap = null;
         }
     }
     /*
@@ -1144,7 +1160,7 @@ class Actor extends Entity {
         if (!this.map) {
             throw new Error('Actor must have map to calculate costMap.');
         }
-        const staleMap = this.hasActorFlag(Actor$1.STALE_COST_MAP);
+        const staleMap = !this.hasActorFlag(Actor$1.STABLE_COST_MAP);
         if (staleMap && this._costMap) {
             GWU.grid.free(this._costMap);
             this._costMap = null;
@@ -1169,7 +1185,7 @@ class Actor extends Entity {
             }
             return GWU.path.OK;
         });
-        this.clearActorFlag(Actor$1.STALE_COST_MAP);
+        this.setActorFlag(Actor$1.STABLE_COST_MAP);
         /*
 
             if (cellHasTerrainFlag(i, j, T_OBSTRUCTS_PASSABILITY)
@@ -1237,6 +1253,26 @@ class Actor extends Entity {
     }
         */
         return this._costMap;
+    }
+    get goalMap() {
+        return this._goalMap;
+    }
+    setGoal(x, y) {
+        const map = this._map;
+        if (!map)
+            throw new Error('No map to set goal with!');
+        if (!this._goalMap) {
+            this._goalMap = GWU.grid.alloc(map.width, map.height);
+        }
+        const goalMap = this._goalMap;
+        GWU.path.calculateDistances(goalMap, x, y, this.costMap());
+        return this._goalMap;
+    }
+    clearGoal() {
+        if (this._goalMap) {
+            GWU.grid.free(this._goalMap);
+            this._goalMap = null;
+        }
     }
 }
 
@@ -1363,7 +1399,7 @@ function installType(id, type) {
 //     }
 //     return handler(parts);
 // }
-function make$5(opts) {
+function make$6(opts) {
     if (!opts)
         throw new Error('opts required to make effect.');
     let config = {};
@@ -1464,11 +1500,11 @@ function make$5(opts) {
         });
     }
     if (config.next) {
-        effect.next = make$5(config.next);
+        effect.next = make$6(config.next);
     }
     return effect;
 }
-function from$5(opts) {
+function from$2(opts) {
     if (!opts)
         throw new Error('Cannot make effect from null | undefined');
     if (typeof opts === 'object' && 'trigger' in opts) {
@@ -1480,7 +1516,7 @@ function from$5(opts) {
             return effect;
         throw new Error('Unknown effect - ' + opts);
     }
-    return make$5(opts);
+    return make$6(opts);
 }
 function isEffect(obj) {
     return typeof obj === 'object' && 'trigger' in obj;
@@ -1488,14 +1524,14 @@ function isEffect(obj) {
 //////////////////////////////
 // INSTALL
 const installedEffects = {};
-function install$7(id, config) {
-    const effect = isEffect(config) ? config.clone() : make$5(config);
+function install$6(id, config) {
+    const effect = isEffect(config) ? config.clone() : make$6(config);
     installedEffects[id] = effect;
     return effect;
 }
 function installAll$2(effects) {
     Object.entries(effects).forEach(([id, config]) => {
-        install$7(id, config);
+        install$6(id, config);
     });
 }
 function resetAll() {
@@ -1626,7 +1662,7 @@ class Tile {
         return this.flavor || this.getName(opts);
     }
 }
-function make$4(options) {
+function make$5(options) {
     var _a, _b, _c, _d, _e, _f;
     let base = { effects: {}, flags: {}, sprite: {}, priority: 50 };
     if (options.extends) {
@@ -1677,7 +1713,7 @@ function make$4(options) {
                 return;
             }
             try {
-                effects[key] = make$5(value);
+                effects[key] = make$6(value);
             }
             catch (e) {
                 throw new Error(`Failed to add effect to tile => ${key} : ${JSON.stringify(value)} : ` + e.message);
@@ -1729,21 +1765,21 @@ function make$4(options) {
 }
 const tiles = {};
 const all = [];
-function get$5(id) {
+function get$4(id) {
     if (id instanceof Tile)
         return id;
     if (typeof id === 'string')
         return tiles[id] || null;
     return all[id] || null;
 }
-function install$6(id, ...args) {
+function install$5(id, ...args) {
     let options = args[0];
     if (args.length == 2) {
         options = args[1];
         options.extends = args[0];
     }
     options.id = id;
-    const tile = make$4(options);
+    const tile = make$5(options);
     tile.index = all.length;
     all.push(tile);
     tiles[id] = tile;
@@ -1751,7 +1787,7 @@ function install$6(id, ...args) {
 }
 function installAll$1(tiles) {
     Object.entries(tiles).forEach(([id, config]) => {
-        install$6(id, config);
+        install$5(id, config);
     });
 }
 
@@ -1762,11 +1798,11 @@ var index$d = /*#__PURE__*/Object.freeze({
     __proto__: null,
     flags: flags,
     Tile: Tile,
-    make: make$4,
+    make: make$5,
     tiles: tiles,
     all: all,
-    get: get$5,
-    install: install$6,
+    get: get$4,
+    install: install$5,
     installAll: installAll$1
 });
 
@@ -2359,10 +2395,10 @@ var index$c = /*#__PURE__*/Object.freeze({
     installHandler: installHandler,
     effectTypes: effectTypes,
     installType: installType,
-    make: make$5,
-    from: from$5,
+    make: make$6,
+    from: from$2,
     installedEffects: installedEffects,
-    install: install$7,
+    install: install$6,
     installAll: installAll$2,
     resetAll: resetAll,
     BasicEffect: BasicEffect,
@@ -2466,7 +2502,7 @@ class Cell {
         this.y = y;
         this.snapshot = GWU.sprite.makeMixer();
         if (groundTile) {
-            const tile = get$5(groundTile);
+            const tile = get$4(groundTile);
             this.setTile(tile);
         }
     }
@@ -2602,7 +2638,7 @@ class Cell {
         if (!tile)
             return this.tiles.some((t) => t);
         if (!(tile instanceof Tile)) {
-            tile = get$5(tile);
+            tile = get$4(tile);
         }
         return this.tiles.includes(tile);
     }
@@ -2685,7 +2721,7 @@ class Cell {
     //          - LIGHT_CHANGED flag set.
     setTile(tile, opts = {}) {
         if (!(tile instanceof Tile)) {
-            tile = get$5(tile);
+            tile = get$4(tile);
             if (!tile)
                 return false;
         }
@@ -2714,7 +2750,7 @@ class Cell {
         if (tile.depth > Depth$1.GROUND && tile.groundTile) {
             const ground = this.depthTile(Depth$1.GROUND);
             if (!ground || ground === tiles.NULL) {
-                this.tiles[0] = get$5(tile.groundTile);
+                this.tiles[0] = get$4(tile.groundTile);
             }
         }
         this.tiles[tile.depth] = tile;
@@ -3213,7 +3249,7 @@ class FireLayer extends TileLayer {
             if (tile.flags.tile & TileFlags.T_IS_FLAMMABLE &&
                 (tile.depth === Depth.GAS ||
                     tile.priority >= bestExtinguishingPriority)) {
-                const effect = from$5(tile.effects.fire);
+                const effect = from$2(tile.effects.fire);
                 if (effect && effect.chance > ignitionChance) {
                     ignitionChance = effect.chance;
                 }
@@ -3899,8 +3935,8 @@ class Map {
     }
     // Skips all the logic checks and just forces a clean cell with the given tile
     fill(tile, boundary) {
-        tile = get$5(tile);
-        boundary = get$5(boundary || tile);
+        tile = get$4(tile);
+        boundary = get$4(boundary || tile);
         let i, j;
         for (i = 0; i < this.width; ++i) {
             for (j = 0; j < this.height; ++j) {
@@ -3922,7 +3958,7 @@ class Map {
     setTile(x, y, tile, opts) {
         if (!(tile instanceof Tile)) {
             const name = tile;
-            tile = get$5(name);
+            tile = get$4(name);
             if (!tile)
                 throw new Error('Failed to find tile: ' + name);
         }
@@ -3992,7 +4028,7 @@ class Map {
                 const ev = tile.effects[event];
                 if (!ev)
                     return;
-                const effect = from$5(ev);
+                const effect = from$2(ev);
                 if (!effect)
                     return;
                 let promoteChance = 0;
@@ -4102,7 +4138,7 @@ class Map {
         GWU.arrayDelete(this._animations, a);
     }
 }
-function make$3(w, h, opts = {}, boundary) {
+function make$4(w, h, opts = {}, boundary) {
     if (typeof opts === 'string') {
         opts = { tile: opts };
     }
@@ -4137,7 +4173,7 @@ function isString(value) {
 function isStringArray(value) {
     return Array.isArray(value) && typeof value[0] === 'string';
 }
-function from$4(prefab, charToTile, opts = {}) {
+function from$1(prefab, charToTile, opts = {}) {
     let height = 0;
     let width = 0;
     let map;
@@ -4147,7 +4183,7 @@ function from$4(prefab, charToTile, opts = {}) {
     if (isStringArray(prefab)) {
         height = prefab.length;
         width = prefab.reduce((len, line) => Math.max(len, line.length), 0);
-        map = make$3(width, height, opts);
+        map = make$4(width, height, opts);
         prefab.forEach((line, y) => {
             for (let x = 0; x < width; ++x) {
                 const ch = line[x] || '.';
@@ -4159,7 +4195,7 @@ function from$4(prefab, charToTile, opts = {}) {
     else {
         height = prefab.height;
         width = prefab.width;
-        map = make$3(width, height, opts);
+        map = make$4(width, height, opts);
         prefab.forEach((v, x, y) => {
             const tile = charToTile[v] || 'FLOOR';
             map.setTile(x, y, tile);
@@ -4317,7 +4353,7 @@ function store(actor, map, memory) {
     }
     actorMemory[map.properties.id] = memory;
 }
-function get$4(actor, map) {
+function get$3(actor, map) {
     let actorMemory = cache[actor.id];
     if (actorMemory) {
         const memory = actorMemory[map.properties.id];
@@ -4331,7 +4367,7 @@ var index$a = /*#__PURE__*/Object.freeze({
     __proto__: null,
     Memory: Memory,
     store: store,
-    get: get$4
+    get: get$3
 });
 
 function fillSafetyMap(safetyMap, actor, target) {
@@ -4354,8 +4390,66 @@ function fillSafetyMap(safetyMap, actor, target) {
 }
 
 const ais = {};
-function install$5(name, fn) {
+function install$4(name, fn) {
     ais[name] = fn;
+}
+function make$3(opts) {
+    if (typeof opts === 'string') {
+        opts = { fn: opts };
+    }
+    if (typeof opts === 'function') {
+        opts = { fn: opts };
+    }
+    if (typeof opts.fn === 'string') {
+        opts.fn = ais[opts.fn];
+    }
+    if (!opts.fn) {
+        opts.fn = ais.default;
+    }
+    return opts;
+}
+
+async function wander(game, actor) {
+    // Do we have a wander target?
+    let goalMap = actor.goalMap;
+    if (!goalMap) {
+        //      pick new wander target
+        const costMap = actor.costMap();
+        const loc = GWU.random.matchingLoc(costMap.width, costMap.height, (x, y) => {
+            return costMap[x][y] > 0 && costMap[x][y] !== GWU.path.NO_PATH;
+        });
+        if (!loc || loc[0] < 0 || loc[1] < 0) {
+            console.log('No wander location found!');
+            return 0;
+        }
+        //      build distance map to target
+        goalMap = actor.setGoal(loc[0], loc[1]);
+    }
+    // take the next step to the target
+    const step = GWU.path.nextStep(goalMap, actor.x, actor.y, (x, y) => {
+        if (!game.map.hasActor(x, y))
+            return false;
+        const other = game.map.actorAt(x, y);
+        if (!other) {
+            console.log(`Cell @ ${x},${y} has actor flag, but no actor.`);
+            game.map.cell(x, y).clearCellFlag(Cell$1.HAS_ACTOR);
+            return false;
+        }
+        return !actor.canPass(other);
+    });
+    if (!step) {
+        actor.clearGoal();
+        return 0;
+    }
+    let result = 0;
+    if (!step || (step[0] == 0 && step[1] == 0)) {
+        return 0; // did nothing
+    }
+    const moveDir = getAction('moveDir');
+    if (!moveDir)
+        throw new Error('No moveDir action found for Actors!');
+    result = await moveDir(game, actor, { dir: step });
+    return result;
 }
 
 class AICtx {
@@ -4394,25 +4488,82 @@ async function typical(game, actor) {
     if (!map)
         return -1; // actor not on map ?!?!
     const target = game.player;
-    if (!target.canSee(actor.x, actor.y)) {
-        // TODO - Use scent, menory, other teammates info, ...
-        // TODO - Wander
-        return standStill$1(game, actor);
+    const tryAttack = actor.canSee(target) && actor.willAttack(target);
+    if (tryAttack) {
+        const damagePct = 100 - actor.stats.getPct('health');
+        const morale = actor.stats.get('morale');
+        const chargeChance = 100;
+        const retreatChance = 0;
+        const ctx = new AICtx(game, actor, target).start();
+        let result = 0;
+        if (damagePct > morale) {
+            if (canAttack(game, actor, target)) {
+                result = await attack(game, actor, target);
+            }
+            return ctx.done(result);
+        }
+        if (tooFarFrom(game, actor, target) &&
+            canAttack(game, actor, target) &&
+            canMoveToward(game, actor, target, ctx)) {
+            if (GWU.random.chance(chargeChance)) {
+                result = await moveToward(game, actor, target, ctx);
+            }
+            else {
+                result = await attack(game, actor, target);
+            }
+            return ctx.done(result);
+        }
+        if (tooCloseTo(game, actor, target) &&
+            canAttack(game, actor, target) &&
+            canMoveAwayFrom(game, actor, target, ctx)) {
+            if (GWU.random.chance(retreatChance)) {
+                result = await moveAwayFrom(game, actor);
+            }
+            else {
+                result = await attack(game, actor, target);
+            }
+            return ctx.done(result);
+        }
+        if (canAttack(game, actor, target)) {
+            result = await attack(game, actor, target);
+            return ctx.done(result);
+        }
+        if (tooFarFrom(game, actor, target) &&
+            canMoveToward(game, actor, target, ctx)) {
+            result = await moveToward(game, actor, target, ctx);
+            return ctx.done(result);
+        }
+        if (tooCloseTo(game, actor, target) &&
+            canMoveAwayFrom(game, actor, target, ctx)) {
+            result = await moveAwayFrom(game, actor);
+            return ctx.done(result);
+        }
     }
-    const damagePct = 100 - actor.stats.getPct('health');
-    const morale = actor.stats.get('morale');
-    const ctx = new AICtx(game, actor, target).start();
-    let result = 0;
-    if (damagePct > morale) {
-        return ctx.done(result);
+    // TODO - Use scent, menory, other teammates info, ...
+    const wanderOpt = GWU.object.firstOpt('wander', actor.ai, actor.kind.ai, false);
+    if (wanderOpt) {
+        if (actor.goalMap || // we have a current goal
+            typeof wanderOpt !== 'number' || // wander: true
+            GWU.random.chance(wanderOpt) // chance
+        ) {
+            const result = wander(game, actor);
+            if (result)
+                return result;
+        }
+        else {
+            const idle = getAction('idle');
+            if (idle) {
+                return idle(game, actor);
+            }
+        }
     }
-    // Wander?
-    // Scent?
-    result = await standStill$1(game, actor);
-    return ctx.done(result);
+    const standStill = getAction('standStill');
+    if (!standStill)
+        throw new Error('No standStill action found for actors!');
+    return standStill(game, actor);
 }
-install$5('typical', typical);
-install$5('default', typical);
+install$4('typical', typical);
+install$4('default', typical);
 function canMoveToward(game, actor, target, ctx) {
     // can move?
     ctx = (ctx || new AICtx(game, actor, target)).start();
@@ -4445,7 +4596,10 @@ async function moveToward(game, actor, target, ctx) {
     });
     let result = 0;
     if (!step || (step[0] == 0 && step[1] == 0)) {
-        result = await standStill$1(game, actor);
+        const standStill = getAction('standStill');
+        if (!standStill)
+            throw new Error('No standStill action found for actors!');
+        result = await standStill(game, actor);
         return ctx.done(result);
     }
     const moveDir = getAction('moveDir');
@@ -4485,29 +4639,33 @@ async function runAwayFrom(_game, actor, _target, _ctx) {
     // move toward loop if away from player
     return actor.moveSpeed();
 }
-function canAttack(_game, _actor, _target, _ctx) {
+function canAttack(_game, actor, target, _ctx) {
     // has attack?
-    // attach affects player?
-    return false;
+    // attack affects player?
+    // cooldown?
+    return GWU.xy.distanceFromTo(actor, target) <= 1;
 }
-async function attack(_game, actor, _target, _ctx) {
-    return actor.moveSpeed();
+async function attack(game, actor, target, _ctx) {
+    console.log('attack!', actor.id, target.id);
+    let attack = actor.getAction('attack');
+    if (!attack)
+        return 0;
+    return attack(game, actor);
 }
-function tooFarFrom(_game, _actor, _target, _ctx) {
-    return false;
+function tooFarFrom(_game, actor, target, _ctx) {
+    // diagonal?
+    return GWU.xy.distanceFromTo(actor, target) > 1;
 }
-function tooCloseTo(_game, _actor, _target, _ctx) {
-    return false;
-}
-async function standStill$1(_game, actor, _ctx) {
-    return actor.moveSpeed();
+function tooCloseTo(_game, actor, target, _ctx) {
+    return GWU.xy.distanceFromTo(actor, target) < 1;
 }
 
 var index$9 = /*#__PURE__*/Object.freeze({
     __proto__: null,
     fillSafetyMap: fillSafetyMap,
     ais: ais,
-    install: install$5,
+    install: install$4,
+    make: make$3,
     AICtx: AICtx,
     typical: typical,
     canMoveToward: canMoveToward,
@@ -4519,8 +4677,7 @@ var index$9 = /*#__PURE__*/Object.freeze({
     canAttack: canAttack,
     attack: attack,
     tooFarFrom: tooFarFrom,
-    tooCloseTo: tooCloseTo,
-    standStill: standStill$1
+    tooCloseTo: tooCloseTo
 });
 
 class ActorKind extends EntityKind {
@@ -4532,9 +4689,8 @@ class ActorKind extends EntityKind {
         };
         this.vision = {};
         this.actions = {};
-        this.bump = [];
+        this.bump = ['attack'];
         this.moveSpeed = 100;
-        this.ai = null;
         if (opts.flags) {
             this.flags.actor = GWU.flag.from(Actor$1, this.flags.actor, opts.flags);
             this.flags.entity = GWU.flag.from(Entity$1, this.flags.entity, opts.flags);
@@ -4542,24 +4698,14 @@ class ActorKind extends EntityKind {
         if (opts.vision) {
             this.vision.normal = opts.vision;
         }
-        this.stats = opts.stats || {};
+        this.stats = Object.assign({ health: 1, morale: 100 }, opts.stats);
         if (opts.actions) {
             Object.assign(this.actions, opts.actions);
         }
         if (opts.moveSpeed) {
             this.moveSpeed = opts.moveSpeed;
         }
-        if (opts.ai) {
-            if (typeof opts.ai === 'string') {
-                opts.ai = ais[opts.ai];
-            }
-            if (typeof opts.ai === 'function') {
-                this.ai = opts.ai;
-            }
-            else {
-                opts.ai = ais['default'];
-            }
-        }
+        this.ai = make$3(opts.ai || 'default');
         if (opts.bump) {
             if (typeof opts.bump === 'string') {
                 opts.bump = opts.bump.split(/[|,]/g).map((t) => t.trim());
@@ -4594,7 +4740,7 @@ class ActorKind extends EntityKind {
     addToMap(actor, map) {
         super.addToMap(actor, map);
         if (this.hasActorFlag(Actor$1.HAS_MEMORY)) {
-            actor.memory = get$4(actor, map);
+            actor.memory = get$3(actor, map);
         }
         if (this.hasActorFlag(Actor$1.USES_FOV)) {
             actor.fov = new GWU.fov.FovSystem(map);
@@ -4659,23 +4805,11 @@ class ActorKind extends EntityKind {
     }
 }
 
-function make$2(id, makeOptions) {
-    const kind = get$3(id);
-    if (!kind)
-        throw new Error('Failed to find item kind - ' + id);
-    return kind.make(makeOptions);
-}
-function makeRandom$1(opts, makeOptions) {
-    const kind = randomKind$1(opts);
-    if (!kind)
-        throw new Error('Failed to find item kind matching - ' + JSON.stringify(opts));
-    return kind.make(makeOptions);
-}
-function from$3(info, makeOptions) {
+function make$2(info, makeOptions) {
     let kind;
     if (typeof info === 'string') {
         // @ts-ignore
-        kind = get$3(info);
+        kind = get$2(info);
         if (!kind)
             throw new Error('Failed to find item kind - ' + info);
     }
@@ -4687,8 +4821,14 @@ function from$3(info, makeOptions) {
     }
     return kind.make(makeOptions);
 }
+function makeRandom$1(opts, makeOptions) {
+    const kind = randomKind$1(opts);
+    if (!kind)
+        throw new Error('Failed to find item kind matching - ' + JSON.stringify(opts));
+    return kind.make(makeOptions);
+}
 const kinds$1 = {};
-function install$4(id, kind) {
+function install$3(id, kind) {
     if (kind instanceof ActorKind) {
         kinds$1[id] = kind;
         return kind;
@@ -4698,7 +4838,7 @@ function install$4(id, kind) {
     kinds$1[id] = made;
     return made;
 }
-function get$3(id) {
+function get$2(id) {
     if (id instanceof ActorKind)
         return id;
     return kinds$1[id];
@@ -4772,14 +4912,6 @@ async function bump(game, actor, ctx = {}) {
                         throw new Error('Cannot have bump action for self action that actor cannot do: ' +
                             action);
                     }
-                    if (selfAction === true) {
-                        const baseAction = getAction(selfName);
-                        if (!baseAction) {
-                            throw new Error('Cannot have bump self action for unknown action: ' +
-                                selfName);
-                        }
-                        selfAction = baseAction;
-                    }
                     const ctx2 = Object.assign({}, ctx, { actor });
                     const result = await selfAction(game, other, ctx2);
                     if (result)
@@ -4787,13 +4919,7 @@ async function bump(game, actor, ctx = {}) {
                 }
                 else {
                     const config = actor.getAction(action);
-                    if (config === true) {
-                        const baseAction = getAction(action);
-                        if (!baseAction)
-                            throw new Error('Cannot find action for bump: ' + action);
-                        action = baseAction;
-                    }
-                    else if (config === false) {
+                    if (config === false) {
                         throw new Error('Cannot configure actor with bump action they cannot do: ' +
                             action);
                     }
@@ -4818,10 +4944,9 @@ async function bump(game, actor, ctx = {}) {
 installAction('bump', bump);
 
 async function standStill(_game, actor, _ctx) {
-    return actor.moveSpeed();
+    return actor.endTurn();
 }
 installAction('standStill', standStill);
-installAction('idle', standStill);
 
 // export class SpriteFX extends FX {
 //     sprite: GWU.sprite.SpriteConfig;
@@ -4878,7 +5003,7 @@ async function flashSprite(map, x, y, sprite, duration = 100, count = 1, animato
     if (typeof sprite === 'string') {
         sprite = GWU.sprite.from(sprite);
     }
-    const entity = make$6({ name: 'FX', sprite });
+    const entity = make$7({ name: 'FX', sprite });
     map.addFx(x, y, entity);
     const tween = GWU.tween
         .make({ visible: true })
@@ -4919,7 +5044,7 @@ async function fadeInOut(map, x, y, sprite, duration = 100, animator) {
     else {
         sprite = GWU.sprite.make(sprite);
     }
-    const entity = make$6({ name: 'FX', sprite });
+    const entity = make$7({ name: 'FX', sprite });
     map.addFx(x, y, entity);
     const tween = GWU.tween
         .make({ opacity: 0 })
@@ -4943,7 +5068,7 @@ async function moveSprite(map, source, target, sprite, opts = {}) {
     if (typeof sprite === 'string') {
         sprite = GWU.sprite.from(sprite);
     }
-    const entity = make$6({ name: 'FX', sprite });
+    const entity = make$7({ name: 'FX', sprite });
     const from = { x: GWU.xy.x(source), y: GWU.xy.y(source) };
     map.addFx(from.x, from.y, entity);
     let duration = opts.duration ||
@@ -5195,16 +5320,22 @@ async function moveDir$1(game, actor, ctx = {}) {
     const newCell = map.cell(newX, newY);
     let result = 0;
     if (newCell.blocksMove()) {
+        if (ctx.try)
+            return 0;
         hit(map, newCell, 'hit', 100);
-        return actor.moveSpeed();
+        return actor.endTurn();
     }
     // can we leave?
     if (!currentCell.canRemoveActor(actor)) {
+        if (ctx.try)
+            return 0;
         // canActorLeave must add appropriate message
-        return actor.moveSpeed();
+        return actor.endTurn();
     }
     // is there an actor there?
     if (newCell.hasActor() || newCell.hasItem()) {
+        if (ctx.try)
+            return 0;
         const ctx2 = { actor: newCell.actor, item: newCell.item };
         result = await bump(game, actor, ctx2);
         if (result)
@@ -5212,22 +5343,87 @@ async function moveDir$1(game, actor, ctx = {}) {
     }
     // can we enter?
     if (!newCell.canAddActor(actor)) {
-        return actor.moveSpeed();
+        if (ctx.try)
+            return 0;
+        return actor.endTurn();
     }
     if (!map.moveActor(actor, newX, newY)) {
         result = await standStill(game, actor);
         return result;
     }
-    result = actor.moveSpeed();
+    result = actor.endTurn();
     return result;
 }
 installAction('moveDir', moveDir$1);
+
+async function idle(game, actor, _ctx) {
+    if (GWU.random.chance(50)) {
+        // do nothing
+        return actor.endTurn();
+    }
+    // try to step in a random direction
+    const dirIndex = GWU.random.number(4);
+    const dir = GWU.xy.DIRS[dirIndex];
+    const result = await moveDir$1(game, actor, { dir, try: true });
+    if (result)
+        return result;
+    // stand still
+    return actor.endTurn();
+}
+installAction('idle', idle);
+
+async function pickup$1(game, actor, ctx = {}) {
+    const map = actor.map;
+    if (!map)
+        throw new Error('Actor not on map!');
+    const item = actor.map.itemAt(actor.x, actor.y);
+    if (!item) {
+        if (!ctx.quiet) {
+            GWU.message.addAt(actor.x, actor.y, 'Nothing to pickup.');
+        }
+        return 0;
+    }
+    if (actor.avoidsItem(item))
+        return 0;
+    const itemAction = item.getAction('pickup');
+    if (itemAction === false) {
+        if (!ctx.quiet) {
+            GWU.message.addAt(actor.x, actor.y, 'You cannot pickup %{the.item}.', {
+                item,
+            });
+        }
+        return 0;
+    }
+    else if (typeof itemAction === 'function') {
+        // You have to do everything
+        const result = await itemAction(game, actor, item);
+        if (result)
+            return result; // handled
+    }
+    // logs error messages
+    if (!actor.canAddItem(item)) {
+        return 0;
+    }
+    if (!actor.map.removeItem(item)) {
+        return 0;
+    }
+    actor.addItem(item);
+    if (!ctx.quiet) {
+        GWU.message.addAt(actor.x, actor.y, 'You pickup %{the:item}.', {
+            item,
+        });
+    }
+    return actor.endTurn();
+}
+installAction('pickup', pickup$1);
 
 var index$8 = /*#__PURE__*/Object.freeze({
     __proto__: null,
     bump: bump,
     moveDir: moveDir$1,
-    standStill: standStill
+    standStill: standStill,
+    idle: idle,
+    pickup: pickup$1
 });
 
 var index$7 = /*#__PURE__*/Object.freeze({
@@ -5243,10 +5439,9 @@ var index$7 = /*#__PURE__*/Object.freeze({
     Actor: Actor,
     make: make$2,
     makeRandom: makeRandom$1,
-    from: from$3,
     kinds: kinds$1,
-    install: install$4,
-    get: get$3,
+    install: install$3,
+    get: get$2,
     makeKind: makeKind$2,
     randomKind: randomKind$1,
     installedActions: installedActions,
@@ -5326,23 +5521,11 @@ class ItemKind extends EntityKind {
     }
 }
 
-function make$1(id, makeOptions) {
-    const kind = get$2(id);
-    if (!kind)
-        throw new Error('Failed to find item kind - ' + id);
-    return kind.make(makeOptions);
-}
-function makeRandom(opts, makeOptions) {
-    const kind = randomKind(opts);
-    if (!kind)
-        throw new Error('Failed to find item kind matching - ' + JSON.stringify(opts));
-    return kind.make(makeOptions);
-}
-function from$2(info, makeOptions) {
+function make$1(info, makeOptions) {
     let kind;
     if (typeof info === 'string') {
         // @ts-ignore
-        kind = get$2(info);
+        kind = get$1(info);
         if (!kind)
             throw new Error('Failed to find item kind - ' + info);
     }
@@ -5354,8 +5537,14 @@ function from$2(info, makeOptions) {
     }
     return kind.make(makeOptions);
 }
+function makeRandom(opts, makeOptions) {
+    const kind = randomKind(opts);
+    if (!kind)
+        throw new Error('Failed to find item kind matching - ' + JSON.stringify(opts));
+    return kind.make(makeOptions);
+}
 const kinds = {};
-function install$3(id, kind) {
+function install$2(id, kind) {
     if (kind instanceof ItemKind) {
         kinds[id] = kind;
         return kind;
@@ -5365,7 +5554,7 @@ function install$3(id, kind) {
     kinds[id] = made;
     return made;
 }
-function get$2(id) {
+function get$1(id) {
     if (id instanceof ItemKind)
         return id;
     return kinds[id];
@@ -5423,10 +5612,9 @@ var index$6 = /*#__PURE__*/Object.freeze({
     Item: Item,
     make: make$1,
     makeRandom: makeRandom,
-    from: from$2,
     kinds: kinds,
-    install: install$3,
-    get: get$2,
+    install: install$2,
+    get: get$1,
     makeKind: makeKind$1,
     randomKind: randomKind
 });
@@ -5855,8 +6043,8 @@ var index$5 = /*#__PURE__*/Object.freeze({
     __proto__: null,
     Cell: Cell,
     Map: Map,
-    make: make$3,
-    from: from$4,
+    make: make$4,
+    from: from$1,
     analyze: analyze,
     updateChokepoints: updateChokepoints,
     floodFillCount: floodFillCount,
@@ -5939,7 +6127,7 @@ class Horde {
         return leader;
     }
     _spawnLeader(map, x, y, opts) {
-        const leaderKind = get$3(this.leader);
+        const leaderKind = get$2(this.leader);
         if (!leaderKind) {
             throw new Error('Failed to find leader kind = ' + this.leader);
         }
@@ -5983,7 +6171,7 @@ class Horde {
         return count;
     }
     _spawnMember(kindId, map, leader, opts) {
-        const kind = get$3(kindId);
+        const kind = get$2(kindId);
         if (!kind) {
             throw new Error('Failed to find member kind = ' + kindId);
         }
@@ -6038,7 +6226,7 @@ class Horde {
 }
 
 const hordes = {};
-function install$2(id, horde) {
+function install$1(id, horde) {
     if (typeof horde === 'string') {
         horde = { leader: horde };
     }
@@ -6050,10 +6238,10 @@ function install$2(id, horde) {
 }
 function installAll(hordes) {
     Object.entries(hordes).forEach(([id, config]) => {
-        install$2(id, config);
+        install$1(id, config);
     });
 }
-function from$1(id) {
+function from(id) {
     if (id instanceof Horde) {
         return id;
     }
@@ -6154,17 +6342,17 @@ var index$4 = /*#__PURE__*/Object.freeze({
     __proto__: null,
     Horde: Horde,
     hordes: hordes,
-    install: install$2,
+    install: install$1,
     installAll: installAll,
-    from: from$1,
+    from: from,
     random: random
 });
 
 const actions = {};
-function install$1(name, fn) {
+function installCommand(name, fn) {
     actions[name] = fn;
 }
-function get$1(name) {
+function getCommand(name) {
     return actions[name];
 }
 
@@ -6176,59 +6364,35 @@ async function moveDir(actor, e) {
         return -1;
     return moveDir$1(this, actor, e);
 }
-install$1('moveDir', moveDir);
+installCommand('moveDir', moveDir);
 
 async function pickup(actor, _ev) {
     if (!actor.map)
         return -1;
     const playerAction = actor.getAction('pickup');
-    if (playerAction === false) {
+    if (!playerAction) {
         GWU.message.addAt(actor.x, actor.y, 'You cannot pickup items.');
         return actor.endTurn();
     }
-    else if (typeof playerAction === 'function') {
+    else {
         // You have to do everything
         const result = await playerAction(this, actor);
         if (result)
             return result; // handled
     }
-    const item = actor.map.itemAt(actor.x, actor.y);
-    if (!item) {
-        GWU.message.addAt(actor.x, actor.y, 'Nothing to pickup.');
-        return 0;
-    }
-    if (actor.avoidsItem(item))
-        return 0;
-    const itemAction = item.getAction('pickup');
-    if (itemAction === false) {
-        GWU.message.addAt(actor.x, actor.y, 'You cannot pickup %{the.item}.', {
-            item,
-        });
-        return 0;
-    }
-    else if (typeof itemAction === 'function') {
-        // You have to do everything
-        const result = await itemAction(this, actor, item);
-        if (result)
-            return result; // handled
-    }
-    // logs error messages
-    if (!actor.canAddItem(item)) {
-        return 0;
-    }
-    if (!actor.map.removeItem(item)) {
-        return 0;
-    }
-    actor.addItem(item);
-    return actor.endTurn();
+    // Should never get here, but...
+    const standStill = actor.getAction('standStill');
+    if (!standStill)
+        throw new Error('Actor cannot stand still.');
+    return standStill(this, actor);
 }
-install$1('pickup', pickup);
+installCommand('pickup', pickup);
 
 var index$3 = /*#__PURE__*/Object.freeze({
     __proto__: null,
     actions: actions,
-    install: install$1,
-    get: get$1,
+    installCommand: installCommand,
+    getCommand: getCommand,
     moveDir: moveDir,
     pickup: pickup
 });
@@ -6839,26 +7003,20 @@ class PlayerKind extends ActorKind {
 }
 
 function make(id, makeOptions) {
-    const kind = get$3(id);
-    if (!kind)
-        throw new Error('Failed to find item kind - ' + id);
-    return kind.make(makeOptions);
-}
-function from(info, makeOptions) {
     let kind;
-    if (typeof info === 'string') {
+    if (typeof id === 'string') {
         // @ts-ignore
-        kind = get$3(info);
+        kind = get$2(id);
         if (!kind)
-            throw new Error('Failed to find item kind - ' + info);
+            throw new Error('Failed to find item kind - ' + id);
         if (!(kind instanceof PlayerKind))
             throw new Error('Not a player kind.');
     }
-    else if (info instanceof PlayerKind) {
-        kind = info;
+    else if (id instanceof PlayerKind) {
+        kind = id;
     }
     else {
-        kind = makeKind(info);
+        kind = makeKind(id);
     }
     return kind.make(makeOptions);
 }
@@ -6896,7 +7054,6 @@ var index$1 = /*#__PURE__*/Object.freeze({
     PlayerKind: PlayerKind,
     Player: Player,
     make: make,
-    from: from,
     install: install,
     get: get,
     makeKind: makeKind
@@ -6904,6 +7061,7 @@ var index$1 = /*#__PURE__*/Object.freeze({
 
 class Game {
     constructor(opts) {
+        this.result = undefined;
         this.running = false;
         this.keymap = {};
         this.ui = opts.ui || new GWU.ui.UI(opts);
@@ -6931,6 +7089,7 @@ class Game {
             await this.animate();
             await this.runTurn();
         }
+        return this.result;
     }
     draw() {
         if (this.map && this.map.needsRedraw) {
@@ -6938,9 +7097,10 @@ class Game {
             this.buffer.render();
         }
     }
-    finish() {
+    finish(result) {
         this.running = false;
         this.layer.finish();
+        this.result = result;
     }
     async runTurn() {
         const actor = this.scheduler.pop();
@@ -6995,7 +7155,7 @@ class Game {
                     const handler = GWU.io.handlerFor(ev, this.keymap);
                     if (handler) {
                         if (typeof handler === 'string') {
-                            const action = get$1(handler);
+                            const action = getCommand(handler);
                             if (action) {
                                 done = await action.call(this, player, ev);
                             }
@@ -7021,7 +7181,7 @@ var index = /*#__PURE__*/Object.freeze({
 });
 
 // These are the minimal set of tiles to make the diggers work
-install$6('NULL', {
+install$5('NULL', {
     ch: '\u2205',
     fg: 'white',
     bg: 'black',
@@ -7030,7 +7190,7 @@ install$6('NULL', {
     article: 'an',
     priority: 0,
 });
-install$6('FLOOR', {
+install$5('FLOOR', {
     ch: '\u00b7',
     fg: GWU.color.from([30, 30, 30]).rand(20, 0, 0, 0),
     bg: GWU.color.from([2, 2, 10]).rand(0, 2, 2, 0),
@@ -7038,7 +7198,7 @@ install$6('FLOOR', {
     article: 'the',
     flavor: 'the stone floor',
 });
-install$6('DOOR', {
+install$5('DOOR', {
     ch: '+',
     fg: [100, 40, 40],
     bg: [30, 60, 60],
@@ -7051,7 +7211,7 @@ install$6('DOOR', {
     },
     flavor: 'a closed door',
 });
-install$6('DOOR_OPEN', 'DOOR', {
+install$5('DOOR_OPEN', 'DOOR', {
     ch: "'",
     fg: [100, 40, 40],
     bg: [30, 60, 60],
@@ -7070,14 +7230,14 @@ install$6('DOOR_OPEN', 'DOOR', {
     },
     flavor: 'an open door',
 });
-install$6('DOOR_OPEN_ALWAYS', 'DOOR_OPEN', {
+install$5('DOOR_OPEN_ALWAYS', 'DOOR_OPEN', {
     effects: {
         tick: null,
         close: 'TILE:DOOR~!',
     },
     flavor: 'an open door',
 });
-install$6('UP_STAIRS', {
+install$5('UP_STAIRS', {
     ch: '<',
     fg: [100, 50, 50],
     bg: [40, 20, 20],
@@ -7090,7 +7250,7 @@ install$6('UP_STAIRS', {
     },
     flavor: 'stairs leading upwards',
 });
-install$6('DOWN_STAIRS', {
+install$5('DOWN_STAIRS', {
     ch: '>',
     fg: [100, 50, 50],
     bg: [40, 20, 20],
@@ -7103,7 +7263,7 @@ install$6('DOWN_STAIRS', {
     },
     flavor: 'downward leading stairs',
 });
-install$6('WALL', {
+install$5('WALL', {
     ch: '#',
     fg: GWU.color.from([7, 7, 7]).rand(0, 3, 3, 3),
     bg: GWU.color.from([40, 40, 40]).rand(10, 10, 0, 5),
@@ -7114,7 +7274,7 @@ install$6('WALL', {
     description: 'A wall made from rough cut stone.',
     flavor: 'a rough stone wall',
 });
-install$6('IMPREGNABLE', {
+install$5('IMPREGNABLE', {
     ch: '#',
     fg: GWU.color.from([7, 7, 7]).rand(0, 3, 3, 3),
     bg: GWU.color.from([40, 40, 40]).rand(10, 10, 0, 5),
@@ -7125,7 +7285,7 @@ install$6('IMPREGNABLE', {
     description: 'A wall made from very hard stone.',
     flavor: 'a very hard wall',
 });
-install$6('LAKE', {
+install$5('LAKE', {
     ch: '~',
     fg: GWU.color.from([5, 8, 20]).dance(10, 0, 4, 15),
     bg: GWU.color.from([10, 15, 41]).dance(6, 5, 5, 5),
@@ -7135,7 +7295,7 @@ install$6('LAKE', {
     article: 'the',
     flavor: 'some deep water',
 });
-install$6('SHALLOW', {
+install$5('SHALLOW', {
     ch: '\u00b7',
     fg: GWU.color.from([5, 8, 10]).dance(10, 0, 4, 15),
     bg: GWU.color.from([10, 30, 30]).dance(6, 0, 10, 10),
@@ -7146,7 +7306,7 @@ install$6('SHALLOW', {
     // depth: 'LIQUID', // 'SURFACE'?
     flavor: 'some shallow water',
 });
-install$6('BRIDGE', {
+install$5('BRIDGE', {
     ch: '\u2630',
     fg: [100, 40, 40],
     priority: 40,
