@@ -25,6 +25,7 @@ export async function moveDir(
     if (newCell.blocksMove()) {
         if (ctx.try) return 0;
         FX.hit(map, newCell, 'hit', 100);
+        actor.clearGoal();
         return actor.endTurn();
     }
 

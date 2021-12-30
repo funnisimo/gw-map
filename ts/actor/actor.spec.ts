@@ -5,7 +5,7 @@ import * as Flags from '../flags';
 
 describe('Actor', () => {
     test('create and place', () => {
-        const actor = Actor.from({
+        const actor = Actor.make({
             name: 'an actor',
             ch: 'a',
             fg: 'green',
@@ -35,7 +35,7 @@ describe('Actor', () => {
     });
 
     test('vision', () => {
-        const actor = Actor.from({
+        const actor = Actor.make({
             name: 'an actor',
             ch: 'a',
             fg: 'green',
@@ -49,7 +49,7 @@ describe('Actor', () => {
         const map = Map.make(20, 20, 'FLOOR', 'WALL');
         const fov = new GWU.fov.FovSystem(map);
 
-        const actor = Actor.from(
+        const actor = Actor.make(
             {
                 name: 'an actor',
                 ch: 'a',
@@ -70,7 +70,7 @@ describe('Actor', () => {
     test('actor with NO fov', () => {
         const map = Map.make(20, 20, 'FLOOR', 'WALL');
 
-        const actor = Actor.from({
+        const actor = Actor.make({
             name: 'an actor',
             ch: 'a',
             fg: 'green',
@@ -87,7 +87,7 @@ describe('Actor', () => {
     });
 
     test('clone', () => {
-        const actor = Actor.from({ ch: '@', fg: 'white', name: 'An Actor' });
+        const actor = Actor.make({ ch: '@', fg: 'white', name: 'An Actor' });
         const other = actor.clone();
         expect(other).toBeInstanceOf(Actor.Actor);
         expect(other.kind).toBe(actor.kind);

@@ -55,12 +55,12 @@ describe('Actor Actions', () => {
 
     test('action - true', () => {
         const action = actorA.getAction('eat');
-        expect(action).toBeTrue();
+        expect(action).toBeFalsy(); // there is no default action
     });
 
     test('action - unknown', () => {
         const action = actorA.getAction('rummage');
-        expect(action).toBeTrue(); // default is do the default
+        expect(action).toBeFalsy(); // There is no default
     });
 
     test('bump', () => {

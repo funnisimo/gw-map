@@ -12,7 +12,14 @@ export class BasicEffect implements Effect.Effect {
     constructor(config?: string | string[] | Record<string, any>) {
         if (typeof config === 'object' && !Array.isArray(config)) {
             this.flags = GWU.flag.from(Flags.Effect, config.flags);
-            this.chance = Number.parseInt(config.chance || '10000');
+            if (
+                typeof config.chance === 'string' &&
+                config.chance.endsWith('%')
+            ) {
+                this.chance = Number.parseFloat(config.chance) * 100;
+            } else {
+                this.chance = Number.parseInt(config.chance || '10000');
+            }
         }
     }
 

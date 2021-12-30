@@ -609,6 +609,36 @@ export class Map
         return this.cell(x, y).hasTileFlag(flag);
     }
 
+    highlightPath(path: GWU.xy.Loc[], markCursor = true) {
+        this.clearPath();
+        path.forEach((loc) => {
+            this.setCellFlag(loc[0], loc[1], Flags.Cell.IS_HIGHLIGHTED);
+        });
+        if (markCursor && path[0]) {
+            const loc = path[0];
+            this.setCellFlag(loc[0], loc[1], Flags.Cell.IS_CURSOR);
+        }
+        this.needsRedraw = true;
+    }
+
+    clearPath() {
+        this.cells.forEach((c) =>
+            c.clearCellFlag(Flags.Cell.IS_CURSOR | Flags.Cell.IS_HIGHLIGHTED)
+        );
+        this.needsRedraw = true;
+    }
+
+    showCursor(x: number, y: number) {
+        this.clearCursor();
+        this.cell(x, y).setCellFlag(Flags.Cell.IS_CURSOR);
+        this.needsRedraw = true;
+    }
+
+    clearCursor() {
+        this.cells.forEach((c) => c.clearCellFlag(Flags.Cell.IS_CURSOR));
+        this.needsRedraw = true;
+    }
+
     clear() {
         this.light.glowLightChanged = true;
         // this.fov.needsUpdate = true;
@@ -838,7 +868,7 @@ export class Map
 
     getAppearanceAt(x: number, y: number, dest: GWU.sprite.Mixer) {
         const cell = this.cell(x, y);
-        return this.drawer.drawCell(dest, cell);
+        return this.drawer.drawCell(dest, this, cell);
     }
 
     // // LightSystemSite

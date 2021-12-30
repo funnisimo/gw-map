@@ -3,6 +3,7 @@ import { CellType, MapType } from '../map/types';
 
 export type CellDrawFn = (
     dest: GWU.sprite.Mixer,
+    map: MapType,
     cell: CellType,
     fov?: GWU.fov.FovTracker
 ) => boolean;
@@ -10,7 +11,7 @@ export type CellDrawFn = (
 export interface MapDrawOptions {
     offsetX: number;
     offsetY: number;
-    fov?: GWU.fov.FovTracker;
+    fov?: GWU.fov.FovTracker | null;
 }
 
 export interface BufferSource {

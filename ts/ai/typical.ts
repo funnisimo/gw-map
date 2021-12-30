@@ -272,7 +272,7 @@ export async function moveAwayFrom(
 
     // always move using safety map?
 
-    return actor.moveSpeed();
+    return actor.endTurn();
 }
 
 export function canRunAwayFrom(
@@ -293,7 +293,7 @@ export async function runAwayFrom(
 ): Promise<number> {
     // move toward loop if away from player
 
-    return actor.moveSpeed();
+    return actor.endTurn();
 }
 
 export function canAttack(

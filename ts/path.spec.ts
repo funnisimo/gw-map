@@ -7,11 +7,11 @@ describe('path', () => {
         let path = GWM.path.getPathBetween(map, 2, 3, 8, 9);
         // console.log(path);
         expect(path).not.toBeNull();
-        expect(path!.length).toEqual(13);
+        expect(path!.length).toEqual(12);
 
         path = GWM.path.getPathBetween(map, 2, 3, 8, 9, { eightWays: true });
         // console.log(path);
         expect(path).not.toBeNull();
-        expect(path!.length).toEqual(7);
+        expect(path!.length).toEqual(6);
     });
 });

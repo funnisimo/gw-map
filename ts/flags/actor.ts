@@ -9,5 +9,8 @@ export enum Actor {
 
     STABLE_COST_MAP = Fl(3),
 
+    IS_VISIBLE = Fl(4),
+    WAS_VISIBLE = Fl(5),
+
     DEFAULT = 0,
 }

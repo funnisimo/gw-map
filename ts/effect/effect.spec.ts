@@ -113,7 +113,7 @@ describe('Effect', () => {
         'make({ chance: 100, tile: { id: "WALL", flags: "A|B" }, emit: "OK"})'
     );
 
-    test.only('install', () => {
+    test('install', () => {
         const te = Effect.install('TEST', 'EMIT:FLOOR');
 
         expect(Effect.installedEffects.TEST).toBe(te);
@@ -153,7 +153,7 @@ describe('Effect', () => {
         expect(Effect.installedEffects.TEST2.seen).toBeFalsy();
     });
 
-    describe('multiple effects', () => {
+    describe.skip('multiple effects', () => {
         test('unknown effect', () => {
             expect(() =>
                 Effect.install('TEST', [
@@ -310,7 +310,7 @@ describe('Effect', () => {
         //     });
         // });
 
-        describe('multiple effects', () => {
+        describe.skip('multiple effects', () => {
             afterEach(() => {
                 jest.restoreAllMocks();
                 map.events.removeAllListeners();

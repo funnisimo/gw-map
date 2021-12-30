@@ -61,7 +61,7 @@ describe('memory', () => {
 
         const fov = new GWU.fov.FovSystem(map, { callback: memory });
         expect(fov.isAnyKindOfVisible(5, 5)).toBeFalsy();
-        const actor = Actor.from({ ch: '@', fg: 'white', name: 'Actor' });
+        const actor = Actor.make({ ch: '@', fg: 'white', name: 'Actor' });
         map.addActor(11, 5, actor);
         expect(fov.isAnyKindOfVisible(11, 5)).toBeFalsy();
         map.drawInto(buffer); // sets STABLE_SNAPSHOT for whole map
@@ -103,12 +103,10 @@ describe('memory', () => {
 
         fov.update(5, 5, 5); // and back out of view
         const memActor = memory.actorAt(11, 5)!;
-        expect(memActor).not.toBeNull(); // actor clone
-        expect(memActor._map).toBe(memory);
-        expect(memActor).not.toBe(actor); // actor clone
+        expect(memActor).toBeNull(); // We do not store actors in memory
 
         expect(memory.cell(11, 5).hasStableMemory).toBeTruthy();
-        expect(memory.cell(11, 5).hasStableSnapshot).toBeTruthy();
+        expect(memory.cell(11, 5).hasStableSnapshot).toBeFalsy(); // we need to redraw to create snapshot - because of removing actor
         memory.drawInto(buffer);
     });
 });

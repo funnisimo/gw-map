@@ -38,6 +38,7 @@ export class Actor extends Entity.Entity {
     data: Record<string, number> = {};
     _costMap: GWU.grid.NumGrid | null = null;
     _goalMap: GWU.grid.NumGrid | null = null;
+    _mapToMe: GWU.grid.NumGrid | null = null;
 
     next: Actor | null = null; // TODO - can we get rid of this?
 
@@ -69,6 +70,10 @@ export class Actor extends Entity.Entity {
         if (this._goalMap) {
             GWU.grid.free(this._goalMap);
             this._goalMap = null;
+        }
+        if (this._mapToMe) {
+            GWU.grid.free(this._mapToMe);
+            this._mapToMe = null;
         }
     }
 
@@ -113,6 +118,13 @@ export class Actor extends Entity.Entity {
     }
 
     /////////////// VISIBILITY
+
+    becameVisible(): boolean {
+        return (
+            this.hasActorFlag(Flags.Actor.IS_VISIBLE) &&
+            !this.hasActorFlag(Flags.Actor.WAS_VISIBLE)
+        );
+    }
 
     canSee(x: number, y: number): boolean;
     canSee(entity: Entity.Entity): boolean;
@@ -168,18 +180,44 @@ export class Actor extends Entity.Entity {
     ////////////////// ACTOR
 
     async act(game: Game): Promise<number> {
-        if (this.ai && this.ai.fn) {
-            const r = await this.ai.fn(game, this);
-            if (r) return r;
+        let startedVisible = false;
+        if (game.player.canSee(this)) {
+            this.setActorFlag(Flags.Actor.IS_VISIBLE);
+            this.lastSeen[0] = this.x;
+            this.lastSeen[1] = this.y;
+            startedVisible = true;
+        } else {
+            if (this.hasActorFlag(Flags.Actor.IS_VISIBLE)) {
+                console.log('not visible');
+            }
+            this.clearActorFlag(Flags.Actor.IS_VISIBLE);
         }
 
-        if (this.kind.ai) {
-            const r = await this.kind.ai.fn(game, this);
-            if (r) return r;
+        if (this.becameVisible()) {
+            console.log('became visible');
+            game.player.interrupt();
+        }
+
+        let r = 0;
+        if (this.ai && this.ai.fn) {
+            r = await this.ai.fn(game, this);
+        }
+
+        if (r == 0 && this.kind.ai) {
+            r = await this.kind.ai.fn(game, this);
+        }
+
+        if (r) {
+            // did something
+            if (startedVisible || game.player.canSee(this)) {
+                this.lastSeen[0] = this.x;
+                this.lastSeen[1] = this.y;
+            }
+            return r;
         }
 
         // idle - always
-        return this.moveSpeed();
+        return this.endTurn();
     }
 
     moveSpeed(): number {
@@ -189,6 +227,11 @@ export class Actor extends Entity.Entity {
     startTurn() {}
 
     endTurn(pct = 100): number {
+        if (this.hasActorFlag(Flags.Actor.IS_VISIBLE)) {
+            this.setActorFlag(Flags.Actor.WAS_VISIBLE);
+        } else {
+            this.clearActorFlag(Flags.Actor.WAS_VISIBLE);
+        }
         return Math.floor((pct * this.moveSpeed()) / 100);
     }
 
@@ -241,6 +284,10 @@ export class Actor extends Entity.Entity {
         if (this._goalMap) {
             GWU.grid.free(this._goalMap);
             this._goalMap = null;
+        }
+        if (this._mapToMe) {
+            GWU.grid.free(this._mapToMe);
+            this._mapToMe = null;
         }
     }
 
@@ -354,6 +401,10 @@ export class Actor extends Entity.Entity {
         return this._goalMap;
     }
 
+    hasGoal(): boolean {
+        return !!this._goalMap;
+    }
+
     setGoal(x: number, y: number): GWU.grid.NumGrid {
         const map = this._map;
         if (!map) throw new Error('No map to set goal with!');
@@ -372,5 +423,23 @@ export class Actor extends Entity.Entity {
             GWU.grid.free(this._goalMap);
             this._goalMap = null;
         }
+    }
+
+    mapToMe(): GWU.grid.NumGrid {
+        if (!this.map) throw new Error('No map!');
+        if (!this._mapToMe) {
+            this._mapToMe = GWU.grid.alloc(this.map.width, this.map.height);
+        }
+
+        if (this._mapToMe.x !== this.x || this._mapToMe.y !== this.y) {
+            GWU.path.calculateDistances(
+                this._mapToMe,
+                this.x,
+                this.y,
+                this.costMap()
+            );
+        }
+
+        return this._mapToMe;
     }
 }

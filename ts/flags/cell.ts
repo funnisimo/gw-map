@@ -35,6 +35,9 @@ export enum Cell {
 
     HAS_TICK_EFFECT = Fl(22),
 
+    IS_CURSOR = Fl(23),
+    IS_HIGHLIGHTED = Fl(24),
+
     IS_WIRED = Fl(26),
     IS_CIRCUIT_BREAKER = Fl(27),
     IS_POWERED = Fl(28), // has been activated by machine power this turn (can probably be eliminate if needed)

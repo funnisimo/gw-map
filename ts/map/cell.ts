@@ -301,7 +301,10 @@ export class Cell implements CellType {
         return this.tiles.some((t) => t && t.blocksVision());
     }
     blocksPathing(): boolean {
-        return this.tiles.some((t) => t && t.blocksPathing());
+        return (
+            this.tiles.some((t) => t && t.blocksPathing()) &&
+            !this.tiles.some((t) => t && t.hasTileFlag(Flags.Tile.T_BRIDGE))
+        );
     }
     blocksMove(): boolean {
         return this.tiles.some((t) => t && t.blocksMove());

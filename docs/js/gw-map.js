@@ -88,6 +88,8 @@
         Actor[Actor["HAS_MEMORY"] = Fl$6(1)] = "HAS_MEMORY";
         Actor[Actor["USES_FOV"] = Fl$6(2)] = "USES_FOV";
         Actor[Actor["STABLE_COST_MAP"] = Fl$6(3)] = "STABLE_COST_MAP";
+        Actor[Actor["IS_VISIBLE"] = Fl$6(4)] = "IS_VISIBLE";
+        Actor[Actor["WAS_VISIBLE"] = Fl$6(5)] = "WAS_VISIBLE";
         Actor[Actor["DEFAULT"] = 0] = "DEFAULT";
     })(Actor$1 || (Actor$1 = {}));
 
@@ -222,6 +224,8 @@
         Cell[Cell["HAS_ITEM"] = Fl$3(19)] = "HAS_ITEM";
         Cell[Cell["HAS_FX"] = Fl$3(20)] = "HAS_FX";
         Cell[Cell["HAS_TICK_EFFECT"] = Fl$3(22)] = "HAS_TICK_EFFECT";
+        Cell[Cell["IS_CURSOR"] = Fl$3(23)] = "IS_CURSOR";
+        Cell[Cell["IS_HIGHLIGHTED"] = Fl$3(24)] = "IS_HIGHLIGHTED";
         Cell[Cell["IS_WIRED"] = Fl$3(26)] = "IS_WIRED";
         Cell[Cell["IS_CIRCUIT_BREAKER"] = Fl$3(27)] = "IS_CIRCUIT_BREAKER";
         Cell[Cell["IS_POWERED"] = Fl$3(28)] = "IS_POWERED";
@@ -380,6 +384,7 @@
             this._map = null;
             this.key = null;
             this.machineHome = 0;
+            this.lastSeen = [-1, -1];
             this.depth = 1; // default - TODO - enum/const
             this.light = null;
             this.flags = { entity: 0 };
@@ -1010,6 +1015,7 @@
             this.data = {};
             this._costMap = null;
             this._goalMap = null;
+            this._mapToMe = null;
             this.next = null; // TODO - can we get rid of this?
             // @ts-ignore - initialized in Entity
             this.flags.actor = 0;
@@ -1035,6 +1041,10 @@
             if (this._goalMap) {
                 GWU__namespace.grid.free(this._goalMap);
                 this._goalMap = null;
+            }
+            if (this._mapToMe) {
+                GWU__namespace.grid.free(this._mapToMe);
+                this._mapToMe = null;
             }
         }
         hasActorFlag(flag) {
@@ -1071,6 +1081,11 @@
         }
         getBumpActions() {
             return this.kind.bump;
+        }
+        /////////////// VISIBILITY
+        becameVisible() {
+            return (this.hasActorFlag(Actor$1.IS_VISIBLE) &&
+                !this.hasActorFlag(Actor$1.WAS_VISIBLE));
         }
         canSee(x, y) {
             if (x instanceof Entity) {
@@ -1116,24 +1131,52 @@
         }
         ////////////////// ACTOR
         async act(game) {
-            if (this.ai && this.ai.fn) {
-                const r = await this.ai.fn(game, this);
-                if (r)
-                    return r;
+            let startedVisible = false;
+            if (game.player.canSee(this)) {
+                this.setActorFlag(Actor$1.IS_VISIBLE);
+                this.lastSeen[0] = this.x;
+                this.lastSeen[1] = this.y;
+                startedVisible = true;
             }
-            if (this.kind.ai) {
-                const r = await this.kind.ai.fn(game, this);
-                if (r)
-                    return r;
+            else {
+                if (this.hasActorFlag(Actor$1.IS_VISIBLE)) {
+                    console.log('not visible');
+                }
+                this.clearActorFlag(Actor$1.IS_VISIBLE);
+            }
+            if (this.becameVisible()) {
+                console.log('became visible');
+                game.player.interrupt();
+            }
+            let r = 0;
+            if (this.ai && this.ai.fn) {
+                r = await this.ai.fn(game, this);
+            }
+            if (r == 0 && this.kind.ai) {
+                r = await this.kind.ai.fn(game, this);
+            }
+            if (r) {
+                // did something
+                if (startedVisible || game.player.canSee(this)) {
+                    this.lastSeen[0] = this.x;
+                    this.lastSeen[1] = this.y;
+                }
+                return r;
             }
             // idle - always
-            return this.moveSpeed();
+            return this.endTurn();
         }
         moveSpeed() {
             return this.kind.moveSpeed;
         }
         startTurn() { }
         endTurn(pct = 100) {
+            if (this.hasActorFlag(Actor$1.IS_VISIBLE)) {
+                this.setActorFlag(Actor$1.WAS_VISIBLE);
+            }
+            else {
+                this.clearActorFlag(Actor$1.WAS_VISIBLE);
+            }
             return Math.floor((pct * this.moveSpeed()) / 100);
         }
         ///////
@@ -1174,6 +1217,10 @@
             if (this._goalMap) {
                 GWU__namespace.grid.free(this._goalMap);
                 this._goalMap = null;
+            }
+            if (this._mapToMe) {
+                GWU__namespace.grid.free(this._mapToMe);
+                this._mapToMe = null;
             }
         }
         /*
@@ -1281,6 +1328,9 @@
         get goalMap() {
             return this._goalMap;
         }
+        hasGoal() {
+            return !!this._goalMap;
+        }
         setGoal(x, y) {
             const map = this._map;
             if (!map)
@@ -1297,6 +1347,17 @@
                 GWU__namespace.grid.free(this._goalMap);
                 this._goalMap = null;
             }
+        }
+        mapToMe() {
+            if (!this.map)
+                throw new Error('No map!');
+            if (!this._mapToMe) {
+                this._mapToMe = GWU__namespace.grid.alloc(this.map.width, this.map.height);
+            }
+            if (this._mapToMe.x !== this.x || this._mapToMe.y !== this.y) {
+                GWU__namespace.path.calculateDistances(this._mapToMe, this.x, this.y, this.costMap());
+            }
+            return this._mapToMe;
         }
     }
 
@@ -1839,7 +1900,13 @@
             this.next = null;
             if (typeof config === 'object' && !Array.isArray(config)) {
                 this.flags = GWU__namespace.flag.from(Effect, config.flags);
-                this.chance = Number.parseInt(config.chance || '10000');
+                if (typeof config.chance === 'string' &&
+                    config.chance.endsWith('%')) {
+                    this.chance = Number.parseFloat(config.chance) * 100;
+                }
+                else {
+                    this.chance = Number.parseInt(config.chance || '10000');
+                }
             }
         }
         clone() {
@@ -2698,7 +2765,8 @@
             return this.tiles.some((t) => t && t.blocksVision());
         }
         blocksPathing() {
-            return this.tiles.some((t) => t && t.blocksPathing());
+            return (this.tiles.some((t) => t && t.blocksPathing()) &&
+                !this.tiles.some((t) => t && t.hasTileFlag(Tile$1.T_BRIDGE)));
         }
         blocksMove() {
             return this.tiles.some((t) => t && t.blocksMove());
@@ -3327,6 +3395,7 @@
         FireLayer: FireLayer
     });
 
+    const highlightColor = GWU__namespace.color.install('highlight', [100, 100, 0]);
     class BasicDrawer {
         isAnyKindOfVisible(_cell) {
             return true;
@@ -3340,18 +3409,18 @@
                 for (let y = 0; y < buffer.height; ++y) {
                     if (map.hasXY(x + offsetX, y + offsetY)) {
                         const cell = map.cell(x + offsetX, y + offsetY);
-                        this.drawCell(mixer, cell, opts.fov);
+                        this.drawCell(mixer, map, cell, opts.fov);
                         buffer.drawSprite(x, y, mixer);
                     }
                 }
             }
         }
-        drawCell(dest, cell, fov) {
+        drawCell(dest, map, cell, fov) {
             dest.blackOut();
             // const isVisible = fov ? fov.isAnyKindOfVisible(cell.x, cell.y) : true;
             const needSnapshot = !cell.hasCellFlag(Cell$1.STABLE_SNAPSHOT);
             if (cell.needsRedraw || needSnapshot) {
-                this.getAppearance(dest, cell);
+                this.getAppearance(dest, map, cell);
                 cell.putSnapshot(dest);
                 cell.needsRedraw = false;
                 cell.setCellFlag(Cell$1.STABLE_SNAPSHOT);
@@ -3360,8 +3429,17 @@
                 cell.getSnapshot(dest);
             }
             this.applyLight(dest, cell, fov);
-            if (cell.hasEntityFlag(Entity$1.L_VISUALLY_DISTINCT |
-                Entity$1.L_LIST_IN_SIDEBAR, true)) {
+            let separate = cell.hasEntityFlag(Entity$1.L_VISUALLY_DISTINCT | Entity$1.L_LIST_IN_SIDEBAR, true);
+            if (cell.hasCellFlag(Cell$1.IS_CURSOR)) {
+                dest.bg = dest.bg.mix(highlightColor, 50);
+                separate = true;
+            }
+            else if (cell.hasCellFlag(Cell$1.IS_HIGHLIGHTED)) {
+                dest.bg = dest.bg.mix(highlightColor, 25);
+                separate = true;
+                dest.invert();
+            }
+            if (separate) {
                 [dest.fg, dest.bg] = GWU__namespace.color.separate(dest.fg, dest.bg);
             }
             return true;
@@ -3397,7 +3475,7 @@
         //         [dest.fg, dest.bg] = GWU.color.separate(dest.fg, dest.bg);
         //     }
         // }
-        getAppearance(dest, cell) {
+        getAppearance(dest, map, cell) {
             const ground = cell.tiles[Depth$1.GROUND];
             const surface = cell.tiles[Depth$1.SURFACE];
             const liquid = cell.tiles[Depth$1.LIQUID];
@@ -3410,12 +3488,12 @@
                 dest.drawSprite(liquid.sprite);
             }
             if (cell.hasItem()) {
-                const item = cell.map.itemAt(cell.x, cell.y);
+                const item = map.itemAt(cell.x, cell.y);
                 if (item)
                     item.drawInto(dest);
             }
             if (cell.hasActor()) {
-                const actor = cell.map.actorAt(cell.x, cell.y);
+                const actor = map.actorAt(cell.x, cell.y);
                 if (actor)
                     actor.drawInto(dest);
             }
@@ -3424,7 +3502,7 @@
                 dest.drawSprite(gas.sprite, opacity);
             }
             if (cell.hasFx()) {
-                const fx = cell.map.fxAt(cell.x, cell.y);
+                const fx = map.fxAt(cell.x, cell.y);
                 if (fx)
                     dest.drawSprite(fx.sprite);
             }
@@ -3448,7 +3526,7 @@
             }
             else if (!isVisible) {
                 if (isRevealed) {
-                    dest.scale(50);
+                    dest.scale(70);
                 }
                 else {
                     dest.blackOut();
@@ -3948,6 +4026,30 @@
         hasTileFlag(x, y, flag) {
             return this.cell(x, y).hasTileFlag(flag);
         }
+        highlightPath(path, markCursor = true) {
+            this.clearPath();
+            path.forEach((loc) => {
+                this.setCellFlag(loc[0], loc[1], Cell$1.IS_HIGHLIGHTED);
+            });
+            if (markCursor && path[0]) {
+                const loc = path[0];
+                this.setCellFlag(loc[0], loc[1], Cell$1.IS_CURSOR);
+            }
+            this.needsRedraw = true;
+        }
+        clearPath() {
+            this.cells.forEach((c) => c.clearCellFlag(Cell$1.IS_CURSOR | Cell$1.IS_HIGHLIGHTED));
+            this.needsRedraw = true;
+        }
+        showCursor(x, y) {
+            this.clearCursor();
+            this.cell(x, y).setCellFlag(Cell$1.IS_CURSOR);
+            this.needsRedraw = true;
+        }
+        clearCursor() {
+            this.cells.forEach((c) => c.clearCellFlag(Cell$1.IS_CURSOR));
+            this.needsRedraw = true;
+        }
         clear() {
             this.light.glowLightChanged = true;
             // this.fov.needsUpdate = true;
@@ -4122,7 +4224,7 @@
         }
         getAppearanceAt(x, y, dest) {
             const cell = this.cell(x, y);
-            return this.drawer.drawCell(dest, cell);
+            return this.drawer.drawCell(dest, this, cell);
         }
         // // LightSystemSite
         hasActor(x, y) {
@@ -4252,106 +4354,76 @@
         setTile() {
             throw new Error('Cannot set tiles on memory.');
         }
+        // addItem(x: number, y: number, item: Item, fireEffects: boolean): boolean;
+        // addItem(x: number, y: number, item: Item): boolean;
         addItem() {
             throw new Error('Cannot add Items to memory!');
         }
+        // removeItem(item: Item, fireEffects: boolean): boolean;
+        // removeItem(item: Item): boolean;
         removeItem() {
             throw new Error('Cannot remove Items from memory!');
         }
-        //  moveItem(): boolean {
-        //     throw new Error('Cannot move Items on memory!');
-        // }
+        itemAt(x, y) {
+            // if (this.isMemory(x, y)) return null;
+            return this.source.itemAt(x, y);
+        }
         eachItem(cb) {
             this.source.eachItem((i) => {
-                if (!this.isMemory(i.x, i.y)) {
-                    cb(i);
-                    const i2 = this.items.find((other) => other.id == i.id);
-                    if (i2) {
-                        const mem = this.cell(i2.x, i2.y);
-                        mem.clearCellFlag(Cell$1.HAS_ITEM | Cell$1.STABLE_SNAPSHOT);
-                        GWU__namespace.arrayDelete(this.items, i2);
-                    }
-                }
+                if (this.isMemory(i.x, i.y))
+                    return;
+                cb(i);
             });
-            this.items.forEach(cb);
         }
+        // addActor(x: number, y: number, actor: Actor, fireEffects: boolean): boolean;
+        // addActor(x: number, y: number, actor: Actor): boolean;
         addActor() {
             throw new Error('Cannot add Actors to memory!');
         }
+        // removeActor(actor: Actor, fireEffects: boolean): boolean;
+        // removeActor(actor: Actor): boolean;
         removeActor() {
             throw new Error('Cannot remove Actors from memory!');
         }
-        //  moveActor(): boolean {
-        //     throw new Error('Cannot move Actors on memory!');
-        // }
+        actorAt(x, y) {
+            if (this.isMemory(x, y))
+                return null;
+            return this.source.actorAt(x, y);
+        }
         eachActor(cb) {
             this.source.eachActor((a) => {
-                if (!this.isMemory(a.x, a.y)) {
-                    cb(a);
-                    const a2 = this.actors.find((other) => other.id == a.id);
-                    if (a2) {
-                        const mem = this.cell(a2.x, a2.y);
-                        mem.clearCellFlag(Cell$1.HAS_ACTOR | Cell$1.STABLE_SNAPSHOT);
-                        GWU__namespace.arrayDelete(this.actors, a2);
-                    }
-                }
+                if (this.isMemory(a.x, a.y))
+                    return;
+                cb(a);
             });
-            this.actors.forEach(cb);
         }
         storeMemory(x, y) {
             const mem = this.cells[x][y];
             const currentList = mem.hasEntityFlag(Entity$1.L_LIST_IN_SIDEBAR, true);
             // cleanup any old items+actors
-            if (mem.hasItem()) {
-                this.items = this.items.filter((i) => i.x !== x || i.y !== y);
-            }
-            if (mem.hasActor()) {
-                this.actors = this.actors.filter((a) => a.x !== x || a.y !== y);
-            }
             const cell = this.source.cell(x, y);
             mem.copy(cell);
             mem.setCellFlag(Cell$1.STABLE_MEMORY);
+            mem.clearCellFlag(Cell$1.STABLE_SNAPSHOT);
             mem.map = this; // so that drawing this cell results in using the right map
             let newList = mem.hasEntityFlag(Entity$1.L_LIST_IN_SIDEBAR);
             // add any current items+actors
-            if (cell.hasItem()) {
-                const item = this.source.itemAt(x, y);
-                if (item) {
-                    const copy = item.clone();
-                    copy._map = this; // memory is map
-                    this.items.push(copy);
-                    if (copy.hasEntityFlag(Entity$1.L_LIST_IN_SIDEBAR)) {
-                        newList = true;
-                    }
-                }
-            }
+            // if (cell.hasItem()) {
+            //     mem.clearCellFlag(Flags.Cell.HAS_ITEM);
+            // }
             if (cell.hasActor()) {
-                const actor = this.source.actorAt(x, y);
-                if (actor) {
-                    const copy = actor.clone();
-                    copy._map = this; // memory is map
-                    this.actors.push(copy);
-                    if (copy.hasEntityFlag(Entity$1.L_LIST_IN_SIDEBAR)) {
-                        newList = true;
-                    }
-                }
+                mem.clearCellFlag(Cell$1.HAS_ANY_ACTOR);
             }
             if (currentList != newList) {
                 this.setMapFlag(Map$1.MAP_SIDEBAR_TILES_CHANGED);
             }
             this.light.setLight(x, y, this.source.light.getLight(x, y));
         }
-        forget(x, y) {
+        makeVisible(x, y) {
             const mem = this.memory(x, y);
             const currentList = mem.hasEntityFlag(Entity$1.L_LIST_IN_SIDEBAR, true);
             // cleanup any old items+actors
-            if (mem.hasItem()) {
-                this.items = this.items.filter((i) => i.x !== x || i.y !== y);
-            }
-            if (mem.hasActor()) {
-                this.actors = this.actors.filter((a) => a.x !== x || a.y !== y);
-            }
-            mem.clearCellFlag(Cell$1.STABLE_MEMORY);
+            mem.clearCellFlag(Cell$1.STABLE_MEMORY | Cell$1.STABLE_SNAPSHOT);
             let newList = this.source
                 .cell(x, y)
                 .hasEntityFlag(Entity$1.L_LIST_IN_SIDEBAR, true);
@@ -4364,7 +4436,7 @@
                 this.storeMemory(x, y);
             }
             else {
-                this.forget(x, y);
+                this.makeVisible(x, y);
             }
         }
     }
@@ -4653,7 +4725,7 @@
     async function moveAwayFrom(_game, actor, _target, _ctx) {
         // safety/strategy?
         // always move using safety map?
-        return actor.moveSpeed();
+        return actor.endTurn();
     }
     function canRunAwayFrom(_game, _actor, _target, _ctx) {
         // can move?
@@ -4661,7 +4733,7 @@
     }
     async function runAwayFrom(_game, actor, _target, _ctx) {
         // move toward loop if away from player
-        return actor.moveSpeed();
+        return actor.endTurn();
     }
     function canAttack(_game, actor, target, _ctx) {
         // has attack?
@@ -5347,6 +5419,7 @@
             if (ctx.try)
                 return 0;
             hit(map, newCell, 'hit', 100);
+            actor.clearGoal();
             return actor.endTurn();
         }
         // can we leave?
@@ -6996,6 +7069,30 @@
         constructor(kind) {
             super(kind);
         }
+        interrupt() {
+            this.clearGoal();
+        }
+        addToMap(map, x, y) {
+            if (!super.addToMap(map, x, y))
+                return false;
+            this.memory = new Memory(map);
+            this.fov = new GWU__namespace.fov.FovSystem(map, { callback: this.memory });
+            this.fov.updateFor(this); // initial update
+            return true;
+        }
+        removeFromMap() {
+            // TODO - save/restore these
+            this.fov = null;
+            this.memory = null;
+            super.removeFromMap();
+        }
+        endTurn(pct = 100) {
+            if (this.fov)
+                this.fov.updateFor(this);
+            this.lastSeen[0] = this.x;
+            this.lastSeen[1] = this.y;
+            return super.endTurn(pct);
+        }
     }
     Player.default = {
         ch: '@',
@@ -7086,6 +7183,8 @@
     class Game {
         constructor(opts) {
             this.result = undefined;
+            this.mouse = false;
+            this.fov = false;
             this.running = false;
             this.keymap = {};
             this.ui = opts.ui || new GWU__namespace.ui.UI(opts);
@@ -7094,6 +7193,12 @@
             this._startMap = opts.startMap;
             if (opts.keymap) {
                 Object.assign(this.keymap, opts.keymap);
+            }
+            if (opts.mouse) {
+                this.mouse = true;
+            }
+            if (opts.fov) {
+                this.fov = true;
             }
         }
         async start() {
@@ -7116,6 +7221,12 @@
             return this.result;
         }
         draw() {
+            const memory = this.player.memory;
+            if (this.fov && memory) {
+                memory.drawInto(this.buffer, { fov: this.player.fov });
+                this.buffer.render();
+                return;
+            }
             if (this.map && this.map.needsRedraw) {
                 this.map.drawInto(this.buffer);
                 this.buffer.render();
@@ -7138,10 +7249,10 @@
                     nextTime = await this.playerTurn(actor);
                 }
                 else if ('act' in actor) {
-                    nextTime = await actor.act(this); // dt === 100 -- TODO
+                    nextTime = await actor.act(this);
                 }
                 else if ('tick' in actor) {
-                    nextTime = await actor.tick();
+                    nextTime = await actor.tick(); // dt === 100 -- TODO
                 }
                 this.draw();
             }
@@ -7170,27 +7281,89 @@
             let done = 0;
             const timer = setInterval(() => {
                 const tick = GWU__namespace.io.makeTickEvent(16);
+                // console.log('-tick', Date.now());
                 this.layer.io.enqueue(tick);
             }, 16);
+            let elapsed = 0;
             while (!done && this.running) {
                 const ev = await this.layer.io.nextEvent(-1);
                 if (ev) {
                     if (ev.type === GWU__namespace.io.KEYPRESS) {
-                        const handler = GWU__namespace.io.handlerFor(ev, this.keymap);
-                        if (handler) {
-                            if (typeof handler === 'string') {
-                                const action = getCommand(handler);
-                                if (action) {
-                                    done = await action.call(this, player, ev);
+                        this.map.clearPath();
+                        if (this.player.hasGoal()) {
+                            this.player.clearGoal();
+                        }
+                        else {
+                            const handler = GWU__namespace.io.handlerFor(ev, this.keymap);
+                            if (handler) {
+                                if (typeof handler === 'string') {
+                                    const action = getCommand(handler);
+                                    if (action) {
+                                        done = await action.call(this, player, ev);
+                                    }
                                 }
-                            }
-                            else if (typeof handler === 'function') {
-                                done = await handler.call(this, player, ev);
+                                else if (typeof handler === 'function') {
+                                    done = await handler.call(this, player, ev);
+                                }
                             }
                         }
                     }
                     else if (ev.type === GWU__namespace.io.TICK) {
                         this.layer.tick(ev); // timeouts
+                        elapsed += ev.dt || 16;
+                        // console.log('-- event', elapsed);
+                    }
+                    else if (this.mouse && ev.type === GWU__namespace.io.MOUSEMOVE) {
+                        if (!this.player.hasGoal()) {
+                            // console.log('mouse', ev.x, ev.y);
+                            const mapToPlayer = this.player.mapToMe();
+                            const path = GWU__namespace.path.getPath(mapToPlayer, ev.x, ev.y, GWU__namespace.FALSE);
+                            if (path) {
+                                this.map.highlightPath(path, true);
+                            }
+                            else {
+                                this.map.clearPath();
+                            }
+                            this.draw();
+                        }
+                    }
+                    else if (this.mouse && ev.type === GWU__namespace.io.CLICK) {
+                        console.log('click', ev.x, ev.y);
+                        if (this.player.hasGoal()) {
+                            this.player.clearGoal();
+                        }
+                        else {
+                            this.player.setGoal(ev.x, ev.y);
+                        }
+                    }
+                }
+                if (elapsed < 50) {
+                    continue;
+                }
+                elapsed -= 50;
+                if (this.player.hasGoal()) {
+                    const goalMap = this.player.goalMap;
+                    const step = GWU__namespace.path.nextStep(goalMap, this.player.x, this.player.y, (x, y) => this.map.hasActor(x, y) &&
+                        this.map.actorAt(x, y) !== this.player);
+                    if (!step) {
+                        this.player.clearGoal();
+                    }
+                    else {
+                        const action = getAction('moveDir');
+                        if (!action)
+                            throw new Error('Failed to find moveDir action.');
+                        done = await action(this, this.player, { dir: step });
+                        if (done) {
+                            const mapToPlayer = this.player.mapToMe();
+                            const path = GWU__namespace.path.getPath(mapToPlayer, goalMap.x, goalMap.y, GWU__namespace.FALSE);
+                            if (path && path.length) {
+                                // path.shift(); //remove player location
+                                this.map.highlightPath(path, true);
+                            }
+                            else {
+                                this.map.clearPath();
+                            }
+                        }
                     }
                 }
             }

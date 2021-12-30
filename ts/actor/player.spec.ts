@@ -7,7 +7,7 @@ import '../tile/tiles';
 
 describe('Actor - Player', () => {
     test('make', () => {
-        const actor = Actor.from({
+        const actor = Actor.make({
             ch: '@',
             fg: 'white',
             name: 'Player',

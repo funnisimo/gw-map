@@ -46,6 +46,8 @@ declare enum Actor$1 {
     HAS_MEMORY,
     USES_FOV,
     STABLE_COST_MAP,
+    IS_VISIBLE,
+    WAS_VISIBLE,
     DEFAULT = 0
 }
 
@@ -118,6 +120,8 @@ declare enum Cell$1 {
     HAS_ITEM,
     HAS_FX,
     HAS_TICK_EFFECT,
+    IS_CURSOR,
+    IS_HIGHLIGHTED,
     IS_WIRED,
     IS_CIRCUIT_BREAKER,
     IS_POWERED,
@@ -530,6 +534,10 @@ declare class Player extends Actor {
     };
     kind: PlayerKind;
     constructor(kind: PlayerKind);
+    interrupt(): void;
+    addToMap(map: MapType, x: number, y: number): boolean;
+    removeFromMap(): void;
+    endTurn(pct?: number): number;
 }
 
 declare type CommandFn = (this: Game, actor: Actor, ev: GWU.io.Event) => Promise<number>;
@@ -565,6 +573,8 @@ interface GameOptions extends GWU.ui.UIOptions {
     makePlayer: MakePlayerFn;
     startMap: StartMapFn;
     keymap: Record<string, string | CommandFn>;
+    mouse?: boolean;
+    fov?: boolean;
 }
 declare type MakeMapFn = (id: number) => Map;
 declare type MakePlayerFn = () => Player;
@@ -581,6 +591,8 @@ declare class Game {
     _makePlayer: MakePlayerFn;
     _startMap: StartMapFn;
     result: any;
+    mouse: boolean;
+    fov: boolean;
     running: boolean;
     keymap: Record<string, string | CommandFn>;
     constructor(opts: GameOptions);
@@ -1087,11 +1099,11 @@ declare namespace index_d$9 {
   };
 }
 
-declare type CellDrawFn = (dest: GWU.sprite.Mixer, cell: CellType, fov?: GWU.fov.FovTracker) => boolean;
+declare type CellDrawFn = (dest: GWU.sprite.Mixer, map: MapType, cell: CellType, fov?: GWU.fov.FovTracker) => boolean;
 interface MapDrawOptions {
     offsetX: number;
     offsetY: number;
-    fov?: GWU.fov.FovTracker;
+    fov?: GWU.fov.FovTracker | null;
 }
 interface BufferSource {
     buffer: GWU.buffer.Buffer;
@@ -1178,6 +1190,10 @@ declare class Map implements GWU.light.LightSystemSite, MapType, GWU.tween.Anima
     clearCellFlag(x: number, y: number, flag: number): void;
     hasEntityFlag(x: number, y: number, flag: number): boolean;
     hasTileFlag(x: number, y: number, flag: number): boolean;
+    highlightPath(path: GWU.xy.Loc[], markCursor?: boolean): void;
+    clearPath(): void;
+    showCursor(x: number, y: number): void;
+    clearCursor(): void;
     clear(): void;
     clearCell(x: number, y: number, tile?: number | string | Tile): void;
     fill(tile: string | number | Tile, boundary?: string | number | Tile): void;
@@ -1225,18 +1241,16 @@ declare class Memory extends Map {
     memory(x: number, y: number): Cell;
     isMemory(x: number, y: number): boolean;
     setTile(): boolean;
-    addItem(x: number, y: number, item: Item, fireEffects: boolean): boolean;
-    addItem(x: number, y: number, item: Item): boolean;
-    removeItem(item: Item, fireEffects: boolean): boolean;
-    removeItem(item: Item): boolean;
+    addItem(): boolean;
+    removeItem(): boolean;
+    itemAt(x: number, y: number): Item | null;
     eachItem(cb: GWU.types.EachCb<Item>): void;
-    addActor(x: number, y: number, actor: Actor, fireEffects: boolean): boolean;
-    addActor(x: number, y: number, actor: Actor): boolean;
-    removeActor(actor: Actor, fireEffects: boolean): boolean;
-    removeActor(actor: Actor): boolean;
+    addActor(): boolean;
+    removeActor(): boolean;
+    actorAt(x: number, y: number): Actor | null;
     eachActor(cb: GWU.types.EachCb<Actor>): void;
     storeMemory(x: number, y: number): void;
-    forget(x: number, y: number): void;
+    makeVisible(x: number, y: number): void;
     onFovChange(x: number, y: number, isVisible: boolean): void;
 }
 
@@ -1291,6 +1305,7 @@ declare class Actor extends Entity {
     data: Record<string, number>;
     _costMap: GWU.grid.NumGrid | null;
     _goalMap: GWU.grid.NumGrid | null;
+    _mapToMe: GWU.grid.NumGrid | null;
     next: Actor | null;
     constructor(kind: ActorKind);
     copy(other: Actor): void;
@@ -1304,6 +1319,7 @@ declare class Actor extends Entity {
     isDead(): boolean;
     getAction(name: string): ActorActionResult;
     getBumpActions(): (ActorActionFn | string)[];
+    becameVisible(): boolean;
     canSee(x: number, y: number): boolean;
     canSee(entity: Entity): boolean;
     canSeeOrSense(x: number, y: number): boolean;
@@ -1325,8 +1341,10 @@ declare class Actor extends Entity {
     removeFromMap(): void;
     costMap(): GWU.grid.NumGrid;
     get goalMap(): GWU.grid.NumGrid | null;
+    hasGoal(): boolean;
     setGoal(x: number, y: number): GWU.grid.NumGrid;
     clearGoal(): void;
+    mapToMe(): GWU.grid.NumGrid;
 }
 
 declare type ItemActionFn = (game: Game, actor: Actor, item: Item) => Promise<number>;
@@ -1914,6 +1932,7 @@ declare class Entity implements EntityType {
     key: KeyInfoType | null;
     machineHome: number;
     id: string;
+    lastSeen: GWU.xy.Loc;
     constructor(kind: EntityKind);
     get map(): MapType | null;
     addToMap(map: MapType, x: number, y: number): boolean;
@@ -2117,9 +2136,9 @@ declare namespace index_d$2 {
 declare class BasicDrawer implements CellDrawer {
     isAnyKindOfVisible(_cell: CellType): boolean;
     drawInto(dest: BufferSource | GWU.buffer.Buffer, map: MapType, opts?: Partial<MapDrawOptions>): void;
-    drawCell(dest: GWU.sprite.Mixer, cell: CellType, fov?: GWU.fov.FovTracker): boolean;
-    getAppearance(dest: GWU.sprite.Mixer, cell: CellType): void;
-    applyLight(dest: GWU.sprite.Mixer, cell: CellType, fov?: GWU.fov.FovTracker): void;
+    drawCell(dest: GWU.sprite.Mixer, map: MapType, cell: CellType, fov?: GWU.fov.FovTracker | null): boolean;
+    getAppearance(dest: GWU.sprite.Mixer, map: MapType, cell: CellType): void;
+    applyLight(dest: GWU.sprite.Mixer, cell: CellType, fov?: GWU.fov.FovTracker | null): void;
 }
 
 type index_d$1_CellDrawFn = CellDrawFn;

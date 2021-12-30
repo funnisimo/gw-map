@@ -5107,8 +5107,8 @@
         setDistance(DIJKSTRA_MAP, destinationX, destinationY, 0);
         batchOutput(DIJKSTRA_MAP, distanceMap);
         // TODO - Add this where called!
-        //   distanceMap.x = destinationX;
-        //   distanceMap.y = destinationY;
+        distanceMap.x = destinationX;
+        distanceMap.y = destinationY;
     }
     function rescan(distanceMap, costMap, eightWays = false, maxDistance = NO_PATH) {
         if (!DIJKSTRA_MAP)
@@ -5174,29 +5174,27 @@
         // actor = actor || GW.PLAYER;
         let x = originX;
         let y = originY;
-        let steps = 0;
         if (distanceMap[x][y] < 0 || distanceMap[x][y] >= NO_PATH) {
             const loc = getClosestValidLocationOnMap(distanceMap, x, y);
-            if (loc) {
-                x = loc[0];
-                y = loc[1];
-            }
+            if (!loc)
+                return null;
+            x = loc[0];
+            y = loc[1];
         }
-        const path = [[x, y]];
+        const path = [];
         let dir;
         do {
             dir = nextStep(distanceMap, x, y, isBlocked, eightWays);
             if (dir) {
+                path.push([x, y]);
                 x += dir[0];
                 y += dir[1];
                 // path[steps][0] = x;
                 // path[steps][1] = y;
-                path.push([x, y]);
-                steps++;
                 // brogueAssert(coordinatesAreInMap(x, y));
             }
         } while (dir);
-        return steps ? path : null;
+        return path.length ? path : null;
     }
 
     var path = /*#__PURE__*/Object.freeze({
@@ -6305,8 +6303,9 @@ void main() {
             }
             data._data.forEach((style, i) => {
                 const index = i * VERTICES_PER_TILE;
-                this._data[index + 2] = style;
-                this._data[index + 5] = style;
+                for (let j = 0; j < VERTICES_PER_TILE; ++j) {
+                    this._data[index + j] = style;
+                }
             });
             this._requestRender();
             data.changed = false;
@@ -6317,7 +6316,7 @@ void main() {
             const n = this.width * this.height;
             for (let i = 0; i < n; ++i) {
                 const index = i * VERTICES_PER_TILE;
-                data._data[i] = this._data[index + 2];
+                data._data[i] = this._data[index + 0];
             }
         }
         _render() {

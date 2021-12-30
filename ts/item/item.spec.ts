@@ -29,7 +29,7 @@ describe('Item', () => {
     });
 
     test('clone', () => {
-        const item = Item.from({ ch: '!', name: 'An Item' }, { quantity: 2 });
+        const item = Item.make({ ch: '!', name: 'An Item' }, { quantity: 2 });
         expect(item.quantity).toEqual(2);
 
         const clone = item.clone();

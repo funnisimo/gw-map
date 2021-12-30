@@ -20,7 +20,7 @@ GWM.item.install(
     new GWM.item.ItemKind({
         name: 'Box',
         ch: '*',
-        fg: 'green',
+        fg: 'yellow',
 
         actions: {
             async pickup(game, actor, item) {
@@ -113,13 +113,16 @@ async function start() {
         height: 40,
         div: 'game',
 
+        mouse: true,
+        fov: true,
+
         makeMap() {
             const seed = GWU.random.number();
             console.log('seed = ', seed);
             // GWU.random.seed(seed);
 
             const map = GWM.map.make(80, 40, 'FLOOR', 'WALL');
-            GWD.digMap(map, { stairs: false, seed });
+            GWD.digMap(map, { stairs: false, seed, lakes: 10 });
 
             // Add boxes randomly
             for (let c = 0; c < 8; ++c) {
@@ -128,8 +131,11 @@ async function start() {
             addRandomBox(map, true);
 
             // create and add Pedro
-            PEDRO = GWM.actor.make('PEDRO');
+            const PEDRO = GWM.actor.make('PEDRO');
             map.addActorNear(0, 0, PEDRO);
+
+            const PEDRO2 = GWM.actor.make('PEDRO');
+            map.addActorNear(79, 39, PEDRO2);
 
             return map;
         },
@@ -155,8 +161,8 @@ async function start() {
 
     while (true) {
         await showTitle(GAME);
-        await playGame(GAME);
-        await showGameOver(GAME);
+        const result = await playGame(GAME);
+        await showGameOver(GAME, result);
     }
 }
 
@@ -180,7 +186,7 @@ async function showTitle(game) {
     buffer.drawText(
         0,
         26,
-        'Use the ARROW keys to move around.',
+        'Use the ΩgreenΩARROW keys∆ to move around.',
         'white',
         -1,
         80,
@@ -189,13 +195,21 @@ async function showTitle(game) {
     buffer.drawText(
         0,
         27,
-        'Press SPACE to open boxes.',
+        'Press ΩgreenΩSPACE∆ to open boxes.',
         'white',
         -1,
         80,
         'center'
     );
-    buffer.drawText(0, 28, 'Press "Q" to quit.', 'white', -1, 80, 'center');
+    buffer.drawText(
+        0,
+        28,
+        'Press ΩgreenΩQ∆ to quit.',
+        'white',
+        -1,
+        80,
+        'center'
+    );
 
     buffer.drawText(
         0,
@@ -220,13 +234,20 @@ async function playGame(game) {
     return game.start();
 }
 
-async function showGameOver(game) {
+async function showGameOver(game, success) {
     const layer = new GWU.ui.Layer(game.ui);
 
     const buffer = layer.buffer;
 
     buffer.fill(0);
     buffer.drawText(0, 20, 'GAME OVER', 'yellow', -1, 80, 'center');
+
+    if (success) {
+        buffer.drawText(0, 25, 'WINNER!', 'green', -1, 80, 'center');
+    } else {
+        buffer.drawText(0, 25, 'Try Again!', 'red', -1, 80, 'center');
+    }
+
     buffer.drawText(
         0,
         30,

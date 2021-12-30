@@ -3,6 +3,8 @@ import * as Flags from '../flags';
 import { CellType, MapType } from '../map/types';
 import { CellDrawer, MapDrawOptions, BufferSource } from './types';
 
+const highlightColor = GWU.color.install('highlight', [100, 100, 0]);
+
 export class BasicDrawer implements CellDrawer {
     isAnyKindOfVisible(_cell: CellType): boolean {
         return true;
@@ -23,7 +25,7 @@ export class BasicDrawer implements CellDrawer {
             for (let y = 0; y < buffer.height; ++y) {
                 if (map.hasXY(x + offsetX, y + offsetY)) {
                     const cell = map.cell(x + offsetX, y + offsetY);
-                    this.drawCell(mixer, cell, opts.fov);
+                    this.drawCell(mixer, map, cell, opts.fov);
                     buffer.drawSprite(x, y, mixer);
                 }
             }
@@ -32,15 +34,16 @@ export class BasicDrawer implements CellDrawer {
 
     drawCell(
         dest: GWU.sprite.Mixer,
+        map: MapType,
         cell: CellType,
-        fov?: GWU.fov.FovTracker
+        fov?: GWU.fov.FovTracker | null
     ): boolean {
         dest.blackOut();
 
         // const isVisible = fov ? fov.isAnyKindOfVisible(cell.x, cell.y) : true;
         const needSnapshot = !cell.hasCellFlag(Flags.Cell.STABLE_SNAPSHOT);
         if (cell.needsRedraw || needSnapshot) {
-            this.getAppearance(dest, cell);
+            this.getAppearance(dest, map, cell);
             cell.putSnapshot(dest);
             cell.needsRedraw = false;
             cell.setCellFlag(Flags.Cell.STABLE_SNAPSHOT);
@@ -50,13 +53,21 @@ export class BasicDrawer implements CellDrawer {
 
         this.applyLight(dest, cell, fov);
 
-        if (
-            cell.hasEntityFlag(
-                Flags.Entity.L_VISUALLY_DISTINCT |
-                    Flags.Entity.L_LIST_IN_SIDEBAR,
-                true
-            )
-        ) {
+        let separate = cell.hasEntityFlag(
+            Flags.Entity.L_VISUALLY_DISTINCT | Flags.Entity.L_LIST_IN_SIDEBAR,
+            true
+        );
+
+        if (cell.hasCellFlag(Flags.Cell.IS_CURSOR)) {
+            dest.bg = dest.bg.mix(highlightColor, 50);
+            separate = true;
+        } else if (cell.hasCellFlag(Flags.Cell.IS_HIGHLIGHTED)) {
+            dest.bg = dest.bg.mix(highlightColor, 25);
+            separate = true;
+            dest.invert();
+        }
+
+        if (separate) {
             [dest.fg, dest.bg] = GWU.color.separate(dest.fg, dest.bg);
         }
         return true;
@@ -99,7 +110,7 @@ export class BasicDrawer implements CellDrawer {
     //     }
     // }
 
-    getAppearance(dest: GWU.sprite.Mixer, cell: CellType) {
+    getAppearance(dest: GWU.sprite.Mixer, map: MapType, cell: CellType) {
         const ground = cell.tiles[Flags.Depth.GROUND];
         const surface = cell.tiles[Flags.Depth.SURFACE];
         const liquid = cell.tiles[Flags.Depth.LIQUID];
@@ -113,11 +124,11 @@ export class BasicDrawer implements CellDrawer {
             dest.drawSprite(liquid.sprite);
         }
         if (cell.hasItem()) {
-            const item = cell.map.itemAt(cell.x, cell.y);
+            const item = map.itemAt(cell.x, cell.y);
             if (item) item.drawInto(dest);
         }
         if (cell.hasActor()) {
-            const actor = cell.map.actorAt(cell.x, cell.y);
+            const actor = map.actorAt(cell.x, cell.y);
             if (actor) actor.drawInto(dest);
         }
         if (gas) {
@@ -125,7 +136,7 @@ export class BasicDrawer implements CellDrawer {
             dest.drawSprite(gas.sprite, opacity);
         }
         if (cell.hasFx()) {
-            const fx = cell.map.fxAt(cell.x, cell.y);
+            const fx = map.fxAt(cell.x, cell.y);
             if (fx) dest.drawSprite(fx.sprite);
         }
 
@@ -141,7 +152,7 @@ export class BasicDrawer implements CellDrawer {
     applyLight(
         dest: GWU.sprite.Mixer,
         cell: CellType,
-        fov?: GWU.fov.FovTracker
+        fov?: GWU.fov.FovTracker | null
     ) {
         const isVisible = !fov || fov.isAnyKindOfVisible(cell.x, cell.y);
         const isRevealed = !fov || fov.isRevealed(cell.x, cell.y);
@@ -154,7 +165,7 @@ export class BasicDrawer implements CellDrawer {
             dest.invert();
         } else if (!isVisible) {
             if (isRevealed) {
-                dest.scale(50);
+                dest.scale(70);
             } else {
                 dest.blackOut();
             }
