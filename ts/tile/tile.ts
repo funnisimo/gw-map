@@ -349,3 +349,14 @@ export function installAll(tiles: Record<string, Partial<TileOptions>>): void {
         install(id, config);
     });
 }
+
+// These are the minimal set of tiles to make the diggers work
+export const NULL = install('NULL', {
+    ch: '\u2205',
+    fg: 'white',
+    bg: 'black',
+    flags: 'L_BLOCKS_MOVE',
+    name: 'eerie nothingness',
+    article: 'an',
+    priority: 0,
+});

@@ -7,7 +7,7 @@ export interface AIOptions {
 }
 
 export interface AIConfig {
-    fn: ActorAiFn;
+    fn?: ActorAiFn;
     [field: string]: any;
 }
 

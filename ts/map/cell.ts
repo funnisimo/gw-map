@@ -20,70 +20,30 @@ type EachCb<T> = (t: T) => any;
 
 GWU.color.install('cellStatusName', 'light_blue');
 
-// class CellEntities {
-//     cell: Cell;
+export interface CellMemoryFlags extends CellFlags {
+    entity: number;
+    tile: number;
+    tileMech: number;
+}
 
-//     constructor(cell: Cell) {
-//         this.cell = cell;
-//     }
+export interface CellMemory {
+    tiles: TileArray;
+    item: Item | null;
+    actor: Actor | null;
+    flags: CellMemoryFlags;
+}
 
-//     eachItem(cb: EachCb<Item>): void {
-//         let object: Item | null = this.cell._item;
-//         while (object) {
-//             cb(object);
-//             object = object.next;
-//         }
-//     }
-
-//     eachActor(cb: EachCb<Actor>): void {
-//         let object: Actor | null = this.cell._actor;
-//         while (object) {
-//             cb(object);
-//             object = object.next;
-//         }
-//     }
-
-//     forEach(cb: EachCb<Entity>): void {
-//         this.eachItem(cb);
-//         this.eachActor(cb);
-//     }
-
-//     some(cb: MatchCb<Entity>): boolean {
-//         let object: Entity | null = this.cell._item;
-//         while (object) {
-//             if (cb(object)) return true;
-//             object = object.next;
-//         }
-//         object = this.cell._actor;
-//         while (object) {
-//             if (cb(object)) return true;
-//             object = object.next;
-//         }
-//         return false;
-//     }
-
-//     reduce(cb: ReduceCb<Entity>, start?: any): any {
-//         let object: Entity | null = this.cell._item;
-//         while (object) {
-//             if (start === undefined) {
-//                 start = object;
-//             } else {
-//                 start = cb(start, object);
-//             }
-//             object = object.next;
-//         }
-//         object = this.cell._actor;
-//         while (object) {
-//             if (start === undefined) {
-//                 start = object;
-//             } else {
-//                 start = cb(start, object);
-//             }
-//             object = object.next;
-//         }
-//         return start;
-//     }
-// }
+export const NEVER_SEEN: CellMemory = {
+    tiles: [TILE.NULL],
+    item: null,
+    actor: null,
+    flags: {
+        cell: 0,
+        entity: TILE.NULL.flags.entity,
+        tile: TILE.NULL.flags.tile,
+        tileMech: TILE.NULL.flags.tileMech,
+    },
+};
 
 export class Cell implements CellType {
     flags: CellFlags;
@@ -98,6 +58,7 @@ export class Cell implements CellType {
     y = -1;
     snapshot: GWU.sprite.Mixer;
     // toFire: Partial<Effect.EffectCtx>[] = [];
+    memory: CellMemory | null = null;
 
     constructor(
         map: Map,
@@ -117,6 +78,8 @@ export class Cell implements CellType {
             const tile = TILE.get(groundTile);
             this.setTile(tile);
         }
+
+        this.memory = NEVER_SEEN;
     }
 
     getSnapshot(dest: GWU.sprite.Mixer) {
@@ -133,7 +96,55 @@ export class Cell implements CellType {
         return this.hasCellFlag(Flags.Cell.STABLE_MEMORY);
     }
 
-    copy(other: CellType) {
+    storeMemory() {
+        this.setCellFlag(Flags.Cell.STABLE_MEMORY);
+
+        // store memory
+        this.memory = {
+            flags: {
+                cell: this.flags.cell,
+                entity: this.tiles.reduce(
+                    (out, tile) => out | (tile?.flags.entity || 0),
+                    0
+                ),
+                tile: this.tiles.reduce(
+                    (out, tile) => out | (tile?.flags.tile || 0),
+                    0
+                ),
+                tileMech: this.tiles.reduce(
+                    (out, tile) => out | (tile?.flags.tileMech || 0),
+                    0
+                ),
+            },
+            tiles: this.tiles.slice() as TileArray,
+            item: this.item?.clone() || null,
+            actor: null,
+        };
+
+        if (this.hasItem()) {
+            const item = this.item;
+            if (item) {
+                this.memory.flags.entity |= item.flags.entity;
+            }
+        }
+        if (this.hasActor()) {
+            const actor = this.actor;
+            if (actor) {
+                this.memory.flags.entity |= actor.flags.entity;
+            }
+            this.clearCellFlag(Flags.Cell.STABLE_SNAPSHOT);
+        }
+    }
+
+    clearMemory() {
+        this.clearCellFlag(
+            Flags.Cell.STABLE_SNAPSHOT | Flags.Cell.STABLE_MEMORY
+        );
+        this.memory = null;
+        this.needsRedraw = true;
+    }
+
+    copy(other: Cell) {
         Object.assign(this.flags, other.flags);
         this.chokeCount = other.chokeCount;
         this.tiles.length = other.tiles.length;
@@ -143,6 +154,7 @@ export class Cell implements CellType {
         this.machineId = other.machineId;
         // this._actor = other.actor;
         // this._item = other.item;
+        this.memory = other.memory;
         this.map = other.map;
         this.x = other.x;
         this.y = other.y;
@@ -233,10 +245,12 @@ export class Cell implements CellType {
     }
     set needsRedraw(v: boolean) {
         if (v) {
-            this.flags.cell |= Flags.Cell.NEEDS_REDRAW;
-            this.flags.cell &= ~Flags.Cell.STABLE_SNAPSHOT;
+            if (!this.memory) {
+                this.flags.cell |= Flags.Cell.NEEDS_REDRAW;
+                this.flags.cell &= ~Flags.Cell.STABLE_SNAPSHOT;
 
-            this.map.needsRedraw = true;
+                this.map.needsRedraw = true;
+            }
         } else {
             this.flags.cell &= ~Flags.Cell.NEEDS_REDRAW;
         }
@@ -332,6 +346,9 @@ export class Cell implements CellType {
     isWall(): boolean {
         return this.hasAllEntityFlags(Flags.Entity.L_WALL_FLAGS);
     }
+    isDoor(): boolean {
+        return this.hasTileFlag(Flags.Tile.T_IS_DOOR);
+    }
     isStairs(): boolean {
         return this.hasTileFlag(Flags.Tile.T_HAS_STAIRS);
     }
@@ -353,6 +370,10 @@ export class Cell implements CellType {
     //         (e) => !!e.key && e.key.matches(this.x, this.y)
     //     );
     // }
+
+    hasLiquid(): boolean {
+        return this.hasTileFlag(Flags.Tile.T_ANY_LIQUID);
+    }
 
     // @returns - whether or not the change results in a change to the cell tiles.
     //          - If there is a change to cell lighting, the cell will have the
@@ -389,9 +410,12 @@ export class Cell implements CellType {
         // TODO - Are we blocked by other layer (L_BLOCKS_SURFACE on an already present tile)?
 
         if (tile.depth > Flags.Depth.GROUND && tile.groundTile) {
-            const ground = this.depthTile(Flags.Depth.GROUND);
-            if (!ground || ground === TILE.tiles.NULL) {
-                this.tiles[0] = TILE.get(tile.groundTile);
+            const currentGround = this.depthTile(Flags.Depth.GROUND);
+            const wantGround = TILE.get(tile.groundTile);
+            if (currentGround !== wantGround) {
+                if (!this.setTile(wantGround, opts)) {
+                    return false;
+                }
             }
         }
 

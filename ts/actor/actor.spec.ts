@@ -1,4 +1,4 @@
-import * as GWU from 'gw-utils';
+// import * as GWU from 'gw-utils';
 import * as Actor from '.';
 import * as Map from '../map';
 import * as Flags from '../flags';
@@ -43,28 +43,6 @@ describe('Actor', () => {
         });
 
         expect(actor.visionDistance).toEqual(5);
-    });
-
-    test('actor with fov', () => {
-        const map = Map.make(20, 20, 'FLOOR', 'WALL');
-        const fov = new GWU.fov.FovSystem(map);
-
-        const actor = Actor.make(
-            {
-                name: 'an actor',
-                ch: 'a',
-                fg: 'green',
-            },
-            { fov }
-        );
-
-        expect(map.addActor(5, 5, actor)).toBeTruthy();
-        expect(map.actorAt(5, 5)).toBe(actor);
-
-        fov.update(5, 5, 5);
-
-        expect(actor.canSee(6, 6)).toBeTruthy();
-        expect(actor.canSee(18, 18)).toBeFalsy();
     });
 
     test('actor with NO fov', () => {

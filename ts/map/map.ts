@@ -20,14 +20,19 @@ import * as Effect from '../effect';
 import { CellDrawer, MapDrawOptions, BufferSource } from '../draw/types';
 import { BasicDrawer } from '../draw/basic';
 import { MapEvents } from '.';
+import { Player } from '../player/player';
 
-export interface MapOptions extends GWU.light.LightSystemOptions {
+export interface MapOptions
+    extends GWU.light.LightSystemOptions,
+        GWU.fov.FovSystemOptions {
     // GWU.fov.FovSystemOptions {
-    tile: string | true;
-    boundary: string | true;
-    seed: number;
-    id: string;
-    drawer: CellDrawer;
+    tile?: string | true;
+    boundary?: string | true;
+    seed?: number;
+    id?: string;
+    drawer?: CellDrawer;
+    player?: Player;
+    fov?: boolean;
 }
 
 export type LayerType = Layer.TileLayer;
@@ -39,7 +44,7 @@ export class Map
     layers: LayerType[];
     flags: { map: 0 };
     light: GWU.light.LightSystemType;
-    // fov: GWU.fov.FovSystemType;
+    fov: GWU.fov.FovSystem;
     properties: Record<string, any>;
     // _memory: GWU.grid.Grid<CellMemory>;
     // machineCount = 0;
@@ -51,11 +56,13 @@ export class Map
     drawer: CellDrawer;
     fx: Entity[] = [];
 
+    player: Player | null = null;
+
     _animations: GWU.tween.Animation[] = [];
     events: GWU.events.EventEmitter<MapEvents> =
         new GWU.events.EventEmitter<MapEvents>();
 
-    constructor(width: number, height: number, opts: Partial<MapOptions> = {}) {
+    constructor(width: number, height: number, opts: MapOptions = {}) {
         this.flags = { map: 0 };
         this.layers = [];
         this.properties = { seed: 0, machineCount: 0 };
@@ -82,9 +89,20 @@ export class Map
         }
 
         this.light = new GWU.light.LightSystem(this, opts);
-        // this.fov = new GWU.fov.FovSystem(this, opts);
+        if (opts.fov === undefined) {
+            opts.alwaysVisible = true;
+        } else if (opts.fov === false) {
+            opts.visible = true;
+        }
+
+        opts.callback = this.onFovChange.bind(this);
+        this.fov = new GWU.fov.FovSystem(this, opts);
 
         this.initLayers();
+
+        if (opts.player) {
+            this.setPlayer(opts.player);
+        }
     }
 
     get seed(): number {
@@ -337,6 +355,11 @@ export class Map
     hasPlayer(x: number, y: number): boolean {
         return this.cell(x, y).hasPlayer();
     }
+
+    setPlayer(player: Player) {
+        this.player = player;
+    }
+
     actorAt(x: number, y: number): Actor | null {
         return this.actors.find((a) => a.isAt(x, y)) || null;
     }
@@ -729,7 +752,7 @@ export class Map
             throw new Error('Maps must be same size to copy');
 
         this.cells.forEach((c, x, y) => {
-            c.copy(src.cell(x, y));
+            c.copy(src._cell(x, y));
         });
 
         this.layers.forEach((l, depth) => {
@@ -867,7 +890,7 @@ export class Map
     }
 
     getAppearanceAt(x: number, y: number, dest: GWU.sprite.Mixer) {
-        const cell = this.cell(x, y);
+        const cell = this._cell(x, y);
         return this.drawer.drawCell(dest, this, cell);
     }
 
@@ -886,8 +909,16 @@ export class Map
 
     // FOV System Site
 
-    eachViewport(_cb: GWU.fov.ViewportCb): void {
-        // TODO !!
+    eachViewport(cb: GWU.fov.ViewportCb): void {
+        // TODO - Clairy, Telepathy, Detect, etc...
+        if (this.player) {
+            cb(
+                this.player.x,
+                this.player.y,
+                this.player.visionDistance,
+                GWU.fov.FovFlags.PLAYER
+            );
+        }
     }
     lightingChanged(): boolean {
         return this.light.changed;
@@ -904,6 +935,24 @@ export class Map
     //     // }
     //     this.cell(x, y).needsRedraw = true;
     // }
+
+    storeMemory(x: number, y: number) {
+        const cell = this._cell(x, y);
+        cell.storeMemory();
+    }
+
+    makeVisible(x: number, y: number) {
+        const cell = this._cell(x, y);
+        cell.clearMemory();
+    }
+
+    onFovChange(x: number, y: number, isVisible: boolean) {
+        if (!isVisible) {
+            this.storeMemory(x, y);
+        } else {
+            this.makeVisible(x, y);
+        }
+    }
 
     // Animator
 
@@ -941,7 +990,16 @@ export function make(
     if (opts.boundary === true) {
         opts.boundary = 'WALL';
     }
+
     const map = new Map(w, h, opts);
+
+    if (opts.tile === undefined) {
+        opts.tile = 'FLOOR';
+    }
+    if (opts.boundary === undefined) {
+        opts.boundary = 'WALL';
+    }
+
     if (opts.tile) {
         map.fill(opts.tile, opts.boundary);
         map.light.update();

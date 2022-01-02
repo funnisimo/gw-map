@@ -64,10 +64,13 @@ export interface CellInfoType {
     isWall(): boolean;
     isStairs(): boolean;
     isFloor(): boolean;
+    isDoor(): boolean;
     isPassable(): boolean;
     isSecretlyPassable(): boolean;
     isNull(): boolean;
     isGateSite(): boolean;
+
+    hasLiquid(): boolean;
 
     // Tiles
 
@@ -191,6 +194,7 @@ export interface MapType extends GWU.fov.FovSite, GWU.tween.Animator {
     readonly rng: GWU.rng.Random;
     readonly properties: Record<string, any>;
     readonly events: GWU.events.EventEmitter<MapEvents>;
+    readonly fov: GWU.fov.FovSystem;
 
     needsRedraw: boolean;
 

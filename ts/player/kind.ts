@@ -24,6 +24,9 @@ export class PlayerKind extends Actor.ActorKind {
                 if (!opts.name) {
                     opts.name = Player.default.name;
                 }
+                if (opts.swim === undefined) {
+                    opts.swim = Player.default.swim;
+                }
                 return opts as KindOptions;
             })()
         );

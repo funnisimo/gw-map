@@ -4,6 +4,7 @@ import * as MAP from '../map';
 import { Player } from '../player/player';
 import * as Command from '../command';
 import * as Actor from '../actor';
+import * as Flags from '../flags';
 
 export interface GameOptions extends GWU.ui.UIOptions {
     ui?: GWU.ui.UI;
@@ -16,6 +17,7 @@ export interface GameOptions extends GWU.ui.UIOptions {
 
     mouse?: boolean;
     fov?: boolean;
+    scent?: boolean; // draw scent
 }
 
 export type MakeMapFn = (id: number) => MAP.Map;
@@ -39,6 +41,7 @@ export class Game {
 
     mouse = false;
     fov = false;
+    scent = false;
 
     running = false;
     keymap: Record<string, string | Command.CommandFn> = {};
@@ -60,6 +63,9 @@ export class Game {
         if (opts.fov) {
             this.fov = true;
         }
+        if (opts.scent) {
+            this.scent = true;
+        }
     }
 
     async start() {
@@ -70,15 +76,20 @@ export class Game {
         this.running = true;
         this.scheduler = new GWU.scheduler.Scheduler();
 
+        this.map = this._makeMap(0);
         this.player = this._makePlayer();
 
-        this.map = this._makeMap(0);
+        this.map.setPlayer(this.player);
         this._startMap(this.map, this.player);
 
+        if (this.scent) {
+            this.map.drawer.scent = this.scent;
+        }
         this.map.actors.forEach((a) => {
             this.scheduler.push(a, a.moveSpeed());
         });
 
+        this.map.fov.update();
         this.draw();
 
         while (this.running) {
@@ -90,13 +101,6 @@ export class Game {
     }
 
     draw() {
-        const memory = this.player.memory;
-        if (this.fov && memory) {
-            memory.drawInto(this.buffer, { fov: this.player.fov });
-            this.buffer.render();
-            return;
-        }
-
         if (this.map && this.map.needsRedraw) {
             this.map.drawInto(this.buffer);
             this.buffer.render();
@@ -189,17 +193,28 @@ export class Game {
                 } else if (ev.type === GWU.io.TICK) {
                     this.layer.tick(ev); // timeouts
                     elapsed += ev.dt || 16;
+
+                    if (
+                        this.map.hasMapFlag(Flags.Map.MAP_DANCES) &&
+                        GWU.cosmetic.chance(10)
+                    ) {
+                        this.map.eachCell((c) => {
+                            if (
+                                c.hasCellFlag(Flags.Cell.COLORS_DANCE) &&
+                                this.map.fov.isAnyKindOfVisible(c.x, c.y) &&
+                                GWU.cosmetic.chance(1, 1000)
+                            ) {
+                                c.needsRedraw = true;
+                            }
+                        });
+                        this.map.needsRedraw = true;
+                        this.draw();
+                    }
                     // console.log('-- event', elapsed);
                 } else if (this.mouse && ev.type === GWU.io.MOUSEMOVE) {
                     if (!this.player.hasGoal()) {
                         // console.log('mouse', ev.x, ev.y);
-                        const mapToPlayer = this.player.mapToMe();
-                        const path = GWU.path.getPath(
-                            mapToPlayer,
-                            ev.x,
-                            ev.y,
-                            GWU.FALSE
-                        );
+                        const path = this.player.pathTo(ev.x, ev.y);
                         if (path) {
                             this.map.highlightPath(path, true);
                         } else {
@@ -241,14 +256,8 @@ export class Game {
 
                     done = await action(this, this.player, { dir: step });
 
-                    if (done) {
-                        const mapToPlayer = this.player.mapToMe();
-                        const path = GWU.path.getPath(
-                            mapToPlayer,
-                            goalMap.x!,
-                            goalMap.y!,
-                            GWU.FALSE
-                        );
+                    if (done && this.player.hasGoal()) {
+                        const path = this.player.pathTo(goalMap.x!, goalMap.y!);
                         if (path && path.length) {
                             // path.shift(); //remove player location
                             this.map.highlightPath(path, true);

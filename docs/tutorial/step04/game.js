@@ -114,15 +114,25 @@ async function start() {
         div: 'game',
 
         mouse: true,
-        fov: true,
+        // scent: true,
 
         makeMap() {
             const seed = GWU.random.number();
             console.log('seed = ', seed);
             // GWU.random.seed(seed);
 
-            const map = GWM.map.make(80, 40, 'FLOOR', 'WALL');
-            GWD.digMap(map, { stairs: false, seed, lakes: 10 });
+            const map = GWM.map.make(80, 40, {
+                tile: 'FLOOR',
+                boundary: 'WALL',
+                fov: true,
+            });
+
+            GWD.digMap(map, {
+                stairs: false,
+                seed,
+                lakes: 10,
+                loops: { minDistance: 30, maxLength: 4 },
+            });
 
             // Add boxes randomly
             for (let c = 0; c < 8; ++c) {
@@ -178,6 +188,16 @@ async function showTitle(game) {
         20,
         'Try to find the ΩgoldΩAnanas∆ before ΩredΩPedro∆ catches you!',
         'white',
+        -1,
+        80,
+        'center'
+    );
+
+    buffer.drawText(
+        0,
+        22,
+        "Hint: ΩredΩPedro∆ can't swim!",
+        'gray',
         -1,
         80,
         'center'

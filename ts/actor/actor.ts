@@ -5,7 +5,6 @@ import * as Flags from '../flags';
 import { ActorKind } from './kind';
 import { ActorActionFn, getAction, ActorActionResult } from './action';
 import { Item } from '../item';
-import * as Memory from '../memory';
 import { Status } from './status';
 import { Stats } from './stat';
 import { Game } from '../game';
@@ -24,13 +23,11 @@ export class Actor extends Entity.Entity {
     // @ts-ignore - initialized in Entity
     flags: ActorFlags;
     kind: ActorKind;
-    ai: AIConfig | null = null;
+    ai: AIConfig = {};
 
     leader: Actor | null = null;
     items: Item | null = null; // inventory
 
-    fov: GWU.fov.FovSystem | null = null;
-    memory: Memory.Memory | null = null;
     visionDistance = 99;
     stats: Stats;
     status: Status;
@@ -56,8 +53,6 @@ export class Actor extends Entity.Entity {
         super.copy(other);
         this.leader = other.leader;
         this.items = other.items;
-        this.fov = other.fov;
-        this.memory = other.memory;
         this.visionDistance = other.visionDistance;
     }
 
@@ -130,14 +125,12 @@ export class Actor extends Entity.Entity {
     canSee(entity: Entity.Entity): boolean;
     canSee(x: number | Entity.Entity, y?: number): boolean {
         if (x instanceof Entity.Entity) {
-            if (x instanceof Actor) {
-                if (x.fov) return x.fov.isDirectlyVisible(this.x, this.y);
-            }
             return this.canSee(x.x, x.y) && this.kind.isAbleToSee(this, x);
-        }
-        if (this.fov) {
-            return this.fov.isDirectlyVisible(x, y!);
         } else if (this.map) {
+            if (this.isPlayer()) {
+                return this.map!.fov.isDirectlyVisible(x, y!);
+            }
+
             if (
                 GWU.xy.distanceBetween(this.x, this.y, x, y!) >
                 this.visionDistance
@@ -163,8 +156,8 @@ export class Actor extends Entity.Entity {
                     this.kind.isAbleToSense(this, x))
             );
         }
-        if (this.fov) {
-            return this.fov.isAnyKindOfVisible(x, y!);
+        if (this.map && this.isPlayer()) {
+            return this.map.fov.isAnyKindOfVisible(x, y!);
         }
         return this.canSee(x, y!);
     }
@@ -183,8 +176,6 @@ export class Actor extends Entity.Entity {
         let startedVisible = false;
         if (game.player.canSee(this)) {
             this.setActorFlag(Flags.Actor.IS_VISIBLE);
-            this.lastSeen[0] = this.x;
-            this.lastSeen[1] = this.y;
             startedVisible = true;
         } else {
             if (this.hasActorFlag(Flags.Actor.IS_VISIBLE)) {
@@ -203,15 +194,13 @@ export class Actor extends Entity.Entity {
             r = await this.ai.fn(game, this);
         }
 
-        if (r == 0 && this.kind.ai) {
+        if (r == 0 && this.kind.ai.fn) {
             r = await this.kind.ai.fn(game, this);
         }
 
         if (r) {
             // did something
             if (startedVisible || game.player.canSee(this)) {
-                this.lastSeen[0] = this.x;
-                this.lastSeen[1] = this.y;
             }
             return r;
         }

@@ -6,7 +6,7 @@ import { Actor, PickupOptions, DropOptions } from './actor';
 import { ActorAiFn } from '../ai/ai';
 import { Item } from '../item/item';
 import { FlavorOptions } from '../entity';
-import * as Memory from '../memory';
+// import * as Memory from '../memory';
 import { ActorFlags } from './types';
 import * as AI from '../ai';
 import * as Action from './action';
@@ -19,11 +19,15 @@ export interface KindOptions extends Entity.KindOptions {
     moveSpeed?: number; // 100 === normal
     ai?: string | ActorAiFn | AI.AIOptions;
     bump?: Action.ActorActionFn | string | (Action.ActorActionFn | string)[];
+    swim?: boolean;
+    fly?: boolean;
+    waterOnly?: boolean;
+    lavaOnly?: boolean;
 }
 
 export interface MakeOptions extends Entity.MakeOptions {
-    fov?: GWU.fov.FovSystem;
-    memory?: Memory.Memory;
+    // fov?: GWU.fov.FovSystem;
+    // memory?: Memory.Memory;
 }
 
 export class ActorKind extends Entity.EntityKind {
@@ -76,6 +80,39 @@ export class ActorKind extends Entity.EntityKind {
                 this.bump = opts.bump.slice();
             }
         }
+
+        if (opts.waterOnly) {
+            this.forbidTileFlags =
+                this.forbidTileFlags & ~Flags.Tile.T_IS_DEEP_LIQUID;
+            this.avoidTileFlags =
+                this.avoidTileFlags & ~Flags.Tile.T_IS_DEEP_LIQUID;
+            this.requireTileFlags |= Flags.Tile.T_IS_DEEP_LIQUID;
+        } else if (opts.lavaOnly) {
+            this.forbidTileFlags = this.forbidTileFlags & ~Flags.Tile.T_LAVA;
+            this.avoidTileFlags = this.avoidTileFlags & ~Flags.Tile.T_LAVA;
+            this.requireTileFlags |= Flags.Tile.T_LAVA;
+        } else {
+            if (opts.swim) {
+                this.avoidTileFlags |= Flags.Tile.T_IS_DEEP_LIQUID;
+            } else {
+                this.forbidTileFlags |= Flags.Tile.T_IS_DEEP_LIQUID;
+            }
+
+            if (opts.fly) {
+                this.forbidTileFlags =
+                    this.forbidTileFlags & ~Flags.Tile.T_LAVA;
+                this.avoidTileFlags = this.avoidTileFlags & ~Flags.Tile.T_LAVA;
+                this.requireTileFlags =
+                    this.requireTileFlags & ~Flags.Tile.T_LAVA;
+
+                this.forbidTileFlags =
+                    this.forbidTileFlags & ~Flags.Tile.T_IS_DEEP_LIQUID;
+                this.avoidTileFlags =
+                    this.avoidTileFlags & ~Flags.Tile.T_IS_DEEP_LIQUID;
+                this.requireTileFlags =
+                    this.requireTileFlags & ~Flags.Tile.T_IS_DEEP_LIQUID;
+            }
+        }
     }
 
     make(options?: Partial<MakeOptions>): Actor {
@@ -87,12 +124,12 @@ export class ActorKind extends Entity.EntityKind {
     init(actor: Actor, options: Partial<MakeOptions> = {}) {
         super.init(actor, options);
         Object.assign(actor.flags, this.flags);
-        if (options.fov) {
-            actor.fov = options.fov;
-        }
-        if (options.memory) {
-            actor.memory = options.memory;
-        }
+        // if (options.fov) {
+        //     actor.fov = options.fov;
+        // }
+        // if (options.memory) {
+        //     actor.memory = options.memory;
+        // }
         if (this.vision.normal) {
             actor.visionDistance = this.vision.normal;
         }
@@ -101,23 +138,23 @@ export class ActorKind extends Entity.EntityKind {
 
     addToMap(actor: Actor, map: MapType) {
         super.addToMap(actor, map);
-        if (this.hasActorFlag(Flags.Actor.HAS_MEMORY)) {
-            actor.memory = Memory.get(actor, map);
-        }
-        if (this.hasActorFlag(Flags.Actor.USES_FOV)) {
-            actor.fov = new GWU.fov.FovSystem(map);
-            actor.fov.follow = actor;
-            if (actor.memory) {
-                actor.fov.callback = actor.memory;
-            }
-        }
+        // if (this.hasActorFlag(Flags.Actor.HAS_MEMORY)) {
+        //     actor.memory = Memory.get(actor, map);
+        // }
+        // if (this.hasActorFlag(Flags.Actor.USES_FOV)) {
+        //     actor.fov = new GWU.fov.FovSystem(map);
+        //     actor.fov.follow = actor;
+        //     if (actor.memory) {
+        //         actor.fov.callback = actor.memory;
+        //     }
+        // }
     }
 
     removeFromMap(actor: Actor) {
         super.removeFromMap(actor);
-        if (actor._map && actor.memory) {
-            Memory.store(actor, actor._map, actor.memory);
-        }
+        // if (actor._map && actor.memory) {
+        //     Memory.store(actor, actor._map, actor.memory);
+        // }
     }
 
     hasActorFlag(flag: number): boolean {
@@ -137,14 +174,16 @@ export class ActorKind extends Entity.EntityKind {
     }
 
     forbidsCell(cell: CellType, actor?: Actor): boolean {
-        if (super.forbidsCell(cell, actor)) return true;
+        if (super.forbidsCell(cell, actor)) {
+            return true;
+        }
+
         if (cell.blocksMove()) return true;
         return false;
     }
 
     avoidsCell(cell: CellType, actor?: Actor): boolean {
         if (super.avoidsCell(cell, actor)) return true;
-        if (cell.blocksMove()) return true;
         if (cell.blocksPathing()) return true;
         return false;
     }

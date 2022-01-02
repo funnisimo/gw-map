@@ -1,10 +1,10 @@
 import * as GWU from 'gw-utils';
-import { CellType, MapType } from '../map/types';
+import { Cell, Map } from '../map';
 
 export type CellDrawFn = (
     dest: GWU.sprite.Mixer,
-    map: MapType,
-    cell: CellType,
+    map: Map,
+    cell: Cell,
     fov?: GWU.fov.FovTracker
 ) => boolean;
 
@@ -19,10 +19,12 @@ export interface BufferSource {
 }
 
 export interface CellDrawer {
+    scent: boolean;
+
     drawCell: CellDrawFn;
     drawInto(
         dest: BufferSource | GWU.buffer.Buffer,
-        map: MapType,
+        map: Map,
         opts?: Partial<MapDrawOptions>
     ): void;
 }

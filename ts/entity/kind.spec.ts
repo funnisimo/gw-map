@@ -1,7 +1,6 @@
 import * as GWU from 'gw-utils';
 import * as Entity from '.';
 import * as Map from '../map';
-import * as Tile from '../tile';
 
 import '../effect/handlers';
 import '../tile/tiles';
@@ -32,22 +31,16 @@ describe('Entity Kind', () => {
             name: 'a Spectator',
             ch: 's',
             fg: 'white',
-            requiredTileTags: 'FRONT_HOUSE',
+            requireTileFlags: 'T_DEEP_WATER',
         });
-
-        Tile.install('SEAT', {
-            name: 'a Seat',
-            ch: 'h',
-            fg: 'brown',
-            tags: 'FRONT_HOUSE',
-        });
+        expect(kind.requireTileFlags).toBeGreaterThan(0);
 
         const map = Map.make(10, 10, 'FLOOR', 'WALL');
         const cell = map.cell(5, 5);
         expect(kind.avoidsCell(cell)).toBeTruthy();
         expect(kind.forbidsCell(cell)).toBeTruthy();
 
-        map.setTile(5, 5, 'SEAT');
+        map.setTile(5, 5, 'LAKE');
         expect(kind.avoidsCell(cell)).toBeFalsy();
         expect(kind.forbidsCell(cell)).toBeFalsy();
     });

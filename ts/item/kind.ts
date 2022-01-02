@@ -5,6 +5,7 @@ import * as Flags from '../flags';
 import { Item } from './item';
 import { FlagType } from './types';
 import { ItemActionBase, ItemActionFn } from './action';
+import { CellType } from '../map';
 
 export interface KindOptions extends Entity.KindOptions {
     flags?: GWU.flag.FlagBase;
@@ -53,6 +54,8 @@ export class ItemKind extends Entity.EntityKind {
                 this.bump = config.bump.slice();
             }
         }
+        this.avoidTileFlags |= Flags.Tile.T_DEEP_WATER;
+        this.forbidTileFlags |= Flags.Tile.T_LAVA | Flags.Tile.T_AUTO_DESCENT;
     }
 
     make(options?: Partial<MakeOptions>): Item {
@@ -65,6 +68,11 @@ export class ItemKind extends Entity.EntityKind {
         super.init(item, options);
         Object.assign(item.flags, this.flags);
         item.quantity = options.quantity || 1;
+    }
+
+    avoidsCell(cell: CellType, item: Item): boolean {
+        if (cell.isDoor()) return true;
+        return super.avoidsCell(cell, item);
     }
 
     // forbidsCell(_cell: CellType, _item: Item,): boolean {

@@ -113,6 +113,7 @@ describe('Cell', () => {
 
     test('copy + clear', () => {
         const cell: Cell = new Cell(map, 1, 1, 'LAKE');
+        cell.clearMemory();
         cell.setTile(Tile.tiles.BRIDGE);
         expect(cell.changed).toBeTrue();
 
@@ -689,6 +690,7 @@ describe('Cell', () => {
 
     test('setTile(BRIDGE) will also set ground if null', () => {
         const cell: Cell = new Cell(map, 1, 1);
+        cell.clearMemory();
         cell.needsRedraw = false;
         expect(cell.isNull()).toBeTruthy();
         expect(cell.needsRedraw).toBeFalse();
@@ -814,10 +816,15 @@ describe('Cell', () => {
     test('clearDepth', () => {
         const cell: Cell = new Cell(map, 1, 1, 'FLOOR');
         cell.setTile('GRASS');
+        cell.clearMemory();
 
         expect(cell.depthTile(Flags.Depth.SURFACE)).toBe(Tile.tiles.GRASS);
-        cell.clearCellFlag(Flags.Cell.CHANGED);
         cell.needsRedraw = false;
+        cell.clearCellFlag(Flags.Cell.CHANGED);
+
+        expect(cell.changed).toBeFalsy();
+        expect(cell.needsRedraw).toBeFalsy();
+
         cell.clearDepth(Flags.Depth.SURFACE);
         expect(cell.depthTile(Flags.Depth.SURFACE)).toBeNull();
         expect(cell.changed).toBeTrue();

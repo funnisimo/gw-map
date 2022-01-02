@@ -20,7 +20,7 @@ export class Entity implements EntityType {
     machineHome = 0;
     id: string;
 
-    lastSeen: GWU.xy.Loc = [-1, -1];
+    // lastSeen: GWU.xy.Loc = [-1, -1];
 
     constructor(kind: EntityKind) {
         this.depth = 1; // default - TODO - enum/const

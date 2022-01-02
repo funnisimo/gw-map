@@ -433,7 +433,7 @@ describe('spread type', () => {
             map.setTile(ctx.x, ctx.y, 'BRIDGE');
             const cell = map.cell(ctx.x, ctx.y);
             expect(cell.depthTile(Flags.Depth.SURFACE)!.id).toEqual('BRIDGE');
-            expect(cell.depthTile(Flags.Depth.GROUND)!.id).toEqual('FLOOR');
+            expect(cell.depthTile(Flags.Depth.GROUND)!.id).toEqual('LAKE');
 
             expect(effect.trigger(ctx)).toBeTruthy();
             expect(cell.depthTile(Flags.Depth.GROUND)!.id).toEqual('FLOOR');

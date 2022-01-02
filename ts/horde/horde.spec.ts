@@ -34,7 +34,7 @@ describe('Horde', () => {
             name: 'a Spectator',
             ch: 's',
             fg: 'white',
-            requiredTileTags: 'FRONT_HOUSE',
+            requireTileTags: 'FRONT_HOUSE',
         });
 
         Tile.install('CHAIR', {
@@ -128,7 +128,7 @@ describe('Horde', () => {
         map.setTile(5, 5, 'CHAIR');
         expect(map.cell(5, 5).hasTileTag('FRONT_HOUSE')).toBeTruthy();
 
-        expect(Actor.kinds.SPECTATOR.requiredTileTags).toEqual(['FRONT_HOUSE']);
+        expect(Actor.kinds.SPECTATOR.requireTileTags).toEqual(['FRONT_HOUSE']);
 
         expect(Actor.kinds.SPECTATOR.avoidsCell(map.cell(5, 5))).toBeFalsy();
         expect(Actor.kinds.SPECTATOR.avoidsCell(map.cell(4, 4))).toBeTruthy();

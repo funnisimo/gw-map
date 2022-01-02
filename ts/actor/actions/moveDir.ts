@@ -4,6 +4,7 @@ import { Game } from '../../game';
 import { bump } from './bump';
 import { standStill } from './standStill';
 import * as FX from '../../fx';
+import * as Flags from '../../flags';
 
 export async function moveDir(
     game: Game,
@@ -21,6 +22,13 @@ export async function moveDir(
     const currentCell = map.cell(actor.x, actor.y);
     const newCell = map.cell(newX, newY);
     let result = 0;
+
+    if (actor.forbidsCell(newCell)) {
+        if (ctx.try) return 0;
+        FX.hit(map, newCell, 'hit', 100);
+        actor.clearGoal();
+        return actor.endTurn();
+    }
 
     if (newCell.blocksMove()) {
         if (ctx.try) return 0;
@@ -55,7 +63,12 @@ export async function moveDir(
         return result;
     }
 
-    result = actor.endTurn();
+    let rate = 100;
+    if (newCell.hasTileFlag(Flags.Tile.T_DEEP_WATER)) {
+        rate = 150;
+    }
+
+    result = actor.endTurn(rate);
     return result;
 }
 

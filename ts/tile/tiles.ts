@@ -4,17 +4,6 @@ import * as Tile from './tile';
 import '../effect/handlers';
 import '../effect/types';
 
-// These are the minimal set of tiles to make the diggers work
-Tile.install('NULL', {
-    ch: '\u2205',
-    fg: 'white',
-    bg: 'black',
-    flags: 'L_BLOCKS_MOVE',
-    name: 'eerie nothingness',
-    article: 'an',
-    priority: 0,
-});
-
 Tile.install('FLOOR', {
     ch: '\u00b7',
     fg: GWU.color.from([30, 30, 30]).rand(20, 0, 0, 0),
@@ -119,8 +108,8 @@ Tile.install('IMPREGNABLE', {
 
 Tile.install('LAKE', {
     ch: '~',
-    fg: GWU.color.from([5, 8, 20]).dance(10, 0, 4, 15),
-    bg: GWU.color.from([10, 15, 41]).dance(6, 5, 5, 5),
+    fg: GWU.color.from([25, 28, 60]).dance(20, 0, 4, 15),
+    bg: GWU.color.from([10, 15, 41]).dance(20, 5, 5, 5),
     priority: 50,
     flags: 'T_DEEP_WATER',
     name: 'deep water',

@@ -60,6 +60,8 @@ describe('Map', () => {
         expect(Tile.tiles.BRIDGE.groundTile).toEqual('LAKE');
         expect(Tile.tiles.LAKE).toBeDefined();
 
+        console.log(map.cell(4, 6).tiles.map((t) => t && t.id));
+
         expect(map.cell(4, 6).hasTile('BRIDGE')).toBeTruthy();
         expect(map.cell(4, 6).hasTile('LAKE')).toBeTruthy();
     });

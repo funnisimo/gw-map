@@ -65,6 +65,10 @@ export async function typical(game: Game, actor: Actor): Promise<number> {
         const chargeChance = 100;
         const retreatChance = 0;
 
+        actor.ai!.lastSawPlayer = [target.x, target.y];
+        actor.clearGoal();
+        console.log('SAW YOU!', actor.id, target.x, target.y);
+
         const ctx = new AICtx(game, actor, target).start();
         let result = 0;
 
@@ -126,6 +130,39 @@ export async function typical(game: Game, actor: Actor): Promise<number> {
     }
 
     // TODO - Use scent, menory, other teammates info, ...
+    else if (actor.ai!.lastSawPlayer) {
+        if (!actor.hasGoal()) {
+            const loc = actor.ai!.lastSawPlayer;
+            actor.setGoal(loc[0], loc[1]);
+        }
+        console.log(
+            'CHASING YOU!',
+            actor.id,
+            actor.goalMap!.x,
+            actor.goalMap!.y
+        );
+
+        const result = await moveTowardGoal(game, actor);
+        if (result) {
+            return result;
+        }
+        actor.ai!.lastSawPlayer = null; // no longer
+        actor.clearGoal();
+    }
+
+    // check if they noticed the player scent
+    if (target.scent) {
+        const dir = target.scent.nextDir(actor.x, actor.y);
+        if (dir) {
+            console.log('tracking scent', actor.id, dir);
+            const moveDir = getAction('moveDir');
+            if (!moveDir)
+                throw new Error('No moveDir action found for Actors!');
+
+            const result = await moveDir(game, actor, { dir });
+            if (result) return result;
+        }
+    }
 
     const wanderOpt = GWU.object.firstOpt(
         'wander',
@@ -339,4 +376,31 @@ export function tooCloseTo(
     _ctx?: AICtx
 ): boolean {
     return GWU.xy.distanceFromTo(actor, target) < 1;
+}
+
+// TODO - make an action
+export async function moveTowardGoal(
+    game: Game,
+    actor: Actor
+): Promise<number> {
+    if (!actor.hasGoal()) return 0;
+
+    const nextStep = GWU.path.nextStep(
+        actor.goalMap!,
+        actor.x,
+        actor.y,
+        (x, y) => {
+            return actor.map!.hasActor(x, y);
+        }
+    );
+
+    if (!nextStep) {
+        actor.clearGoal();
+        return 0;
+    }
+
+    const moveDir = actor.getAction('moveDir');
+    if (!moveDir) throw new Error('No moveDir action for actor!');
+
+    return await moveDir(game, actor, { dir: nextStep });
 }
