@@ -130,8 +130,8 @@ async function start() {
             GWD.digMap(map, {
                 stairs: false,
                 seed,
-                lakes: 10,
                 loops: { minDistance: 30, maxLength: 4 },
+                lakes: 10,
             });
 
             // Add boxes randomly
