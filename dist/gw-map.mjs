@@ -7166,7 +7166,7 @@ class Scent {
         const v = this._data[x][y] || 0;
         if (!v)
             return null;
-        let highest = v + 1;
+        let highest = v;
         let highestLoc = [];
         GWU.xy.eachNeighbor(x, y, (x1, y1) => {
             if (!this._data.hasXY(x1, y1))
@@ -7183,8 +7183,8 @@ class Scent {
         if (!highestLoc.length)
             return null;
         const loc = GWU.random.item(highestLoc);
-        loc[0] = x - loc[0];
-        loc[1] = y - loc[1];
+        loc[0] = loc[0] - x;
+        loc[1] = loc[1] - y;
         return loc;
     }
 }

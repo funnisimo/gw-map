@@ -60,7 +60,7 @@ export class Scent {
     nextDir(x: number, y: number): GWU.xy.Loc | null {
         const v = this._data[x][y] || 0;
         if (!v) return null;
-        let highest = v + 1;
+        let highest = v;
         let highestLoc: GWU.xy.Loc[] = [];
 
         GWU.xy.eachNeighbor(
@@ -83,8 +83,8 @@ export class Scent {
 
         const loc = GWU.random.item(highestLoc);
 
-        loc[0] = x - loc[0];
-        loc[1] = y - loc[1];
+        loc[0] = loc[0] - x;
+        loc[1] = loc[1] - y;
         return loc;
     }
 }
