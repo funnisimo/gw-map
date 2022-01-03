@@ -5,7 +5,7 @@ import * as Flags from '../flags';
 import { Item } from './item';
 import { FlagType } from './types';
 import { ItemActionBase, ItemActionFn } from './action';
-import { CellType } from '../map';
+import { Cell } from '../map';
 
 export interface KindOptions extends Entity.KindOptions {
     flags?: GWU.flag.FlagBase;
@@ -70,7 +70,7 @@ export class ItemKind extends Entity.EntityKind {
         item.quantity = options.quantity || 1;
     }
 
-    avoidsCell(cell: CellType, item: Item): boolean {
+    avoidsCell(cell: Cell, item: Item): boolean {
         if (cell.isDoor()) return true;
         return super.avoidsCell(cell, item);
     }

@@ -1,16 +1,16 @@
-import { MapType, SetTileOptions } from '../map/types';
+import { Map, SetTileOptions } from '../map';
 import * as Tile from '../tile';
 import * as Actor from '../actor';
 import * as Item from '../item';
 
 export class MapLayer {
-    map: MapType;
+    map: Map;
     depth: number;
     properties: Record<string, any>;
     name: string;
     changed: boolean = false;
 
-    constructor(map: MapType, name = 'layer') {
+    constructor(map: Map, name = 'layer') {
         this.map = map;
         this.depth = -1;
         this.properties = {};

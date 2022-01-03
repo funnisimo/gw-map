@@ -1,6 +1,6 @@
 import * as GWU from 'gw-utils';
 import { Actor } from '../actor';
-import { MapType } from '../map';
+import { Map } from '../map/map';
 import { PlayerKind } from './kind';
 import { Scent } from './scent';
 // import { Memory } from '../memory';
@@ -33,7 +33,7 @@ export class Player extends Actor {
         return super.endTurn(pct);
     }
 
-    addToMap(map: MapType, x: number, y: number): boolean {
+    addToMap(map: Map, x: number, y: number): boolean {
         if (!super.addToMap(map, x, y)) return false;
         this.scent.clear();
         return true;

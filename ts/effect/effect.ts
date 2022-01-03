@@ -35,7 +35,7 @@ export interface EffectCtx {
 // HANDLERS
 
 export interface MapXY {
-    map: Map.MapType;
+    map: Map.Map;
     x: number;
     y: number;
 }

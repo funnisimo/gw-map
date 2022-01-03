@@ -1,10 +1,11 @@
 import * as GWU from 'gw-utils';
 
-import { MapType, CellType } from './types';
+import { Map } from './map';
+import { Cell } from './cell';
 import { Entity as ObjectFlags } from '../flags/entity';
 import * as Flags from '../flags';
 
-export function analyze(map: MapType, updateChokeCounts = true) {
+export function analyze(map: Map, updateChokeCounts = true) {
     updateLoopiness(map);
     updateChokepoints(map, updateChokeCounts);
 }
@@ -13,7 +14,7 @@ export function analyze(map: MapType, updateChokeCounts = true) {
 /////////////////////////////////////////////////////
 // TODO - Move to Map?
 
-export function updateChokepoints(map: MapType, updateCounts: boolean) {
+export function updateChokepoints(map: Map, updateCounts: boolean) {
     const passMap = GWU.grid.alloc(map.width, map.height);
     const grid = GWU.grid.alloc(map.width, map.height);
 
@@ -139,15 +140,10 @@ export function updateChokepoints(map: MapType, updateCounts: boolean) {
                                             cellCount <
                                                 map.cell(i2, j2).chokeCount
                                         ) {
-                                            map.cell(
-                                                i2,
-                                                j2
-                                            ).chokeCount = cellCount;
-                                            map.cell(
-                                                i2,
-                                                j2
-                                            ).flags.cell &= ~Flags.Cell
-                                                .IS_GATE_SITE;
+                                            map.cell(i2, j2).chokeCount =
+                                                cellCount;
+                                            map.cell(i2, j2).flags.cell &=
+                                                ~Flags.Cell.IS_GATE_SITE;
                                         }
                                     }
                                 }
@@ -172,7 +168,7 @@ export function updateChokepoints(map: MapType, updateCounts: boolean) {
 // Assumes it is called with respect to a passable (startX, startY), and that the same is not already included in results.
 // Returns 10000 if the area included an area machine.
 export function floodFillCount(
-    map: MapType,
+    map: Map,
     results: GWU.grid.NumGrid,
     passMap: GWU.grid.NumGrid,
     startX: number,
@@ -225,18 +221,13 @@ export function floodFillCount(
 ////////////////////////////////////////////////////////
 // TODO = Move loopiness to Map
 
-export function updateLoopiness(map: MapType) {
+export function updateLoopiness(map: Map) {
     map.eachCell(resetLoopiness);
     checkLoopiness(map);
     cleanLoopiness(map);
 }
 
-export function resetLoopiness(
-    cell: CellType,
-    _x: number,
-    _y: number,
-    _map: MapType
-) {
+export function resetLoopiness(cell: Cell, _x: number, _y: number, _map: Map) {
     if (
         (cell.blocksPathing() || cell.blocksMove()) &&
         !cell.hasEntityFlag(ObjectFlags.L_SECRETLY_PASSABLE)
@@ -249,7 +240,7 @@ export function resetLoopiness(
     }
 }
 
-export function checkLoopiness(map: MapType) {
+export function checkLoopiness(map: Map) {
     let inString;
     let newX, newY, dir, sdir;
     let numStrings, maxStringLength, currentStringLength;
@@ -342,7 +333,7 @@ export function checkLoopiness(map: MapType) {
     }
 }
 
-export function fillInnerLoopGrid(map: MapType, grid: GWU.grid.NumGrid) {
+export function fillInnerLoopGrid(map: Map, grid: GWU.grid.NumGrid) {
     for (let x = 0; x < map.width; ++x) {
         for (let y = 0; y < map.height; ++y) {
             const cell = map.cell(x, y);
@@ -362,7 +353,7 @@ export function fillInnerLoopGrid(map: MapType, grid: GWU.grid.NumGrid) {
     }
 }
 
-export function cleanLoopiness(map: MapType) {
+export function cleanLoopiness(map: Map) {
     // remove extraneous loop markings
     const grid = GWU.grid.alloc(map.width, map.height);
     fillInnerLoopGrid(map, grid);

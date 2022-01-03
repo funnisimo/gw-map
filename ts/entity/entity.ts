@@ -2,7 +2,8 @@ import * as GWU from 'gw-utils';
 
 import { FlagType, EntityType, KeyInfoType } from './types';
 import * as Flags from '../flags/entity';
-import { CellType, MapType } from '../map/types';
+import { Cell } from '../map/cell';
+import { Map } from '../map/map';
 import { EntityKind, TextOptions, FlavorOptions } from './kind';
 
 let lastId = 0;
@@ -14,7 +15,7 @@ export class Entity implements EntityType {
     next: Entity | null;
     x: number;
     y: number;
-    _map: MapType | null = null;
+    _map: Map | null = null;
     kind: EntityKind;
     key: KeyInfoType | null = null;
     machineHome = 0;
@@ -33,11 +34,11 @@ export class Entity implements EntityType {
         this.id = '' + ++lastId;
     }
 
-    get map(): MapType | null {
+    get map(): Map | null {
         return this._map;
     }
 
-    addToMap(map: MapType, x: number, y: number): boolean {
+    addToMap(map: Map, x: number, y: number): boolean {
         this.x = x;
         this.y = y;
         this.setEntityFlag(Flags.Entity.L_ON_MAP);
@@ -127,11 +128,11 @@ export class Entity implements EntityType {
         return this.key && this.key.matches(x, y);
     }
 
-    forbidsCell(cell: CellType): boolean {
+    forbidsCell(cell: Cell): boolean {
         return this.kind.forbidsCell(cell, this);
     }
 
-    avoidsCell(cell: CellType): boolean {
+    avoidsCell(cell: Cell): boolean {
         return this.kind.avoidsCell(cell, this);
     }
 

@@ -2,13 +2,13 @@ import * as GWU from 'gw-utils';
 
 import * as Flags from '../flags';
 import { TileLayer } from './tileLayer';
-import { MapType, SetTileOptions } from '../map/types';
+import { Map, SetTileOptions } from '../map';
 import * as Tile from '../tile';
 
 export class GasLayer extends TileLayer {
     volume: GWU.grid.NumGrid;
 
-    constructor(map: MapType, name = 'gas') {
+    constructor(map: Map, name = 'gas') {
         super(map, name);
         this.volume = GWU.grid.alloc(map.width, map.height, 0);
     }

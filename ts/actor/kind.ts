@@ -1,7 +1,7 @@
 import * as GWU from 'gw-utils';
 import * as Entity from '../entity';
 import * as Flags from '../flags';
-import { CellType, MapType } from '../map';
+import { Cell, Map } from '../map';
 import { Actor, PickupOptions, DropOptions } from './actor';
 import { ActorAiFn } from '../ai/ai';
 import { Item } from '../item/item';
@@ -136,7 +136,7 @@ export class ActorKind extends Entity.EntityKind {
         actor.stats.init(this.stats);
     }
 
-    addToMap(actor: Actor, map: MapType) {
+    addToMap(actor: Actor, map: Map) {
         super.addToMap(actor, map);
         // if (this.hasActorFlag(Flags.Actor.HAS_MEMORY)) {
         //     actor.memory = Memory.get(actor, map);
@@ -173,7 +173,7 @@ export class ActorKind extends Entity.EntityKind {
         return true;
     }
 
-    forbidsCell(cell: CellType, actor?: Actor): boolean {
+    forbidsCell(cell: Cell, actor?: Actor): boolean {
         if (super.forbidsCell(cell, actor)) {
             return true;
         }
@@ -182,7 +182,7 @@ export class ActorKind extends Entity.EntityKind {
         return false;
     }
 
-    avoidsCell(cell: CellType, actor?: Actor): boolean {
+    avoidsCell(cell: Cell, actor?: Actor): boolean {
         if (super.avoidsCell(cell, actor)) return true;
         if (cell.blocksPathing()) return true;
         return false;

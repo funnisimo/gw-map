@@ -1,13 +1,7 @@
 import * as GWU from 'gw-utils';
 
 import * as Flags from '../flags';
-import {
-    CellType,
-    CellFlags,
-    TileArray,
-    SetTileOptions,
-    MapType,
-} from './types';
+import { Tile } from '../tile/tile';
 import { Item } from '../item/item';
 import { Actor } from '../actor/actor';
 import { Entity } from '../entity';
@@ -16,7 +10,25 @@ import { Map } from './map';
 import * as TILE from '../tile';
 import * as Effect from '../effect';
 
+export interface CellFlags {
+    cell: number;
+}
+
+export interface SetOptions {
+    superpriority: boolean;
+    blockedByOtherLayers: boolean;
+    blockedByActors: boolean;
+    blockedByItems: boolean;
+    volume: number;
+    machine: number;
+}
+
+export type SetTileOptions = Partial<SetOptions>;
+
 type EachCb<T> = (t: T) => any;
+
+export type TileData = Tile | null;
+export type TileArray = [Tile, ...TileData[]];
 
 GWU.color.install('cellStatusName', 'light_blue');
 
@@ -45,7 +57,7 @@ export const NEVER_SEEN: CellMemory = {
     },
 };
 
-export class Cell implements CellType {
+export class Cell {
     flags: CellFlags;
     chokeCount = 0;
     tiles: TileArray;
@@ -53,7 +65,7 @@ export class Cell implements CellType {
     // _actor: Actor | null = null;
     // _item: Item | null = null;
     // _entities: CellEntities;
-    map: MapType;
+    map: Map;
     x = -1;
     y = -1;
     snapshot: GWU.sprite.Mixer;

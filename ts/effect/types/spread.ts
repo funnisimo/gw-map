@@ -1,5 +1,5 @@
 import * as GWU from 'gw-utils';
-import { MapType } from '../../map/types';
+import { Map } from '../../map/map';
 import { BasicEffect } from './basic';
 import { EffectCtx, MapXY, installType } from '../effect';
 import * as Flags from '../../flags';
@@ -137,7 +137,7 @@ export class SpreadEffect extends BasicEffect {
 }
 
 export function mapDisruptedBy(
-    map: MapType,
+    map: Map,
     blockingGrid: GWU.grid.NumGrid,
     blockingToMapX = 0,
     blockingToMapY = 0
@@ -183,7 +183,7 @@ export function mapDisruptedBy(
 
 function cellIsOk(
     effect: SpreadEffect,
-    map: MapType,
+    map: Map,
     x: number,
     y: number,
     isStart: boolean
@@ -301,11 +301,7 @@ export function computeSpawnMap(
     return count > 0;
 }
 
-export function clearCells(
-    map: MapType,
-    spawnMap: GWU.grid.NumGrid,
-    flags = 0
-) {
+export function clearCells(map: Map, spawnMap: GWU.grid.NumGrid, flags = 0) {
     let didSomething = false;
     const clearAll =
         (flags & Flags.Effect.E_CLEAR_CELL) === Flags.Effect.E_CLEAR_CELL;
@@ -334,7 +330,7 @@ export function clearCells(
     return didSomething;
 }
 
-export function evacuateCreatures(map: MapType, blockingMap: GWU.grid.NumGrid) {
+export function evacuateCreatures(map: Map, blockingMap: GWU.grid.NumGrid) {
     let didSomething = false;
     map.eachActor((a) => {
         if (!blockingMap[a.x][a.y]) return;
@@ -354,7 +350,7 @@ export function evacuateCreatures(map: MapType, blockingMap: GWU.grid.NumGrid) {
     return didSomething;
 }
 
-export function evacuateItems(map: MapType, blockingMap: GWU.grid.NumGrid) {
+export function evacuateItems(map: Map, blockingMap: GWU.grid.NumGrid) {
     let didSomething = false;
     map.eachItem((i) => {
         if (!blockingMap[i.x][i.y]) return;

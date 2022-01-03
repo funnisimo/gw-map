@@ -1,25 +1,16 @@
 import * as GWU from 'gw-utils';
 
 import * as Flags from '../flags';
-import { Cell } from './cell';
+import { Cell, SetTileOptions } from './cell';
 import * as TILE from '../tile';
 import { Tile } from '../tile';
 import * as Layer from '../layer';
 import { Item } from '../item';
 import { Actor } from '../actor';
 import { Entity } from '../entity';
-import {
-    MapType,
-    EachCellCb,
-    MapTestFn,
-    SetTileOptions,
-    CellType,
-} from './types';
-// import { CellMemory } from './cellMemory';
 import * as Effect from '../effect';
 import { CellDrawer, MapDrawOptions, BufferSource } from '../draw/types';
 import { BasicDrawer } from '../draw/basic';
-import { MapEvents } from '.';
 import { Player } from '../player/player';
 
 export interface MapOptions
@@ -37,9 +28,32 @@ export interface MapOptions
 
 export type LayerType = Layer.TileLayer;
 
-export class Map
-    implements GWU.light.LightSystemSite, MapType, GWU.tween.Animator
-{
+export interface MapFlags {
+    map: number;
+}
+
+export type EachCellCb = (cell: Cell, x: number, y: number, map: Map) => any;
+
+export type EachItemCb = (item: Item) => any;
+export type EachActorCb = (actor: Actor) => any;
+
+export type MapTestFn = (cell: Cell, x: number, y: number, map: Map) => boolean;
+
+export interface MapEvents extends GWU.events.Events {
+    // add or remove actor
+    actor: (map: Map, actor: Actor, isNew: boolean) => void;
+
+    // add or remove item
+    item: (map: Map, item: Item, isNew: boolean) => void;
+
+    // add or remove fx
+    fx: (map: Map, fx: Entity, isNew: boolean) => void;
+
+    // change cell tiles
+    cell: (map: Map, cell: Cell) => void;
+}
+
+export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
     cells: GWU.grid.Grid<Cell>;
     layers: LayerType[];
     flags: { map: 0 };
@@ -171,10 +185,7 @@ export class Map
         return x == 0 || y == 0 || x == this.width - 1 || y == this.height - 1;
     }
 
-    cell(x: number, y: number): CellType {
-        return this.cells[x][y];
-    }
-    _cell(x: number, y: number): Cell {
+    cell(x: number, y: number): Cell {
         return this.cells[x][y];
     }
     get(x: number, y: number): Cell | undefined {
@@ -198,7 +209,7 @@ export class Map
 
     addItem(x: number, y: number, item: Item, fireEffects = false): boolean {
         if (!this.hasXY(x, y)) return false;
-        const cell = this._cell(x, y);
+        const cell = this.cell(x, y);
         // if (!cell.canAddItem(item)) return false;
 
         if (cell._addItem(item)) {
@@ -247,7 +258,7 @@ export class Map
     ): boolean {
         const loc = this.rng.matchingLocNear(x, y, (i, j) => {
             if (!this.hasXY(i, j)) return false;
-            const cell = this._cell(i, j);
+            const cell = this.cell(i, j);
             if (cell.hasItem()) return false;
             if (cell.blocksMove()) return false;
             if (item.avoidsCell(cell)) return false;
@@ -258,7 +269,7 @@ export class Map
         return this.addItem(loc[0], loc[1], item, fireEffects);
     }
     removeItem(item: Item, fireEffects = false): boolean {
-        const cell = this._cell(item.x, item.y);
+        const cell = this.cell(item.x, item.y);
         // if (!cell.canRemoveItem(item)) return false;
 
         if (cell._removeItem(item)) {
@@ -292,8 +303,8 @@ export class Map
     moveItem(item: Item, x: number, y: number, fireEffects = false) {
         if (item.map !== this) throw new Error('Actor not on this map!');
 
-        const currentCell = this._cell(item.x, item.y);
-        const newCell = this._cell(x, y);
+        const currentCell = this.cell(item.x, item.y);
+        const newCell = this.cell(x, y);
 
         // if (!currentCell.canRemoveItem(item)) return false;
         // if (!newCell.canAddItem(item)) return false;
@@ -368,7 +379,7 @@ export class Map
     }
     addActor(x: number, y: number, actor: Actor, fireEffects = false): boolean {
         if (!this.hasXY(x, y)) return false;
-        const cell = this._cell(x, y);
+        const cell = this.cell(x, y);
         if (!cell.canAddActor(actor)) return false;
 
         if (cell._addActor(actor)) {
@@ -429,7 +440,7 @@ export class Map
     }
 
     removeActor(actor: Actor, fireEffects = false): boolean {
-        const cell = this._cell(actor.x, actor.y);
+        const cell = this.cell(actor.x, actor.y);
         if (!cell.canRemoveActor(actor)) return false;
 
         if (cell._removeActor(actor)) {
@@ -472,8 +483,8 @@ export class Map
     ): boolean {
         if (actor.map !== this) throw new Error('Actor not on this map!');
 
-        const currentCell = this._cell(actor.x, actor.y);
-        const newCell = this._cell(x, y);
+        const currentCell = this.cell(actor.x, actor.y);
+        const newCell = this.cell(x, y);
 
         // if (!currentCell.canRemoveActor(actor)) return false;
         // if (!newCell.canAddActor(actor)) return false;
@@ -752,7 +763,7 @@ export class Map
             throw new Error('Maps must be same size to copy');
 
         this.cells.forEach((c, x, y) => {
-            c.copy(src._cell(x, y));
+            c.copy(src.cell(x, y));
         });
 
         this.layers.forEach((l, depth) => {
@@ -890,7 +901,7 @@ export class Map
     }
 
     getAppearanceAt(x: number, y: number, dest: GWU.sprite.Mixer) {
-        const cell = this._cell(x, y);
+        const cell = this.cell(x, y);
         return this.drawer.drawCell(dest, this, cell);
     }
 
@@ -937,12 +948,12 @@ export class Map
     // }
 
     storeMemory(x: number, y: number) {
-        const cell = this._cell(x, y);
+        const cell = this.cell(x, y);
         cell.storeMemory();
     }
 
     makeVisible(x: number, y: number) {
-        const cell = this._cell(x, y);
+        const cell = this.cell(x, y);
         cell.clearMemory();
     }
 
@@ -962,107 +973,4 @@ export class Map
     removeAnimation(a: GWU.tween.Animation): void {
         GWU.arrayDelete(this._animations, a);
     }
-}
-
-export function make(
-    w: number,
-    h: number,
-    floor?: string,
-    boundary?: string
-): Map;
-export function make(w: number, h: number, floor: string): Map;
-export function make(w: number, h: number, opts: Partial<MapOptions>): Map;
-export function make(
-    w: number,
-    h: number,
-    opts: Partial<MapOptions> | string = {},
-    boundary?: string
-): Map {
-    if (typeof opts === 'string') {
-        opts = { tile: opts };
-    }
-    if (boundary) {
-        opts.boundary = boundary;
-    }
-    if (opts.tile === true) {
-        opts.tile = 'FLOOR';
-    }
-    if (opts.boundary === true) {
-        opts.boundary = 'WALL';
-    }
-
-    const map = new Map(w, h, opts);
-
-    if (opts.tile === undefined) {
-        opts.tile = 'FLOOR';
-    }
-    if (opts.boundary === undefined) {
-        opts.boundary = 'WALL';
-    }
-
-    if (opts.tile) {
-        map.fill(opts.tile, opts.boundary);
-        map.light.update();
-    }
-
-    // if (!DATA.map) {
-    //     DATA.map = map;
-    // }
-
-    // // In case we reveal the map or make it all visible we need our memory set correctly
-    // map.cells.forEach((_c, x, y) => {
-    //     if (map.fov.isRevealed(x, y)) {
-    //         map.storeMemory(x, y, true); // with snapshot
-    //     }
-    // });
-
-    return map;
-}
-
-function isString(value: any): value is string {
-    return typeof value === 'string';
-}
-
-function isStringArray(value: any): value is string[] {
-    return Array.isArray(value) && typeof value[0] === 'string';
-}
-
-export function from(
-    prefab: string | string[] | GWU.grid.NumGrid,
-    charToTile: Record<string, string | null>,
-    opts: Partial<MapOptions> = {}
-) {
-    let height = 0;
-    let width = 0;
-    let map: Map;
-
-    if (isString(prefab)) {
-        prefab = prefab.split('\n');
-    }
-
-    if (isStringArray(prefab)) {
-        height = prefab.length;
-        width = prefab.reduce((len, line) => Math.max(len, line.length), 0);
-        map = make(width, height, opts);
-
-        prefab.forEach((line, y) => {
-            for (let x = 0; x < width; ++x) {
-                const ch = line[x] || '.';
-                const tile = charToTile[ch] || 'FLOOR';
-                map.setTile(x, y, tile);
-            }
-        });
-    } else {
-        height = prefab.height;
-        width = prefab.width;
-        map = make(width, height, opts);
-
-        prefab.forEach((v, x, y) => {
-            const tile = charToTile[v] || 'FLOOR';
-            map.setTile(x, y, tile);
-        });
-    }
-
-    map.light.update();
-    return map;
 }

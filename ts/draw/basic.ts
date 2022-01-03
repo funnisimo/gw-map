@@ -29,7 +29,7 @@ export class BasicDrawer implements CellDrawer {
         for (let x = 0; x < buffer.width; ++x) {
             for (let y = 0; y < buffer.height; ++y) {
                 if (map.hasXY(x + offsetX, y + offsetY)) {
-                    const cell = map._cell(x + offsetX, y + offsetY);
+                    const cell = map.cell(x + offsetX, y + offsetY);
                     this.drawCell(mixer, map, cell, map.fov);
                     buffer.drawSprite(x, y, mixer);
                 }

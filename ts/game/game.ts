@@ -202,7 +202,7 @@ export class Game {
                             if (
                                 c.hasCellFlag(Flags.Cell.COLORS_DANCE) &&
                                 this.map.fov.isAnyKindOfVisible(c.x, c.y) &&
-                                GWU.cosmetic.chance(1, 1000)
+                                GWU.cosmetic.chance(2)
                             ) {
                                 c.needsRedraw = true;
                             }

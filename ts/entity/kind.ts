@@ -1,6 +1,6 @@
 import * as GWU from 'gw-utils';
 
-import { CellType, MapType } from '../map/types';
+import { Cell, Map } from '../map';
 import { Entity } from './entity';
 import * as Flags from '../flags';
 
@@ -118,14 +118,14 @@ export class EntityKind {
         }
     }
 
-    addToMap(_entity: Entity, _map: MapType) {}
+    addToMap(_entity: Entity, _map: Map) {}
     removeFromMap(_entity: Entity) {}
 
     canBeSeen(_entity: Entity): boolean {
         return true;
     }
 
-    forbidsCell(cell: CellType, _entity?: Entity): boolean {
+    forbidsCell(cell: Cell, _entity?: Entity): boolean {
         if (
             this.requireTileFlags &&
             !cell.hasAllTileFlags(this.requireTileFlags) &&
@@ -159,7 +159,7 @@ export class EntityKind {
         return false;
     }
 
-    avoidsCell(cell: CellType, entity?: Entity): boolean {
+    avoidsCell(cell: Cell, entity?: Entity): boolean {
         if (this.forbidsCell(cell, entity)) return true;
         if (
             this.avoidTileFlags &&

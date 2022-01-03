@@ -9,7 +9,7 @@ import { Status } from './status';
 import { Stats } from './stat';
 import { Game } from '../game';
 import { AIConfig } from '../ai/ai';
-import { MapType } from '../map/types';
+import { Map } from '../map/map';
 
 export interface PickupOptions {
     admin: boolean;
@@ -256,7 +256,7 @@ export class Actor extends Entity.Entity {
 
     // PATHFINDING
 
-    addToMap(map: MapType, x: number, y: number): boolean {
+    addToMap(map: Map, x: number, y: number): boolean {
         const mapChanged = super.addToMap(map, x, y);
         if (mapChanged) {
             this.clearActorFlag(Flags.Actor.STABLE_COST_MAP);

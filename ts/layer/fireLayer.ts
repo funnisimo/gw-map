@@ -2,7 +2,7 @@ import * as GWU from 'gw-utils';
 
 import * as Flags from '../flags';
 import { TileLayer } from './tileLayer';
-import { MapType } from '../map/types';
+import { Map } from '../map/map';
 import * as Effect from '../effect';
 
 const Depth = Flags.Depth;
@@ -12,7 +12,7 @@ const TileMechFlags = Flags.TileMech;
 const CellFlags = Flags.Cell;
 
 export class FireLayer extends TileLayer {
-    constructor(map: MapType, name = 'tile') {
+    constructor(map: Map, name = 'tile') {
         super(map, name);
     }
 

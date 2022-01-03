@@ -1,9 +1,10 @@
-import { MapType, SetTileOptions } from '../map/types';
+import { Map } from '../map/map';
+import { SetTileOptions } from '../map/cell';
 import { MapLayer } from './mapLayer';
 import * as Tile from '../tile';
 
 export class TileLayer extends MapLayer {
-    constructor(map: MapType, name = 'tile') {
+    constructor(map: Map, name = 'tile') {
         super(map, name);
     }
 
