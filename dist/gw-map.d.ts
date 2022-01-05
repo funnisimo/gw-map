@@ -1017,6 +1017,7 @@ declare class PlayerKind extends ActorKind {
     skills: Skills;
     constructor(opts?: Partial<KindOptions$2>);
     make(options?: MakeOptions$1): Player;
+    cellCost(cell: Cell, player: Player): number;
 }
 
 declare class Scent {
@@ -1042,6 +1043,8 @@ declare class Player extends Actor {
     interrupt(): void;
     endTurn(pct?: number): number;
     addToMap(map: Map, x: number, y: number): boolean;
+    setGoal(x: number, y: number): GWU.grid.NumGrid;
+    nextGoalStep(): GWU.xy.Loc | null;
     pathTo(other: Actor): GWU.xy.Loc[] | null;
     pathTo(x: number, y: number): GWU.xy.Loc[] | null;
 }
@@ -1073,6 +1076,61 @@ declare namespace index_d$a {
   };
 }
 
+interface UISubject {
+    readonly map: Map | null;
+    readonly x: number;
+    readonly y: number;
+}
+declare type ViewFilterFn = (mixer: GWU.sprite.Mixer, x: number, y: number, map: Map) => void;
+interface ViewportOptions {
+    snap?: boolean;
+    filter?: ViewFilterFn;
+    lockX?: boolean;
+    lockY?: boolean;
+    lock?: boolean;
+    center?: boolean;
+    bg?: GWU.color.ColorBase;
+    scent?: boolean;
+}
+interface ViewportInit extends ViewportOptions {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+declare class Viewport {
+    filter: ViewFilterFn | null;
+    scent: boolean;
+    bg: GWU.color.Color;
+    offsetX: number;
+    offsetY: number;
+    _subject: UISubject | null;
+    player: Player | null;
+    bounds: GWU.xy.Bounds;
+    snap: boolean;
+    center: boolean;
+    lockX: boolean;
+    lockY: boolean;
+    constructor(opts: ViewportInit);
+    get subject(): Player | UISubject | null;
+    set subject(subject: Player | UISubject | null);
+    set lock(v: boolean);
+    toMapX(x: number): number;
+    toMapY(y: number): number;
+    toInnerX(x: number): number;
+    toInnerY(y: number): number;
+    halfWidth(): number;
+    halfHeight(): number;
+    centerOn(map: Map, x: number, y: number): void;
+    showMap(map: Map, x?: number, y?: number): void;
+    updateOffset(): void;
+    draw(buffer: GWU.buffer.Buffer): boolean;
+    tick(_dt: number): boolean;
+    mousemove(ev: GWU.io.Event): boolean;
+    click(ev: GWU.io.Event): boolean;
+    showPath(x: number, y: number): boolean;
+}
+
 interface GameOptions extends GWU.ui.UIOptions {
     ui?: GWU.ui.UI;
     makeMap: MakeMapFn;
@@ -1080,8 +1138,7 @@ interface GameOptions extends GWU.ui.UIOptions {
     startMap: StartMapFn;
     keymap: Record<string, string | CommandFn>;
     mouse?: boolean;
-    fov?: boolean;
-    scent?: boolean;
+    viewport?: ViewportOptions;
 }
 declare type MakeMapFn = (id: number) => Map;
 declare type MakePlayerFn = () => Player;
@@ -1091,6 +1148,7 @@ declare class Game {
     layer: GWU.ui.Layer;
     buffer: GWU.canvas.Buffer;
     io: GWU.io.Handler;
+    viewport: Viewport;
     scheduler: GWU.scheduler.Scheduler;
     player: Player;
     map: Map;
@@ -1104,6 +1162,7 @@ declare class Game {
     running: boolean;
     keymap: Record<string, string | CommandFn>;
     constructor(opts: GameOptions);
+    _initViewport(opts?: ViewportOptions): void;
     start(): Promise<any>;
     draw(): void;
     finish(result?: any): void;
@@ -1323,6 +1382,7 @@ declare class ActorKind extends EntityKind {
     getFlavor(actor: Actor, opts?: FlavorOptions): string;
     pickupItem(actor: Actor, item: Item, _opts?: Partial<PickupOptions>): boolean;
     dropItem(actor: Actor, item: Item, _opts?: Partial<DropOptions>): boolean;
+    cellCost(cell: Cell, actor: Actor): number;
 }
 
 declare function make$5(info: string | ActorKind | KindOptions$1, makeOptions?: any): Actor;
@@ -1923,26 +1983,6 @@ declare namespace index_d$4 {
   };
 }
 
-declare function getCellPathCost(map: Map, x: number, y: number): number;
-declare function fillCostMap(map: Map, costMap: GWU.grid.NumGrid): void;
-interface PathOptions {
-    eightWays: boolean;
-}
-declare function getPathBetween(map: Map, x0: number, y0: number, x1: number, y1: number, options?: Partial<PathOptions>): GWU.xy.Loc[] | null;
-
-declare const path_d_getCellPathCost: typeof getCellPathCost;
-declare const path_d_fillCostMap: typeof fillCostMap;
-type path_d_PathOptions = PathOptions;
-declare const path_d_getPathBetween: typeof getPathBetween;
-declare namespace path_d {
-  export {
-    path_d_getCellPathCost as getCellPathCost,
-    path_d_fillCostMap as fillCostMap,
-    path_d_PathOptions as PathOptions,
-    path_d_getPathBetween as getPathBetween,
-  };
-}
-
 interface HordeConfig {
     leader: string;
     members?: Record<string, GWU.range.RangeBase>;
@@ -2184,4 +2224,4 @@ declare namespace index_d {
   };
 }
 
-export { index_d$a as action, index_d$6 as actor, index_d$8 as ai, index_d$1 as draw, index_d$b as effect, index_d$4 as entity, index_d$f as flags, fx_d as fx, index_d$9 as game, index_d$3 as horde, index_d$d as item, index_d$c as layer, index_d$5 as map, index_d$2 as memory, path_d as path, index_d as player, index_d$e as tile };
+export { index_d$a as action, index_d$6 as actor, index_d$8 as ai, index_d$1 as draw, index_d$b as effect, index_d$4 as entity, index_d$f as flags, fx_d as fx, index_d$9 as game, index_d$3 as horde, index_d$d as item, index_d$c as layer, index_d$5 as map, index_d$2 as memory, index_d as player, index_d$e as tile };

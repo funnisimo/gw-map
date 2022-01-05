@@ -3,7 +3,7 @@ import { Actor } from '../actor';
 import { Map } from '../map/map';
 import { PlayerKind } from './kind';
 import { Scent } from './scent';
-// import { Memory } from '../memory';
+import * as Flags from '../flags';
 
 export class Player extends Actor {
     static default = {
@@ -27,7 +27,9 @@ export class Player extends Actor {
 
     endTurn(pct = 100): number {
         if (this.map) {
-            this.map.fov.update();
+            if (this.map.fov.update()) {
+                this.clearActorFlag(Flags.Actor.STABLE_COST_MAP);
+            }
             this.scent.update();
         }
         return super.endTurn(pct);
@@ -37,6 +39,52 @@ export class Player extends Actor {
         if (!super.addToMap(map, x, y)) return false;
         this.scent.clear();
         return true;
+    }
+
+    setGoal(x: number, y: number): GWU.grid.NumGrid {
+        const map = this._map;
+        if (!map) throw new Error('No map to set goal with!');
+
+        if (!this._goalMap) {
+            this._goalMap = GWU.grid.alloc(map.width, map.height);
+        }
+
+        const goalMap = this._goalMap;
+
+        const mapToPlayer = this.mapToMe();
+
+        if (
+            mapToPlayer[x][y] < 0 ||
+            mapToPlayer[x][y] >= GWU.path.NO_PATH ||
+            !map.fov.isRevealed(x, y)
+        ) {
+            let loc = GWU.path.getClosestValidLocation(
+                mapToPlayer,
+                x,
+                y,
+                (x, y) => !map.fov.isRevealed(x, y)
+            );
+            loc = loc || [this.x, this.y];
+            x = loc[0];
+            y = loc[1];
+        }
+
+        GWU.path.calculateDistances(goalMap, x, y, this.costMap());
+        return this._goalMap;
+    }
+
+    nextGoalStep(): GWU.xy.Loc | null {
+        const map = this.map;
+        if (!map) return null;
+
+        const goalMap = this.goalMap!;
+        const step = GWU.path.nextStep(
+            goalMap,
+            this.x,
+            this.y,
+            (x, y) => map.hasActor(x, y) && map.actorAt(x, y) !== this
+        );
+        return step;
     }
 
     pathTo(other: Actor): GWU.xy.Loc[] | null;
@@ -49,14 +97,33 @@ export class Player extends Actor {
             y = args[0].y;
         }
 
-        if (!this.map) return null;
+        const map = this.map;
+        if (!map) return null;
 
         const mapToPlayer = this.mapToMe();
+
+        if (
+            mapToPlayer[x][y] < 0 ||
+            mapToPlayer[x][y] >= GWU.path.NO_PATH ||
+            !map.fov.isRevealed(x, y)
+        ) {
+            const loc = GWU.path.getClosestValidLocation(
+                mapToPlayer,
+                x,
+                y,
+                (x, y) => !map.fov.isRevealed(x, y)
+            );
+            if (!loc) return null;
+            x = loc[0];
+            y = loc[1];
+        }
+
         const path = GWU.path.getPath(
             mapToPlayer,
             x,
             y,
-            (x, y) => !this.map!.fov.isRevealed(x, y)
+            (x, y) => !map.fov.isRevealed(x, y),
+            true
         );
 
         return path;

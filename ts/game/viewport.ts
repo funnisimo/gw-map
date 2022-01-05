@@ -1,6 +1,7 @@
 import * as GWU from 'gw-utils';
 import { Map } from '../map/map';
 import { Player } from '../player/player';
+import * as Flags from '../flags';
 
 export interface UISubject {
     readonly map: Map | null;
@@ -23,6 +24,8 @@ export interface ViewportOptions {
     lock?: boolean;
     center?: boolean;
     bg?: GWU.color.ColorBase;
+
+    scent?: boolean;
 }
 
 export interface ViewportInit extends ViewportOptions {
@@ -34,6 +37,8 @@ export interface ViewportInit extends ViewportOptions {
 
 export class Viewport {
     filter!: ViewFilterFn | null;
+    scent: boolean;
+
     bg: GWU.color.Color;
 
     offsetX = 0;
@@ -60,6 +65,8 @@ export class Viewport {
         this.filter = opts.filter || null;
         this.lockX = opts.lock || opts.lockX || false;
         this.lockY = opts.lock || opts.lockY || false;
+
+        this.scent = opts.scent || false;
     }
 
     get subject(): Player | UISubject | null {
@@ -203,6 +210,12 @@ export class Viewport {
     }
 
     draw(buffer: GWU.buffer.Buffer): boolean {
+        if (!this._subject) return false;
+        const map = this._subject.map;
+        if (!map || !map.needsRedraw) return false;
+
+        const fov = map.fov;
+
         buffer.blackOutRect(
             this.bounds.x,
             this.bounds.y,
@@ -216,8 +229,9 @@ export class Viewport {
         }
 
         this.updateOffset();
-        const map = this._subject.map!;
-        const fov = map.fov;
+
+        const drawer = map.drawer;
+        drawer.scent = this.scent;
 
         const mixer = new GWU.sprite.Mixer();
         for (let x = 0; x < this.bounds.width; ++x) {
@@ -240,6 +254,65 @@ export class Viewport {
         }
 
         // map.clearMapFlag(GWM.flags.Map.MAP_CHANGED);
+        return true;
+    }
+
+    tick(_dt: number): boolean {
+        if (!this._subject) return false;
+        const map = this._subject.map;
+        if (!map) return false;
+
+        if (!map.hasMapFlag(Flags.Map.MAP_DANCES) || !GWU.cosmetic.chance(10)) {
+            return false;
+        }
+
+        map.eachCell((c) => {
+            if (
+                c.hasCellFlag(Flags.Cell.COLORS_DANCE) &&
+                map.fov.isAnyKindOfVisible(c.x, c.y) &&
+                GWU.cosmetic.chance(2)
+            ) {
+                c.needsRedraw = true;
+            }
+        });
+        map.needsRedraw = true;
+        return true;
+    }
+
+    mousemove(ev: GWU.io.Event): boolean {
+        if (!this.bounds.contains(ev.x, ev.y)) return false;
+        if (!this.player) return false;
+        const map = this.player.map;
+        if (!map) return false;
+
+        return this.showPath(ev.x, ev.y);
+    }
+
+    click(ev: GWU.io.Event): boolean {
+        if (!this.bounds.contains(ev.x, ev.y)) return false;
+        if (!this.player) return false;
+        if (this.player.hasGoal()) {
+            this.player.clearGoal();
+        } else {
+            this.player.setGoal(ev.x, ev.y);
+        }
+        return true;
+    }
+
+    showPath(x: number, y: number): boolean {
+        if (!this.player) return false;
+        const map = this.player.map;
+        if (!map) return false;
+
+        // if (!this.player.hasGoal()) return false;
+
+        // console.log('mouse', ev.x, ev.y);
+        const path = this.player.pathTo(x, y);
+        if (path) {
+            map.highlightPath(path, true);
+        } else {
+            map.clearPath();
+        }
         return true;
     }
 }

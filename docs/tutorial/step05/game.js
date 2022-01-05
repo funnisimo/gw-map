@@ -98,7 +98,8 @@ GWM.actor.install('PEDRO', {
     ai: { wander: true },
 
     actions: {
-        async attack(game, pedro) {
+        async attack(game, pedro, ctx) {
+            if (ctx.actor !== game.player) return 0;
             await game.ui.alert('I got you, you nasty thief!');
             game.finish(false);
             return -1;
@@ -114,7 +115,7 @@ async function start() {
         div: 'game',
 
         mouse: true,
-        // scent: true,
+        viewport: { scent: false },
 
         makeMap() {
             const seed = GWU.random.number();

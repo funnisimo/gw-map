@@ -304,14 +304,7 @@ export class Actor extends Entity.Entity {
         const map = this.map;
         this._costMap.update((_v, x, y) => {
             const cell = map.cell(x, y);
-            if (kind.forbidsCell(cell, this)) {
-                return cell.hasEntityFlag(Flags.Entity.L_BLOCKS_DIAGONAL)
-                    ? GWU.path.OBSTRUCTION
-                    : GWU.path.FORBIDDEN;
-            } else if (kind.avoidsCell(cell, this)) {
-                return GWU.path.AVOIDED;
-            }
-            return GWU.path.OK;
+            return kind.cellCost(cell, this);
         });
 
         this.setActorFlag(Flags.Actor.STABLE_COST_MAP);

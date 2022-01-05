@@ -1277,15 +1277,7 @@
             const map = this.map;
             this._costMap.update((_v, x, y) => {
                 const cell = map.cell(x, y);
-                if (kind.forbidsCell(cell, this)) {
-                    return cell.hasEntityFlag(Entity$1.L_BLOCKS_DIAGONAL)
-                        ? GWU__namespace.path.OBSTRUCTION
-                        : GWU__namespace.path.FORBIDDEN;
-                }
-                else if (kind.avoidsCell(cell, this)) {
-                    return GWU__namespace.path.AVOIDED;
-                }
-                return GWU__namespace.path.OK;
+                return kind.cellCost(cell, this);
             });
             this.setActorFlag(Actor$1.STABLE_COST_MAP);
             /*
@@ -1701,7 +1693,7 @@
         let attack = actor.getAction('attack');
         if (!attack)
             return 0;
-        return attack(game, actor);
+        return attack(game, actor, { actor: target });
     }
     function tooFarFrom(_game, actor, target, _ctx) {
         // diagonal?
@@ -1902,6 +1894,17 @@
                 return false;
             // TODO - Drop effects
             return true;
+        }
+        cellCost(cell, actor) {
+            if (this.forbidsCell(cell, actor)) {
+                return cell.hasEntityFlag(Entity$1.L_BLOCKS_DIAGONAL)
+                    ? GWU__namespace.path.OBSTRUCTION
+                    : GWU__namespace.path.FORBIDDEN;
+            }
+            else if (this.avoidsCell(cell, actor)) {
+                return GWU__namespace.path.AVOIDED;
+            }
+            return GWU__namespace.path.OK;
         }
     }
 
@@ -4833,13 +4836,13 @@
                     Entity$1.L_LIST_IN_SIDEBAR, true);
             }
             if (cell.hasCellFlag(Cell$1.IS_CURSOR)) {
-                dest.bg = dest.bg.mix(highlightColor, 50);
+                dest.invert();
+                dest.mix(highlightColor, 0, 25);
                 separate = true;
             }
             else if (cell.hasCellFlag(Cell$1.IS_HIGHLIGHTED)) {
-                dest.bg = dest.bg.mix(highlightColor, 25);
-                separate = true;
                 dest.invert();
+                separate = true;
             }
             if (this.scent && map.player) {
                 const s = GWU__namespace.clamp(map.player.scent.get(cell.x, cell.y) * 5, 0, 50);
@@ -6206,6 +6209,8 @@
         return map;
     }
 
+    // export * from './path';
+
     var index$6 = /*#__PURE__*/Object.freeze({
         __proto__: null,
         NEVER_SEEN: NEVER_SEEN,
@@ -6224,37 +6229,6 @@
         isHallway: isHallway,
         make: make$1,
         from: from$1
-    });
-
-    function getCellPathCost(map, x, y) {
-        const cell = map.cell(x, y);
-        if (cell.blocksMove())
-            return GWU__namespace.path.OBSTRUCTION;
-        if (cell.blocksPathing())
-            return GWU__namespace.path.FORBIDDEN;
-        if (cell.hasActor())
-            return 10;
-        return 1;
-    }
-    function fillCostMap(map, costMap) {
-        costMap.update((_v, x, y) => getCellPathCost(map, x, y));
-    }
-    function getPathBetween(map, x0, y0, x1, y1, options = {}) {
-        const distanceMap = GWU__namespace.grid.alloc(map.width, map.height);
-        const costMap = GWU__namespace.grid.alloc(map.width, map.height);
-        fillCostMap(map, costMap);
-        GWU__namespace.path.calculateDistances(distanceMap, x0, y0, costMap, options.eightWays, GWU__namespace.xy.straightDistanceBetween(x0, y0, x1, y1) + 1);
-        const path = GWU__namespace.path.getPath(distanceMap, x1, y1, (x, y) => map.cell(x, y).blocksMove(), options.eightWays);
-        GWU__namespace.grid.free(costMap);
-        GWU__namespace.grid.free(distanceMap);
-        return path;
-    }
-
-    var path = /*#__PURE__*/Object.freeze({
-        __proto__: null,
-        getCellPathCost: getCellPathCost,
-        fillCostMap: fillCostMap,
-        getPathBetween: getPathBetween
     });
 
     class Horde {
@@ -7213,7 +7187,6 @@
         }
     }
 
-    // import { Memory } from '../memory';
     class Player extends Actor {
         constructor(kind) {
             super(kind);
@@ -7224,7 +7197,9 @@
         }
         endTurn(pct = 100) {
             if (this.map) {
-                this.map.fov.update();
+                if (this.map.fov.update()) {
+                    this.clearActorFlag(Actor$1.STABLE_COST_MAP);
+                }
                 this.scent.update();
             }
             return super.endTurn(pct);
@@ -7235,6 +7210,34 @@
             this.scent.clear();
             return true;
         }
+        setGoal(x, y) {
+            const map = this._map;
+            if (!map)
+                throw new Error('No map to set goal with!');
+            if (!this._goalMap) {
+                this._goalMap = GWU__namespace.grid.alloc(map.width, map.height);
+            }
+            const goalMap = this._goalMap;
+            const mapToPlayer = this.mapToMe();
+            if (mapToPlayer[x][y] < 0 ||
+                mapToPlayer[x][y] >= GWU__namespace.path.NO_PATH ||
+                !map.fov.isRevealed(x, y)) {
+                let loc = GWU__namespace.path.getClosestValidLocation(mapToPlayer, x, y, (x, y) => !map.fov.isRevealed(x, y));
+                loc = loc || [this.x, this.y];
+                x = loc[0];
+                y = loc[1];
+            }
+            GWU__namespace.path.calculateDistances(goalMap, x, y, this.costMap());
+            return this._goalMap;
+        }
+        nextGoalStep() {
+            const map = this.map;
+            if (!map)
+                return null;
+            const goalMap = this.goalMap;
+            const step = GWU__namespace.path.nextStep(goalMap, this.x, this.y, (x, y) => map.hasActor(x, y) && map.actorAt(x, y) !== this);
+            return step;
+        }
         pathTo(...args) {
             let x = args[0];
             let y = args[1];
@@ -7242,10 +7245,20 @@
                 x = args[0].x;
                 y = args[0].y;
             }
-            if (!this.map)
+            const map = this.map;
+            if (!map)
                 return null;
             const mapToPlayer = this.mapToMe();
-            const path = GWU__namespace.path.getPath(mapToPlayer, x, y, (x, y) => !this.map.fov.isRevealed(x, y));
+            if (mapToPlayer[x][y] < 0 ||
+                mapToPlayer[x][y] >= GWU__namespace.path.NO_PATH ||
+                !map.fov.isRevealed(x, y)) {
+                const loc = GWU__namespace.path.getClosestValidLocation(mapToPlayer, x, y, (x, y) => !map.fov.isRevealed(x, y));
+                if (!loc)
+                    return null;
+                x = loc[0];
+                y = loc[1];
+            }
+            const path = GWU__namespace.path.getPath(mapToPlayer, x, y, (x, y) => !map.fov.isRevealed(x, y), true);
             return path;
         }
     }
@@ -7279,6 +7292,12 @@
             const actor = new Player(this);
             this.init(actor, options);
             return actor;
+        }
+        cellCost(cell, player) {
+            const map = cell.map;
+            if (!map.fov.isRevealed(cell.x, cell.y))
+                return GWU__namespace.path.FORBIDDEN;
+            return super.cellCost(cell, player);
         }
     }
 
@@ -7339,6 +7358,224 @@
         makeKind: makeKind
     });
 
+    class Viewport {
+        constructor(opts) {
+            this.offsetX = 0;
+            this.offsetY = 0;
+            this._subject = null;
+            this.player = null;
+            this.bounds = new GWU__namespace.xy.Bounds(opts.x, opts.y, opts.width, opts.height);
+            this.bg = GWU__namespace.color.from(opts.bg || 'black');
+            this.snap = opts.snap || false;
+            this.center = opts.center || false;
+            this.filter = opts.filter || null;
+            this.lockX = opts.lock || opts.lockX || false;
+            this.lockY = opts.lock || opts.lockY || false;
+            this.scent = opts.scent || false;
+        }
+        get subject() {
+            return this._subject;
+        }
+        set subject(subject) {
+            this.center = !!subject;
+            if (subject) {
+                this.offsetX = subject.x - this.halfWidth();
+                this.offsetY = subject.y - this.halfHeight();
+            }
+            this._subject = subject;
+            if (subject && subject instanceof Player) {
+                this.player = subject;
+            }
+            else {
+                this.player = null;
+            }
+        }
+        set lock(v) {
+            this.lockX = v;
+            this.lockY = v;
+        }
+        toMapX(x) {
+            return x + this.offsetX - this.bounds.x;
+        }
+        toMapY(y) {
+            return y + this.offsetY - this.bounds.y;
+        }
+        toInnerX(x) {
+            return x - this.bounds.x;
+        }
+        toInnerY(y) {
+            return y - this.bounds.y;
+        }
+        halfWidth() {
+            return Math.floor(this.bounds.width / 2);
+        }
+        halfHeight() {
+            return Math.floor(this.bounds.height / 2);
+        }
+        centerOn(map, x, y) {
+            this.center = true;
+            this.subject = { x, y, map };
+        }
+        showMap(map, x = 0, y = 0) {
+            this.subject = { x, y, map };
+            this.offsetX = x;
+            this.offsetY = y;
+            this.center = false;
+            this.snap = false;
+        }
+        updateOffset() {
+            if (!this._subject) {
+                this.offsetX = 0;
+                this.offsetY = 0;
+                return;
+            }
+            const subject = this._subject;
+            const map = subject.map;
+            const bounds = map;
+            if (subject && map.hasXY(subject.x, subject.y)) {
+                if (this.snap) {
+                    let left = this.offsetX;
+                    let right = this.offsetX + this.bounds.width;
+                    let top = this.offsetY;
+                    let bottom = this.offsetY + this.bounds.height;
+                    // auto center if outside the viewport
+                    if (subject.x < left || subject.x > right) {
+                        left = this.offsetX = subject.x - this.halfWidth();
+                        right = left + this.bounds.width;
+                    }
+                    if (subject.y < top || subject.y > bottom) {
+                        top = this.offsetY = subject.y - this.halfHeight();
+                        bottom = top + this.bounds.height;
+                    }
+                    const edgeX = Math.floor(this.bounds.width / 5);
+                    const edgeY = Math.floor(this.bounds.height / 5);
+                    const thirdW = Math.floor(this.bounds.width / 3);
+                    if (left + edgeX >= subject.x) {
+                        this.offsetX = Math.max(0, subject.x + thirdW - this.bounds.width);
+                    }
+                    else if (right - edgeX <= subject.x) {
+                        this.offsetX = Math.min(subject.x - thirdW, bounds.width - this.bounds.width);
+                    }
+                    const thirdH = Math.floor(this.bounds.height / 3);
+                    if (top + edgeY >= subject.y) {
+                        this.offsetY = Math.max(0, subject.y + thirdH - this.bounds.height);
+                    }
+                    else if (bottom - edgeY <= subject.y) {
+                        this.offsetY = Math.min(subject.y - thirdH, bounds.height - this.bounds.height);
+                    }
+                }
+                else if (this.center) {
+                    this.offsetX = subject.x - this.halfWidth();
+                    this.offsetY = subject.y - this.halfHeight();
+                }
+                else {
+                    this.offsetX = subject.x;
+                    this.offsetY = subject.y;
+                }
+            }
+            if (this.lockX && map) {
+                this.offsetX = GWU__namespace.clamp(this.offsetX, 0, map.width - this.bounds.width);
+            }
+            if (this.lockY && map) {
+                this.offsetY = GWU__namespace.clamp(this.offsetY, 0, map.height - this.bounds.height);
+            }
+        }
+        draw(buffer) {
+            if (!this._subject)
+                return false;
+            const map = this._subject.map;
+            if (!map || !map.needsRedraw)
+                return false;
+            const fov = map.fov;
+            buffer.blackOutRect(this.bounds.x, this.bounds.y, this.bounds.width, this.bounds.height, this.bg);
+            if (!this._subject) {
+                return false;
+            }
+            this.updateOffset();
+            const drawer = map.drawer;
+            drawer.scent = this.scent;
+            const mixer = new GWU__namespace.sprite.Mixer();
+            for (let x = 0; x < this.bounds.width; ++x) {
+                for (let y = 0; y < this.bounds.height; ++y) {
+                    const mapX = x + this.offsetX;
+                    const mapY = y + this.offsetY;
+                    if (map.hasXY(mapX, mapY)) {
+                        const cell = map.cell(mapX, mapY);
+                        map.drawer.drawCell(mixer, map, cell, fov);
+                    }
+                    else {
+                        mixer.draw(' ', this.bg, this.bg); // blackOut
+                    }
+                    if (this.filter) {
+                        this.filter(mixer, mapX, mapY, map);
+                    }
+                    buffer.drawSprite(x + this.bounds.x, y + this.bounds.y, mixer);
+                }
+            }
+            // map.clearMapFlag(GWM.flags.Map.MAP_CHANGED);
+            return true;
+        }
+        tick(_dt) {
+            if (!this._subject)
+                return false;
+            const map = this._subject.map;
+            if (!map)
+                return false;
+            if (!map.hasMapFlag(Map$1.MAP_DANCES) || !GWU__namespace.cosmetic.chance(10)) {
+                return false;
+            }
+            map.eachCell((c) => {
+                if (c.hasCellFlag(Cell$1.COLORS_DANCE) &&
+                    map.fov.isAnyKindOfVisible(c.x, c.y) &&
+                    GWU__namespace.cosmetic.chance(2)) {
+                    c.needsRedraw = true;
+                }
+            });
+            map.needsRedraw = true;
+            return true;
+        }
+        mousemove(ev) {
+            if (!this.bounds.contains(ev.x, ev.y))
+                return false;
+            if (!this.player)
+                return false;
+            const map = this.player.map;
+            if (!map)
+                return false;
+            return this.showPath(ev.x, ev.y);
+        }
+        click(ev) {
+            if (!this.bounds.contains(ev.x, ev.y))
+                return false;
+            if (!this.player)
+                return false;
+            if (this.player.hasGoal()) {
+                this.player.clearGoal();
+            }
+            else {
+                this.player.setGoal(ev.x, ev.y);
+            }
+            return true;
+        }
+        showPath(x, y) {
+            if (!this.player)
+                return false;
+            const map = this.player.map;
+            if (!map)
+                return false;
+            // if (!this.player.hasGoal()) return false;
+            // console.log('mouse', ev.x, ev.y);
+            const path = this.player.pathTo(x, y);
+            if (path) {
+                map.highlightPath(path, true);
+            }
+            else {
+                map.clearPath();
+            }
+            return true;
+        }
+    }
+
     class Game {
         constructor(opts) {
             this.result = undefined;
@@ -7357,12 +7594,16 @@
             if (opts.mouse) {
                 this.mouse = true;
             }
-            if (opts.fov) {
-                this.fov = true;
-            }
-            if (opts.scent) {
-                this.scent = true;
-            }
+            this._initViewport(opts.viewport);
+        }
+        _initViewport(opts = {}) {
+            const viewInit = opts;
+            viewInit.x = 0;
+            viewInit.y = 0;
+            viewInit.width = this.ui.width;
+            viewInit.height = this.ui.height;
+            viewInit.lock = true;
+            this.viewport = new Viewport(viewInit);
         }
         async start() {
             this.layer = new GWU__namespace.ui.Layer(this.ui);
@@ -7373,6 +7614,7 @@
             this.map = this._makeMap(0);
             this.player = this._makePlayer();
             this.map.setPlayer(this.player);
+            this.viewport.subject = this.player;
             this._startMap(this.map, this.player);
             if (this.scent) {
                 this.map.drawer.scent = this.scent;
@@ -7389,8 +7631,7 @@
             return this.result;
         }
         draw() {
-            if (this.map && this.map.needsRedraw) {
-                this.map.drawInto(this.buffer);
+            if (this.viewport.draw(this.buffer)) {
                 this.buffer.render();
             }
         }
@@ -7473,41 +7714,19 @@
                     else if (ev.type === GWU__namespace.io.TICK) {
                         this.layer.tick(ev); // timeouts
                         elapsed += ev.dt || 16;
-                        if (this.map.hasMapFlag(Map$1.MAP_DANCES) &&
-                            GWU__namespace.cosmetic.chance(10)) {
-                            this.map.eachCell((c) => {
-                                if (c.hasCellFlag(Cell$1.COLORS_DANCE) &&
-                                    this.map.fov.isAnyKindOfVisible(c.x, c.y) &&
-                                    GWU__namespace.cosmetic.chance(2)) {
-                                    c.needsRedraw = true;
-                                }
-                            });
-                            this.map.needsRedraw = true;
+                        if (this.viewport.tick(ev.dt)) {
                             this.draw();
                         }
                         // console.log('-- event', elapsed);
                     }
                     else if (this.mouse && ev.type === GWU__namespace.io.MOUSEMOVE) {
-                        if (!this.player.hasGoal()) {
-                            // console.log('mouse', ev.x, ev.y);
-                            const path = this.player.pathTo(ev.x, ev.y);
-                            if (path) {
-                                this.map.highlightPath(path, true);
-                            }
-                            else {
-                                this.map.clearPath();
-                            }
+                        if (this.viewport.mousemove(ev)) {
                             this.draw();
                         }
                     }
                     else if (this.mouse && ev.type === GWU__namespace.io.CLICK) {
                         console.log('click', ev.x, ev.y);
-                        if (this.player.hasGoal()) {
-                            this.player.clearGoal();
-                        }
-                        else {
-                            this.player.setGoal(ev.x, ev.y);
-                        }
+                        this.viewport.click(ev);
                     }
                 }
                 if (elapsed < 50) {
@@ -7515,9 +7734,7 @@
                 }
                 elapsed -= 50;
                 if (this.player.hasGoal()) {
-                    const goalMap = this.player.goalMap;
-                    const step = GWU__namespace.path.nextStep(goalMap, this.player.x, this.player.y, (x, y) => this.map.hasActor(x, y) &&
-                        this.map.actorAt(x, y) !== this.player);
+                    const step = this.player.nextGoalStep();
                     if (!step) {
                         this.player.clearGoal();
                     }
@@ -7527,14 +7744,8 @@
                             throw new Error('Failed to find moveDir action.');
                         done = await action(this, this.player, { dir: step });
                         if (done && this.player.hasGoal()) {
-                            const path = this.player.pathTo(goalMap.x, goalMap.y);
-                            if (path && path.length) {
-                                // path.shift(); //remove player location
-                                this.map.highlightPath(path, true);
-                            }
-                            else {
-                                this.map.clearPath();
-                            }
+                            const goalMap = this.player.goalMap;
+                            this.viewport.showPath(goalMap.x, goalMap.y);
                         }
                     }
                 }
@@ -7690,7 +7901,6 @@
     exports.layer = index$7;
     exports.map = index$6;
     exports.memory = index$3;
-    exports.path = path;
     exports.player = index$1;
     exports.tile = index$8;
 

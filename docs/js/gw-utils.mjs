@@ -2431,6 +2431,10 @@ class Color {
             return this;
         return make$9(Math.round((100 * this._ra) / max), Math.round((100 * this._ga) / max), Math.round((100 * this._ba) / max), 100);
     }
+    inverse() {
+        const other = new Color(100 - this.r, 100 - this.g, 100 - this.b, this.a);
+        return other;
+    }
     /**
      * Returns the css code for the current RGB values of the color.
      * @param base256 - Show in base 256 (#abcdef) instead of base 16 (#abc)
@@ -2740,8 +2744,13 @@ class Mixer {
             this.bg = this.bg.mix(src.bg, opacity);
         return this._changed();
     }
-    invert() {
+    swap() {
         [this.bg, this.fg] = [this.fg, this.bg];
+        return this._changed();
+    }
+    invert() {
+        this.bg = this.bg.inverse();
+        this.fg = this.fg.inverse();
         return this._changed();
     }
     multiply(color, fg = true, bg = true) {
@@ -4704,10 +4713,12 @@ class FovSystem {
             // if the cell became visible this move
             this.flags[x][y] |= FovFlags.REVEALED;
             this._callback(x, y, isVisible);
+            this.changed = true;
         }
         else if (!isVisible && wasVisible) {
             // if the cell ceased being visible this move
             this._callback(x, y, isVisible);
+            this.changed = true;
         }
         return isVisible;
     }
@@ -4754,10 +4765,12 @@ class FovSystem {
         else if (!isDetect && wasDetect) {
             // ceased being detected visible
             this._callback(x, y, isDetect);
+            this.changed = true;
         }
         else if (!wasDetect && isDetect) {
             // became detected visible
             this._callback(x, y, isDetect);
+            this.changed = true;
         }
         return isDetect;
     }
@@ -4812,7 +4825,7 @@ class FovSystem {
             cr = this.site.width + this.site.height;
         }
         // this.needsUpdate = false;
-        this.changed = true; // we updated something...
+        this.changed = false;
         this.flags.update(this.demoteCellVisibility.bind(this));
         this.site.eachViewport((x, y, radius, type) => {
             let flag = type & FovFlags.VIEWPORT_TYPES;
@@ -4861,7 +4874,7 @@ class FovSystem {
         // 		}
         // 	}
         // }
-        return true;
+        return this.changed;
     }
 }
 
@@ -5144,7 +5157,7 @@ function nextStep(distanceMap, x, y, isBlocked, useDiagonals = false) {
     }
     return DIRS$2[bestDir] || null;
 }
-function getClosestValidLocationOnMap(distanceMap, x, y) {
+function getClosestValidLocation(distanceMap, x, y, blocked = FALSE) {
     let i, j, dist, closestDistance, lowestMapScore;
     let locX = -1;
     let locY = -1;
@@ -5154,7 +5167,9 @@ function getClosestValidLocationOnMap(distanceMap, x, y) {
     lowestMapScore = 10000;
     for (i = 1; i < width - 1; i++) {
         for (j = 1; j < height - 1; j++) {
-            if (distanceMap[i][j] >= 0 && distanceMap[i][j] < NO_PATH) {
+            if (distanceMap[i][j] >= 0 &&
+                distanceMap[i][j] < NO_PATH &&
+                !blocked(i, j, i, j, distanceMap)) {
                 dist = (i - x) * (i - x) + (j - y) * (j - y);
                 if (dist < closestDistance ||
                     (dist == closestDistance &&
@@ -5176,8 +5191,10 @@ function getPath(distanceMap, originX, originY, isBlocked, eightWays = false) {
     // actor = actor || GW.PLAYER;
     let x = originX;
     let y = originY;
-    if (distanceMap[x][y] < 0 || distanceMap[x][y] >= NO_PATH) {
-        const loc = getClosestValidLocationOnMap(distanceMap, x, y);
+    if (distanceMap[x][y] < 0 ||
+        distanceMap[x][y] >= NO_PATH ||
+        isBlocked(x, y, x, y, distanceMap)) {
+        const loc = getClosestValidLocation(distanceMap, x, y, isBlocked);
         if (!loc)
             return null;
         x = loc[0];
@@ -5209,6 +5226,7 @@ var path = /*#__PURE__*/Object.freeze({
     calculateDistances: calculateDistances,
     rescan: rescan,
     nextStep: nextStep,
+    getClosestValidLocation: getClosestValidLocation,
     getPath: getPath
 });
 

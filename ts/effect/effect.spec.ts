@@ -17,7 +17,7 @@ import * as GWU from 'gw-utils';
 
 import * as Effect from './effect';
 import * as Flags from '../flags';
-import * as Map from '../map/map';
+import * as Map from '../map';
 import './handlers';
 import { EffectCtx, MapXY } from '.';
 import '../tile/tiles';

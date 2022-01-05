@@ -6,7 +6,6 @@ export * as effect from './effect';
 export * as tile from './tile';
 export * as layer from './layer';
 export * as map from './map';
-export * as path from './path';
 export * as horde from './horde';
 export * as action from './command';
 export * as memory from './memory';

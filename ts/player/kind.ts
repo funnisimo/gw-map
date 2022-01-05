@@ -1,8 +1,10 @@
+import * as GWU from 'gw-utils';
 import * as Actor from '../actor';
 import * as Skills from './skill';
 import * as Attributes from './attribute';
 import { Player } from './player';
 import * as Flags from '../flags';
+import { Cell } from '../map/cell';
 
 export interface KindOptions extends Actor.KindOptions {
     attributes?: Record<string, number>;
@@ -39,5 +41,11 @@ export class PlayerKind extends Actor.ActorKind {
         const actor = new Player(this);
         this.init(actor, options);
         return actor;
+    }
+
+    cellCost(cell: Cell, player: Player): number {
+        const map = cell.map;
+        if (!map.fov.isRevealed(cell.x, cell.y)) return GWU.path.FORBIDDEN;
+        return super.cellCost(cell, player);
     }
 }

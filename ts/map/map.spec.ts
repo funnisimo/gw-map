@@ -1,8 +1,8 @@
 import 'jest-extended';
 import * as GWU from 'gw-utils';
 
-import * as Map from './map';
 import * as Tile from '../tile';
+import * as Make from './make';
 import * as Flags from '../flags';
 
 import '../effect/handlers';
@@ -46,7 +46,7 @@ describe('Map', () => {
             '##########',
         ];
 
-        const map = Map.from(prefab, charToTile, {
+        const map = Make.from(prefab, charToTile, {
             // fov: true,
             // revealed: true,
         });
@@ -60,14 +60,14 @@ describe('Map', () => {
         expect(Tile.tiles.BRIDGE.groundTile).toEqual('LAKE');
         expect(Tile.tiles.LAKE).toBeDefined();
 
-        console.log(map.cell(4, 6).tiles.map((t) => t && t.id));
+        // console.log(map.cell(4, 6).tiles.map((t) => t && t.id));
 
         expect(map.cell(4, 6).hasTile('BRIDGE')).toBeTruthy();
         expect(map.cell(4, 6).hasTile('LAKE')).toBeTruthy();
     });
 
     test('clone (incl. copy)', () => {
-        const map = Map.make(20, 20, 'FLOOR', 'WALL');
+        const map = Make.make(20, 20, 'FLOOR', 'WALL');
         map.properties.test = 1;
         map.seed = 12345;
         map.setMapFlag(Flags.Map.MAP_SAW_WELCOME);
@@ -83,7 +83,7 @@ describe('Map', () => {
     });
 
     test('make', () => {
-        const map = Map.make(10, 10);
+        const map = Make.make(10, 10);
         expect(map.cell(0, 0).needsRedraw).toBeTruthy();
         // expect(map.fov.isAnyKindOfVisible(0, 0)).toBeTrue(); // by default the map is visible
 
@@ -92,7 +92,7 @@ describe('Map', () => {
     });
 
     test('rng', () => {
-        const map = Map.make(20, 20, {
+        const map = Make.make(20, 20, {
             tile: 'FLOOR',
             boundary: 'WALL',
             seed: 12345,

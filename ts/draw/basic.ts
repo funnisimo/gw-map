@@ -78,12 +78,12 @@ export class BasicDrawer implements CellDrawer {
         }
 
         if (cell.hasCellFlag(Flags.Cell.IS_CURSOR)) {
-            dest.bg = dest.bg.mix(highlightColor, 50);
+            dest.invert();
+            dest.mix(highlightColor, 0, 25);
             separate = true;
         } else if (cell.hasCellFlag(Flags.Cell.IS_HIGHLIGHTED)) {
-            dest.bg = dest.bg.mix(highlightColor, 25);
-            separate = true;
             dest.invert();
+            separate = true;
         }
 
         if (this.scent && map.player) {

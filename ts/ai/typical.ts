@@ -356,7 +356,7 @@ export async function attack(
     let attack = actor.getAction('attack');
     if (!attack) return 0;
 
-    return attack(game, actor);
+    return attack(game, actor, { actor: target });
 }
 
 export function tooFarFrom(

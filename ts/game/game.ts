@@ -4,7 +4,7 @@ import * as MAP from '../map';
 import { Player } from '../player/player';
 import * as Command from '../command';
 import * as Actor from '../actor';
-import * as Flags from '../flags';
+import * as Viewport from './viewport';
 
 export interface GameOptions extends GWU.ui.UIOptions {
     ui?: GWU.ui.UI;
@@ -16,8 +16,10 @@ export interface GameOptions extends GWU.ui.UIOptions {
     keymap: Record<string, string | Command.CommandFn>;
 
     mouse?: boolean;
-    fov?: boolean;
-    scent?: boolean; // draw scent
+
+    viewport?: Viewport.ViewportOptions;
+    // fov?: boolean;
+    // scent?: boolean; // draw scent
 }
 
 export type MakeMapFn = (id: number) => MAP.Map;
@@ -29,6 +31,8 @@ export class Game {
     layer!: GWU.ui.Layer;
     buffer!: GWU.canvas.Buffer;
     io!: GWU.io.Handler;
+
+    viewport!: Viewport.Viewport;
 
     scheduler!: GWU.scheduler.Scheduler;
     player!: Player;
@@ -60,12 +64,20 @@ export class Game {
         if (opts.mouse) {
             this.mouse = true;
         }
-        if (opts.fov) {
-            this.fov = true;
-        }
-        if (opts.scent) {
-            this.scent = true;
-        }
+
+        this._initViewport(opts.viewport);
+    }
+
+    _initViewport(opts: Viewport.ViewportOptions = {}) {
+        const viewInit = opts as Viewport.ViewportInit;
+        viewInit.x = 0;
+        viewInit.y = 0;
+        viewInit.width = this.ui.width;
+        viewInit.height = this.ui.height;
+
+        viewInit.lock = true;
+
+        this.viewport = new Viewport.Viewport(viewInit);
     }
 
     async start() {
@@ -80,6 +92,8 @@ export class Game {
         this.player = this._makePlayer();
 
         this.map.setPlayer(this.player);
+        this.viewport.subject = this.player;
+
         this._startMap(this.map, this.player);
 
         if (this.scent) {
@@ -101,8 +115,7 @@ export class Game {
     }
 
     draw() {
-        if (this.map && this.map.needsRedraw) {
-            this.map.drawInto(this.buffer);
+        if (this.viewport.draw(this.buffer)) {
             this.buffer.render();
         }
     }
@@ -194,41 +207,17 @@ export class Game {
                     this.layer.tick(ev); // timeouts
                     elapsed += ev.dt || 16;
 
-                    if (
-                        this.map.hasMapFlag(Flags.Map.MAP_DANCES) &&
-                        GWU.cosmetic.chance(10)
-                    ) {
-                        this.map.eachCell((c) => {
-                            if (
-                                c.hasCellFlag(Flags.Cell.COLORS_DANCE) &&
-                                this.map.fov.isAnyKindOfVisible(c.x, c.y) &&
-                                GWU.cosmetic.chance(2)
-                            ) {
-                                c.needsRedraw = true;
-                            }
-                        });
-                        this.map.needsRedraw = true;
+                    if (this.viewport.tick(ev.dt)) {
                         this.draw();
                     }
                     // console.log('-- event', elapsed);
                 } else if (this.mouse && ev.type === GWU.io.MOUSEMOVE) {
-                    if (!this.player.hasGoal()) {
-                        // console.log('mouse', ev.x, ev.y);
-                        const path = this.player.pathTo(ev.x, ev.y);
-                        if (path) {
-                            this.map.highlightPath(path, true);
-                        } else {
-                            this.map.clearPath();
-                        }
+                    if (this.viewport.mousemove(ev)) {
                         this.draw();
                     }
                 } else if (this.mouse && ev.type === GWU.io.CLICK) {
                     console.log('click', ev.x, ev.y);
-                    if (this.player.hasGoal()) {
-                        this.player.clearGoal();
-                    } else {
-                        this.player.setGoal(ev.x, ev.y);
-                    }
+                    this.viewport.click(ev);
                 }
             }
 
@@ -238,15 +227,7 @@ export class Game {
             elapsed -= 50;
 
             if (this.player.hasGoal()) {
-                const goalMap = this.player.goalMap!;
-                const step = GWU.path.nextStep(
-                    goalMap,
-                    this.player.x,
-                    this.player.y,
-                    (x, y) =>
-                        this.map.hasActor(x, y) &&
-                        this.map.actorAt(x, y) !== this.player
-                );
+                const step = this.player.nextGoalStep();
                 if (!step) {
                     this.player.clearGoal();
                 } else {
@@ -255,15 +236,9 @@ export class Game {
                         throw new Error('Failed to find moveDir action.');
 
                     done = await action(this, this.player, { dir: step });
-
                     if (done && this.player.hasGoal()) {
-                        const path = this.player.pathTo(goalMap.x!, goalMap.y!);
-                        if (path && path.length) {
-                            // path.shift(); //remove player location
-                            this.map.highlightPath(path, true);
-                        } else {
-                            this.map.clearPath();
-                        }
+                        const goalMap = this.player.goalMap!;
+                        this.viewport.showPath(goalMap.x!, goalMap.y!);
                     }
                 }
             }

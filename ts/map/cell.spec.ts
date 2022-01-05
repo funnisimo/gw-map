@@ -6,6 +6,7 @@ import * as GWU from 'gw-utils';
 import * as Flags from '../flags';
 import * as Tile from '../tile';
 import * as Map from './map';
+import * as Make from './make';
 import { Cell } from './cell';
 
 import '../effect/handlers';
@@ -83,7 +84,7 @@ describe('Cell', () => {
     });
 
     beforeEach(() => {
-        map = Map.make(10, 10);
+        map = Make.make(10, 10);
     });
 
     test('dump', () => {

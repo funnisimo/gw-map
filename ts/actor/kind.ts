@@ -211,4 +211,15 @@ export class ActorKind extends Entity.EntityKind {
         // TODO - Drop effects
         return true;
     }
+
+    cellCost(cell: Cell, actor: Actor): number {
+        if (this.forbidsCell(cell, actor)) {
+            return cell.hasEntityFlag(Flags.Entity.L_BLOCKS_DIAGONAL)
+                ? GWU.path.OBSTRUCTION
+                : GWU.path.FORBIDDEN;
+        } else if (this.avoidsCell(cell, actor)) {
+            return GWU.path.AVOIDED;
+        }
+        return GWU.path.OK;
+    }
 }
