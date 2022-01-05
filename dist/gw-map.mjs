@@ -7518,7 +7518,7 @@ class Viewport {
         const map = this.player.map;
         if (!map)
             return false;
-        return this.showPath(ev.x, ev.y);
+        return this.showPath(this.toInnerX(ev.x), this.toInnerY(ev.y));
     }
     click(ev) {
         if (!this.bounds.contains(ev.x, ev.y))
@@ -7529,7 +7529,7 @@ class Viewport {
             this.player.clearGoal();
         }
         else {
-            this.player.setGoal(ev.x, ev.y);
+            this.player.setGoal(this.toInnerX(ev.x), this.toInnerY(ev.y));
         }
         return true;
     }
@@ -7552,6 +7552,192 @@ class Viewport {
     }
 }
 
+class Messages {
+    constructor(opts) {
+        this.needsDraw = true;
+        this.bounds = new GWU.xy.Bounds(opts.x, opts.y, opts.width, opts.height);
+        this.bg = GWU.color.from(opts.bg || 'black');
+        this.fg = GWU.color.from(opts.fg || 'white');
+        if (!this.bounds.height)
+            throw new Error('Must provde a height for messages widget.');
+        this.cache = new GWU.message.MessageCache({
+            width: this.bounds.width,
+            length: opts.archive || 40,
+            match: () => {
+                this.needsDraw = true;
+            },
+        });
+    }
+    clear() {
+        this.cache.clear();
+        this.needsDraw = true;
+    }
+    click(e, game) {
+        if (!this.bounds.contains(e))
+            return false;
+        return this.showArchive(game);
+    }
+    draw(buffer) {
+        if (!this.needsDraw)
+            return false;
+        this.needsDraw = false;
+        const isOnTop = this.bounds.y < 10;
+        // black out the message area
+        buffer.fillRect(this.bounds.x, this.bounds.y, this.bounds.width, this.bounds.height, ' ', this.bg, this.bg);
+        this.cache.forEach((line, confirmed, i) => {
+            if (i >= this.bounds.height)
+                return;
+            const localY = isOnTop ? this.bounds.height - i - 1 : i;
+            const y = localY + this.bounds.y;
+            buffer.drawText(this.bounds.x, y, line, this.fg);
+            if (confirmed && this.bg) {
+                buffer.mix(this.bg, 50, this.bounds.x, y, this.bounds.width, 1);
+            }
+        });
+        return true;
+    }
+    showArchive(game) {
+        if (this.cache.length <= this.bounds.height)
+            return false;
+        return showArchive(this, game);
+    }
+}
+class MessageArchive extends GWU.widget.Widget {
+    constructor(layer, source) {
+        super(layer, {
+            id: 'ARCHIVE',
+            tag: 'messages',
+            height: source.bounds.height,
+            width: source.bounds.width,
+            x: 0,
+            y: 0,
+            tabStop: true,
+            depth: 100, // I'm on top
+        });
+        this.mode = 'forward';
+        this._timeout = null;
+        this.source = source;
+        this.isOnTop = this.source.bounds.y < 10;
+        this.bounds.height = this.isOnTop
+            ? layer.height - source.bounds.y
+            : source.bounds.bottom;
+        this.totalCount = Math.min(source.cache.length, this.isOnTop
+            ? layer.height - this.source.bounds.top
+            : this.source.bounds.bottom);
+        this.shown = source.bounds.height;
+        this._timeout = this.layer.setTimeout(() => this._forward(), 16);
+        // confirm them as they are right now...
+        this.source.cache.confirmAll();
+    }
+    contains() {
+        return true; // Eat all mouse activity
+    }
+    finish() {
+        this.layer.finish();
+    }
+    keypress(e) {
+        return this.click(e);
+    }
+    click(_e) {
+        if (this.mode === 'ack') {
+            this.mode = 'reverse';
+            this.layer.needsDraw = true;
+            if (this._timeout) {
+                this.layer.clearTimeout(this._timeout);
+            }
+            this._timeout = this.layer.setTimeout(() => this._reverse(), 16);
+        }
+        else if (this.mode === 'reverse') {
+            this.finish();
+        }
+        else {
+            this.mode = 'ack';
+            this.shown = this.totalCount;
+            if (this._timeout) {
+                this.layer.clearTimeout(this._timeout);
+                this._timeout = null;
+            }
+            this.layer.needsDraw = true;
+        }
+        return true;
+    }
+    _forward() {
+        // console.log('forward');
+        ++this.shown;
+        this._timeout = null;
+        this.layer.needsDraw = true;
+        if (this.shown < this.totalCount) {
+            this._timeout = this.layer.setTimeout(() => this._forward(), 16);
+        }
+        else {
+            this.mode = 'ack';
+            this.shown = this.totalCount;
+        }
+        return true;
+    }
+    _reverse() {
+        // console.log('reverse');
+        --this.shown;
+        this._timeout = null;
+        if (this.shown <= this.source.bounds.height) {
+            this.finish();
+        }
+        else {
+            this.layer.needsDraw = true;
+            this._timeout = this.layer.setTimeout(() => this._reverse(), 16);
+        }
+        return true;
+    }
+    _draw(buffer) {
+        let fadePercent = 0;
+        // let reverse = this.mode === 'reverse';
+        // Count the number of lines in the archive.
+        // let totalMessageCount = this.totalCount;
+        const isOnTop = this.isOnTop;
+        const dbuf = buffer;
+        const fg = GWU.color.from(this.source.fg);
+        // const dM = reverse ? -1 : 1;
+        // const startM = reverse ? totalMessageCount : this.bounds.height;
+        // const endM = reverse
+        //     ? this.bounds.height + dM + 1
+        //     : totalMessageCount + dM;
+        const startY = isOnTop
+            ? this.shown - 1
+            : this.bounds.bottom - this.shown;
+        const endY = isOnTop ? 0 : this.bounds.bottom - 1;
+        const dy = isOnTop ? -1 : 1;
+        dbuf.fillRect(this.source.bounds.x, Math.min(startY, endY), this.bounds.width, this.shown, ' ', this._used.bg, this._used.bg);
+        this.source.cache.forEach((line, _confirmed, j) => {
+            const y = startY + j * dy;
+            if (isOnTop) {
+                if (y < endY)
+                    return;
+            }
+            else if (y > endY)
+                return;
+            fadePercent = Math.floor((50 * j) / this.shown);
+            const fgColor = fg.mix(this._used.bg, fadePercent);
+            dbuf.drawText(this.source.bounds.x, y, line, fgColor, this._used.bg);
+        });
+        if (this.mode === 'ack') {
+            const y = this.isOnTop ? 0 : dbuf.height - 1;
+            const x = this.source.bounds.x > 8
+                ? this.source.bounds.x - 8 // to left of box
+                : Math.min(this.source.bounds.x + this.bounds.width, // just to right of box
+                dbuf.width - 8 // But definitely on the screen - overwrite some text if necessary
+                );
+            dbuf.wrapText(x, y, 8, '--DONE--', this._used.bg, this._used.fg);
+        }
+        return true;
+    }
+}
+async function showArchive(widget, game) {
+    const layer = new GWU.widget.WidgetLayer(game.ui);
+    // @ts-ignore
+    new MessageArchive(layer, widget);
+    await layer.run();
+}
+
 class Game {
     constructor(opts) {
         this.result = undefined;
@@ -7570,14 +7756,52 @@ class Game {
         if (opts.mouse) {
             this.mouse = true;
         }
-        this._initViewport(opts.viewport);
+        if (typeof opts.messages === 'number') {
+            opts.messages = { length: opts.messages };
+        }
+        opts.viewport = opts.viewport || {};
+        const _opts = opts;
+        _opts.viewport.x = 0;
+        _opts.viewport.y = 0;
+        _opts.viewport.width = this.ui.width;
+        _opts.viewport.height = this.ui.height;
+        this._initMenu(_opts);
+        this._initSidebar(_opts);
+        if (opts.messages !== undefined)
+            this._initMessages(_opts);
+        this._initFlavor(_opts);
+        this._initViewport(_opts);
     }
-    _initViewport(opts = {}) {
-        const viewInit = opts;
-        viewInit.x = 0;
-        viewInit.y = 0;
-        viewInit.width = this.ui.width;
-        viewInit.height = this.ui.height;
+    _initMenu(_opts) { }
+    _initSidebar(_opts) { }
+    _initMessages(opts) {
+        const messOpts = opts.messages || {};
+        messOpts.length = messOpts.length || messOpts.y || 4;
+        if (messOpts.length < 0) {
+            // bottom
+            const viewInit = opts.viewport;
+            messOpts.x = viewInit.x;
+            messOpts.y = this.ui.height + messOpts.length; // length < 0
+            messOpts.width = viewInit.width;
+            messOpts.height = -messOpts.length;
+            opts.viewport.height -= messOpts.height;
+        }
+        else {
+            // top
+            const viewInit = opts.viewport;
+            messOpts.x = viewInit.x;
+            messOpts.y = viewInit.y;
+            messOpts.width = viewInit.width;
+            messOpts.height = messOpts.length;
+            viewInit.y += messOpts.length;
+            viewInit.height -= messOpts.length;
+        }
+        this.messages = new Messages(messOpts);
+    }
+    _initFlavor(_opts) { }
+    _initViewport(opts) {
+        const viewOpts = opts.viewport || {};
+        const viewInit = viewOpts;
         viewInit.lock = true;
         this.viewport = new Viewport(viewInit);
     }
@@ -7587,11 +7811,12 @@ class Game {
         this.io = this.layer.io;
         this.running = true;
         this.scheduler = new GWU.scheduler.Scheduler();
-        this.map = this._makeMap(0);
-        this.player = this._makePlayer();
+        this.messages.clear();
+        this.map = this._makeMap.call(this, 0);
+        this.player = this._makePlayer.call(this);
         this.map.setPlayer(this.player);
         this.viewport.subject = this.player;
-        this._startMap(this.map, this.player);
+        this._startMap.call(this, this.map, this.player);
         if (this.scent) {
             this.map.drawer.scent = this.scent;
         }
@@ -7607,7 +7832,10 @@ class Game {
         return this.result;
     }
     draw() {
-        if (this.viewport.draw(this.buffer)) {
+        let needRender = false;
+        needRender = this.viewport.draw(this.buffer);
+        needRender = this.messages.draw(this.buffer) || needRender;
+        if (needRender) {
             this.buffer.render();
         }
     }
@@ -7701,7 +7929,7 @@ class Game {
                     }
                 }
                 else if (this.mouse && ev.type === GWU.io.CLICK) {
-                    console.log('click', ev.x, ev.y);
+                    // console.log('click', ev.x, ev.y);
                     this.viewport.click(ev);
                 }
             }
@@ -7733,7 +7961,11 @@ class Game {
 
 var index = /*#__PURE__*/Object.freeze({
     __proto__: null,
-    Game: Game
+    Game: Game,
+    Viewport: Viewport,
+    Messages: Messages,
+    MessageArchive: MessageArchive,
+    showArchive: showArchive
 });
 
 install$2('FLOOR', {

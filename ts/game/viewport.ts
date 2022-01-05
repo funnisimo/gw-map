@@ -285,7 +285,7 @@ export class Viewport {
         const map = this.player.map;
         if (!map) return false;
 
-        return this.showPath(ev.x, ev.y);
+        return this.showPath(this.toInnerX(ev.x), this.toInnerY(ev.y));
     }
 
     click(ev: GWU.io.Event): boolean {
@@ -294,7 +294,7 @@ export class Viewport {
         if (this.player.hasGoal()) {
             this.player.clearGoal();
         } else {
-            this.player.setGoal(ev.x, ev.y);
+            this.player.setGoal(this.toInnerX(ev.x), this.toInnerY(ev.y));
         }
         return true;
     }

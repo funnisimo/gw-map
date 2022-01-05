@@ -1923,7 +1923,7 @@ declare function addCombat(x: number, y: number, msg: string, args?: any): void;
 interface CacheOptions {
     length: number;
     width: number;
-    match?: XYMatchFunc;
+    match?: (x: number, y: number) => false | any;
 }
 declare type EachMsgFn = (msg: string, confirmed: boolean, i: number) => any;
 declare class MessageCache implements MessageHandler {
@@ -1934,8 +1934,9 @@ declare class MessageCache implements MessageHandler {
     NEXT_WRITE_INDEX: number;
     NEEDS_UPDATE: boolean;
     COMBAT_MESSAGE: string | null;
-    matchFn: XYMatchFunc;
+    matchFn: (x: number, y: number) => false | any;
     constructor(opts?: Partial<CacheOptions>);
+    clear(): void;
     get needsUpdate(): boolean;
     set needsUpdate(needs: boolean);
     protected _addMessageLine(msg: string): void;

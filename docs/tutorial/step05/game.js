@@ -36,9 +36,9 @@ GWM.item.install(
 function addRandomBox(map, hasAnanas) {
     const item = GWM.item.make(hasAnanas ? 'FULL_BOX' : 'EMPTY_BOX');
 
-    const loc = GWU.random.matchingLoc(80, 40, (x, y) => {
+    const loc = GWU.random.matchingLoc(map.width, map.height, (x, y) => {
         if (item.avoidsCell(map.cell(x, y))) return false;
-        if (GWU.xy.distanceBetween(x, y, 40, 20) < 15) return false;
+        if (GWU.xy.distanceBetween(x, y, 40, 18) < 15) return false;
 
         let ok = true;
         map.eachItem((i) => {
@@ -116,13 +116,14 @@ async function start() {
 
         mouse: true,
         viewport: { scent: false },
+        messages: { y: 4, bg: 'darkest_gray', fg: 'purple' }, // bottom
 
         makeMap() {
             const seed = GWU.random.number();
             console.log('seed = ', seed);
             // GWU.random.seed(seed);
 
-            const map = GWM.map.make(80, 40, {
+            const map = GWM.map.make(80, 36, {
                 tile: 'FLOOR',
                 boundary: 'WALL',
                 fov: true,
@@ -146,7 +147,7 @@ async function start() {
             map.addActorNear(0, 0, PEDRO);
 
             const PEDRO2 = GWM.actor.make('PEDRO');
-            map.addActorNear(79, 39, PEDRO2);
+            map.addActorNear(79, 35, PEDRO2);
 
             return map;
         },
@@ -158,7 +159,8 @@ async function start() {
 
         startMap(map, player) {
             // create and add the player
-            map.addActorNear(40, 20, player);
+            map.addActorNear(40, 18, player);
+            GWU.message.add('Welcome to Ananas de Caracas!');
         },
 
         keymap: {

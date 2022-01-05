@@ -1131,6 +1131,49 @@ declare class Viewport {
     showPath(x: number, y: number): boolean;
 }
 
+interface MessageOptions {
+    length?: number;
+    bg?: GWU.color.ColorBase;
+    fg?: GWU.color.ColorBase;
+}
+interface MessageInit extends MessageOptions {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    archive: number;
+}
+declare class Messages {
+    cache: GWU.message.MessageCache;
+    bounds: GWU.xy.Bounds;
+    needsDraw: boolean;
+    bg: GWU.color.Color;
+    fg: GWU.color.Color;
+    constructor(opts: MessageInit);
+    clear(): void;
+    click(e: GWU.io.Event, game: Game): false | Promise<void>;
+    draw(buffer: GWU.buffer.Buffer): boolean;
+    showArchive(game: Game): false | Promise<void>;
+}
+declare type ArchiveMode = 'forward' | 'ack' | 'reverse';
+declare class MessageArchive extends GWU.widget.Widget {
+    source: Messages;
+    totalCount: number;
+    isOnTop: boolean;
+    mode: ArchiveMode;
+    shown: number;
+    _timeout: GWU.io.TimerFn | null;
+    constructor(layer: GWU.widget.WidgetLayer, source: Messages);
+    contains(): boolean;
+    finish(): void;
+    keypress(e: GWU.io.Event): boolean;
+    click(_e: GWU.io.Event): boolean;
+    _forward(): boolean;
+    _reverse(): boolean;
+    _draw(buffer: GWU.buffer.Buffer): boolean;
+}
+declare function showArchive(widget: Messages, game: Game): Promise<void>;
+
 interface GameOptions extends GWU.ui.UIOptions {
     ui?: GWU.ui.UI;
     makeMap: MakeMapFn;
@@ -1139,6 +1182,11 @@ interface GameOptions extends GWU.ui.UIOptions {
     keymap: Record<string, string | CommandFn>;
     mouse?: boolean;
     viewport?: ViewportOptions;
+    messages?: number | MessageOptions;
+}
+interface GameInit extends GameOptions {
+    viewport: Partial<ViewportInit>;
+    messages: Partial<MessageInit>;
 }
 declare type MakeMapFn = (id: number) => Map;
 declare type MakePlayerFn = () => Player;
@@ -1149,6 +1197,7 @@ declare class Game {
     buffer: GWU.canvas.Buffer;
     io: GWU.io.Handler;
     viewport: Viewport;
+    messages: Messages;
     scheduler: GWU.scheduler.Scheduler;
     player: Player;
     map: Map;
@@ -1162,7 +1211,11 @@ declare class Game {
     running: boolean;
     keymap: Record<string, string | CommandFn>;
     constructor(opts: GameOptions);
-    _initViewport(opts?: ViewportOptions): void;
+    _initMenu(_opts: GameInit): void;
+    _initSidebar(_opts: GameInit): void;
+    _initMessages(opts: GameInit): void;
+    _initFlavor(_opts: GameInit): void;
+    _initViewport(opts: GameInit): void;
     start(): Promise<any>;
     draw(): void;
     finish(result?: any): void;
@@ -1172,18 +1225,45 @@ declare class Game {
 }
 
 type index_d$9_GameOptions = GameOptions;
+type index_d$9_GameInit = GameInit;
 type index_d$9_MakeMapFn = MakeMapFn;
 type index_d$9_MakePlayerFn = MakePlayerFn;
 type index_d$9_StartMapFn = StartMapFn;
 type index_d$9_Game = Game;
 declare const index_d$9_Game: typeof Game;
+type index_d$9_UISubject = UISubject;
+type index_d$9_ViewFilterFn = ViewFilterFn;
+type index_d$9_ViewportOptions = ViewportOptions;
+type index_d$9_ViewportInit = ViewportInit;
+type index_d$9_Viewport = Viewport;
+declare const index_d$9_Viewport: typeof Viewport;
+type index_d$9_MessageOptions = MessageOptions;
+type index_d$9_MessageInit = MessageInit;
+type index_d$9_Messages = Messages;
+declare const index_d$9_Messages: typeof Messages;
+type index_d$9_ArchiveMode = ArchiveMode;
+type index_d$9_MessageArchive = MessageArchive;
+declare const index_d$9_MessageArchive: typeof MessageArchive;
+declare const index_d$9_showArchive: typeof showArchive;
 declare namespace index_d$9 {
   export {
     index_d$9_GameOptions as GameOptions,
+    index_d$9_GameInit as GameInit,
     index_d$9_MakeMapFn as MakeMapFn,
     index_d$9_MakePlayerFn as MakePlayerFn,
     index_d$9_StartMapFn as StartMapFn,
     index_d$9_Game as Game,
+    index_d$9_UISubject as UISubject,
+    index_d$9_ViewFilterFn as ViewFilterFn,
+    index_d$9_ViewportOptions as ViewportOptions,
+    index_d$9_ViewportInit as ViewportInit,
+    index_d$9_Viewport as Viewport,
+    index_d$9_MessageOptions as MessageOptions,
+    index_d$9_MessageInit as MessageInit,
+    index_d$9_Messages as Messages,
+    index_d$9_ArchiveMode as ArchiveMode,
+    index_d$9_MessageArchive as MessageArchive,
+    index_d$9_showArchive as showArchive,
   };
 }
 

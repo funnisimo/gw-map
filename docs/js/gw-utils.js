@@ -6623,7 +6623,7 @@ void main() {
         else if (args) {
             msg = apply(msg, args);
         }
-        handlers.forEach((h) => h.addMessage(x, y, msg));
+        handlers.forEach((h) => h.addMessage.call(h, x, y, msg));
     }
     function addCombat(x, y, msg, args) {
         const template = templates[msg];
@@ -6633,7 +6633,7 @@ void main() {
         else if (args) {
             msg = apply(msg, args);
         }
-        handlers.forEach((h) => h.addCombatMessage(x, y, msg));
+        handlers.forEach((h) => h.addCombatMessage.call(h, x, y, msg));
     }
     class MessageCache {
         constructor(opts = {}) {
@@ -6647,11 +6647,17 @@ void main() {
             this.matchFn = opts.match || TRUE;
             this.ARCHIVE_LINES = opts.length || 30;
             this.MSG_WIDTH = opts.width || 80;
+            this.clear();
+            handlers.push(this);
+        }
+        clear() {
             for (let i = 0; i < this.ARCHIVE_LINES; ++i) {
                 this.ARCHIVE[i] = null;
                 this.CONFIRMED[i] = false;
             }
-            handlers.push(this);
+            this.NEXT_WRITE_INDEX = 0;
+            this.NEEDS_UPDATE = true;
+            this.COMBAT_MESSAGE = null;
         }
         get needsUpdate() {
             return this.NEEDS_UPDATE;
@@ -6671,7 +6677,7 @@ void main() {
                 (this.NEXT_WRITE_INDEX + 1) % this.ARCHIVE_LINES;
         }
         addMessage(x, y, msg) {
-            if (!this.matchFn(x, y))
+            if (this.matchFn(x, y) === false)
                 return;
             this.commitCombatMessage();
             this._addMessage(msg);
