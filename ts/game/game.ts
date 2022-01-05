@@ -6,6 +6,7 @@ import * as Command from '../command';
 import * as Actor from '../actor';
 import * as Viewport from './viewport';
 import * as Message from './message';
+import * as Flavor from './flavor';
 
 export interface GameOptions extends GWU.ui.UIOptions {
     ui?: GWU.ui.UI;
@@ -20,6 +21,7 @@ export interface GameOptions extends GWU.ui.UIOptions {
 
     viewport?: Viewport.ViewportOptions;
     messages?: number | Message.MessageOptions;
+    flavor?: boolean | Flavor.FlavorOptions;
     // fov?: boolean;
     // scent?: boolean; // draw scent
 }
@@ -27,6 +29,7 @@ export interface GameOptions extends GWU.ui.UIOptions {
 export interface GameInit extends GameOptions {
     viewport: Partial<Viewport.ViewportInit>;
     messages: Partial<Message.MessageInit>;
+    flavor: Partial<Flavor.FlavorInit>;
 }
 
 export type MakeMapFn = (id: number) => MAP.Map;
@@ -40,7 +43,8 @@ export class Game {
     io!: GWU.io.Handler;
 
     viewport!: Viewport.Viewport;
-    messages!: Message.Messages;
+    messages?: Message.Messages;
+    flavor?: Flavor.Flavor;
 
     scheduler!: GWU.scheduler.Scheduler;
     player!: Player;
@@ -74,7 +78,12 @@ export class Game {
         }
 
         if (typeof opts.messages === 'number') {
-            opts.messages = { length: opts.messages };
+            opts.messages = { size: opts.messages };
+        }
+        if (opts.flavor === true) {
+            opts.flavor = {};
+        } else if (opts.flavor === false) {
+            delete opts.flavor;
         }
         opts.viewport = opts.viewport || {};
 
@@ -87,8 +96,15 @@ export class Game {
         this._initMenu(_opts);
         this._initSidebar(_opts);
         if (opts.messages !== undefined) this._initMessages(_opts);
-        this._initFlavor(_opts);
+        if (opts.flavor !== undefined) this._initFlavor(_opts);
         this._initViewport(_opts);
+    }
+
+    get width() {
+        return this.viewport.bounds.width;
+    }
+    get height() {
+        return this.viewport.bounds.height;
     }
 
     _initMenu(_opts: GameInit) {}
@@ -96,15 +112,15 @@ export class Game {
 
     _initMessages(opts: GameInit) {
         const messOpts = opts.messages || {};
-        messOpts.length = messOpts.length || messOpts.y || 4;
+        messOpts.size = messOpts.size || messOpts.y || 4;
 
-        if (messOpts.length < 0) {
+        if (messOpts.size < 0) {
             // bottom
             const viewInit = opts.viewport!;
             messOpts.x = viewInit.x;
-            messOpts.y = this.ui.height + messOpts.length; // length < 0
+            messOpts.y = this.ui.height + messOpts.size; // length < 0
             messOpts.width = viewInit.width;
-            messOpts.height = -messOpts.length;
+            messOpts.height = -messOpts.size;
 
             opts.viewport!.height! -= messOpts.height;
         } else {
@@ -113,16 +129,38 @@ export class Game {
             messOpts.x = viewInit.x;
             messOpts.y = viewInit.y;
             messOpts.width = viewInit.width;
-            messOpts.height = messOpts.length;
+            messOpts.height = messOpts.size;
 
-            viewInit.y! += messOpts.length;
-            viewInit.height! -= messOpts.length;
+            viewInit.y! += messOpts.size;
+            viewInit.height! -= messOpts.size;
         }
 
         this.messages = new Message.Messages(messOpts as Message.MessageInit);
     }
 
-    _initFlavor(_opts: GameInit) {}
+    _initFlavor(opts: GameInit) {
+        const flavOpts = opts.flavor || {};
+        const viewOpts = opts.viewport;
+
+        if (viewOpts.y === 0) {
+            // messages must be on bottom (or not there)
+            flavOpts.x = viewOpts.x;
+            flavOpts.y = viewOpts.height! - 1;
+            flavOpts.width = viewOpts.width;
+
+            viewOpts.height! -= 1;
+        } else {
+            // messages on top
+            flavOpts.x = viewOpts.x;
+            flavOpts.y = viewOpts.y;
+            flavOpts.width = viewOpts.width;
+
+            viewOpts.y! += 1;
+            viewOpts.height! -= 1;
+        }
+
+        this.flavor = new Flavor.Flavor(flavOpts as Flavor.FlavorInit);
+    }
 
     _initViewport(opts: GameInit) {
         const viewOpts = opts.viewport || {};
@@ -139,7 +177,7 @@ export class Game {
         this.running = true;
         this.scheduler = new GWU.scheduler.Scheduler();
 
-        this.messages.clear();
+        if (this.messages) this.messages.clear();
 
         this.map = this._makeMap.call(this, 0);
         this.player = this._makePlayer.call(this);
@@ -170,7 +208,9 @@ export class Game {
 
     draw() {
         this.viewport.draw(this.buffer);
-        this.messages.draw(this.buffer);
+        if (this.messages) this.messages.draw(this.buffer);
+        if (this.flavor) this.flavor.draw(this.buffer);
+
         if (this.buffer.changed) {
             this.buffer.render();
         }
@@ -270,6 +310,17 @@ export class Game {
                     // console.log('-- event', elapsed);
                 } else if (this.mouse && ev.type === GWU.io.MOUSEMOVE) {
                     if (this.viewport.mousemove(ev)) {
+                        if (this.flavor) {
+                            const x = this.viewport.toInnerX(ev.x);
+                            const y = this.viewport.toInnerY(ev.y);
+                            const text = this.flavor.getFlavorText(
+                                this.map,
+                                x,
+                                y,
+                                this.map.fov
+                            );
+                            this.flavor.showText(text);
+                        }
                         this.draw();
                     }
                 } else if (this.mouse && ev.type === GWU.io.CLICK) {

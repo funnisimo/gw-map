@@ -2,7 +2,7 @@ import * as GWU from 'gw-utils';
 import { Game } from './game';
 
 export interface MessageOptions {
-    length?: number;
+    size?: number;
     bg?: GWU.color.ColorBase;
     fg?: GWU.color.ColorBase;
 }

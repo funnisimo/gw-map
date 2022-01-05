@@ -792,133 +792,6 @@ interface CellDrawer {
     drawInto(dest: BufferSource | GWU.buffer.Buffer, map: Map, opts?: Partial<MapDrawOptions>): void;
 }
 
-interface MapOptions extends GWU.light.LightSystemOptions, GWU.fov.FovSystemOptions {
-    tile?: string | true;
-    boundary?: string | true;
-    seed?: number;
-    id?: string;
-    drawer?: CellDrawer;
-    player?: Player;
-    fov?: boolean;
-}
-declare type LayerType = TileLayer;
-interface MapFlags {
-    map: number;
-}
-declare type EachCellCb = (cell: Cell, x: number, y: number, map: Map) => any;
-declare type EachItemCb = (item: Item) => any;
-declare type EachActorCb = (actor: Actor) => any;
-declare type MapTestFn = (cell: Cell, x: number, y: number, map: Map) => boolean;
-interface MapEvents extends GWU.events.Events {
-    actor: (map: Map, actor: Actor, isNew: boolean) => void;
-    item: (map: Map, item: Item, isNew: boolean) => void;
-    fx: (map: Map, fx: Entity, isNew: boolean) => void;
-    cell: (map: Map, cell: Cell) => void;
-}
-declare class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
-    cells: GWU.grid.Grid<Cell>;
-    layers: LayerType[];
-    flags: {
-        map: 0;
-    };
-    light: GWU.light.LightSystemType;
-    fov: GWU.fov.FovSystem;
-    properties: Record<string, any>;
-    rng: GWU.rng.Random;
-    actors: Actor[];
-    items: Item[];
-    drawer: CellDrawer;
-    fx: Entity[];
-    player: Player | null;
-    _animations: GWU.tween.Animation[];
-    events: GWU.events.EventEmitter<MapEvents>;
-    constructor(width: number, height: number, opts?: MapOptions);
-    get seed(): number;
-    set seed(v: number);
-    get width(): number;
-    get height(): number;
-    initLayers(): void;
-    addLayer(depth: number | keyof typeof Depth, layer: LayerType): void;
-    removeLayer(depth: number | keyof typeof Depth): void;
-    getLayer(depth: number | keyof typeof Depth): LayerType | null;
-    hasXY(x: number, y: number): boolean;
-    isBoundaryXY(x: number, y: number): boolean;
-    cell(x: number, y: number): Cell;
-    get(x: number, y: number): Cell | undefined;
-    eachCell(cb: EachCellCb): void;
-    hasItem(x: number, y: number): boolean;
-    itemAt(x: number, y: number): Item | null;
-    eachItem(cb: GWU.types.EachCb<Item>): void;
-    addItem(x: number, y: number, item: Item, fireEffects?: boolean): boolean;
-    _fireAddItemEffects(item: Item, cell: Cell): void;
-    addItemNear(x: number, y: number, item: Item, fireEffects?: boolean): boolean;
-    removeItem(item: Item, fireEffects?: boolean): boolean;
-    _fireRemoveItemEffects(item: Item, cell: Cell): void;
-    moveItem(item: Item, x: number, y: number, fireEffects?: boolean): boolean;
-    hasPlayer(x: number, y: number): boolean;
-    setPlayer(player: Player): void;
-    actorAt(x: number, y: number): Actor | null;
-    eachActor(cb: GWU.types.EachCb<Actor>): void;
-    addActor(x: number, y: number, actor: Actor, fireEffects?: boolean): boolean;
-    _fireAddActorEffects(actor: Actor, cell: Cell): void;
-    addActorNear(x: number, y: number, actor: Actor, fireEffects?: boolean): boolean;
-    removeActor(actor: Actor, fireEffects?: boolean): boolean;
-    _fireRemoveActorEffects(actor: Actor, cell: Cell): void;
-    moveActor(actor: Actor, x: number, y: number, fireEffects?: boolean): boolean;
-    fxAt(x: number, y: number): Entity | null;
-    eachFx(cb: GWU.types.EachCb<Entity>): void;
-    addFx(x: number, y: number, fx: Entity): boolean;
-    moveFx(fx: Entity, x: number, y: number): boolean;
-    removeFx(fx: Entity): boolean;
-    hasKey(x: number, y: number): boolean;
-    count(cb: MapTestFn): number;
-    dump(fmt?: GWU.grid.GridFormat<Cell>, log?: {
-        (...data: any[]): void;
-        (message?: any, ...optionalParams: any[]): void;
-    }): void;
-    hasMapFlag(flag: number): boolean;
-    setMapFlag(flag: number): void;
-    clearMapFlag(flag: number): void;
-    get needsRedraw(): boolean;
-    set needsRedraw(v: boolean);
-    hasCellFlag(x: number, y: number, flag: number): boolean;
-    setCellFlag(x: number, y: number, flag: number): void;
-    clearCellFlag(x: number, y: number, flag: number): void;
-    hasEntityFlag(x: number, y: number, flag: number): boolean;
-    hasTileFlag(x: number, y: number, flag: number): boolean;
-    highlightPath(path: GWU.xy.Loc[], markCursor?: boolean): void;
-    clearPath(): void;
-    showCursor(x: number, y: number): void;
-    clearCursor(): void;
-    clear(): void;
-    clearCell(x: number, y: number, tile?: number | string | Tile): void;
-    fill(tile: string | number | Tile, boundary?: string | number | Tile): void;
-    hasTile(x: number, y: number, tile: string | number | Tile): boolean;
-    forceTile(x: number, y: number, tile: string | number | Tile): boolean;
-    setTile(x: number, y: number, tile: string | number | Tile, opts?: SetTileOptions | true): boolean;
-    clearTiles(x: number, y: number, tile?: number | string | Tile): void;
-    tick(dt: number): boolean;
-    copy(src: Map): void;
-    clone(): Map;
-    fire(event: string, x: number, y: number, ctx?: EffectCtx): boolean;
-    fireAll(event: string, ctx?: EffectCtx): boolean;
-    activateMachine(machineId: number, originX: number, originY: number, ctx?: EffectCtx): boolean;
-    drawInto(dest: BufferSource | GWU.buffer.Buffer, opts?: Partial<MapDrawOptions>): void;
-    getAppearanceAt(x: number, y: number, dest: GWU.sprite.Mixer): boolean;
-    hasActor(x: number, y: number): boolean;
-    eachGlowLight(cb: GWU.light.LightCb): void;
-    eachDynamicLight(_cb: GWU.light.LightCb): void;
-    eachViewport(cb: GWU.fov.ViewportCb): void;
-    lightingChanged(): boolean;
-    hasVisibleLight(x: number, y: number): boolean;
-    blocksVision(x: number, y: number): boolean;
-    storeMemory(x: number, y: number): void;
-    makeVisible(x: number, y: number): void;
-    onFovChange(x: number, y: number, isVisible: boolean): void;
-    addAnimation(a: GWU.tween.Animation): void;
-    removeAnimation(a: GWU.tween.Animation): void;
-}
-
 interface SkillInfo {
     has: boolean;
     level: number;
@@ -1049,31 +922,131 @@ declare class Player extends Actor {
     pathTo(x: number, y: number): GWU.xy.Loc[] | null;
 }
 
-declare type CommandFn = (this: Game, actor: Actor, ev: GWU.io.Event) => Promise<number>;
-declare type CommandBase = boolean | CommandFn;
-declare const actions: Record<string, CommandFn>;
-declare function installCommand(name: string, fn: CommandFn): void;
-declare function getCommand(name: string): CommandFn | undefined;
-
-declare function moveDir$1(this: Game, actor: Actor, e: GWU.io.Event): Promise<number>;
-
-declare function pickup$1(this: Game, actor: Actor, _ev: GWU.io.Event): Promise<number>;
-
-type index_d$a_CommandFn = CommandFn;
-type index_d$a_CommandBase = CommandBase;
-declare const index_d$a_actions: typeof actions;
-declare const index_d$a_installCommand: typeof installCommand;
-declare const index_d$a_getCommand: typeof getCommand;
-declare namespace index_d$a {
-  export {
-    index_d$a_CommandFn as CommandFn,
-    index_d$a_CommandBase as CommandBase,
-    index_d$a_actions as actions,
-    index_d$a_installCommand as installCommand,
-    index_d$a_getCommand as getCommand,
-    moveDir$1 as moveDir,
-    pickup$1 as pickup,
-  };
+interface MapOptions extends GWU.light.LightSystemOptions, GWU.fov.FovSystemOptions {
+    tile?: string | true;
+    boundary?: string | true;
+    seed?: number;
+    id?: string;
+    drawer?: CellDrawer;
+    player?: Player;
+    fov?: boolean;
+}
+declare type LayerType = TileLayer;
+interface MapFlags {
+    map: number;
+}
+declare type EachCellCb = (cell: Cell, x: number, y: number, map: Map) => any;
+declare type EachItemCb = (item: Item) => any;
+declare type EachActorCb = (actor: Actor) => any;
+declare type MapTestFn = (cell: Cell, x: number, y: number, map: Map) => boolean;
+interface MapEvents extends GWU.events.Events {
+    actor: (map: Map, actor: Actor, isNew: boolean) => void;
+    item: (map: Map, item: Item, isNew: boolean) => void;
+    fx: (map: Map, fx: Entity, isNew: boolean) => void;
+    cell: (map: Map, cell: Cell) => void;
+}
+declare class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
+    cells: GWU.grid.Grid<Cell>;
+    layers: LayerType[];
+    flags: {
+        map: 0;
+    };
+    light: GWU.light.LightSystemType;
+    fov: GWU.fov.FovSystem;
+    properties: Record<string, any>;
+    rng: GWU.rng.Random;
+    actors: Actor[];
+    items: Item[];
+    drawer: CellDrawer;
+    fx: Entity[];
+    player: Player | null;
+    _animations: GWU.tween.Animation[];
+    events: GWU.events.EventEmitter<MapEvents>;
+    constructor(width: number, height: number, opts?: MapOptions);
+    get seed(): number;
+    set seed(v: number);
+    get width(): number;
+    get height(): number;
+    initLayers(): void;
+    addLayer(depth: number | keyof typeof Depth, layer: LayerType): void;
+    removeLayer(depth: number | keyof typeof Depth): void;
+    getLayer(depth: number | keyof typeof Depth): LayerType | null;
+    hasXY(x: number, y: number): boolean;
+    isBoundaryXY(x: number, y: number): boolean;
+    cell(x: number, y: number): Cell;
+    get(x: number, y: number): Cell | undefined;
+    eachCell(cb: EachCellCb): void;
+    hasItem(x: number, y: number): boolean;
+    itemAt(x: number, y: number): Item | null;
+    eachItem(cb: GWU.types.EachCb<Item>): void;
+    addItem(x: number, y: number, item: Item, fireEffects?: boolean): boolean;
+    _fireAddItemEffects(item: Item, cell: Cell): void;
+    addItemNear(x: number, y: number, item: Item, fireEffects?: boolean): boolean;
+    removeItem(item: Item, fireEffects?: boolean): boolean;
+    _fireRemoveItemEffects(item: Item, cell: Cell): void;
+    moveItem(item: Item, x: number, y: number, fireEffects?: boolean): boolean;
+    hasPlayer(x: number, y: number): boolean;
+    setPlayer(player: Player): void;
+    actorAt(x: number, y: number): Actor | null;
+    eachActor(cb: GWU.types.EachCb<Actor>): void;
+    addActor(x: number, y: number, actor: Actor, fireEffects?: boolean): boolean;
+    _fireAddActorEffects(actor: Actor, cell: Cell): void;
+    addActorNear(x: number, y: number, actor: Actor, fireEffects?: boolean): boolean;
+    removeActor(actor: Actor, fireEffects?: boolean): boolean;
+    _fireRemoveActorEffects(actor: Actor, cell: Cell): void;
+    moveActor(actor: Actor, x: number, y: number, fireEffects?: boolean): boolean;
+    fxAt(x: number, y: number): Entity | null;
+    eachFx(cb: GWU.types.EachCb<Entity>): void;
+    addFx(x: number, y: number, fx: Entity): boolean;
+    moveFx(fx: Entity, x: number, y: number): boolean;
+    removeFx(fx: Entity): boolean;
+    hasKey(x: number, y: number): boolean;
+    count(cb: MapTestFn): number;
+    dump(fmt?: GWU.grid.GridFormat<Cell>, log?: {
+        (...data: any[]): void;
+        (message?: any, ...optionalParams: any[]): void;
+    }): void;
+    hasMapFlag(flag: number): boolean;
+    setMapFlag(flag: number): void;
+    clearMapFlag(flag: number): void;
+    get needsRedraw(): boolean;
+    set needsRedraw(v: boolean);
+    hasCellFlag(x: number, y: number, flag: number): boolean;
+    setCellFlag(x: number, y: number, flag: number): void;
+    clearCellFlag(x: number, y: number, flag: number): void;
+    hasEntityFlag(x: number, y: number, flag: number): boolean;
+    hasTileFlag(x: number, y: number, flag: number): boolean;
+    highlightPath(path: GWU.xy.Loc[], markCursor?: boolean): void;
+    clearPath(): void;
+    showCursor(x: number, y: number): void;
+    clearCursor(): void;
+    clear(): void;
+    clearCell(x: number, y: number, tile?: number | string | Tile): void;
+    fill(tile: string | number | Tile, boundary?: string | number | Tile): void;
+    hasTile(x: number, y: number, tile: string | number | Tile): boolean;
+    forceTile(x: number, y: number, tile: string | number | Tile): boolean;
+    setTile(x: number, y: number, tile: string | number | Tile, opts?: SetTileOptions | true): boolean;
+    clearTiles(x: number, y: number, tile?: number | string | Tile): void;
+    tick(dt: number): boolean;
+    copy(src: Map): void;
+    clone(): Map;
+    fire(event: string, x: number, y: number, ctx?: EffectCtx): boolean;
+    fireAll(event: string, ctx?: EffectCtx): boolean;
+    activateMachine(machineId: number, originX: number, originY: number, ctx?: EffectCtx): boolean;
+    drawInto(dest: BufferSource | GWU.buffer.Buffer, opts?: Partial<MapDrawOptions>): void;
+    getAppearanceAt(x: number, y: number, dest: GWU.sprite.Mixer): boolean;
+    hasActor(x: number, y: number): boolean;
+    eachGlowLight(cb: GWU.light.LightCb): void;
+    eachDynamicLight(_cb: GWU.light.LightCb): void;
+    eachViewport(cb: GWU.fov.ViewportCb): void;
+    lightingChanged(): boolean;
+    hasVisibleLight(x: number, y: number): boolean;
+    blocksVision(x: number, y: number): boolean;
+    storeMemory(x: number, y: number): void;
+    makeVisible(x: number, y: number): void;
+    onFovChange(x: number, y: number, isVisible: boolean): void;
+    addAnimation(a: GWU.tween.Animation): void;
+    removeAnimation(a: GWU.tween.Animation): void;
 }
 
 interface UISubject {
@@ -1131,8 +1104,118 @@ declare class Viewport {
     showPath(x: number, y: number): boolean;
 }
 
+declare type CommandFn = (this: Game, actor: Actor, ev: GWU.io.Event) => Promise<number>;
+declare type CommandBase = boolean | CommandFn;
+declare const actions: Record<string, CommandFn>;
+declare function installCommand(name: string, fn: CommandFn): void;
+declare function getCommand(name: string): CommandFn | undefined;
+
+declare function moveDir$1(this: Game, actor: Actor, e: GWU.io.Event): Promise<number>;
+
+declare function pickup$1(this: Game, actor: Actor, _ev: GWU.io.Event): Promise<number>;
+
+type index_d$a_CommandFn = CommandFn;
+type index_d$a_CommandBase = CommandBase;
+declare const index_d$a_actions: typeof actions;
+declare const index_d$a_installCommand: typeof installCommand;
+declare const index_d$a_getCommand: typeof getCommand;
+declare namespace index_d$a {
+  export {
+    index_d$a_CommandFn as CommandFn,
+    index_d$a_CommandBase as CommandBase,
+    index_d$a_actions as actions,
+    index_d$a_installCommand as installCommand,
+    index_d$a_getCommand as getCommand,
+    moveDir$1 as moveDir,
+    pickup$1 as pickup,
+  };
+}
+
+interface FlavorOptions$1 {
+    overflow?: boolean;
+    fg?: GWU.color.ColorBase;
+    bg?: GWU.color.ColorBase;
+    promptFg?: GWU.color.ColorBase;
+}
+interface FlavorInit extends FlavorOptions$1 {
+    x: number;
+    y: number;
+    width: number;
+}
+declare class Flavor {
+    isPrompt: boolean;
+    overflow: boolean;
+    needsDraw: boolean;
+    bounds: GWU.xy.Bounds;
+    fg: GWU.color.Color;
+    bg: GWU.color.Color;
+    promptFg: GWU.color.Color;
+    text: string;
+    constructor(opts: FlavorInit);
+    showText(text: string): this;
+    clear(): this;
+    showPrompt(text: string): this;
+    getFlavorText(map: Map, x: number, y: number, fov?: GWU.fov.FovSystem): string;
+    draw(buffer: GWU.buffer.Buffer): boolean;
+}
+
+interface GameOptions extends GWU.ui.UIOptions {
+    ui?: GWU.ui.UI;
+    makeMap: MakeMapFn;
+    makePlayer: MakePlayerFn;
+    startMap: StartMapFn;
+    keymap: Record<string, string | CommandFn>;
+    mouse?: boolean;
+    viewport?: ViewportOptions;
+    messages?: number | MessageOptions;
+    flavor?: boolean | FlavorOptions$1;
+}
+interface GameInit extends GameOptions {
+    viewport: Partial<ViewportInit>;
+    messages: Partial<MessageInit>;
+    flavor: Partial<FlavorInit>;
+}
+declare type MakeMapFn = (id: number) => Map;
+declare type MakePlayerFn = () => Player;
+declare type StartMapFn = (map: Map, player: Player) => void;
+declare class Game {
+    ui: GWU.ui.UI;
+    layer: GWU.ui.Layer;
+    buffer: GWU.canvas.Buffer;
+    io: GWU.io.Handler;
+    viewport: Viewport;
+    messages?: Messages;
+    flavor?: Flavor;
+    scheduler: GWU.scheduler.Scheduler;
+    player: Player;
+    map: Map;
+    _makeMap: MakeMapFn;
+    _makePlayer: MakePlayerFn;
+    _startMap: StartMapFn;
+    result: any;
+    mouse: boolean;
+    fov: boolean;
+    scent: boolean;
+    running: boolean;
+    keymap: Record<string, string | CommandFn>;
+    constructor(opts: GameOptions);
+    get width(): number;
+    get height(): number;
+    _initMenu(_opts: GameInit): void;
+    _initSidebar(_opts: GameInit): void;
+    _initMessages(opts: GameInit): void;
+    _initFlavor(opts: GameInit): void;
+    _initViewport(opts: GameInit): void;
+    start(): Promise<any>;
+    draw(): void;
+    finish(result?: any): void;
+    runTurn(): Promise<void>;
+    animate(): Promise<void>;
+    playerTurn(player: Player): Promise<number>;
+}
+
 interface MessageOptions {
-    length?: number;
+    size?: number;
     bg?: GWU.color.ColorBase;
     fg?: GWU.color.ColorBase;
 }
@@ -1174,63 +1257,6 @@ declare class MessageArchive extends GWU.widget.Widget {
 }
 declare function showArchive(widget: Messages, game: Game): Promise<void>;
 
-interface GameOptions extends GWU.ui.UIOptions {
-    ui?: GWU.ui.UI;
-    makeMap: MakeMapFn;
-    makePlayer: MakePlayerFn;
-    startMap: StartMapFn;
-    keymap: Record<string, string | CommandFn>;
-    mouse?: boolean;
-    viewport?: ViewportOptions;
-    messages?: number | MessageOptions;
-}
-interface GameInit extends GameOptions {
-    viewport: Partial<ViewportInit>;
-    messages: Partial<MessageInit>;
-}
-declare type MakeMapFn = (id: number) => Map;
-declare type MakePlayerFn = () => Player;
-declare type StartMapFn = (map: Map, player: Player) => void;
-declare class Game {
-    ui: GWU.ui.UI;
-    layer: GWU.ui.Layer;
-    buffer: GWU.canvas.Buffer;
-    io: GWU.io.Handler;
-    viewport: Viewport;
-    messages: Messages;
-    scheduler: GWU.scheduler.Scheduler;
-    player: Player;
-    map: Map;
-    _makeMap: MakeMapFn;
-    _makePlayer: MakePlayerFn;
-    _startMap: StartMapFn;
-    result: any;
-    mouse: boolean;
-    fov: boolean;
-    scent: boolean;
-    running: boolean;
-    keymap: Record<string, string | CommandFn>;
-    constructor(opts: GameOptions);
-    _initMenu(_opts: GameInit): void;
-    _initSidebar(_opts: GameInit): void;
-    _initMessages(opts: GameInit): void;
-    _initFlavor(_opts: GameInit): void;
-    _initViewport(opts: GameInit): void;
-    start(): Promise<any>;
-    draw(): void;
-    finish(result?: any): void;
-    runTurn(): Promise<void>;
-    animate(): Promise<void>;
-    playerTurn(player: Player): Promise<number>;
-}
-
-type index_d$9_GameOptions = GameOptions;
-type index_d$9_GameInit = GameInit;
-type index_d$9_MakeMapFn = MakeMapFn;
-type index_d$9_MakePlayerFn = MakePlayerFn;
-type index_d$9_StartMapFn = StartMapFn;
-type index_d$9_Game = Game;
-declare const index_d$9_Game: typeof Game;
 type index_d$9_UISubject = UISubject;
 type index_d$9_ViewFilterFn = ViewFilterFn;
 type index_d$9_ViewportOptions = ViewportOptions;
@@ -1245,14 +1271,18 @@ type index_d$9_ArchiveMode = ArchiveMode;
 type index_d$9_MessageArchive = MessageArchive;
 declare const index_d$9_MessageArchive: typeof MessageArchive;
 declare const index_d$9_showArchive: typeof showArchive;
+type index_d$9_FlavorInit = FlavorInit;
+type index_d$9_Flavor = Flavor;
+declare const index_d$9_Flavor: typeof Flavor;
+type index_d$9_GameOptions = GameOptions;
+type index_d$9_GameInit = GameInit;
+type index_d$9_MakeMapFn = MakeMapFn;
+type index_d$9_MakePlayerFn = MakePlayerFn;
+type index_d$9_StartMapFn = StartMapFn;
+type index_d$9_Game = Game;
+declare const index_d$9_Game: typeof Game;
 declare namespace index_d$9 {
   export {
-    index_d$9_GameOptions as GameOptions,
-    index_d$9_GameInit as GameInit,
-    index_d$9_MakeMapFn as MakeMapFn,
-    index_d$9_MakePlayerFn as MakePlayerFn,
-    index_d$9_StartMapFn as StartMapFn,
-    index_d$9_Game as Game,
     index_d$9_UISubject as UISubject,
     index_d$9_ViewFilterFn as ViewFilterFn,
     index_d$9_ViewportOptions as ViewportOptions,
@@ -1264,6 +1294,15 @@ declare namespace index_d$9 {
     index_d$9_ArchiveMode as ArchiveMode,
     index_d$9_MessageArchive as MessageArchive,
     index_d$9_showArchive as showArchive,
+    FlavorOptions$1 as FlavorOptions,
+    index_d$9_FlavorInit as FlavorInit,
+    index_d$9_Flavor as Flavor,
+    index_d$9_GameOptions as GameOptions,
+    index_d$9_GameInit as GameInit,
+    index_d$9_MakeMapFn as MakeMapFn,
+    index_d$9_MakePlayerFn as MakePlayerFn,
+    index_d$9_StartMapFn as StartMapFn,
+    index_d$9_Game as Game,
   };
 }
 

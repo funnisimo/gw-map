@@ -7738,6 +7738,132 @@ async function showArchive(widget, game) {
     await layer.run();
 }
 
+GWU.color.install('flavorText', 50, 40, 90);
+GWU.color.install('flavorPrompt', 100, 90, 20);
+class Flavor {
+    constructor(opts) {
+        this.needsDraw = true;
+        this.text = '';
+        this.fg = GWU.color.from(opts.fg || 'white');
+        this.bg = GWU.color.from(opts.bg || 'black');
+        this.promptFg = GWU.color.from(opts.promptFg || 'gold');
+        this.bounds = new GWU.xy.Bounds(opts.x, opts.y, opts.width, 1);
+        this.overflow = opts.overflow || false;
+        this.isPrompt = false;
+    }
+    showText(text) {
+        this.text = text;
+        this.isPrompt = false;
+        this.needsDraw = true;
+        return this;
+    }
+    clear() {
+        this.text = '';
+        this.isPrompt = false;
+        this.needsDraw = true;
+        return this;
+    }
+    showPrompt(text) {
+        this.text = text;
+        this.isPrompt = true;
+        this.needsDraw = true;
+        return this;
+    }
+    getFlavorText(map, x, y, fov) {
+        const cell = map.cell(x, y); // KNOWLEDGE / MEMORY !!!
+        let buf;
+        // let magicItem;
+        // let standsInTerrain;
+        // let subjectMoving;
+        // let prepositionLocked = false;
+        // let subject;
+        // let verb;
+        // let preposition;
+        let object = '';
+        // let adjective;
+        const isAnyKindOfVisible = fov ? fov.isAnyKindOfVisible(x, y) : true;
+        const isDirectlyVisible = fov ? fov.isDirectlyVisible(x, y) : true;
+        const isRemembered = fov ? fov.isRevealed(x, y) : false;
+        const isMapped = fov ? fov.isMagicMapped(x, y) : false;
+        let intro;
+        if (isDirectlyVisible) {
+            intro = 'You see';
+        }
+        else if (isAnyKindOfVisible) {
+            intro = 'You sense';
+        }
+        else if (isRemembered) {
+            intro = 'You remember';
+        }
+        else if (isMapped) {
+            intro = 'You expect to see';
+        }
+        else {
+            return '';
+        }
+        const actor = cell.hasActor() ? map.actorAt(x, y) : null;
+        // const player = actor?.isPlayer() ? actor : null;
+        const theItem = cell.hasItem() ? map.itemAt(x, y) : null;
+        const standsInTile = cell.hasTileFlag(Tile$1.T_STAND_IN_TILE);
+        let needObjectArticle = false;
+        if (actor) {
+            object = actor.getFlavor({
+                color: false,
+                article: true,
+                action: true,
+            });
+            needObjectArticle = true;
+        }
+        else if (theItem) {
+            object = theItem.getFlavor({ color: false, article: true });
+            needObjectArticle = true;
+        }
+        let article = standsInTile ? ' in ' : ' on ';
+        const groundTile = cell.depthTile(Depth$1.GROUND) || NULL;
+        const surfaceTile = cell.depthTile(Depth$1.SURFACE);
+        const liquidTile = cell.depthTile(Depth$1.LIQUID);
+        // const gasTile = cell.depthTile(Flags.Depth.GAS);
+        let surface = '';
+        if (surfaceTile) {
+            const tile = surfaceTile;
+            if (needObjectArticle) {
+                needObjectArticle = false;
+                object += ' on ';
+            }
+            if (tile.hasTileFlag(Tile$1.T_BRIDGE)) {
+                article = ' over ';
+            }
+            surface = surfaceTile.getFlavor() + article;
+        }
+        let liquid = '';
+        if (liquidTile) {
+            liquid = liquidTile.getFlavor() + ' covering ';
+            if (needObjectArticle) {
+                needObjectArticle = false;
+                object += ' in ';
+            }
+        }
+        if (needObjectArticle) {
+            needObjectArticle = false;
+            object += ' on ';
+        }
+        let ground = groundTile.getFlavor({ article: true });
+        buf = GWU.text.apply('§intro§ §text§.', {
+            intro,
+            text: object + surface + liquid + ground,
+        });
+        return buf;
+    }
+    draw(buffer) {
+        if (!this.needsDraw)
+            return false;
+        this.needsDraw = false;
+        buffer.fillRect(this.bounds.x, this.bounds.y, this.bounds.width, 1, ' ', this.bg, this.bg);
+        buffer.drawText(this.bounds.x, this.bounds.y, this.text, this.fg, this.bg, this.bounds.width, 'left');
+        return true;
+    }
+}
+
 class Game {
     constructor(opts) {
         this.result = undefined;
@@ -7757,7 +7883,13 @@ class Game {
             this.mouse = true;
         }
         if (typeof opts.messages === 'number') {
-            opts.messages = { length: opts.messages };
+            opts.messages = { size: opts.messages };
+        }
+        if (opts.flavor === true) {
+            opts.flavor = {};
+        }
+        else if (opts.flavor === false) {
+            delete opts.flavor;
         }
         opts.viewport = opts.viewport || {};
         const _opts = opts;
@@ -7769,21 +7901,28 @@ class Game {
         this._initSidebar(_opts);
         if (opts.messages !== undefined)
             this._initMessages(_opts);
-        this._initFlavor(_opts);
+        if (opts.flavor !== undefined)
+            this._initFlavor(_opts);
         this._initViewport(_opts);
+    }
+    get width() {
+        return this.viewport.bounds.width;
+    }
+    get height() {
+        return this.viewport.bounds.height;
     }
     _initMenu(_opts) { }
     _initSidebar(_opts) { }
     _initMessages(opts) {
         const messOpts = opts.messages || {};
-        messOpts.length = messOpts.length || messOpts.y || 4;
-        if (messOpts.length < 0) {
+        messOpts.size = messOpts.size || messOpts.y || 4;
+        if (messOpts.size < 0) {
             // bottom
             const viewInit = opts.viewport;
             messOpts.x = viewInit.x;
-            messOpts.y = this.ui.height + messOpts.length; // length < 0
+            messOpts.y = this.ui.height + messOpts.size; // length < 0
             messOpts.width = viewInit.width;
-            messOpts.height = -messOpts.length;
+            messOpts.height = -messOpts.size;
             opts.viewport.height -= messOpts.height;
         }
         else {
@@ -7792,13 +7931,32 @@ class Game {
             messOpts.x = viewInit.x;
             messOpts.y = viewInit.y;
             messOpts.width = viewInit.width;
-            messOpts.height = messOpts.length;
-            viewInit.y += messOpts.length;
-            viewInit.height -= messOpts.length;
+            messOpts.height = messOpts.size;
+            viewInit.y += messOpts.size;
+            viewInit.height -= messOpts.size;
         }
         this.messages = new Messages(messOpts);
     }
-    _initFlavor(_opts) { }
+    _initFlavor(opts) {
+        const flavOpts = opts.flavor || {};
+        const viewOpts = opts.viewport;
+        if (viewOpts.y === 0) {
+            // messages must be on bottom (or not there)
+            flavOpts.x = viewOpts.x;
+            flavOpts.y = viewOpts.height - 1;
+            flavOpts.width = viewOpts.width;
+            viewOpts.height -= 1;
+        }
+        else {
+            // messages on top
+            flavOpts.x = viewOpts.x;
+            flavOpts.y = viewOpts.y;
+            flavOpts.width = viewOpts.width;
+            viewOpts.y += 1;
+            viewOpts.height -= 1;
+        }
+        this.flavor = new Flavor(flavOpts);
+    }
     _initViewport(opts) {
         const viewOpts = opts.viewport || {};
         const viewInit = viewOpts;
@@ -7811,7 +7969,8 @@ class Game {
         this.io = this.layer.io;
         this.running = true;
         this.scheduler = new GWU.scheduler.Scheduler();
-        this.messages.clear();
+        if (this.messages)
+            this.messages.clear();
         this.map = this._makeMap.call(this, 0);
         this.player = this._makePlayer.call(this);
         this.map.setPlayer(this.player);
@@ -7833,7 +7992,10 @@ class Game {
     }
     draw() {
         this.viewport.draw(this.buffer);
-        this.messages.draw(this.buffer);
+        if (this.messages)
+            this.messages.draw(this.buffer);
+        if (this.flavor)
+            this.flavor.draw(this.buffer);
         if (this.buffer.changed) {
             this.buffer.render();
         }
@@ -7925,6 +8087,12 @@ class Game {
                 }
                 else if (this.mouse && ev.type === GWU.io.MOUSEMOVE) {
                     if (this.viewport.mousemove(ev)) {
+                        if (this.flavor) {
+                            const x = this.viewport.toInnerX(ev.x);
+                            const y = this.viewport.toInnerY(ev.y);
+                            const text = this.flavor.getFlavorText(this.map, x, y, this.map.fov);
+                            this.flavor.showText(text);
+                        }
                         this.draw();
                     }
                 }
@@ -7961,11 +8129,12 @@ class Game {
 
 var index = /*#__PURE__*/Object.freeze({
     __proto__: null,
-    Game: Game,
     Viewport: Viewport,
     Messages: Messages,
     MessageArchive: MessageArchive,
-    showArchive: showArchive
+    showArchive: showArchive,
+    Flavor: Flavor,
+    Game: Game
 });
 
 install$2('FLOOR', {
