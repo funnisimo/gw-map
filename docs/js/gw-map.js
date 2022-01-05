@@ -7856,12 +7856,12 @@
             return this.result;
         }
         draw() {
-            let needRender = false;
-            needRender = this.viewport.draw(this.buffer);
-            needRender = this.messages.draw(this.buffer) || needRender;
-            if (needRender) {
+            this.viewport.draw(this.buffer);
+            this.messages.draw(this.buffer);
+            if (this.buffer.changed) {
                 this.buffer.render();
             }
+            this.buffer.changed = false;
         }
         finish(result) {
             this.running = false;
