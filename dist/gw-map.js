@@ -7580,8 +7580,8 @@
         constructor(opts) {
             this.needsDraw = true;
             this.bounds = new GWU__namespace.xy.Bounds(opts.x, opts.y, opts.width, opts.height);
-            this.bg = GWU__namespace.color.from(opts.bg || 'black');
-            this.fg = GWU__namespace.color.from(opts.fg || 'white');
+            this.bg = GWU__namespace.color.from(opts.bg || 'darkest_gray');
+            this.fg = GWU__namespace.color.from(opts.fg || 'purple');
             if (!this.bounds.height)
                 throw new Error('Must provde a height for messages widget.');
             this.cache = new GWU__namespace.message.MessageCache({

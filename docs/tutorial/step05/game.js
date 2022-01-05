@@ -116,7 +116,7 @@ async function start() {
 
         mouse: true,
         viewport: { scent: false },
-        messages: { y: 4, bg: 'darkest_gray', fg: 'purple' }, // bottom
+        messages: 4,
 
         makeMap() {
             const seed = GWU.random.number();
