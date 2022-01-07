@@ -69,6 +69,10 @@ export class Viewport {
         this.scent = opts.scent || false;
     }
 
+    contains(xy: GWU.xy.XY | GWU.xy.Loc): boolean {
+        return this.bounds.contains(xy);
+    }
+
     get subject(): Player | UISubject | null {
         return this._subject;
     }

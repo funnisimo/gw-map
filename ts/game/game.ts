@@ -325,7 +325,11 @@ export class Game {
                     }
                 } else if (this.mouse && ev.type === GWU.io.CLICK) {
                     // console.log('click', ev.x, ev.y);
-                    this.viewport.click(ev);
+                    if (this.viewport.contains(ev)) {
+                        this.viewport.click(ev);
+                    } else if (this.messages && this.messages.contains(ev)) {
+                        await this.messages.showArchive(this);
+                    }
                 }
             }
 

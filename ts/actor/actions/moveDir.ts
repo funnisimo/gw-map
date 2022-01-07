@@ -1,3 +1,4 @@
+import * as GWU from 'gw-utils';
 import { Actor } from '../actor';
 import { ActorActionCtx, installAction } from '../action';
 import { Game } from '../../game';
@@ -26,6 +27,12 @@ export async function moveDir(
     if (actor.forbidsCell(newCell)) {
         if (ctx.try) return 0;
         FX.hit(map, newCell, 'hit', 100);
+        GWU.message.addAt(
+            newCell.x,
+            newCell.y,
+            '{{you}} {{verb}} into {{a cell}}.',
+            { actor, cell: newCell, verb: 'bump' }
+        );
         actor.clearGoal();
         return actor.endTurn();
     }

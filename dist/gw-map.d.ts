@@ -1085,6 +1085,7 @@ declare class Viewport {
     lockX: boolean;
     lockY: boolean;
     constructor(opts: ViewportInit);
+    contains(xy: GWU.xy.XY | GWU.xy.Loc): boolean;
     get subject(): Player | UISubject | null;
     set subject(subject: Player | UISubject | null);
     set lock(v: boolean);
@@ -1233,8 +1234,10 @@ declare class Messages {
     bg: GWU.color.Color;
     fg: GWU.color.Color;
     constructor(opts: MessageInit);
+    contains(xy: GWU.xy.XY | GWU.xy.Loc): boolean;
     clear(): void;
     click(e: GWU.io.Event, game: Game): false | Promise<void>;
+    confirmAll(): void;
     draw(buffer: GWU.buffer.Buffer): boolean;
     showArchive(game: Game): false | Promise<void>;
 }
@@ -2072,6 +2075,10 @@ declare class EntityKind {
 }
 declare function make$1(opts: KindOptions, makeOpts?: MakeOptions): Entity;
 
+declare function messageYou(name: string, args: any): string;
+declare function messageThe(name: string, args: any, value?: any): string;
+declare function messageA(name: string, args: any, value?: any): string;
+
 type index_d$4_KeyInfoType = KeyInfoType;
 type index_d$4_EntityType = EntityType;
 type index_d$4_KeyInfo = KeyInfo;
@@ -2085,6 +2092,9 @@ type index_d$4_EntityKind = EntityKind;
 declare const index_d$4_EntityKind: typeof EntityKind;
 type index_d$4_Entity = Entity;
 declare const index_d$4_Entity: typeof Entity;
+declare const index_d$4_messageYou: typeof messageYou;
+declare const index_d$4_messageThe: typeof messageThe;
+declare const index_d$4_messageA: typeof messageA;
 declare namespace index_d$4 {
   export {
     index_d$4_KeyInfoType as KeyInfoType,
@@ -2099,6 +2109,9 @@ declare namespace index_d$4 {
     index_d$4_EntityKind as EntityKind,
     make$1 as make,
     index_d$4_Entity as Entity,
+    index_d$4_messageYou as messageYou,
+    index_d$4_messageThe as messageThe,
+    index_d$4_messageA as messageA,
   };
 }
 

@@ -156,7 +156,7 @@ export class Flavor {
         }
         let ground = groundTile.getFlavor({ article: true });
 
-        buf = GWU.text.apply('§intro§ §text§.', {
+        buf = GWU.text.apply('{{intro}} {{text}}.', {
             intro,
             text: object + surface + liquid + ground,
         });

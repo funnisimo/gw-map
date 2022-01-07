@@ -46,6 +46,10 @@ export class Messages {
         });
     }
 
+    contains(xy: GWU.xy.XY | GWU.xy.Loc): boolean {
+        return this.bounds.contains(xy);
+    }
+
     clear() {
         this.cache.clear();
         this.needsDraw = true;
@@ -54,6 +58,11 @@ export class Messages {
     click(e: GWU.io.Event, game: Game): false | Promise<void> {
         if (!this.bounds.contains(e)) return false;
         return this.showArchive(game);
+    }
+
+    confirmAll() {
+        this.cache.confirmAll();
+        this.needsDraw = true;
     }
 
     draw(buffer: GWU.buffer.Buffer): boolean {
@@ -89,7 +98,7 @@ export class Messages {
 
     showArchive(game: Game): false | Promise<void> {
         if (this.cache.length <= this.bounds.height) return false;
-        return showArchive(this, game);
+        return showArchive(this, game).then(() => this.confirmAll());
     }
 }
 
@@ -110,6 +119,7 @@ export class MessageArchive extends GWU.widget.Widget {
             tag: 'messages',
             height: source.bounds.height,
             width: source.bounds.width,
+            bg: source.bg,
             x: 0,
             y: 0,
             tabStop: true,

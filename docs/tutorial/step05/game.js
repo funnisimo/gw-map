@@ -24,7 +24,7 @@ GWM.item.install(
 
         actions: {
             async pickup(game, actor, item) {
-                await game.ui.alert('You found the ΩgoldΩAnanas∆!');
+                await game.ui.alert('You found the #{gold Ananas}!');
                 game.map.removeItem(item);
                 game.finish(true); // game over!
                 return actor.endTurn(); // handled
@@ -196,7 +196,7 @@ async function showTitle(game) {
     buffer.drawText(
         0,
         20,
-        'Try to find the ΩgoldΩAnanas∆ before ΩredΩPedro∆ catches you!',
+        'Try to find the #{gold Ananas} before #{red Pedro} catches you!',
         'white',
         -1,
         80,
@@ -206,7 +206,7 @@ async function showTitle(game) {
     buffer.drawText(
         0,
         22,
-        "Hint: ΩredΩPedro∆ can't swim!",
+        "Hint: #{red Pedro} can't swim!",
         'gray',
         -1,
         80,
@@ -216,7 +216,7 @@ async function showTitle(game) {
     buffer.drawText(
         0,
         26,
-        'Use the ΩgreenΩARROW keys∆ to move around.',
+        'Use the #{green ARROW keys} to move around.',
         'white',
         -1,
         80,
@@ -225,7 +225,7 @@ async function showTitle(game) {
     buffer.drawText(
         0,
         27,
-        'Press ΩgreenΩSPACE∆ to open boxes.',
+        'Press #{green SPACE} to open boxes.',
         'white',
         -1,
         80,
@@ -234,7 +234,7 @@ async function showTitle(game) {
     buffer.drawText(
         0,
         28,
-        'Press ΩgreenΩQ∆ to quit.',
+        'Press #{green Q} to quit.',
         'white',
         -1,
         80,
