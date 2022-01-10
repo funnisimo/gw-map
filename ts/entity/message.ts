@@ -2,10 +2,17 @@ import * as GWU from 'gw-utils';
 import { Actor } from '../actor/actor';
 import { Cell } from '../map/cell';
 import { Item } from '../item/item';
+import * as Flags from '../flags';
 
-export function messageYou(name: string, args: any): string {
-    const actor: Actor | undefined = args.actor;
-    if (actor) {
+export function messageYou(
+    this: GWU.text.HelperObj,
+    name: string,
+    view: GWU.text.View,
+    args: string[]
+): string {
+    const field = args[0] || 'actor';
+    const actor: Actor | undefined = this.get(view, field);
+    if (actor && actor instanceof Actor) {
         if (actor.isPlayer()) {
             return 'you';
         } else {
@@ -13,13 +20,21 @@ export function messageYou(name: string, args: any): string {
         }
     }
 
-    return name;
+    return actor || name;
 }
 
 GWU.text.addHelper('you', messageYou);
 
-export function messageThe(name: string, args: any, value?: any): string {
-    value = value || args.item || args.cell || args.actor;
+export function messageThe(
+    this: GWU.text.HelperObj,
+    name: string,
+    view: GWU.text.View,
+    args: string[]
+): string {
+    const value = args[0]
+        ? this.get(view, args[0])
+        : view.item || view.cell || view.target || view.actor;
+
     if (value) {
         if (value instanceof Cell) {
             return value.getFlavor();
@@ -39,14 +54,24 @@ export function messageThe(name: string, args: any, value?: any): string {
 
 GWU.text.addHelper('the', messageThe);
 
-export function messageA(name: string, args: any, value?: any): string {
-    value = value || args.item || args.cell || args.actor;
+export function messageA(
+    this: GWU.text.HelperObj,
+    name: string,
+    view: GWU.text.View,
+    args: string[]
+): string {
+    const value = args[0]
+        ? this.get(view, args[0])
+        : view.item || view.cell || view.target || view.actor;
+
     if (value) {
         if (value instanceof Cell) {
             return value.getFlavor();
         } else if (value instanceof Actor) {
             if (value.isPlayer()) {
                 return 'you';
+            } else if (value.hasEntityFlag(Flags.Entity.L_FORMAL_NAME)) {
+                return value.getName();
             } else {
                 return 'a ' + value.getName();
             }
@@ -60,3 +85,31 @@ export function messageA(name: string, args: any, value?: any): string {
 
 GWU.text.addHelper('a', messageA);
 GWU.text.addHelper('an', messageA);
+
+export function messageVerb(
+    this: GWU.text.HelperObj,
+    _name: string,
+    view: GWU.text.View,
+    args: string[]
+): string {
+    const verb = args[0] || 'verb';
+    const value = args[1]
+        ? this.get(view, args[1])
+        : view.actor || view.target || view.item || view.cell;
+
+    let plural = false;
+
+    if (value) {
+        if (value instanceof Cell) {
+            plural = false;
+        } else if (value instanceof Actor) {
+            plural = value.isPlural();
+        } else if (value instanceof Item) {
+            plural = value.isPlural();
+        }
+    }
+
+    return plural ? GWU.text.toPluralVerb(verb) : GWU.text.toSingularVerb(verb);
+}
+
+GWU.text.addHelper('verb', messageVerb);

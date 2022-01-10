@@ -38,6 +38,10 @@ export class Entity implements EntityType {
         return this._map;
     }
 
+    isPlural(): boolean {
+        return !!(this.flags.entity & Flags.Entity.L_ALWAYS_PLURAL);
+    }
+
     addToMap(map: Map, x: number, y: number): boolean {
         this.x = x;
         this.y = y;

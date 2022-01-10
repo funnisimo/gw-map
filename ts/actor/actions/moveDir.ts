@@ -26,13 +26,15 @@ export async function moveDir(
 
     if (actor.forbidsCell(newCell)) {
         if (ctx.try) return 0;
-        FX.hit(map, newCell, 'hit', 100);
-        GWU.message.addAt(
-            newCell.x,
-            newCell.y,
-            '{{you}} {{verb}} into {{a cell}}.',
-            { actor, cell: newCell, verb: 'bump' }
-        );
+        if (actor.isPlayer()) {
+            FX.hit(map, newCell, 'hit', 100);
+            GWU.message.addAt(
+                newCell.x,
+                newCell.y,
+                '{{you}} {{verb bump~}} into {{a cell}}.',
+                { actor, cell: newCell }
+            );
+        }
         actor.clearGoal();
         return actor.endTurn();
     }

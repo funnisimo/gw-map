@@ -98,6 +98,7 @@ GWM.actor.install('PEDRO', {
     ch: 'P',
     fg: 'red',
     ai: { wander: true },
+    flags: 'L_FORMAL_NAME',
 
     actions: {
         async attack(game, pedro, ctx) {

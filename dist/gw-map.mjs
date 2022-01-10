@@ -34,6 +34,8 @@ var Entity$1;
     Entity[Entity["L_BRIGHT_MEMORY"] = Fl$7(15)] = "L_BRIGHT_MEMORY";
     Entity[Entity["L_INVERT_WHEN_HIGHLIGHTED"] = Fl$7(16)] = "L_INVERT_WHEN_HIGHLIGHTED";
     Entity[Entity["L_ON_MAP"] = Fl$7(17)] = "L_ON_MAP";
+    Entity[Entity["L_FORMAL_NAME"] = Fl$7(20)] = "L_FORMAL_NAME";
+    Entity[Entity["L_ALWAYS_PLURAL"] = Fl$7(21)] = "L_ALWAYS_PLURAL";
     Entity[Entity["DEFAULT_ACTOR"] = Entity.L_LIST_IN_SIDEBAR] = "DEFAULT_ACTOR";
     Entity[Entity["DEFAULT_ITEM"] = Entity.L_LIST_IN_SIDEBAR] = "DEFAULT_ITEM";
     Entity[Entity["L_BLOCKED_BY_STAIRS"] = Entity.L_BLOCKS_ITEMS |
@@ -372,6 +374,9 @@ class Entity {
     }
     get map() {
         return this._map;
+    }
+    isPlural() {
+        return !!(this.flags.entity & Entity$1.L_ALWAYS_PLURAL);
     }
     addToMap(map, x, y) {
         this.x = x;
@@ -1115,7 +1120,7 @@ class Actor extends Entity {
         }
         if (this.becameVisible()) {
             console.log('became visible');
-            game.player.interrupt();
+            game.player.interrupt(this);
         }
         let r = 0;
         if (this.ai && this.ai.fn) {
@@ -3080,6 +3085,11 @@ class Item extends Entity {
         this.depth = Depth$1.ITEM;
         this.kind = kind;
     }
+    isPlural() {
+        if (this.quantity > 1)
+            return true;
+        return super.isPlural();
+    }
     copy(other) {
         super.copy(other);
         this.quantity = other.quantity;
@@ -3102,9 +3112,10 @@ class Item extends Entity {
     }
 }
 
-function messageYou(name, args) {
-    const actor = args.actor;
-    if (actor) {
+function messageYou(name, view, args) {
+    const field = args[0] || 'actor';
+    const actor = this.get(view, field);
+    if (actor && actor instanceof Actor) {
         if (actor.isPlayer()) {
             return 'you';
         }
@@ -3112,11 +3123,13 @@ function messageYou(name, args) {
             return 'the ' + actor.getName();
         }
     }
-    return name;
+    return actor || name;
 }
 GWU.text.addHelper('you', messageYou);
-function messageThe(name, args, value) {
-    value = value || args.item || args.cell || args.actor;
+function messageThe(name, view, args) {
+    const value = args[0]
+        ? this.get(view, args[0])
+        : view.item || view.cell || view.target || view.actor;
     if (value) {
         if (value instanceof Cell) {
             return value.getFlavor();
@@ -3136,8 +3149,10 @@ function messageThe(name, args, value) {
     return name;
 }
 GWU.text.addHelper('the', messageThe);
-function messageA(name, args, value) {
-    value = value || args.item || args.cell || args.actor;
+function messageA(name, view, args) {
+    const value = args[0]
+        ? this.get(view, args[0])
+        : view.item || view.cell || view.target || view.actor;
     if (value) {
         if (value instanceof Cell) {
             return value.getFlavor();
@@ -3145,6 +3160,9 @@ function messageA(name, args, value) {
         else if (value instanceof Actor) {
             if (value.isPlayer()) {
                 return 'you';
+            }
+            else if (value.hasEntityFlag(Entity$1.L_FORMAL_NAME)) {
+                return value.getName();
             }
             else {
                 return 'a ' + value.getName();
@@ -3158,6 +3176,26 @@ function messageA(name, args, value) {
 }
 GWU.text.addHelper('a', messageA);
 GWU.text.addHelper('an', messageA);
+function messageVerb(_name, view, args) {
+    const verb = args[0] || 'verb';
+    const value = args[1]
+        ? this.get(view, args[1])
+        : view.actor || view.target || view.item || view.cell;
+    let plural = false;
+    if (value) {
+        if (value instanceof Cell) {
+            plural = false;
+        }
+        else if (value instanceof Actor) {
+            plural = value.isPlural();
+        }
+        else if (value instanceof Item) {
+            plural = value.isPlural();
+        }
+    }
+    return plural ? GWU.text.toPluralVerb(verb) : GWU.text.toSingularVerb(verb);
+}
+GWU.text.addHelper('verb', messageVerb);
 
 var index$c = /*#__PURE__*/Object.freeze({
     __proto__: null,
@@ -3168,7 +3206,8 @@ var index$c = /*#__PURE__*/Object.freeze({
     Entity: Entity,
     messageYou: messageYou,
     messageThe: messageThe,
-    messageA: messageA
+    messageA: messageA,
+    messageVerb: messageVerb
 });
 
 class PainMessages {
@@ -4244,8 +4283,10 @@ async function moveDir$1(game, actor, ctx = {}) {
     if (actor.forbidsCell(newCell)) {
         if (ctx.try)
             return 0;
-        hit(map, newCell, 'hit', 100);
-        GWU.message.addAt(newCell.x, newCell.y, '{{you}} {{verb}} into {{a cell}}.', { actor, cell: newCell, verb: 'bump' });
+        if (actor.isPlayer()) {
+            hit(map, newCell, 'hit', 100);
+            GWU.message.addAt(newCell.x, newCell.y, '{{you}} {{verb bump~}} into {{a cell}}.', { actor, cell: newCell });
+        }
         actor.clearGoal();
         return actor.endTurn();
     }
@@ -7229,8 +7270,15 @@ class Player extends Actor {
         super(kind);
         this.scent = new Scent(this);
     }
-    interrupt() {
-        this.clearGoal();
+    interrupt(other) {
+        if (this.hasGoal()) {
+            this.clearGoal();
+            GWU.message.addAt(this.x, this.y, '{{you}} {{verb see~}} {{a other}}.', {
+                actor: this,
+                verb: 'see',
+                other,
+            });
+        }
     }
     endTurn(pct = 100) {
         if (this.map) {
@@ -7322,6 +7370,7 @@ class PlayerKind extends ActorKind {
             return opts;
         })());
         this.flags.actor |= Actor$1.IS_PLAYER;
+        this.flags.entity |= Entity$1.L_ALWAYS_PLURAL;
         this.attributes = new Attributes(opts.attributes || {});
         this.skills = new Skills(opts.skills || {});
     }

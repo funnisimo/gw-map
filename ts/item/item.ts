@@ -1,4 +1,4 @@
-import { Entity } from '../entity';
+import { Entity } from '../entity/entity';
 import { FlagType } from './types';
 import { Depth } from '../flags';
 
@@ -18,6 +18,11 @@ export class Item extends Entity {
         this.flags.item = 0;
         this.depth = Depth.ITEM;
         this.kind = kind;
+    }
+
+    isPlural(): boolean {
+        if (this.quantity > 1) return true;
+        return super.isPlural();
     }
 
     copy(other: Item) {

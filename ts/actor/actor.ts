@@ -1,10 +1,10 @@
 import * as GWU from 'gw-utils';
-import * as Entity from '../entity';
+import * as Entity from '../entity/entity';
 import { ActorFlags } from './types';
 import * as Flags from '../flags';
 import { ActorKind } from './kind';
 import { ActorActionFn, getAction, ActorActionResult } from './action';
-import { Item } from '../item';
+import { Item } from '../item/item';
 import { Status } from './status';
 import { Stats } from './stat';
 import { Game } from '../game';
@@ -186,7 +186,7 @@ export class Actor extends Entity.Entity {
 
         if (this.becameVisible()) {
             console.log('became visible');
-            game.player.interrupt();
+            game.player.interrupt(this);
         }
 
         let r = 0;

@@ -33,6 +33,7 @@ export class PlayerKind extends Actor.ActorKind {
             })()
         );
         this.flags.actor |= Flags.Actor.IS_PLAYER;
+        this.flags.entity |= Flags.Entity.L_ALWAYS_PLURAL;
         this.attributes = new Attributes.Attributes(opts.attributes || {});
         this.skills = new Skills.Skills(opts.skills || {});
     }

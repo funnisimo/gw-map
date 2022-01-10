@@ -24,6 +24,9 @@ export enum Entity {
 
     L_ON_MAP = Fl(17), // entity is currently on a map
 
+    L_FORMAL_NAME = Fl(20), // "Henry" instead of "the Goblin"
+    L_ALWAYS_PLURAL = Fl(21), // So that nouns and verbs are tensed correctly (mostly for player)
+
     DEFAULT_ACTOR = L_LIST_IN_SIDEBAR,
     DEFAULT_ITEM = L_LIST_IN_SIDEBAR,
 

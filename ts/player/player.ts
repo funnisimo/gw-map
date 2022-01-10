@@ -21,8 +21,20 @@ export class Player extends Actor {
         this.scent = new Scent(this);
     }
 
-    interrupt() {
-        this.clearGoal();
+    interrupt(other: Actor) {
+        if (this.hasGoal()) {
+            this.clearGoal();
+            GWU.message.addAt(
+                this.x,
+                this.y,
+                '{{you}} {{verb see~}} {{a other}}.',
+                {
+                    actor: this,
+                    verb: 'see',
+                    other,
+                }
+            );
+        }
     }
 
     endTurn(pct = 100): number {
