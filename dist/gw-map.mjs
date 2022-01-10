@@ -7914,7 +7914,7 @@ class Flavor {
             intro = 'You sense';
         }
         else if (isRemembered) {
-            intro = 'You remember';
+            intro = 'You remember seeing';
         }
         else if (isMapped) {
             intro = 'You expect to see';
