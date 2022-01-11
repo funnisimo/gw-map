@@ -1,37 +1,77 @@
 async function start() {
     // create the user interface
-    const UI = new GWU.ui.UI({
+    GAME = new GWM.game.Game({
         width: 80,
         height: 40,
         div: 'game',
+
+        makeMap() {
+            const seed = GWU.random.number();
+            console.log('seed = ', seed);
+            // GWU.random.seed(seed);
+
+            const map = GWM.map.make(this.width, this.height, 'FLOOR', 'WALL');
+            GWD.digMap(map, { stairs: false, seed });
+
+            return map;
+        },
+
+        makePlayer() {
+            const PLAYER = GWM.player.make({ name: 'Hero' });
+            return PLAYER;
+        },
+
+        startMap(map, player) {
+            // create and add the player
+            map.addActorNear(
+                Math.floor(map.width / 2),
+                Math.floor(map.height / 2),
+                player
+            );
+        },
+
+        keymap: {
+            dir: 'moveDir',
+            ' ': 'pickup',
+            Q() {
+                GAME.finish(false);
+            },
+        },
     });
 
     while (true) {
-        await showWelcome(UI);
-        const success = await playGame(UI);
-        await showGameOver(UI, success);
+        await showTitle(GAME);
+        const result = await playGame(GAME);
+        await showGameOver(GAME, result);
     }
 }
 
-window.onload = start;
-
-async function showWelcome(ui) {
-    const layer = new GWU.ui.Layer(ui);
+async function showTitle(game) {
+    const layer = new GWU.ui.Layer(game.ui);
     const buffer = layer.buffer;
 
     buffer.fill(0);
-    buffer.drawText(0, 20, 'Ananas de Caracas', 'yellow', -1, 80, 'center');
+    buffer.drawText(0, 15, 'Ananas de Caracas', 'yellow', -1, 80, 'center');
 
     buffer.drawText(
         0,
-        25,
-        'Use the ARROW keys to move around.',
+        26,
+        'Use the #{green ARROW keys} to move around.',
         'white',
         -1,
         80,
         'center'
     );
-    buffer.drawText(0, 26, 'Press "Q" to quit.', 'white', -1, 80, 'center');
+
+    buffer.drawText(
+        0,
+        28,
+        'Press #{green Q} to quit.',
+        'white',
+        -1,
+        80,
+        'center'
+    );
 
     buffer.drawText(
         0,
@@ -42,6 +82,7 @@ async function showWelcome(ui) {
         80,
         'center'
     );
+
     buffer.render();
 
     await layer.io.nextKeyOrClick();
@@ -49,39 +90,14 @@ async function showWelcome(ui) {
     layer.finish();
 }
 
-async function playGame(ui) {
+async function playGame(game) {
     // create and dig the map
-    const GAME = new GWM.game.Game({
-        ui,
 
-        makeMap() {
-            const map = GWM.map.make(80, 40);
-            GWD.digMap(map, { stairs: false, lakes: false });
-            return map;
-        },
-
-        makePlayer() {
-            const PLAYER = GWM.player.make({ name: 'Hero' });
-            return PLAYER;
-        },
-
-        startMap(map, player) {
-            map.addActorNear(40, 20, player);
-        },
-
-        keymap: {
-            dir: 'moveDir',
-            Q() {
-                GAME.finish(true);
-            },
-        },
-    });
-
-    return GAME.start();
+    return game.start();
 }
 
-async function showGameOver(ui, success) {
-    const layer = new GWU.ui.Layer(ui);
+async function showGameOver(game, success) {
+    const layer = new GWU.ui.Layer(game.ui);
 
     const buffer = layer.buffer;
 
@@ -90,6 +106,8 @@ async function showGameOver(ui, success) {
 
     if (success) {
         buffer.drawText(0, 25, 'WINNER!', 'green', -1, 80, 'center');
+    } else {
+        buffer.drawText(0, 25, 'Try Again!', 'red', -1, 80, 'center');
     }
 
     buffer.drawText(
@@ -107,3 +125,5 @@ async function showGameOver(ui, success) {
 
     layer.finish();
 }
+
+window.onload = start;

@@ -20,11 +20,11 @@ GWM.item.install(
     new GWM.item.ItemKind({
         name: 'Box',
         ch: '*',
-        fg: 'yellow',
+        fg: 'gold',
 
         actions: {
             async pickup(game, actor, item) {
-                await game.ui.alert('You found the ΩgoldΩAnanas∆!');
+                await game.ui.alert('You found the #{gold Ananas}!');
                 game.map.removeItem(item);
                 game.finish(true); // game over!
                 return actor.endTurn(); // handled
@@ -36,9 +36,11 @@ GWM.item.install(
 function addRandomBox(map, hasAnanas) {
     const item = GWM.item.make(hasAnanas ? 'FULL_BOX' : 'EMPTY_BOX');
 
-    const loc = GWU.random.matchingLoc(80, 40, (x, y) => {
+    const centerX = Math.floor(map.width / 2);
+    const centerY = Math.floor(map.height / 2);
+    const loc = GWU.random.matchingLoc(map.width, map.height, (x, y) => {
         if (item.avoidsCell(map.cell(x, y))) return false;
-        if (GWU.xy.distanceBetween(x, y, 40, 20) < 15) return false;
+        if (GWU.xy.distanceBetween(x, y, centerX, centerY) < 15) return false;
 
         let ok = true;
         map.eachItem((i) => {
@@ -98,7 +100,8 @@ GWM.actor.install('PEDRO', {
     ai: { wander: true },
 
     actions: {
-        async attack(game, pedro) {
+        async attack(game, pedro, ctx) {
+            if (ctx.actor !== game.player) return 0;
             await game.ui.alert('I got you, you nasty thief!');
             game.finish(false);
             return -1;
@@ -121,7 +124,7 @@ async function start() {
             console.log('seed = ', seed);
             // GWU.random.seed(seed);
 
-            const map = GWM.map.make(80, 40, {
+            const map = GWM.map.make(this.width, this.height, {
                 tile: 'FLOOR',
                 boundary: 'WALL',
                 fov: true,
@@ -145,19 +148,23 @@ async function start() {
             map.addActorNear(0, 0, PEDRO);
 
             const PEDRO2 = GWM.actor.make('PEDRO');
-            map.addActorNear(79, 39, PEDRO2);
+            map.addActorNear(this.width - 1, this.height - 1, PEDRO2);
 
             return map;
         },
 
         makePlayer() {
-            PLAYER = GWM.player.make('HERO');
+            const PLAYER = GWM.player.make('HERO');
             return PLAYER;
         },
 
         startMap(map, player) {
             // create and add the player
-            map.addActorNear(40, 20, player);
+            map.addActorNear(
+                Math.floor(map.width / 2),
+                Math.floor(map.height / 2),
+                player
+            );
         },
 
         keymap: {
@@ -186,7 +193,7 @@ async function showTitle(game) {
     buffer.drawText(
         0,
         20,
-        'Try to find the ΩgoldΩAnanas∆ before ΩredΩPedro∆ catches you!',
+        'Try to find the #{gold Ananas} before #{red Pedro} catches you!',
         'white',
         -1,
         80,
@@ -196,7 +203,7 @@ async function showTitle(game) {
     buffer.drawText(
         0,
         22,
-        "Hint: ΩredΩPedro∆ can't swim!",
+        "Hint: #{red Pedro} can't swim!",
         'gray',
         -1,
         80,
@@ -206,7 +213,7 @@ async function showTitle(game) {
     buffer.drawText(
         0,
         26,
-        'Use the ΩgreenΩARROW keys∆ to move around.',
+        'Use the #{green ARROW keys} to move around.',
         'white',
         -1,
         80,
@@ -215,7 +222,7 @@ async function showTitle(game) {
     buffer.drawText(
         0,
         27,
-        'Press ΩgreenΩSPACE∆ to open boxes.',
+        'Press #{green SPACE} to open boxes.',
         'white',
         -1,
         80,
@@ -224,7 +231,7 @@ async function showTitle(game) {
     buffer.drawText(
         0,
         28,
-        'Press ΩgreenΩQ∆ to quit.',
+        'Press #{green Q} to quit.',
         'white',
         -1,
         80,

@@ -20,7 +20,7 @@ GWM.item.install(
     new GWM.item.ItemKind({
         name: 'Box',
         ch: '*',
-        fg: 'yellow',
+        fg: 'gold',
 
         actions: {
             async pickup(game, actor, item) {
@@ -158,15 +158,15 @@ async function start() {
         },
 
         makePlayer() {
-            PLAYER = GWM.player.make('HERO');
+            const PLAYER = GWM.player.make('HERO');
             return PLAYER;
         },
 
         startMap(map, player) {
             // create and add the player
             map.addActorNear(
-                Math.floor(this.width / 2),
-                Math.floor(this.height / 2),
+                Math.floor(map.width / 2),
+                Math.floor(map.height / 2),
                 player
             );
             GWU.message.add('Welcome to Ananas de Caracas!');

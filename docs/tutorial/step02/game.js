@@ -20,11 +20,11 @@ GWM.item.install(
     new GWM.item.ItemKind({
         name: 'Box',
         ch: '*',
-        fg: 'green',
+        fg: 'gold',
 
         actions: {
             async pickup(game, actor, item) {
-                await game.ui.alert('You found the ΩgoldΩAnanas∆!');
+                await game.ui.alert('You found the #{gold Ananas}!');
                 game.map.removeItem(item);
                 game.finish(true); // game over!
                 return actor.endTurn(); // handled
@@ -36,9 +36,11 @@ GWM.item.install(
 function addRandomBox(map, hasAnanas) {
     const item = GWM.item.make(hasAnanas ? 'FULL_BOX' : 'EMPTY_BOX');
 
-    const loc = GWU.random.matchingLoc(80, 40, (x, y) => {
+    const centerX = Math.floor(map.width / 2);
+    const centerY = Math.floor(map.height / 2);
+    const loc = GWU.random.matchingLoc(map.width, map.height, (x, y) => {
         if (item.avoidsCell(map.cell(x, y))) return false;
-        if (GWU.xy.distanceBetween(x, y, 40, 20) < 15) return false;
+        if (GWU.xy.distanceBetween(x, y, centerX, centerY) < 15) return false;
 
         let ok = true;
         map.eachItem((i) => {
@@ -54,72 +56,18 @@ function addRandomBox(map, hasAnanas) {
 
 async function start() {
     // create the user interface
-    const UI = new GWU.ui.UI({
+    GAME = new GWM.game.Game({
         width: 80,
         height: 40,
         div: 'game',
-    });
-
-    while (true) {
-        await showWelcome(UI);
-        const success = await playGame(UI);
-        await showGameOver(UI, success);
-    }
-}
-
-window.onload = start;
-
-async function showWelcome(ui) {
-    const layer = new GWU.ui.Layer(ui);
-    const buffer = layer.buffer;
-
-    buffer.fill(0);
-    buffer.drawText(0, 20, 'Ananas de Caracas', 'yellow', -1, 80, 'center');
-
-    buffer.drawText(
-        0,
-        25,
-        'Use the ARROW keys to move around.',
-        'white',
-        -1,
-        80,
-        'center'
-    );
-    buffer.drawText(
-        0,
-        26,
-        'Press SPACE to open boxes.',
-        'white',
-        -1,
-        80,
-        'center'
-    );
-    buffer.drawText(0, 27, 'Press "Q" to quit.', 'white', -1, 80, 'center');
-
-    buffer.drawText(
-        0,
-        30,
-        '[Press any key to begin]',
-        'gray',
-        -1,
-        80,
-        'center'
-    );
-    buffer.render();
-
-    await layer.io.nextKeyOrClick();
-
-    layer.finish();
-}
-
-async function playGame(ui) {
-    // create and dig the map
-    const GAME = new GWM.game.Game({
-        ui,
 
         makeMap() {
-            const map = GWM.map.make(80, 40);
-            GWD.digMap(map, { stairs: false });
+            const seed = GWU.random.number();
+            console.log('seed = ', seed);
+            // GWU.random.seed(seed);
+
+            const map = GWM.map.make(this.width, this.height, 'FLOOR', 'WALL');
+            GWD.digMap(map, { stairs: false, seed });
 
             // Add boxes randomly
             for (let c = 0; c < 8; ++c) {
@@ -136,23 +84,100 @@ async function playGame(ui) {
         },
 
         startMap(map, player) {
-            map.addActorNear(40, 20, player);
+            // create and add the player
+            map.addActorNear(
+                Math.floor(map.width / 2),
+                Math.floor(map.height / 2),
+                player
+            );
         },
 
         keymap: {
             dir: 'moveDir',
             ' ': 'pickup',
             Q() {
-                GAME.finish(true);
+                GAME.finish(false);
             },
         },
     });
 
-    return GAME.start();
+    while (true) {
+        await showTitle(GAME);
+        const result = await playGame(GAME);
+        await showGameOver(GAME, result);
+    }
 }
 
-async function showGameOver(ui, success) {
-    const layer = new GWU.ui.Layer(ui);
+async function showTitle(game) {
+    const layer = new GWU.ui.Layer(game.ui);
+    const buffer = layer.buffer;
+
+    buffer.fill(0);
+    buffer.drawText(0, 15, 'Ananas de Caracas', 'yellow', -1, 80, 'center');
+
+    buffer.drawText(
+        0,
+        20,
+        'Try to find the #{gold Ananas}!',
+        'white',
+        -1,
+        80,
+        'center'
+    );
+
+    buffer.drawText(
+        0,
+        26,
+        'Use the #{green ARROW keys} to move around.',
+        'white',
+        -1,
+        80,
+        'center'
+    );
+    buffer.drawText(
+        0,
+        27,
+        'Press #{green SPACE} to open boxes.',
+        'white',
+        -1,
+        80,
+        'center'
+    );
+    buffer.drawText(
+        0,
+        28,
+        'Press #{green Q} to quit.',
+        'white',
+        -1,
+        80,
+        'center'
+    );
+
+    buffer.drawText(
+        0,
+        30,
+        '[Press any key to begin]',
+        'gray',
+        -1,
+        80,
+        'center'
+    );
+
+    buffer.render();
+
+    await layer.io.nextKeyOrClick();
+
+    layer.finish();
+}
+
+async function playGame(game) {
+    // create and dig the map
+
+    return game.start();
+}
+
+async function showGameOver(game, success) {
+    const layer = new GWU.ui.Layer(game.ui);
 
     const buffer = layer.buffer;
 
@@ -161,6 +186,8 @@ async function showGameOver(ui, success) {
 
     if (success) {
         buffer.drawText(0, 25, 'WINNER!', 'green', -1, 80, 'center');
+    } else {
+        buffer.drawText(0, 25, 'Try Again!', 'red', -1, 80, 'center');
     }
 
     buffer.drawText(
@@ -178,3 +205,5 @@ async function showGameOver(ui, success) {
 
     layer.finish();
 }
+
+window.onload = start;
