@@ -8350,8 +8350,11 @@ class Sidebar {
             currentEntry = this.entries[i];
             currentEntry.sidebarY = drawBounds.y;
             let usedLines = currentEntry.draw(buffer, drawBounds);
-            if (this._isDim(currentEntry) && this.bg) {
+            if (this._isDim(currentEntry)) {
                 buffer.mix(this.bg, 50, drawBounds.x, drawBounds.y, drawBounds.width, usedLines);
+            }
+            else if (this.highlight === currentEntry) {
+                buffer.mix('white', 20, drawBounds.x, drawBounds.y, drawBounds.width, usedLines);
             }
             if (usedLines) {
                 ++usedLines; // skip a space
