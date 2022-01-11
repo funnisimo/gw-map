@@ -32,7 +32,7 @@ export class Messages {
         );
 
         this.bg = GWU.color.from(opts.bg || 'darkest_gray');
-        this.fg = GWU.color.from(opts.fg || 'purple');
+        this.fg = GWU.color.from(opts.fg || 'white');
 
         if (!this.bounds.height)
             throw new Error('Must provde a height for messages widget.');

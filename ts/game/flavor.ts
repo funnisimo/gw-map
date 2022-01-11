@@ -33,7 +33,7 @@ export class Flavor {
     text = '';
 
     constructor(opts: FlavorInit) {
-        this.fg = GWU.color.from(opts.fg || 'white');
+        this.fg = GWU.color.from(opts.fg || 'purple');
         this.bg = GWU.color.from(opts.bg || 'darkest_gray');
         this.promptFg = GWU.color.from(opts.promptFg || 'gold');
 

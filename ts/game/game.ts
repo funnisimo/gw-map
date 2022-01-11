@@ -350,9 +350,9 @@ export class Game {
                     // console.log('-- event', elapsed);
                 } else if (this.mouse && ev.type === GWU.io.MOUSEMOVE) {
                     if (this.viewport.mousemove(ev)) {
+                        const x = this.viewport.toInnerX(ev.x);
+                        const y = this.viewport.toInnerY(ev.y);
                         if (this.flavor) {
-                            const x = this.viewport.toInnerX(ev.x);
-                            const y = this.viewport.toInnerY(ev.y);
                             const text = this.flavor.getFlavorText(
                                 this.map,
                                 x,
@@ -361,6 +361,11 @@ export class Game {
                             );
                             this.flavor.showText(text);
                         }
+                        if (this.sidebar) {
+                            this.sidebar.highlightAt(x, y);
+                        }
+                        this.draw();
+                    } else if (this.sidebar && this.sidebar.mousemove(ev)) {
                         this.draw();
                     }
                 } else if (this.mouse && ev.type === GWU.io.CLICK) {

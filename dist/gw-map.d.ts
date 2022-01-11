@@ -651,6 +651,7 @@ declare class Viewport {
     tick(_dt: number): boolean;
     mousemove(ev: GWU.io.Event): boolean;
     click(ev: GWU.io.Event): boolean;
+    clearPath(): void;
     showPath(x: number, y: number): boolean;
 }
 
@@ -766,7 +767,8 @@ declare class Sidebar {
     reset(): void;
     entryAt(e: GWU.io.Event): EntryBase | null;
     mousemove(e: GWU.io.Event): boolean;
-    highlightRow(y: number): boolean;
+    highlightAt(x: number, y: number): boolean;
+    _highlightRow(y: number): boolean;
     clearHighlight(): boolean;
     _updateCellCache(map: Map): boolean;
     _makeActorEntry(actor: Actor): ActorEntry;
@@ -778,7 +780,6 @@ declare class Sidebar {
     _addItemEntry(item: Item, map: Map, x: number, y: number, fov?: GWU.fov.FovTracker): boolean;
     _addCellEntry(cell: Cell, map: Map, x: number, y: number, fov?: GWU.fov.FovTracker): boolean;
     _updateEntryCache(map: Map, cx: number, cy: number, fov?: GWU.fov.FovTracker): boolean;
-    _sortEntries(map: Map, cx: number, cy: number, fov?: GWU.fov.FovTracker): boolean;
     update(): boolean;
     updateFor(subject: UISubject): boolean;
     updateAt(map: Map, cx: number, cy: number, fov?: GWU.fov.FovTracker): boolean;

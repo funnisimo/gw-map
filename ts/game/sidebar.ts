@@ -145,12 +145,29 @@ export class Sidebar {
 
     mousemove(e: GWU.io.Event): boolean {
         if (this.contains(e)) {
-            return this.highlightRow(e.y);
+            this._highlightRow(e.y);
+            return true;
         }
-        return this.clearHighlight();
+        this.clearHighlight();
+        return false;
     }
 
-    highlightRow(y: number) {
+    highlightAt(x: number, y: number) {
+        const last = this.highlight;
+        this.highlight = null;
+        // processed in ascending y order
+        this.entries.forEach((e) => {
+            if (e.x == x && e.y == y) {
+                this.highlight = e;
+            }
+        });
+
+        const changed = this.highlight !== last;
+        this.needsDraw ||= changed;
+        return changed;
+    }
+
+    _highlightRow(y: number) {
         const last = this.highlight;
         this.highlight = null;
         // processed in ascending y order
@@ -162,6 +179,12 @@ export class Sidebar {
 
         const changed = this.highlight !== last;
         this.needsDraw ||= changed;
+
+        if (this.highlight && this.lastMap) {
+            // @ts-ignore
+            this.lastMap.showCursor(this.highlight.x, this.highlight.y);
+        }
+
         return changed;
     }
 
@@ -296,10 +319,7 @@ export class Sidebar {
         cy: number,
         fov?: GWU.fov.FovTracker
     ) {
-        if (
-            map === this.lastMap &&
-            !map.hasMapFlag(Flags.Map.MAP_SIDEBAR_CHANGED)
-        ) {
+        if (map === this.lastMap && cx === this.lastX && cy === this.lastY) {
             return false;
         }
 
@@ -307,8 +327,8 @@ export class Sidebar {
 
         this.clearHighlight(); // If we are moving around the map, then turn off the highlight
         this.lastMap = map;
-        // this.lastX = cx;
-        // this.lastY = cy;
+        this.lastX = cx;
+        this.lastY = cy;
 
         this.entries.length = 0;
         const done = GWU.grid.alloc(map.width, map.height);
@@ -342,42 +362,15 @@ export class Sidebar {
             }
         });
 
-        GWU.grid.free(done);
-        return true;
-    }
-
-    _sortEntries(map: Map, cx: number, cy: number, fov?: GWU.fov.FovTracker) {
-        let changed = false;
-        if (this.lastX != cx || this.lastY != cy) {
-            this.lastX = cx;
-            this.lastY = cy;
-            changed = true;
-        }
-
-        this.entries.forEach((entry) => {
-            let x = entry.x;
-            let y = entry.y;
-
-            const newDist = GWU.xy.distanceBetween(cx, cy, x, y);
-            if (newDist !== entry.dist) {
-                changed = true;
-            }
-            entry.dist = newDist;
-
-            const newPriority = this._getPriority(map, x, y, fov);
-            if (newPriority !== entry.priority) {
-                changed = true;
-            }
-            entry.priority = newPriority;
-        });
-
         this.entries.sort((a, b) => {
             if (a.priority != b.priority) {
                 return a.priority - b.priority;
             }
             return a.dist - b.dist;
         });
-        return changed;
+
+        GWU.grid.free(done);
+        return true;
     }
 
     update(): boolean {
@@ -408,16 +401,18 @@ export class Sidebar {
         if (this._updateEntryCache(map, cx, cy, fov)) {
             changed = true;
         }
-        if (this._sortEntries(map, cx, cy, fov)) {
-            changed = true;
-        }
         return changed;
     }
 
     draw(buffer: GWU.buffer.Buffer) {
         const map = this.subject?.map;
         if (!map) return false;
-        if (!this.update()) return false;
+        if (this.update()) {
+            this.needsDraw = true;
+        }
+
+        if (!this.needsDraw) return false;
+        this.needsDraw = false;
 
         buffer.fillRect(
             this.bounds.x,

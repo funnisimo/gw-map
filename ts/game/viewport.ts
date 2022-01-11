@@ -284,7 +284,10 @@ export class Viewport {
     }
 
     mousemove(ev: GWU.io.Event): boolean {
-        if (!this.bounds.contains(ev.x, ev.y)) return false;
+        if (!this.bounds.contains(ev.x, ev.y)) {
+            this.clearPath();
+            return false;
+        }
         if (!this.player) return false;
         const map = this.player.map;
         if (!map) return false;
@@ -301,6 +304,13 @@ export class Viewport {
             this.player.setGoal(this.toInnerX(ev.x), this.toInnerY(ev.y));
         }
         return true;
+    }
+
+    clearPath() {
+        if (!this.player) return;
+        const map = this.player.map;
+        if (!map) return;
+        map.clearPath();
     }
 
     showPath(x: number, y: number): boolean {

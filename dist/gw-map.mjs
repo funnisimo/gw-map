@@ -7661,8 +7661,10 @@ class Viewport {
         return true;
     }
     mousemove(ev) {
-        if (!this.bounds.contains(ev.x, ev.y))
+        if (!this.bounds.contains(ev.x, ev.y)) {
+            this.clearPath();
             return false;
+        }
         if (!this.player)
             return false;
         const map = this.player.map;
@@ -7682,6 +7684,14 @@ class Viewport {
             this.player.setGoal(this.toInnerX(ev.x), this.toInnerY(ev.y));
         }
         return true;
+    }
+    clearPath() {
+        if (!this.player)
+            return;
+        const map = this.player.map;
+        if (!map)
+            return;
+        map.clearPath();
     }
     showPath(x, y) {
         if (!this.player)
@@ -7707,7 +7717,7 @@ class Messages {
         this.needsDraw = true;
         this.bounds = new GWU.xy.Bounds(opts.x, opts.y, opts.width, opts.height);
         this.bg = GWU.color.from(opts.bg || 'darkest_gray');
-        this.fg = GWU.color.from(opts.fg || 'purple');
+        this.fg = GWU.color.from(opts.fg || 'white');
         if (!this.bounds.height)
             throw new Error('Must provde a height for messages widget.');
         this.cache = new GWU.message.MessageCache({
@@ -7902,7 +7912,7 @@ class Flavor {
     constructor(opts) {
         this.needsDraw = true;
         this.text = '';
-        this.fg = GWU.color.from(opts.fg || 'white');
+        this.fg = GWU.color.from(opts.fg || 'purple');
         this.bg = GWU.color.from(opts.bg || 'darkest_gray');
         this.promptFg = GWU.color.from(opts.promptFg || 'gold');
         this.bounds = new GWU.xy.Bounds(opts.x, opts.y, opts.width, 1);
@@ -8111,11 +8121,26 @@ class Sidebar {
     }
     mousemove(e) {
         if (this.contains(e)) {
-            return this.highlightRow(e.y);
+            this._highlightRow(e.y);
+            return true;
         }
-        return this.clearHighlight();
+        this.clearHighlight();
+        return false;
     }
-    highlightRow(y) {
+    highlightAt(x, y) {
+        const last = this.highlight;
+        this.highlight = null;
+        // processed in ascending y order
+        this.entries.forEach((e) => {
+            if (e.x == x && e.y == y) {
+                this.highlight = e;
+            }
+        });
+        const changed = this.highlight !== last;
+        this.needsDraw || (this.needsDraw = changed);
+        return changed;
+    }
+    _highlightRow(y) {
         const last = this.highlight;
         this.highlight = null;
         // processed in ascending y order
@@ -8126,6 +8151,10 @@ class Sidebar {
         });
         const changed = this.highlight !== last;
         this.needsDraw || (this.needsDraw = changed);
+        if (this.highlight && this.lastMap) {
+            // @ts-ignore
+            this.lastMap.showCursor(this.highlight.x, this.highlight.y);
+        }
         return changed;
     }
     clearHighlight() {
@@ -8216,15 +8245,14 @@ class Sidebar {
         return true;
     }
     _updateEntryCache(map, cx, cy, fov) {
-        if (map === this.lastMap &&
-            !map.hasMapFlag(Map$1.MAP_SIDEBAR_CHANGED)) {
+        if (map === this.lastMap && cx === this.lastX && cy === this.lastY) {
             return false;
         }
         map.clearMapFlag(Map$1.MAP_SIDEBAR_CHANGED);
         this.clearHighlight(); // If we are moving around the map, then turn off the highlight
         this.lastMap = map;
-        // this.lastX = cx;
-        // this.lastY = cy;
+        this.lastX = cx;
+        this.lastY = cy;
         this.entries.length = 0;
         const done = GWU.grid.alloc(map.width, map.height);
         map.eachActor((a) => {
@@ -8256,37 +8284,14 @@ class Sidebar {
                 done[c.x][c.y] = 1;
             }
         });
-        GWU.grid.free(done);
-        return true;
-    }
-    _sortEntries(map, cx, cy, fov) {
-        let changed = false;
-        if (this.lastX != cx || this.lastY != cy) {
-            this.lastX = cx;
-            this.lastY = cy;
-            changed = true;
-        }
-        this.entries.forEach((entry) => {
-            let x = entry.x;
-            let y = entry.y;
-            const newDist = GWU.xy.distanceBetween(cx, cy, x, y);
-            if (newDist !== entry.dist) {
-                changed = true;
-            }
-            entry.dist = newDist;
-            const newPriority = this._getPriority(map, x, y, fov);
-            if (newPriority !== entry.priority) {
-                changed = true;
-            }
-            entry.priority = newPriority;
-        });
         this.entries.sort((a, b) => {
             if (a.priority != b.priority) {
                 return a.priority - b.priority;
             }
             return a.dist - b.dist;
         });
-        return changed;
+        GWU.grid.free(done);
+        return true;
     }
     update() {
         if (!this.subject) {
@@ -8304,9 +8309,6 @@ class Sidebar {
         if (this._updateEntryCache(map, cx, cy, fov)) {
             changed = true;
         }
-        if (this._sortEntries(map, cx, cy, fov)) {
-            changed = true;
-        }
         return changed;
     }
     draw(buffer) {
@@ -8314,8 +8316,12 @@ class Sidebar {
         const map = (_a = this.subject) === null || _a === void 0 ? void 0 : _a.map;
         if (!map)
             return false;
-        if (!this.update())
+        if (this.update()) {
+            this.needsDraw = true;
+        }
+        if (!this.needsDraw)
             return false;
+        this.needsDraw = false;
         buffer.fillRect(this.bounds.x, this.bounds.y, this.bounds.width, this.bounds.height, 0, 0, this.bg);
         // clear the row information
         this.entries.forEach((e) => (e.sidebarY = -1));
@@ -8596,12 +8602,18 @@ class Game {
                 }
                 else if (this.mouse && ev.type === GWU.io.MOUSEMOVE) {
                     if (this.viewport.mousemove(ev)) {
+                        const x = this.viewport.toInnerX(ev.x);
+                        const y = this.viewport.toInnerY(ev.y);
                         if (this.flavor) {
-                            const x = this.viewport.toInnerX(ev.x);
-                            const y = this.viewport.toInnerY(ev.y);
                             const text = this.flavor.getFlavorText(this.map, x, y, this.map.fov);
                             this.flavor.showText(text);
                         }
+                        if (this.sidebar) {
+                            this.sidebar.highlightAt(x, y);
+                        }
+                        this.draw();
+                    }
+                    else if (this.sidebar && this.sidebar.mousemove(ev)) {
                         this.draw();
                     }
                 }
