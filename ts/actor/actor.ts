@@ -221,6 +221,28 @@ export class Actor extends Entity.Entity {
         } else {
             this.clearActorFlag(Flags.Actor.WAS_VISIBLE);
         }
+
+        const map = this.map;
+        const isVisible = map && map.fov.isAnyKindOfVisible(this.x, this.y);
+        if (isVisible) {
+            this.setActorFlag(Flags.Actor.IS_VISIBLE);
+            if (
+                !this.hasEntityFlag(Flags.Entity.L_NO_SIDEBAR) &&
+                !this.hasEntityFlag(Flags.Entity.L_IN_SIDEBAR)
+            ) {
+                map.setMapFlag(Flags.Map.MAP_SIDEBAR_CHANGED);
+            }
+        } else {
+            this.clearActorFlag(Flags.Actor.IS_VISIBLE);
+            if (
+                map &&
+                !this.hasEntityFlag(Flags.Entity.L_NO_SIDEBAR) &&
+                this.hasEntityFlag(Flags.Entity.L_IN_SIDEBAR)
+            ) {
+                map.setMapFlag(Flags.Map.MAP_SIDEBAR_CHANGED);
+            }
+        }
+
         return Math.floor((pct * this.moveSpeed()) / 100);
     }
 

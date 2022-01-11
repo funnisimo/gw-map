@@ -447,8 +447,8 @@ export class Cell {
         }
 
         if (
-            current.hasEntityFlag(Flags.Entity.L_LIST_IN_SIDEBAR) !==
-            tile.hasEntityFlag(Flags.Entity.L_LIST_IN_SIDEBAR)
+            current.hasTileFlag(Flags.Tile.T_LIST_IN_SIDEBAR) !==
+            tile.hasTileFlag(Flags.Tile.T_LIST_IN_SIDEBAR)
         ) {
             this.map.setMapFlag(Flags.Map.MAP_SIDEBAR_TILES_CHANGED);
         }

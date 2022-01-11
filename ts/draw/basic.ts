@@ -65,14 +65,13 @@ export class BasicDrawer implements CellDrawer {
 
         if (cell.memory) {
             separate = !!(
-                cell.memory.flags.entity &
-                (Flags.Entity.L_VISUALLY_DISTINCT |
-                    Flags.Entity.L_LIST_IN_SIDEBAR)
+                (cell.memory.flags.entity & Flags.Entity.L_VISUALLY_DISTINCT)
+                // Flags.Entity.L_LIST_IN_SIDEBAR)
             );
         } else {
             separate = cell.hasEntityFlag(
-                Flags.Entity.L_VISUALLY_DISTINCT |
-                    Flags.Entity.L_LIST_IN_SIDEBAR,
+                Flags.Entity.L_VISUALLY_DISTINCT,
+                // Flags.Entity.L_LIST_IN_SIDEBAR,
                 true
             );
         }

@@ -26,15 +26,16 @@ declare enum Entity$1 {
     L_BLOCKS_EFFECTS,
     L_BLOCKS_DIAGONAL,
     L_INTERRUPT_WHEN_SEEN,
-    L_LIST_IN_SIDEBAR,
+    L_NO_SIDEBAR,
     L_VISUALLY_DISTINCT,
     L_BRIGHT_MEMORY,
     L_INVERT_WHEN_HIGHLIGHTED,
     L_ON_MAP,
+    L_IN_SIDEBAR,
     L_FORMAL_NAME,
     L_ALWAYS_PLURAL,
-    DEFAULT_ACTOR,
-    DEFAULT_ITEM,
+    DEFAULT_ACTOR = 0,
+    DEFAULT_ITEM = 0,
     L_BLOCKED_BY_STAIRS,
     L_BLOCKS_SCENT,
     L_DIVIDES_LEVEL,
@@ -80,6 +81,7 @@ declare enum Tile$1 {
     T_STAND_IN_TILE,
     T_CONNECTS_LEVEL,
     T_BLOCKS_OTHER_LAYERS,
+    T_LIST_IN_SIDEBAR,
     T_HAS_STAIRS,
     T_OBSTRUCTS_SCENT,
     T_PATHING_BLOCKER,
@@ -147,6 +149,7 @@ declare enum Map$1 {
     MAP_FOV_CHANGED,
     MAP_DANCES,
     MAP_SIDEBAR_TILES_CHANGED,
+    MAP_SIDEBAR_CHANGED,
     MAP_DEFAULT = 0
 }
 
@@ -706,6 +709,82 @@ declare class Flavor {
     draw(buffer: GWU.buffer.Buffer): boolean;
 }
 
+interface SidebarOptions {
+    bg?: GWU.color.ColorBase;
+    width?: number;
+}
+interface SidebarInit extends SidebarOptions {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+declare abstract class EntryBase {
+    dist: number;
+    priority: number;
+    changed: boolean;
+    sidebarY: number;
+    abstract get x(): number;
+    abstract get y(): number;
+    draw(_buffer: GWU.buffer.Buffer, _bounds: GWU.xy.Bounds): number;
+}
+declare class ActorEntry extends EntryBase {
+    actor: Actor;
+    constructor(actor: Actor);
+    get x(): number;
+    get y(): number;
+    draw(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number;
+}
+declare class ItemEntry extends EntryBase {
+    item: Item;
+    constructor(item: Item);
+    get x(): number;
+    get y(): number;
+    draw(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number;
+}
+declare class CellEntry extends EntryBase {
+    cell: Cell;
+    constructor(cell: Cell);
+    get x(): number;
+    get y(): number;
+    draw(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number;
+}
+declare type SidebarEntry = ActorEntry | ItemEntry | CellEntry;
+declare class Sidebar {
+    bounds: GWU.xy.Bounds;
+    cellCache: Cell[];
+    lastX: number;
+    lastY: number;
+    lastMap: Map | null;
+    entries: SidebarEntry[];
+    subject: UISubject | null;
+    highlight: EntryBase | null;
+    bg: GWU.color.Color;
+    needsDraw: boolean;
+    constructor(opts: SidebarInit);
+    contains(xy: GWU.xy.XY | GWU.xy.Loc): boolean;
+    reset(): void;
+    entryAt(e: GWU.io.Event): EntryBase | null;
+    mousemove(e: GWU.io.Event): boolean;
+    highlightRow(y: number): boolean;
+    clearHighlight(): boolean;
+    _updateCellCache(map: Map): boolean;
+    _makeActorEntry(actor: Actor): ActorEntry;
+    _makeItemEntry(item: Item): ItemEntry;
+    _makeCellEntry(cell: Cell): CellEntry;
+    _getPriority(map: Map, x: number, y: number, fov?: GWU.fov.FovTracker): number;
+    _isDim(entry: EntryBase): boolean;
+    _addActorEntry(actor: Actor, map: Map, x: number, y: number, fov?: GWU.fov.FovTracker): boolean;
+    _addItemEntry(item: Item, map: Map, x: number, y: number, fov?: GWU.fov.FovTracker): boolean;
+    _addCellEntry(cell: Cell, map: Map, x: number, y: number, fov?: GWU.fov.FovTracker): boolean;
+    _updateEntryCache(map: Map, cx: number, cy: number, fov?: GWU.fov.FovTracker): boolean;
+    _sortEntries(map: Map, cx: number, cy: number, fov?: GWU.fov.FovTracker): boolean;
+    update(): boolean;
+    updateFor(subject: UISubject): boolean;
+    updateAt(map: Map, cx: number, cy: number, fov?: GWU.fov.FovTracker): boolean;
+    draw(buffer: GWU.buffer.Buffer): boolean;
+}
+
 interface GameOptions extends GWU.ui.UIOptions {
     ui?: GWU.ui.UI;
     makeMap: MakeMapFn;
@@ -716,11 +795,13 @@ interface GameOptions extends GWU.ui.UIOptions {
     viewport?: ViewportOptions;
     messages?: number | MessageOptions;
     flavor?: boolean | FlavorOptions$1;
+    sidebar?: boolean | number | SidebarOptions;
 }
 interface GameInit extends GameOptions {
     viewport: Partial<ViewportInit>;
     messages: Partial<MessageInit>;
     flavor: Partial<FlavorInit>;
+    sidebar: Partial<SidebarInit>;
 }
 declare type MakeMapFn = (id: number) => Map;
 declare type MakePlayerFn = () => Player;
@@ -733,6 +814,7 @@ declare class Game {
     viewport: Viewport;
     messages?: Messages;
     flavor?: Flavor;
+    sidebar?: Sidebar;
     scheduler: GWU.scheduler.Scheduler;
     player: Player;
     map: Map;
@@ -749,7 +831,7 @@ declare class Game {
     get width(): number;
     get height(): number;
     _initMenu(_opts: GameInit): void;
-    _initSidebar(_opts: GameInit): void;
+    _initSidebar(opts: GameInit): void;
     _initMessages(opts: GameInit): void;
     _initFlavor(opts: GameInit): void;
     _initViewport(opts: GameInit): void;
@@ -823,6 +905,19 @@ declare const index_d$c_showArchive: typeof showArchive;
 type index_d$c_FlavorInit = FlavorInit;
 type index_d$c_Flavor = Flavor;
 declare const index_d$c_Flavor: typeof Flavor;
+type index_d$c_SidebarOptions = SidebarOptions;
+type index_d$c_SidebarInit = SidebarInit;
+type index_d$c_EntryBase = EntryBase;
+declare const index_d$c_EntryBase: typeof EntryBase;
+type index_d$c_ActorEntry = ActorEntry;
+declare const index_d$c_ActorEntry: typeof ActorEntry;
+type index_d$c_ItemEntry = ItemEntry;
+declare const index_d$c_ItemEntry: typeof ItemEntry;
+type index_d$c_CellEntry = CellEntry;
+declare const index_d$c_CellEntry: typeof CellEntry;
+type index_d$c_SidebarEntry = SidebarEntry;
+type index_d$c_Sidebar = Sidebar;
+declare const index_d$c_Sidebar: typeof Sidebar;
 type index_d$c_GameOptions = GameOptions;
 type index_d$c_GameInit = GameInit;
 type index_d$c_MakeMapFn = MakeMapFn;
@@ -846,6 +941,14 @@ declare namespace index_d$c {
     FlavorOptions$1 as FlavorOptions,
     index_d$c_FlavorInit as FlavorInit,
     index_d$c_Flavor as Flavor,
+    index_d$c_SidebarOptions as SidebarOptions,
+    index_d$c_SidebarInit as SidebarInit,
+    index_d$c_EntryBase as EntryBase,
+    index_d$c_ActorEntry as ActorEntry,
+    index_d$c_ItemEntry as ItemEntry,
+    index_d$c_CellEntry as CellEntry,
+    index_d$c_SidebarEntry as SidebarEntry,
+    index_d$c_Sidebar as Sidebar,
     index_d$c_GameOptions as GameOptions,
     index_d$c_GameInit as GameInit,
     index_d$c_MakeMapFn as MakeMapFn,

@@ -17,18 +17,19 @@ export enum Entity {
     L_BLOCKS_DIAGONAL = Fl(10), // can't step diagonally around this tile
 
     L_INTERRUPT_WHEN_SEEN = Fl(12),
-    L_LIST_IN_SIDEBAR = Fl(13), // terrain will be listed in the sidebar with a description of the terrain type
+    L_NO_SIDEBAR = Fl(13), // terrain will be listed in the sidebar with a description of the terrain type
     L_VISUALLY_DISTINCT = Fl(14), // terrain will be color-adjusted if necessary so the character stands out from the background
     L_BRIGHT_MEMORY = Fl(15), // no blue fade when this tile is out of sight
     L_INVERT_WHEN_HIGHLIGHTED = Fl(16), // will flip fore and back colors when highlighted with pathing
 
     L_ON_MAP = Fl(17), // entity is currently on a map
+    L_IN_SIDEBAR = Fl(18), // SHOWN IN SIDEBAR
 
     L_FORMAL_NAME = Fl(20), // "Henry" instead of "the Goblin"
     L_ALWAYS_PLURAL = Fl(21), // So that nouns and verbs are tensed correctly (mostly for player)
 
-    DEFAULT_ACTOR = L_LIST_IN_SIDEBAR,
-    DEFAULT_ITEM = L_LIST_IN_SIDEBAR,
+    DEFAULT_ACTOR = 0,
+    DEFAULT_ITEM = 0,
 
     L_BLOCKED_BY_STAIRS = L_BLOCKS_ITEMS |
         L_BLOCKS_SURFACE |

@@ -7,6 +7,7 @@ import * as Actor from '../actor';
 import * as Viewport from './viewport';
 import * as Message from './message';
 import * as Flavor from './flavor';
+import * as Sidebar from './sidebar';
 
 export interface GameOptions extends GWU.ui.UIOptions {
     ui?: GWU.ui.UI;
@@ -22,6 +23,7 @@ export interface GameOptions extends GWU.ui.UIOptions {
     viewport?: Viewport.ViewportOptions;
     messages?: number | Message.MessageOptions;
     flavor?: boolean | Flavor.FlavorOptions;
+    sidebar?: boolean | number | Sidebar.SidebarOptions;
     // fov?: boolean;
     // scent?: boolean; // draw scent
 }
@@ -30,6 +32,7 @@ export interface GameInit extends GameOptions {
     viewport: Partial<Viewport.ViewportInit>;
     messages: Partial<Message.MessageInit>;
     flavor: Partial<Flavor.FlavorInit>;
+    sidebar: Partial<Sidebar.SidebarInit>;
 }
 
 export type MakeMapFn = (id: number) => MAP.Map;
@@ -45,6 +48,7 @@ export class Game {
     viewport!: Viewport.Viewport;
     messages?: Message.Messages;
     flavor?: Flavor.Flavor;
+    sidebar?: Sidebar.Sidebar;
 
     scheduler!: GWU.scheduler.Scheduler;
     player!: Player;
@@ -94,9 +98,9 @@ export class Game {
         _opts.viewport.height = this.ui.height;
 
         this._initMenu(_opts);
-        this._initSidebar(_opts);
-        if (opts.messages !== undefined) this._initMessages(_opts);
-        if (opts.flavor !== undefined) this._initFlavor(_opts);
+        if (opts.sidebar) this._initSidebar(_opts);
+        if (opts.messages) this._initMessages(_opts);
+        if (opts.flavor) this._initFlavor(_opts);
         this._initViewport(_opts);
     }
 
@@ -108,11 +112,45 @@ export class Game {
     }
 
     _initMenu(_opts: GameInit) {}
-    _initSidebar(_opts: GameInit) {}
+    _initSidebar(opts: GameInit) {
+        if (typeof opts.sidebar === 'number') {
+            opts.sidebar = { width: opts.sidebar };
+        } else if (opts.sidebar === true) {
+            opts.sidebar = {};
+        }
+
+        const sideOpts = opts.sidebar;
+
+        sideOpts.width = sideOpts.width || -20; // on right side
+
+        const viewInit = opts.viewport!;
+        if (sideOpts.width < 0) {
+            sideOpts.width *= -1;
+            sideOpts.x = viewInit.x! + viewInit.width! - sideOpts.width;
+            sideOpts.y = viewInit.y;
+            sideOpts.height = viewInit.height;
+
+            viewInit.width! -= sideOpts.width;
+        } else {
+            sideOpts.x = 0;
+            sideOpts.height = viewInit.height;
+            sideOpts.y = viewInit.y;
+
+            viewInit.x = sideOpts.width;
+            viewInit.width! -= sideOpts.width;
+        }
+
+        this.sidebar = new Sidebar.Sidebar(sideOpts as Sidebar.SidebarInit);
+    }
 
     _initMessages(opts: GameInit) {
-        const messOpts = opts.messages || {};
-        messOpts.size = messOpts.size || messOpts.y || 4;
+        if (opts.messages === false) return;
+        if (opts.messages === true) {
+            opts.messages = { size: -4 };
+        }
+
+        const messOpts = opts.messages || { size: -4 };
+        messOpts.size = messOpts.size || messOpts.y || -4;
 
         if (messOpts.size < 0) {
             // bottom
@@ -184,6 +222,7 @@ export class Game {
 
         this.map.setPlayer(this.player);
         this.viewport.subject = this.player;
+        if (this.sidebar) this.sidebar.subject = this.player;
 
         this._startMap.call(this, this.map, this.player);
 
@@ -210,6 +249,7 @@ export class Game {
         this.viewport.draw(this.buffer);
         if (this.messages) this.messages.draw(this.buffer);
         if (this.flavor) this.flavor.draw(this.buffer);
+        if (this.sidebar) this.sidebar.draw(this.buffer);
 
         if (this.buffer.changed) {
             this.buffer.render();

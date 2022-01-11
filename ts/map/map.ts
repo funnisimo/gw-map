@@ -950,11 +950,35 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
     storeMemory(x: number, y: number) {
         const cell = this.cell(x, y);
         cell.storeMemory();
+
+        if (
+            cell.hasActor() &&
+            cell.actor!.hasEntityFlag(Flags.Entity.L_IN_SIDEBAR)
+        ) {
+            this.setMapFlag(Flags.Map.MAP_SIDEBAR_CHANGED);
+        }
     }
 
     makeVisible(x: number, y: number) {
         const cell = this.cell(x, y);
         cell.clearMemory();
+
+        if (cell.hasTileFlag(Flags.Tile.T_LIST_IN_SIDEBAR)) {
+            this.setMapFlag(
+                Flags.Map.MAP_SIDEBAR_TILES_CHANGED |
+                    Flags.Map.MAP_SIDEBAR_CHANGED
+            );
+        } else if (
+            cell.hasActor() &&
+            !cell.actor!.hasEntityFlag(Flags.Entity.L_IN_SIDEBAR)
+        ) {
+            this.setMapFlag(Flags.Map.MAP_SIDEBAR_CHANGED);
+        } else if (
+            cell.hasItem() &&
+            !cell.item!.hasEntityFlag(Flags.Entity.L_IN_SIDEBAR)
+        ) {
+            this.setMapFlag(Flags.Map.MAP_SIDEBAR_CHANGED);
+        }
     }
 
     onFovChange(x: number, y: number, isVisible: boolean) {

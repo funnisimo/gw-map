@@ -35,6 +35,8 @@ export enum Tile {
 
     T_BLOCKS_OTHER_LAYERS = Fl(21),
 
+    T_LIST_IN_SIDEBAR = Fl(22), // Tile should be in sidebar
+
     T_HAS_STAIRS = T_UP_STAIRS | T_DOWN_STAIRS | T_PORTAL,
     T_OBSTRUCTS_SCENT = T_AUTO_DESCENT |
         T_LAVA |

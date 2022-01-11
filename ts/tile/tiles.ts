@@ -60,7 +60,7 @@ Tile.install('UP_STAIRS', {
     fg: [100, 50, 50],
     bg: [40, 20, 20],
     priority: 200,
-    flags: 'T_UP_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR',
+    flags: 'T_UP_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, T_LIST_IN_SIDEBAR',
     name: 'upward staircase',
     article: 'an',
     effects: {
@@ -73,7 +73,7 @@ Tile.install('DOWN_STAIRS', {
     fg: [100, 50, 50],
     bg: [40, 20, 20],
     priority: 200,
-    flags: 'T_DOWN_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, L_LIST_IN_SIDEBAR',
+    flags: 'T_DOWN_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, T_LIST_IN_SIDEBAR',
     name: 'downward staircase',
     article: 'a',
     effects: {

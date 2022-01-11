@@ -119,8 +119,9 @@ async function start() {
 
         mouse: true,
         viewport: { scent: false },
-        messages: { size: -4 }, // bottom
+        messages: true, // bottom
         flavor: true,
+        sidebar: true,
 
         makeMap() {
             const seed = GWU.random.number();
