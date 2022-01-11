@@ -56,6 +56,10 @@ export class ItemKind extends Entity.EntityKind {
         }
         this.avoidTileFlags |= Flags.Tile.T_DEEP_WATER;
         this.forbidTileFlags |= Flags.Tile.T_LAVA | Flags.Tile.T_AUTO_DESCENT;
+
+        this.sidebarFg = GWU.color.from(
+            config.sidebarFg || Item.default.sidebarFg
+        );
     }
 
     make(options?: Partial<MakeOptions>): Item {

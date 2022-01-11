@@ -113,6 +113,10 @@ export class ActorKind extends Entity.EntityKind {
                     this.requireTileFlags & ~Flags.Tile.T_IS_DEEP_LIQUID;
             }
         }
+
+        this.sidebarFg = GWU.color.from(
+            opts.sidebarFg || Actor.default.sidebarFg
+        );
     }
 
     make(options?: Partial<MakeOptions>): Actor {

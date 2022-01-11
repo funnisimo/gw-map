@@ -474,8 +474,8 @@ class Entity {
     getVerb(verb) {
         return this.kind.getVerb(this, verb);
     }
-    drawStatus(buffer, bounds) {
-        return this.kind.drawStatus(this, buffer, bounds);
+    drawSidebar(buffer, bounds) {
+        return this.kind.drawSidebar(this, buffer, bounds);
     }
     drawInto(dest, _observer) {
         dest.drawSprite(this.sprite);
@@ -484,6 +484,9 @@ class Entity {
         return `${this.constructor.name}-${this.id} @ ${this.x},${this.y}`;
     }
 }
+Entity.default = {
+    sidebarFg: 'purple',
+};
 
 class EntityKind {
     constructor(config) {
@@ -534,6 +537,10 @@ class EntityKind {
             }
             this.forbidTileTags = config.forbidTileTags.map((t) => t.trim());
         }
+        if (config.drawSidebar) {
+            this.drawSidebar = config.drawSidebar;
+        }
+        this.sidebarFg = GWU.color.from(config.sidebarFg || Entity.default.sidebarFg);
     }
     make(opts) {
         const entity = new Entity(this);
@@ -600,7 +607,7 @@ class EntityKind {
     getVerb(_entity, verb) {
         return verb;
     }
-    drawStatus(entity, buffer, bounds) {
+    drawSidebar(entity, buffer, bounds) {
         if (!entity.map)
             return 0;
         if (entity.isDestroyed)
@@ -608,7 +615,7 @@ class EntityKind {
         const mixer = new GWU.sprite.Mixer();
         entity.map.getAppearanceAt(entity.x, entity.y, mixer);
         buffer.drawSprite(bounds.x + 1, bounds.y, mixer);
-        buffer.wrapText(bounds.x + 3, bounds.y, bounds.width - 3, entity.getName(), 'purple');
+        buffer.wrapText(bounds.x + 3, bounds.y, bounds.width - 3, entity.getName(), this.sidebarFg);
         return 1;
     }
 }
@@ -1358,6 +1365,9 @@ class Actor extends Entity {
         return this._mapToMe;
     }
 }
+Actor.default = {
+    sidebarFg: 'purple',
+};
 
 const handlers = {};
 function installHandler(id, handler) {
@@ -3101,7 +3111,7 @@ class Cell {
         }
         return this.highestPriorityTile().sprite.ch || ' ';
     }
-    drawStatus(buffer, bounds) {
+    drawSidebar(buffer, bounds) {
         const lines = buffer.wrapText(bounds.x + 1, bounds.y, bounds.width - 1, this.getName(), 'cellStatusName');
         return lines;
     }
@@ -3146,6 +3156,9 @@ class Item extends Entity {
         return this.kind.bump;
     }
 }
+Item.default = {
+    sidebarFg: 'gold',
+};
 
 function messageYou(name, view, args) {
     const field = args[0] || 'actor';
@@ -3703,6 +3716,7 @@ class ActorKind extends EntityKind {
                     this.requireTileFlags & ~Tile$1.T_IS_DEEP_LIQUID;
             }
         }
+        this.sidebarFg = GWU.color.from(opts.sidebarFg || Actor.default.sidebarFg);
     }
     make(options) {
         const actor = new Actor(this);
@@ -4489,6 +4503,7 @@ class ItemKind extends EntityKind {
         }
         this.avoidTileFlags |= Tile$1.T_DEEP_WATER;
         this.forbidTileFlags |= Tile$1.T_LAVA | Tile$1.T_AUTO_DESCENT;
+        this.sidebarFg = GWU.color.from(config.sidebarFg || Item.default.sidebarFg);
     }
     make(options) {
         const item = new Item(this);
@@ -4950,12 +4965,13 @@ class BasicDrawer {
             true);
         }
         if (cell.hasCellFlag(Cell$1.IS_CURSOR)) {
-            dest.invert();
-            dest.mix(highlightColor, 0, 25);
+            dest.bg = highlightColor;
+            dest.fg = dest.bg.inverse();
             separate = true;
         }
         else if (cell.hasCellFlag(Cell$1.IS_HIGHLIGHTED)) {
-            dest.invert();
+            dest.bg = highlightColor.mix(dest.bg, 35);
+            dest.fg = dest.bg.inverse();
             separate = true;
         }
         if (this.scent && map.player) {
@@ -7404,6 +7420,7 @@ Player.default = {
     fg: 'white',
     name: 'You',
     swim: true,
+    sidebarFg: 'purple',
 };
 
 class PlayerKind extends ActorKind {
@@ -8047,6 +8064,7 @@ class Flavor {
     }
 }
 
+// import { UISubject } from './viewport';
 GWU.color.install('blueBar', 15, 10, 50);
 GWU.color.install('redBar', 45, 10, 15);
 GWU.color.install('purpleBar', 50, 0, 50);
@@ -8074,7 +8092,7 @@ class ActorEntry extends EntryBase {
         return this.actor.y;
     }
     draw(buffer, bounds) {
-        return this.actor.drawStatus(buffer, bounds);
+        return this.actor.drawSidebar(buffer, bounds);
     }
 }
 class ItemEntry extends EntryBase {
@@ -8089,7 +8107,7 @@ class ItemEntry extends EntryBase {
         return this.item.y;
     }
     draw(buffer, bounds) {
-        return this.item.drawStatus(buffer, bounds);
+        return this.item.drawSidebar(buffer, bounds);
     }
 }
 class CellEntry extends EntryBase {
@@ -8104,7 +8122,7 @@ class CellEntry extends EntryBase {
         return this.cell.y;
     }
     draw(buffer, bounds) {
-        return this.cell.drawStatus(buffer, bounds);
+        return this.cell.drawSidebar(buffer, bounds);
     }
 }
 class Sidebar {
@@ -8166,9 +8184,19 @@ class Sidebar {
         });
         const changed = this.highlight !== last;
         this.needsDraw || (this.needsDraw = changed);
-        if (this.highlight && this.lastMap) {
+        if (this.highlight && this.subject && this.subject.map) {
+            const path = this.subject.pathTo(
             // @ts-ignore
-            this.lastMap.showCursor(this.highlight.x, this.highlight.y);
+            this.highlight.x, 
+            // @ts-ignore
+            this.highlight.y);
+            if (path) {
+                this.subject.map.highlightPath(path, true);
+            }
+            else {
+                // @ts-ignore
+                this.subject.map.showCursor(this.highlight.x, this.highlight.y);
+            }
         }
         return changed;
     }

@@ -700,7 +700,7 @@ export class Cell {
         return this.highestPriorityTile().sprite.ch || ' ';
     }
 
-    drawStatus(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number {
+    drawSidebar(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number {
         const lines = buffer.wrapText(
             bounds.x + 1,
             bounds.y,

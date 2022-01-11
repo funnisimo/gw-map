@@ -13,6 +13,12 @@ export interface FlavorOptions extends TextOptions {
     action?: boolean;
 }
 
+export type DrawSidebarFn = (
+    entity: Entity,
+    buffer: GWU.buffer.Buffer,
+    bounds: GWU.xy.Bounds
+) => number;
+
 export interface KindOptions extends GWU.sprite.SpriteConfig {
     id?: string;
     name: string;
@@ -29,6 +35,9 @@ export interface KindOptions extends GWU.sprite.SpriteConfig {
     requireTileTags?: string | string[];
     avoidTileTags?: string | string[];
     forbidTileTags?: string | string[];
+
+    drawSidebar?: DrawSidebarFn;
+    sidebarFg?: GWU.color.ColorBase;
 }
 
 export interface MakeOptions {
@@ -52,6 +61,8 @@ export class EntityKind {
     requireTileTags: string[] = [];
     forbidTileTags: string[] = [];
     avoidTileTags: string[] = [];
+
+    sidebarFg: GWU.color.Color;
 
     constructor(config: KindOptions) {
         this.id = config.id || config.name;
@@ -104,6 +115,14 @@ export class EntityKind {
             }
             this.forbidTileTags = config.forbidTileTags.map((t) => t.trim());
         }
+
+        if (config.drawSidebar) {
+            this.drawSidebar = config.drawSidebar;
+        }
+
+        this.sidebarFg = GWU.color.from(
+            config.sidebarFg || Entity.default.sidebarFg
+        );
     }
 
     make(opts?: MakeOptions): Entity {
@@ -192,7 +211,7 @@ export class EntityKind {
         return verb;
     }
 
-    drawStatus(
+    drawSidebar(
         entity: Entity,
         buffer: GWU.buffer.Buffer,
         bounds: GWU.xy.Bounds
@@ -210,7 +229,7 @@ export class EntityKind {
             bounds.y,
             bounds.width - 3,
             entity.getName(),
-            'purple'
+            this.sidebarFg
         );
         return 1;
     }

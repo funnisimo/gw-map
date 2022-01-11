@@ -6,6 +6,10 @@ import * as Action from './action';
 import * as Kind from './kind';
 
 export class Item extends Entity {
+    static default = {
+        sidebarFg: 'gold',
+    };
+
     // @ts-ignore - initialized in constructor
     flags: FlagType;
     quantity = 1;

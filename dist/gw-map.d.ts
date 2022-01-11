@@ -585,6 +585,7 @@ declare class Player extends Actor {
         fg: string;
         name: string;
         swim: boolean;
+        sidebarFg: string;
     };
     kind: PlayerKind;
     scent: Scent;
@@ -758,7 +759,7 @@ declare class Sidebar {
     lastY: number;
     lastMap: Map | null;
     entries: SidebarEntry[];
-    subject: UISubject | null;
+    subject: Player | null;
     highlight: EntryBase | null;
     bg: GWU.color.Color;
     needsDraw: boolean;
@@ -781,7 +782,7 @@ declare class Sidebar {
     _addCellEntry(cell: Cell, map: Map, x: number, y: number, fov?: GWU.fov.FovTracker): boolean;
     _updateEntryCache(map: Map, cx: number, cy: number, fov?: GWU.fov.FovTracker): boolean;
     update(): boolean;
-    updateFor(subject: UISubject): boolean;
+    updateFor(subject: Player): boolean;
     updateAt(map: Map, cx: number, cy: number, fov?: GWU.fov.FovTracker): boolean;
     draw(buffer: GWU.buffer.Buffer): boolean;
 }
@@ -963,6 +964,9 @@ declare type ItemActionFn = (game: Game, actor: Actor, item: Item) => Promise<nu
 declare type ItemActionBase = boolean | ItemActionFn;
 
 declare class Item extends Entity {
+    static default: {
+        sidebarFg: string;
+    };
     flags: FlagType;
     quantity: number;
     kind: ItemKind;
@@ -1417,6 +1421,9 @@ declare class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
 }
 
 declare class Entity implements EntityType {
+    static default: {
+        sidebarFg: string;
+    };
     depth: number;
     light: GWU.light.LightType | null;
     flags: FlagType$1;
@@ -1456,7 +1463,7 @@ declare class Entity implements EntityType {
     getDescription(opts?: TextOptions): string;
     getFlavor(opts?: FlavorOptions): string;
     getVerb(verb: string): string;
-    drawStatus(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number;
+    drawSidebar(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number;
     drawInto(dest: GWU.sprite.Mixer, _observer?: Entity): void;
     toString(): string;
 }
@@ -1496,6 +1503,9 @@ interface DropOptions {
     admin: boolean;
 }
 declare class Actor extends Entity {
+    static default: {
+        sidebarFg: string;
+    };
     flags: ActorFlags;
     kind: ActorKind;
     ai: AIConfig;
@@ -2021,7 +2031,7 @@ declare class Cell {
     getFlavor(): string;
     getName(opts?: {}): string;
     dump(): string;
-    drawStatus(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number;
+    drawSidebar(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number;
     toString(): string;
 }
 
@@ -2135,6 +2145,7 @@ interface TextOptions {
 interface FlavorOptions extends TextOptions {
     action?: boolean;
 }
+declare type DrawSidebarFn = (entity: Entity, buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds) => number;
 interface KindOptions extends GWU.sprite.SpriteConfig {
     id?: string;
     name: string;
@@ -2148,6 +2159,8 @@ interface KindOptions extends GWU.sprite.SpriteConfig {
     requireTileTags?: string | string[];
     avoidTileTags?: string | string[];
     forbidTileTags?: string | string[];
+    drawSidebar?: DrawSidebarFn;
+    sidebarFg?: GWU.color.ColorBase;
 }
 interface MakeOptions {
     machineHome?: number;
@@ -2167,6 +2180,7 @@ declare class EntityKind {
     requireTileTags: string[];
     forbidTileTags: string[];
     avoidTileTags: string[];
+    sidebarFg: GWU.color.Color;
     constructor(config: KindOptions);
     make(opts?: MakeOptions): Entity;
     init(entity: Entity, opts?: MakeOptions): void;
@@ -2179,7 +2193,7 @@ declare class EntityKind {
     getDescription(_entity: Entity, _opts?: TextOptions): string;
     getFlavor(_entity: Entity, _opts?: FlavorOptions): string;
     getVerb(_entity: Entity, verb: string): string;
-    drawStatus(entity: Entity, buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number;
+    drawSidebar(entity: Entity, buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number;
 }
 declare function make$1(opts: KindOptions, makeOpts?: MakeOptions): Entity;
 
@@ -2195,6 +2209,7 @@ declare const index_d$4_KeyInfo: typeof KeyInfo;
 declare const index_d$4_makeKeyInfo: typeof makeKeyInfo;
 type index_d$4_TextOptions = TextOptions;
 type index_d$4_FlavorOptions = FlavorOptions;
+type index_d$4_DrawSidebarFn = DrawSidebarFn;
 type index_d$4_KindOptions = KindOptions;
 type index_d$4_MakeOptions = MakeOptions;
 type index_d$4_EntityKind = EntityKind;
@@ -2214,6 +2229,7 @@ declare namespace index_d$4 {
     index_d$4_makeKeyInfo as makeKeyInfo,
     index_d$4_TextOptions as TextOptions,
     index_d$4_FlavorOptions as FlavorOptions,
+    index_d$4_DrawSidebarFn as DrawSidebarFn,
     index_d$4_KindOptions as KindOptions,
     index_d$4_MakeOptions as MakeOptions,
     index_d$4_EntityKind as EntityKind,

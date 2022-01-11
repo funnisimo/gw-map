@@ -77,11 +77,12 @@ export class BasicDrawer implements CellDrawer {
         }
 
         if (cell.hasCellFlag(Flags.Cell.IS_CURSOR)) {
-            dest.invert();
-            dest.mix(highlightColor, 0, 25);
+            dest.bg = highlightColor;
+            dest.fg = dest.bg.inverse();
             separate = true;
         } else if (cell.hasCellFlag(Flags.Cell.IS_HIGHLIGHTED)) {
-            dest.invert();
+            dest.bg = highlightColor.mix(dest.bg, 35);
+            dest.fg = dest.bg.inverse();
             separate = true;
         }
 

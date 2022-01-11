@@ -11,6 +11,7 @@ export class Player extends Actor {
         fg: 'white',
         name: 'You',
         swim: true,
+        sidebarFg: 'purple',
     };
 
     kind!: PlayerKind;

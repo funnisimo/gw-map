@@ -20,6 +20,10 @@ export interface DropOptions {
 }
 
 export class Actor extends Entity.Entity {
+    static default = {
+        sidebarFg: 'purple',
+    };
+
     // @ts-ignore - initialized in Entity
     flags: ActorFlags;
     kind: ActorKind;

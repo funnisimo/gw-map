@@ -74,6 +74,7 @@ window.onload = start;
 GWM.player.install('HERO', {
     name: 'Hero',
     stats: { health: 10 },
+    sidebarFg: 'green',
 
     // these are actions that I am performing
     actions: {
@@ -90,6 +91,25 @@ GWM.player.install('HERO', {
             game.finish(false);
             return -1;
         },
+    },
+
+    drawSidebar(player, buffer, bounds) {
+        if (!player.map) return 0;
+        if (player.isDestroyed) return 0;
+
+        const mixer = new GWU.sprite.Mixer();
+
+        player.map.getAppearanceAt(player.x, player.y, mixer);
+
+        buffer.drawSprite(bounds.x + 1, bounds.y, mixer);
+        buffer.wrapText(
+            bounds.x + 3,
+            bounds.y,
+            bounds.width - 3,
+            player.getName(),
+            this.sidebarFg
+        );
+        return 1;
     },
 });
 

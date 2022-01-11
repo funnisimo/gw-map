@@ -1,11 +1,12 @@
 import * as GWU from 'gw-utils';
 import { Actor } from '../actor/actor';
+import { Player } from '../player/player';
 import { Item } from '../item/item';
 import { Cell } from '../map/cell';
 import { Map } from '../map/map';
 import * as Flags from '../flags';
 
-import { UISubject } from './viewport';
+// import { UISubject } from './viewport';
 
 GWU.color.install('blueBar', 15, 10, 50);
 GWU.color.install('redBar', 45, 10, 15);
@@ -54,7 +55,7 @@ export class ActorEntry extends EntryBase {
     }
 
     draw(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number {
-        return this.actor.drawStatus(buffer, bounds);
+        return this.actor.drawSidebar(buffer, bounds);
     }
 }
 
@@ -74,7 +75,7 @@ export class ItemEntry extends EntryBase {
     }
 
     draw(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number {
-        return this.item.drawStatus(buffer, bounds);
+        return this.item.drawSidebar(buffer, bounds);
     }
 }
 
@@ -94,7 +95,7 @@ export class CellEntry extends EntryBase {
     }
 
     draw(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number {
-        return this.cell.drawStatus(buffer, bounds);
+        return this.cell.drawSidebar(buffer, bounds);
     }
 }
 
@@ -108,7 +109,7 @@ export class Sidebar {
     lastY = -1;
     lastMap: Map | null = null;
     entries: SidebarEntry[] = [];
-    subject: UISubject | null = null;
+    subject: Player | null = null;
     highlight: EntryBase | null = null;
 
     bg: GWU.color.Color;
@@ -180,9 +181,19 @@ export class Sidebar {
         const changed = this.highlight !== last;
         this.needsDraw ||= changed;
 
-        if (this.highlight && this.lastMap) {
-            // @ts-ignore
-            this.lastMap.showCursor(this.highlight.x, this.highlight.y);
+        if (this.highlight && this.subject && this.subject.map) {
+            const path = this.subject.pathTo(
+                // @ts-ignore
+                this.highlight.x,
+                // @ts-ignore
+                this.highlight.y
+            );
+            if (path) {
+                this.subject.map.highlightPath(path, true);
+            } else {
+                // @ts-ignore
+                this.subject.map.showCursor(this.highlight.x, this.highlight.y);
+            }
         }
 
         return changed;
@@ -388,7 +399,7 @@ export class Sidebar {
         return this.updateFor(this.subject);
     }
 
-    updateFor(subject: UISubject): boolean {
+    updateFor(subject: Player): boolean {
         if (!subject.map) return false;
 
         return this.updateAt(

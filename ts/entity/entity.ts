@@ -9,6 +9,10 @@ import { EntityKind, TextOptions, FlavorOptions } from './kind';
 let lastId = 0;
 
 export class Entity implements EntityType {
+    static default = {
+        sidebarFg: 'purple',
+    };
+
     depth: number;
     light: GWU.light.LightType | null;
     flags: FlagType;
@@ -153,8 +157,8 @@ export class Entity implements EntityType {
         return this.kind.getVerb(this, verb);
     }
 
-    drawStatus(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number {
-        return this.kind.drawStatus(this, buffer, bounds);
+    drawSidebar(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number {
+        return this.kind.drawSidebar(this, buffer, bounds);
     }
     drawInto(dest: GWU.sprite.Mixer, _observer?: Entity) {
         dest.drawSprite(this.sprite);
