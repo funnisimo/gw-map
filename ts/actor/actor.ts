@@ -213,7 +213,21 @@ export class Actor extends Entity.Entity {
         return this.kind.moveSpeed;
     }
 
-    startTurn() {}
+    startTurn() {
+        if (this.hasActorFlag(Flags.Actor.IS_VISIBLE)) {
+            this.setActorFlag(Flags.Actor.WAS_VISIBLE);
+        } else {
+            this.clearActorFlag(Flags.Actor.WAS_VISIBLE);
+        }
+
+        const map = this.map;
+        const isVisible = map && map.fov.isAnyKindOfVisible(this.x, this.y);
+        if (isVisible) {
+            this.setActorFlag(Flags.Actor.IS_VISIBLE);
+        } else {
+            this.clearActorFlag(Flags.Actor.IS_VISIBLE);
+        }
+    }
 
     endTurn(pct = 100): number {
         if (this.hasActorFlag(Flags.Actor.IS_VISIBLE)) {

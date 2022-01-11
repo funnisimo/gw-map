@@ -1167,7 +1167,22 @@
         moveSpeed() {
             return this.kind.moveSpeed;
         }
-        startTurn() { }
+        startTurn() {
+            if (this.hasActorFlag(Actor$1.IS_VISIBLE)) {
+                this.setActorFlag(Actor$1.WAS_VISIBLE);
+            }
+            else {
+                this.clearActorFlag(Actor$1.WAS_VISIBLE);
+            }
+            const map = this.map;
+            const isVisible = map && map.fov.isAnyKindOfVisible(this.x, this.y);
+            if (isVisible) {
+                this.setActorFlag(Actor$1.IS_VISIBLE);
+            }
+            else {
+                this.clearActorFlag(Actor$1.IS_VISIBLE);
+            }
+        }
         endTurn(pct = 100) {
             if (this.hasActorFlag(Actor$1.IS_VISIBLE)) {
                 this.setActorFlag(Actor$1.WAS_VISIBLE);
@@ -8269,7 +8284,11 @@
             return true;
         }
         _updateEntryCache(map, cx, cy, fov) {
-            if (map === this.lastMap && cx === this.lastX && cy === this.lastY) {
+            if (map === this.lastMap &&
+                cx === this.lastX &&
+                cy === this.lastY &&
+                !map.hasMapFlag(Map$1.MAP_SIDEBAR_CHANGED |
+                    Map$1.MAP_SIDEBAR_TILES_CHANGED)) {
                 return false;
             }
             map.clearMapFlag(Map$1.MAP_SIDEBAR_CHANGED);

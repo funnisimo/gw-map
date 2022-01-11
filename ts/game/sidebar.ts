@@ -319,7 +319,15 @@ export class Sidebar {
         cy: number,
         fov?: GWU.fov.FovTracker
     ) {
-        if (map === this.lastMap && cx === this.lastX && cy === this.lastY) {
+        if (
+            map === this.lastMap &&
+            cx === this.lastX &&
+            cy === this.lastY &&
+            !map.hasMapFlag(
+                Flags.Map.MAP_SIDEBAR_CHANGED |
+                    Flags.Map.MAP_SIDEBAR_TILES_CHANGED
+            )
+        ) {
             return false;
         }
 
