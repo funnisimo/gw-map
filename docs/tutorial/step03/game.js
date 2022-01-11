@@ -154,7 +154,7 @@ async function start() {
         keymap: {
             dir: 'moveDir',
             ' ': 'pickup',
-            Q() {
+            q() {
                 GAME.finish(false);
             },
         },
@@ -197,7 +197,7 @@ async function showTitle(game) {
     buffer.drawText(
         0,
         26,
-        'Use the #{green ARROW keys} to move around.',
+        'Use the #{green arrow keys} to move around.',
         'white',
         -1,
         80,
@@ -206,7 +206,7 @@ async function showTitle(game) {
     buffer.drawText(
         0,
         27,
-        'Press #{green SPACE} to open boxes.',
+        'Press #{green space} to open boxes.',
         'white',
         -1,
         80,
@@ -215,7 +215,7 @@ async function showTitle(game) {
     buffer.drawText(
         0,
         28,
-        'Press #{green Q} to quit.',
+        'Press #{green q} to quit.',
         'white',
         -1,
         80,
