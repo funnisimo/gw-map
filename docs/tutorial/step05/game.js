@@ -26,7 +26,12 @@ GWM.item.install(
             async pickup(game, actor, item) {
                 await game.ui.alert('You found the #{gold Ananas}!');
                 game.map.removeItem(item);
-                game.finish(true); // game over!
+                await game.ui.fadeTo('black', 1000);
+                if (game.map.id === 5) {
+                    game.finish(true); // game over!
+                } else {
+                    game.startNewMap(game.map.id + 1);
+                }
                 return actor.endTurn(); // handled
             },
         },
@@ -174,6 +179,11 @@ async function start() {
             const PEDRO2 = GWM.actor.make('PEDRO');
             map.addActorNear(this.width - 1, this.height - 1, PEDRO2);
 
+            map.locations.start = [
+                Math.floor(map.width / 2),
+                Math.floor(map.height / 2),
+            ];
+
             return map;
         },
 
@@ -183,13 +193,17 @@ async function start() {
         },
 
         startMap(map, player) {
-            // create and add the player
-            map.addActorNear(
-                Math.floor(map.width / 2),
-                Math.floor(map.height / 2),
-                player
-            );
-            GWU.message.add('Welcome to Ananas de Caracas!');
+            // // create and add the player
+            // map.addActorNear(
+            //     Math.floor(map.width / 2),
+            //     Math.floor(map.height / 2),
+            //     player
+            // );
+            if (map.id === 0) {
+                GWU.message.add('Welcome to Ananas de Caracas!');
+            } else {
+                GWU.message.add('Welcome to floor #{{id}}', map);
+            }
         },
 
         keymap: {

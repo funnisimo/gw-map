@@ -14,7 +14,7 @@ export interface GameOptions extends GWU.ui.UIOptions {
 
     makeMap: MakeMapFn;
     makePlayer: MakePlayerFn;
-    startMap: StartMapFn;
+    startMap?: StartMapFn;
 
     keymap: Record<string, string | Command.CommandFn>;
 
@@ -69,9 +69,13 @@ export class Game {
     constructor(opts: GameOptions) {
         this.ui = opts.ui || new GWU.ui.UI(opts);
 
+        if (!opts.makeMap || !opts.makePlayer) {
+            throw new Error('Need funcitons for makeMap and makePlayer');
+        }
+
         this._makeMap = opts.makeMap;
         this._makePlayer = opts.makePlayer;
-        this._startMap = opts.startMap;
+        this._startMap = opts.startMap || GWU.NOOP;
 
         if (opts.keymap) {
             Object.assign(this.keymap, opts.keymap);
@@ -217,25 +221,12 @@ export class Game {
 
         if (this.messages) this.messages.clear();
 
-        this.map = this._makeMap.call(this, 0);
         this.player = this._makePlayer.call(this);
-
-        this.map.setPlayer(this.player);
         this.viewport.subject = this.player;
         if (this.sidebar) this.sidebar.subject = this.player;
 
-        this._startMap.call(this, this.map, this.player);
-
-        if (this.scent) {
-            this.map.drawer.scent = this.scent;
-        }
-        this.map.actors.forEach((a) => {
-            this.scheduler.push(a, a.moveSpeed());
-        });
-
-        this.map.fov.update();
-
-        this.draw();
+        this.startNewMap(0);
+        this.scheduler.push(this.player, 0);
 
         while (this.running) {
             await this.animate();
@@ -243,6 +234,34 @@ export class Game {
         }
 
         return this.result;
+    }
+
+    startNewMap(id: number, _location = 'start') {
+        this.scheduler.clear();
+
+        this.map = this._makeMap.call(this, id);
+        this.map.setPlayer(this.player);
+        this.map.id = id;
+        this._startMap.call(this, this.map, this.player);
+
+        // make sure player is on map
+        if (this.player.map !== this.map) {
+            // if not, add them (where?)
+            const loc = this.map.locations.start || [0, 0]; // Is top left fallback any good?
+            this.map.addActorNear(loc[0], loc[1], this.player);
+        }
+
+        if (this.scent) {
+            this.map.drawer.scent = this.scent;
+        }
+        this.map.actors.forEach((a) => {
+            if (!a.isPlayer()) {
+                this.scheduler.push(a, a.moveSpeed());
+            }
+        });
+
+        this.map.fov.update();
+        this.draw();
     }
 
     draw() {

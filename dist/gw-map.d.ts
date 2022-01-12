@@ -791,7 +791,7 @@ interface GameOptions extends GWU.ui.UIOptions {
     ui?: GWU.ui.UI;
     makeMap: MakeMapFn;
     makePlayer: MakePlayerFn;
-    startMap: StartMapFn;
+    startMap?: StartMapFn;
     keymap: Record<string, string | CommandFn>;
     mouse?: boolean;
     viewport?: ViewportOptions;
@@ -838,6 +838,7 @@ declare class Game {
     _initFlavor(opts: GameInit): void;
     _initViewport(opts: GameInit): void;
     start(): Promise<any>;
+    startNewMap(id: number, _location?: string): void;
     draw(): void;
     finish(result?: any): void;
     runTurn(): Promise<void>;
@@ -1324,8 +1325,10 @@ declare class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
     };
     light: GWU.light.LightSystemType;
     fov: GWU.fov.FovSystem;
-    properties: Record<string, any>;
+    data: Record<string, any>;
+    locations: Record<string, GWU.xy.Loc>;
     rng: GWU.rng.Random;
+    id: number;
     actors: Actor[];
     items: Item[];
     drawer: CellDrawer;
@@ -1514,7 +1517,7 @@ declare class Actor extends Entity {
     visionDistance: number;
     stats: Stats;
     status: Status;
-    data: Record<string, number>;
+    data: Record<string, any>;
     _costMap: GWU.grid.NumGrid | null;
     _goalMap: GWU.grid.NumGrid | null;
     _mapToMe: GWU.grid.NumGrid | null;

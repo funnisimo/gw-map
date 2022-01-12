@@ -150,6 +150,11 @@ async function start() {
             const PEDRO2 = GWM.actor.make('PEDRO');
             map.addActorNear(this.width - 1, this.height - 1, PEDRO2);
 
+            map.locations.start = [
+                Math.floor(map.width / 2),
+                Math.floor(map.height / 2),
+            ];
+
             return map;
         },
 
@@ -158,14 +163,14 @@ async function start() {
             return PLAYER;
         },
 
-        startMap(map, player) {
-            // create and add the player
-            map.addActorNear(
-                Math.floor(map.width / 2),
-                Math.floor(map.height / 2),
-                player
-            );
-        },
+        // startMap(map, player) {
+        //     // create and add the player
+        //     map.addActorNear(
+        //         Math.floor(map.width / 2),
+        //         Math.floor(map.height / 2),
+        //         player
+        //     );
+        // },
 
         keymap: {
             dir: 'moveDir',

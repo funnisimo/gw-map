@@ -165,6 +165,6 @@ export class Entity implements EntityType {
     }
 
     toString() {
-        return `${this.constructor.name}-${this.id} @ ${this.x},${this.y}`;
+        return `${this.kind.id}-${this.id} @ ${this.x},${this.y}`;
     }
 }

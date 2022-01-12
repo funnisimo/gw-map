@@ -59,12 +59,13 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
     flags: { map: 0 };
     light: GWU.light.LightSystemType;
     fov: GWU.fov.FovSystem;
-    properties: Record<string, any>;
+    data: Record<string, any>;
+    locations: Record<string, GWU.xy.Loc> = {};
     // _memory: GWU.grid.Grid<CellMemory>;
     // machineCount = 0;
     // _seed = 0;
     rng: GWU.rng.Random = GWU.rng.random;
-    // id = 'MAP';
+    id: number = 0;
     actors: Actor[] = [];
     items: Item[] = [];
     drawer: CellDrawer;
@@ -79,10 +80,10 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
     constructor(width: number, height: number, opts: MapOptions = {}) {
         this.flags = { map: 0 };
         this.layers = [];
-        this.properties = { seed: 0, machineCount: 0 };
+        this.data = { seed: 0, machineCount: 0 };
 
         if (opts.id) {
-            this.properties.id = opts.id;
+            this.data.id = opts.id;
         }
         this.drawer = opts.drawer || new BasicDrawer();
 
@@ -98,7 +99,7 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
         // );
 
         if (opts.seed) {
-            this.properties.seed = opts.seed;
+            this.data.seed = opts.seed;
             this.rng = GWU.rng.make(opts.seed);
         }
 
@@ -120,10 +121,10 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
     }
 
     get seed(): number {
-        return this.properties.seed;
+        return this.data.seed;
     }
     set seed(v: number) {
-        this.properties.seed = v;
+        this.data.seed = v;
         this.rng = GWU.rng.make(v);
     }
 
@@ -777,7 +778,7 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
         // this.fov.needsUpdate = true;
         this.light.copy(src.light);
         this.rng = src.rng;
-        this.properties = Object.assign({}, src.properties);
+        this.data = Object.assign({}, src.data);
     }
 
     clone(): Map {

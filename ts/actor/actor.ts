@@ -24,8 +24,7 @@ export class Actor extends Entity.Entity {
         sidebarFg: 'purple',
     };
 
-    // @ts-ignore - initialized in Entity
-    flags: ActorFlags;
+    flags!: ActorFlags;
     kind: ActorKind;
     ai: AIConfig = {};
 
@@ -36,7 +35,7 @@ export class Actor extends Entity.Entity {
     stats: Stats;
     status: Status;
 
-    data: Record<string, number> = {};
+    data: Record<string, any> = {};
     _costMap: GWU.grid.NumGrid | null = null;
     _goalMap: GWU.grid.NumGrid | null = null;
     _mapToMe: GWU.grid.NumGrid | null = null;

@@ -36,6 +36,7 @@ export const kinds: Record<string, ItemKind> = {};
 export function install(id: string, kind: ItemKind | KindOptions): ItemKind {
     if (kind instanceof ItemKind) {
         kinds[id] = kind;
+        kind.id = id;
         return kind;
     }
     const made = makeKind(kind);

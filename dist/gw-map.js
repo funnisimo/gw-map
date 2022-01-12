@@ -505,7 +505,7 @@
             dest.drawSprite(this.sprite);
         }
         toString() {
-            return `${this.constructor.name}-${this.id} @ ${this.x},${this.y}`;
+            return `${this.kind.id}-${this.id} @ ${this.x},${this.y}`;
         }
     }
     Entity.default = {
@@ -4572,6 +4572,7 @@
     function install$2(id, kind) {
         if (kind instanceof ItemKind) {
             kinds[id] = kind;
+            kind.id = id;
             return kind;
         }
         const made = makeKind$1(kind);
@@ -5111,11 +5112,12 @@
 
     class Map {
         constructor(width, height, opts = {}) {
+            this.locations = {};
             // _memory: GWU.grid.Grid<CellMemory>;
             // machineCount = 0;
             // _seed = 0;
             this.rng = GWU__namespace.rng.random;
-            // id = 'MAP';
+            this.id = 0;
             this.actors = [];
             this.items = [];
             this.fx = [];
@@ -5124,9 +5126,9 @@
             this.events = new GWU__namespace.events.EventEmitter();
             this.flags = { map: 0 };
             this.layers = [];
-            this.properties = { seed: 0, machineCount: 0 };
+            this.data = { seed: 0, machineCount: 0 };
             if (opts.id) {
-                this.properties.id = opts.id;
+                this.data.id = opts.id;
             }
             this.drawer = opts.drawer || new BasicDrawer();
             this.cells = GWU__namespace.grid.make(width, height, (x, y) => new Cell(this, x, y));
@@ -5136,7 +5138,7 @@
             //     (x, y) => new CellMemory(this, x, y)
             // );
             if (opts.seed) {
-                this.properties.seed = opts.seed;
+                this.data.seed = opts.seed;
                 this.rng = GWU__namespace.rng.make(opts.seed);
             }
             this.light = new GWU__namespace.light.LightSystem(this, opts);
@@ -5154,10 +5156,10 @@
             }
         }
         get seed() {
-            return this.properties.seed;
+            return this.data.seed;
         }
         set seed(v) {
-            this.properties.seed = v;
+            this.data.seed = v;
             this.rng = GWU__namespace.rng.make(v);
         }
         get width() {
@@ -5717,7 +5719,7 @@
             // this.fov.needsUpdate = true;
             this.light.copy(src.light);
             this.rng = src.rng;
-            this.properties = Object.assign({}, src.properties);
+            this.data = Object.assign({}, src.data);
         }
         clone() {
             // @ts-ignore
@@ -8427,9 +8429,12 @@
             this.running = false;
             this.keymap = {};
             this.ui = opts.ui || new GWU__namespace.ui.UI(opts);
+            if (!opts.makeMap || !opts.makePlayer) {
+                throw new Error('Need funcitons for makeMap and makePlayer');
+            }
             this._makeMap = opts.makeMap;
             this._makePlayer = opts.makePlayer;
-            this._startMap = opts.startMap;
+            this._startMap = opts.startMap || GWU__namespace.NOOP;
             if (opts.keymap) {
                 Object.assign(this.keymap, opts.keymap);
             }
@@ -8556,26 +8561,40 @@
             this.scheduler = new GWU__namespace.scheduler.Scheduler();
             if (this.messages)
                 this.messages.clear();
-            this.map = this._makeMap.call(this, 0);
             this.player = this._makePlayer.call(this);
-            this.map.setPlayer(this.player);
             this.viewport.subject = this.player;
             if (this.sidebar)
                 this.sidebar.subject = this.player;
-            this._startMap.call(this, this.map, this.player);
-            if (this.scent) {
-                this.map.drawer.scent = this.scent;
-            }
-            this.map.actors.forEach((a) => {
-                this.scheduler.push(a, a.moveSpeed());
-            });
-            this.map.fov.update();
-            this.draw();
+            this.startNewMap(0);
+            this.scheduler.push(this.player, 0);
             while (this.running) {
                 await this.animate();
                 await this.runTurn();
             }
             return this.result;
+        }
+        startNewMap(id, _location = 'start') {
+            this.scheduler.clear();
+            this.map = this._makeMap.call(this, id);
+            this.map.setPlayer(this.player);
+            this.map.id = id;
+            this._startMap.call(this, this.map, this.player);
+            // make sure player is on map
+            if (this.player.map !== this.map) {
+                // if not, add them (where?)
+                const loc = this.map.locations.start || [0, 0]; // Is top left fallback any good?
+                this.map.addActorNear(loc[0], loc[1], this.player);
+            }
+            if (this.scent) {
+                this.map.drawer.scent = this.scent;
+            }
+            this.map.actors.forEach((a) => {
+                if (!a.isPlayer()) {
+                    this.scheduler.push(a, a.moveSpeed());
+                }
+            });
+            this.map.fov.update();
+            this.draw();
         }
         draw() {
             this.viewport.draw(this.buffer);
