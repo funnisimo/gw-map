@@ -28,11 +28,12 @@ export interface SidebarInit extends SidebarOptions {
 export abstract class EntryBase {
     dist = 0;
     priority = 0;
-    changed = false;
     sidebarY = -1;
 
     abstract get x(): number;
     abstract get y(): number;
+
+    abstract get changed(): boolean;
 
     draw(_buffer: GWU.buffer.Buffer, _bounds: GWU.xy.Bounds): number {
         return 0;
@@ -52,6 +53,10 @@ export class ActorEntry extends EntryBase {
     }
     get y() {
         return this.actor.y;
+    }
+
+    get changed() {
+        return this.actor.changed;
     }
 
     draw(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number {
@@ -74,6 +79,10 @@ export class ItemEntry extends EntryBase {
         return this.item.y;
     }
 
+    get changed() {
+        return this.item.changed;
+    }
+
     draw(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number {
         return this.item.drawSidebar(buffer, bounds);
     }
@@ -81,6 +90,7 @@ export class ItemEntry extends EntryBase {
 
 export class CellEntry extends EntryBase {
     cell: Cell;
+    changed = true;
 
     constructor(cell: Cell) {
         super();
@@ -142,6 +152,15 @@ export class Sidebar {
                 return entry.sidebarY <= e.y && entry.sidebarY !== -1;
             }) || null
         );
+    }
+
+    click(ev: GWU.io.Event): boolean {
+        if (!this.bounds.contains(ev.x, ev.y)) return false;
+        if (!this.highlight) return false;
+
+        if (!this.subject) return false;
+        this.subject.setGoal(this.highlight.x, this.highlight.y);
+        return true;
     }
 
     mousemove(e: GWU.io.Event): boolean {
@@ -339,7 +358,8 @@ export class Sidebar {
                     Flags.Map.MAP_SIDEBAR_TILES_CHANGED
             )
         ) {
-            return false;
+            let anyChanged = this.entries.some((e) => e.changed);
+            if (!anyChanged) return false;
         }
 
         map.clearMapFlag(Flags.Map.MAP_SIDEBAR_CHANGED);

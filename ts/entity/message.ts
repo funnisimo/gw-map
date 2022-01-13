@@ -72,11 +72,14 @@ export function messageA(
                 return 'you';
             } else if (value.hasEntityFlag(Flags.Entity.L_FORMAL_NAME)) {
                 return value.getName();
-            } else {
-                return 'a ' + value.getName();
             }
-        } else if (value instanceof Item) {
-            return 'a ' + value.getName();
+        }
+        if ('getName' in value) {
+            const name = value.getName();
+            const char = GWU.text.firstChar(name);
+            const ana = /[aeiouy]/i.exec(char) ? 'an ' : 'a ';
+
+            return ana + name;
         }
     }
 

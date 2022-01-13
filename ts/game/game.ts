@@ -274,6 +274,8 @@ export class Game {
             this.buffer.render();
         }
         this.buffer.changed = false;
+        this.map.actors.forEach((a) => (a.changed = false));
+        this.map.items.forEach((i) => (i.changed = false));
     }
 
     finish(result?: any) {
@@ -393,6 +395,8 @@ export class Game {
                         this.viewport.click(ev);
                     } else if (this.messages && this.messages.contains(ev)) {
                         await this.messages.showArchive(this);
+                    } else if (this.sidebar && this.sidebar.contains(ev)) {
+                        await this.sidebar.click(ev);
                     }
                 }
             }

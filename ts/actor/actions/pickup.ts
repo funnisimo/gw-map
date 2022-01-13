@@ -29,8 +29,9 @@ export async function pickup(
             GWU.message.addAt(
                 actor.x,
                 actor.y,
-                'You cannot pickup %{the.item}.',
+                '{{you}} cannot pickup {{the item}}.',
                 {
+                    actor,
                     item,
                 }
             );
@@ -53,9 +54,15 @@ export async function pickup(
 
     actor.addItem(item);
     if (!ctx.quiet) {
-        GWU.message.addAt(actor.x, actor.y, 'You pickup %{the:item}.', {
-            item,
-        });
+        GWU.message.addAt(
+            actor.x,
+            actor.y,
+            '{{you}} {{verb pick[s]up}} {{an item}}.',
+            {
+                actor,
+                item,
+            }
+        );
     }
     return actor.endTurn();
 }

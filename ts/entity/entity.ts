@@ -24,6 +24,7 @@ export class Entity implements EntityType {
     key: KeyInfoType | null = null;
     machineHome = 0;
     id: string;
+    changed = true;
 
     // lastSeen: GWU.xy.Loc = [-1, -1];
 

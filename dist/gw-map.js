@@ -390,6 +390,7 @@
             this._map = null;
             this.key = null;
             this.machineHome = 0;
+            this.changed = true;
             this.depth = 1; // default - TODO - enum/const
             this.light = null;
             this.flags = { entity: 0 };
@@ -1039,6 +1040,10 @@
             this.kind = kind;
             this.stats = new Stats();
             this.status = new Status();
+        }
+        setData(key, value) {
+            this.data[key] = value;
+            this.changed = true;
         }
         copy(other) {
             super.copy(other);
@@ -3236,12 +3241,12 @@
                 else if (value.hasEntityFlag(Entity$1.L_FORMAL_NAME)) {
                     return value.getName();
                 }
-                else {
-                    return 'a ' + value.getName();
-                }
             }
-            else if (value instanceof Item) {
-                return 'a ' + value.getName();
+            if ('getName' in value) {
+                const name = value.getName();
+                const char = GWU__namespace.text.firstChar(name);
+                const ana = /[aeiouy]/i.exec(char) ? 'an ' : 'a ';
+                return ana + name;
             }
         }
         return name;
@@ -4437,7 +4442,8 @@
         const itemAction = item.getAction('pickup');
         if (itemAction === false) {
             if (!ctx.quiet) {
-                GWU__namespace.message.addAt(actor.x, actor.y, 'You cannot pickup %{the.item}.', {
+                GWU__namespace.message.addAt(actor.x, actor.y, '{{you}} cannot pickup {{the item}}.', {
+                    actor,
                     item,
                 });
             }
@@ -4458,7 +4464,8 @@
         }
         actor.addItem(item);
         if (!ctx.quiet) {
-            GWU__namespace.message.addAt(actor.x, actor.y, 'You pickup %{the:item}.', {
+            GWU__namespace.message.addAt(actor.x, actor.y, '{{you}} {{verb pick[s]up}} {{an item}}.', {
+                actor,
                 item,
             });
         }
@@ -8099,7 +8106,6 @@
         constructor() {
             this.dist = 0;
             this.priority = 0;
-            this.changed = false;
             this.sidebarY = -1;
         }
         draw(_buffer, _bounds) {
@@ -8117,6 +8123,9 @@
         get y() {
             return this.actor.y;
         }
+        get changed() {
+            return this.actor.changed;
+        }
         draw(buffer, bounds) {
             return this.actor.drawSidebar(buffer, bounds);
         }
@@ -8132,6 +8141,9 @@
         get y() {
             return this.item.y;
         }
+        get changed() {
+            return this.item.changed;
+        }
         draw(buffer, bounds) {
             return this.item.drawSidebar(buffer, bounds);
         }
@@ -8139,6 +8151,7 @@
     class CellEntry extends EntryBase {
         constructor(cell) {
             super();
+            this.changed = true;
             this.cell = cell;
         }
         get x() {
@@ -8177,6 +8190,16 @@
             return (this.entries.find((entry) => {
                 return entry.sidebarY <= e.y && entry.sidebarY !== -1;
             }) || null);
+        }
+        click(ev) {
+            if (!this.bounds.contains(ev.x, ev.y))
+                return false;
+            if (!this.highlight)
+                return false;
+            if (!this.subject)
+                return false;
+            this.subject.setGoal(this.highlight.x, this.highlight.y);
+            return true;
         }
         mousemove(e) {
             if (this.contains(e)) {
@@ -8319,7 +8342,9 @@
                 cy === this.lastY &&
                 !map.hasMapFlag(Map$1.MAP_SIDEBAR_CHANGED |
                     Map$1.MAP_SIDEBAR_TILES_CHANGED)) {
-                return false;
+                let anyChanged = this.entries.some((e) => e.changed);
+                if (!anyChanged)
+                    return false;
             }
             map.clearMapFlag(Map$1.MAP_SIDEBAR_CHANGED);
             this.clearHighlight(); // If we are moving around the map, then turn off the highlight
@@ -8608,6 +8633,8 @@
                 this.buffer.render();
             }
             this.buffer.changed = false;
+            this.map.actors.forEach((a) => (a.changed = false));
+            this.map.items.forEach((i) => (i.changed = false));
         }
         finish(result) {
             this.running = false;
@@ -8717,6 +8744,9 @@
                         }
                         else if (this.messages && this.messages.contains(ev)) {
                             await this.messages.showArchive(this);
+                        }
+                        else if (this.sidebar && this.sidebar.contains(ev)) {
+                            await this.sidebar.click(ev);
                         }
                     }
                 }

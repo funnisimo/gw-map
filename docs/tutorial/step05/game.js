@@ -1,36 +1,34 @@
 GWM.item.install(
-    'EMPTY_BOX',
+    'ANANAS',
     new GWM.item.ItemKind({
-        name: 'Box',
+        name: 'Ananas',
         ch: '*',
         fg: 'gold',
 
         actions: {
             async pickup(game, actor, item) {
-                await game.ui.alert('Empty!'); // this === GAME
                 game.map.removeItem(item);
-                return actor.endTurn(); // handled
-            },
-        },
-    })
-);
 
-GWM.item.install(
-    'FULL_BOX',
-    new GWM.item.ItemKind({
-        name: 'Box',
-        ch: '*',
-        fg: 'gold',
+                GWU.message.addAt(
+                    actor.x,
+                    actor.y,
+                    '{{you}} {{verb pick[s]up}} {{an item}}.',
+                    {
+                        actor,
+                        item,
+                    }
+                );
 
-        actions: {
-            async pickup(game, actor, item) {
-                await game.ui.alert('You found the #{gold Ananas}!');
-                game.map.removeItem(item);
-                await game.ui.fadeTo('black', 1000);
-                if (game.map.id === 5) {
-                    game.finish(true); // game over!
-                } else {
-                    game.startNewMap(game.map.id + 1);
+                actor.data.count += 1;
+                game.sidebar.needsDraw = true;
+                if (game.map.items.length === 0) {
+                    await game.ui.alert('You found them all!');
+                    await game.ui.fadeTo('black', 1000);
+                    if (game.map.id === 5) {
+                        game.finish(true); // game over!
+                    } else {
+                        game.startNewMap(game.map.id + 1);
+                    }
                 }
                 return actor.endTurn(); // handled
             },
@@ -38,8 +36,8 @@ GWM.item.install(
     })
 );
 
-function addRandomBox(map, hasAnanas) {
-    const item = GWM.item.make(hasAnanas ? 'FULL_BOX' : 'EMPTY_BOX');
+function addRandomBox(map) {
+    const item = GWM.item.make('ANANAS');
 
     const centerX = Math.floor(map.width / 2);
     const centerY = Math.floor(map.height / 2);
@@ -107,14 +105,41 @@ GWM.player.install('HERO', {
         player.map.getAppearanceAt(player.x, player.y, mixer);
 
         buffer.drawSprite(bounds.x + 1, bounds.y, mixer);
+        let count = 0;
         buffer.wrapText(
             bounds.x + 3,
-            bounds.y,
+            bounds.y + count++,
             bounds.width - 3,
             player.getName(),
             this.sidebarFg
         );
-        return 1;
+        if (
+            player.map.hasTileFlag(
+                player.x,
+                player.y,
+                GWM.flags.Tile.T_DEEP_WATER
+            )
+        ) {
+            buffer.drawText(
+                bounds.x + 3,
+                bounds.y + count++,
+                'Swimming',
+                '#66F'
+            );
+        }
+        buffer.drawText(
+            bounds.x + 3,
+            bounds.y + count++,
+            'Level: ' + (player.map.id + 1),
+            'lighter_gray'
+        );
+        buffer.drawText(
+            bounds.x + 3,
+            bounds.y + count++,
+            `Found: ${player.data.count}/${player.map.data.count}`,
+            'gold'
+        );
+        return count;
     },
 });
 
@@ -124,6 +149,7 @@ GWM.actor.install('PEDRO', {
     fg: 'red',
     ai: { wander: true },
     flags: 'L_FORMAL_NAME',
+    moveSpeed: 130,
 
     actions: {
         async attack(game, pedro, ctx) {
@@ -168,9 +194,9 @@ async function start() {
 
             // Add boxes randomly
             for (let c = 0; c < 8; ++c) {
-                addRandomBox(map, false);
+                addRandomBox(map);
             }
-            addRandomBox(map, true);
+            map.data.count = map.items.length;
 
             // create and add Pedro
             const PEDRO = GWM.actor.make('PEDRO');
@@ -193,17 +219,14 @@ async function start() {
         },
 
         startMap(map, player) {
-            // // create and add the player
-            // map.addActorNear(
-            //     Math.floor(map.width / 2),
-            //     Math.floor(map.height / 2),
-            //     player
-            // );
+            player.data.count = 0;
             if (map.id === 0) {
-                GWU.message.add('Welcome to Ananas de Caracas!');
+                GWU.message.add('#{gold}Welcome to Ananas de Caracas!');
             } else {
-                GWU.message.add('Welcome to floor #{{id}}', map);
+                const info = { id: map.id + 1 };
+                GWU.message.add('#{gold}Welcome to floor #{{id}}', info);
             }
+            GWM.actor.get('PEDRO').moveSpeed = 130 - 10 * map.id;
         },
 
         keymap: {
@@ -307,6 +330,17 @@ async function showGameOver(game, success) {
 
     buffer.fill(0);
     buffer.drawText(0, 20, 'GAME OVER', 'yellow', -1, 80, 'center');
+
+    const score = game.map.id * 10 + game.player.data.count;
+    buffer.drawText(
+        0,
+        23,
+        'Final Score: #{gold}' + score,
+        'white',
+        -1,
+        80,
+        'center'
+    );
 
     if (success) {
         buffer.drawText(0, 25, 'WINNER!', 'green', -1, 80, 'center');

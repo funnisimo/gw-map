@@ -52,6 +52,11 @@ export class Actor extends Entity.Entity {
         this.status = new Status();
     }
 
+    setData(key: string, value: any) {
+        this.data[key] = value;
+        this.changed = true;
+    }
+
     copy(other: Actor) {
         super.copy(other);
         this.leader = other.leader;

@@ -724,10 +724,10 @@ interface SidebarInit extends SidebarOptions {
 declare abstract class EntryBase {
     dist: number;
     priority: number;
-    changed: boolean;
     sidebarY: number;
     abstract get x(): number;
     abstract get y(): number;
+    abstract get changed(): boolean;
     draw(_buffer: GWU.buffer.Buffer, _bounds: GWU.xy.Bounds): number;
 }
 declare class ActorEntry extends EntryBase {
@@ -735,6 +735,7 @@ declare class ActorEntry extends EntryBase {
     constructor(actor: Actor);
     get x(): number;
     get y(): number;
+    get changed(): boolean;
     draw(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number;
 }
 declare class ItemEntry extends EntryBase {
@@ -742,10 +743,12 @@ declare class ItemEntry extends EntryBase {
     constructor(item: Item);
     get x(): number;
     get y(): number;
+    get changed(): boolean;
     draw(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number;
 }
 declare class CellEntry extends EntryBase {
     cell: Cell;
+    changed: boolean;
     constructor(cell: Cell);
     get x(): number;
     get y(): number;
@@ -767,6 +770,7 @@ declare class Sidebar {
     contains(xy: GWU.xy.XY | GWU.xy.Loc): boolean;
     reset(): void;
     entryAt(e: GWU.io.Event): EntryBase | null;
+    click(ev: GWU.io.Event): boolean;
     mousemove(e: GWU.io.Event): boolean;
     highlightAt(x: number, y: number): boolean;
     _highlightRow(y: number): boolean;
@@ -1438,6 +1442,7 @@ declare class Entity implements EntityType {
     key: KeyInfoType | null;
     machineHome: number;
     id: string;
+    changed: boolean;
     constructor(kind: EntityKind);
     get map(): Map | null;
     isPlural(): boolean;
@@ -1523,6 +1528,7 @@ declare class Actor extends Entity {
     _mapToMe: GWU.grid.NumGrid | null;
     next: Actor | null;
     constructor(kind: ActorKind);
+    setData(key: string, value: any): void;
     copy(other: Actor): void;
     destroy(): void;
     hasActorFlag(flag: number): boolean;
