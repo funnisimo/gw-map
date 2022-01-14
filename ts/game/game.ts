@@ -308,18 +308,18 @@ export class Game {
     }
 
     async animate() {
-        if (!this.layer.io._tweens.length) return;
+        if (!this.io._tweens.length) return;
 
         const timer = setInterval(() => {
             const tick = GWU.io.makeTickEvent(16);
-            this.layer.io.enqueue(tick);
+            this.io.enqueue(tick);
         }, 16);
 
-        while (this.layer.io._tweens.length) {
-            const ev = await this.layer.io.nextTick();
+        while (this.io._tweens.length) {
+            const ev = await this.io.nextTick();
             if (ev && ev.dt) {
-                this.layer.io._tweens.forEach((a) => a && a.tick(ev.dt));
-                this.layer.io._tweens = this.layer.io._tweens.filter(
+                this.io._tweens.forEach((a) => a && a.tick(ev.dt));
+                this.io._tweens = this.io._tweens.filter(
                     (a) => a && a.isRunning()
                 );
             }
@@ -336,12 +336,12 @@ export class Game {
         const timer = setInterval(() => {
             const tick = GWU.io.makeTickEvent(16);
             // console.log('-tick', Date.now());
-            this.layer.io.enqueue(tick);
+            this.io.enqueue(tick);
         }, 16);
 
         let elapsed = 0;
         while (!done && this.running) {
-            const ev = await this.layer.io.nextEvent(-1);
+            const ev = await this.io.nextEvent(-1);
 
             if (ev) {
                 if (ev.type === GWU.io.KEYPRESS) {
