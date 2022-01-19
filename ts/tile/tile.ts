@@ -9,6 +9,8 @@ export interface TextOptions {
     color?: boolean | string | GWU.color.ColorBase;
 }
 
+export type TileBase = string | number | Tile;
+
 export interface TileConfig extends GWU.sprite.SpriteConfig {
     id: string;
     flags: TileFlags;
@@ -129,6 +131,32 @@ export class Tile {
 
     hasEffect(name: string): boolean {
         return name in this.effects;
+    }
+
+    isNull(): boolean {
+        return this === NULL;
+    }
+    isPassable() {
+        return !this.blocksMove();
+    }
+    isWall(): boolean {
+        return this.hasAllEntityFlags(Flags.Entity.L_WALL_FLAGS);
+    }
+    isDoor(): boolean {
+        return this.hasTileFlag(Flags.Tile.T_IS_DOOR);
+    }
+    isStairs(): boolean {
+        return this.hasTileFlag(Flags.Tile.T_HAS_STAIRS);
+    }
+    isFloor(): boolean {
+        // Floor tiles do not block anything...
+        return (
+            !this.hasEntityFlag(Flags.Entity.L_BLOCKS_EVERYTHING) &&
+            !this.hasTileFlag(Flags.Tile.T_PATHING_BLOCKER)
+        );
+    }
+    isDiggable(): boolean {
+        return this.isNull() || this.isWall();
     }
 
     getName(): string;

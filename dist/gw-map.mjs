@@ -1721,6 +1721,29 @@ class Tile {
     hasEffect(name) {
         return name in this.effects;
     }
+    isNull() {
+        return this === NULL;
+    }
+    isPassable() {
+        return !this.blocksMove();
+    }
+    isWall() {
+        return this.hasAllEntityFlags(Entity$1.L_WALL_FLAGS);
+    }
+    isDoor() {
+        return this.hasTileFlag(Tile$1.T_IS_DOOR);
+    }
+    isStairs() {
+        return this.hasTileFlag(Tile$1.T_HAS_STAIRS);
+    }
+    isFloor() {
+        // Floor tiles do not block anything...
+        return (!this.hasEntityFlag(Entity$1.L_BLOCKS_EVERYTHING) &&
+            !this.hasTileFlag(Tile$1.T_PATHING_BLOCKER));
+    }
+    isDiggable() {
+        return this.isNull() || this.isWall();
+    }
     getName(arg) {
         let opts = {};
         if (typeof arg === 'boolean') {
@@ -3041,7 +3064,7 @@ class Cell {
         return this.map.actorAt(this.x, this.y);
     }
     canAddActor(_actor) {
-        return true;
+        return !this.hasActor();
     }
     canRemoveActor(_actor) {
         return true;
@@ -3117,8 +3140,11 @@ class Cell {
         return this.highestPriorityTile().sprite.ch || ' ';
     }
     drawSidebar(buffer, bounds) {
-        const lines = buffer.wrapText(bounds.x + 1, bounds.y, bounds.width - 1, this.getName(), 'cellStatusName');
-        return lines;
+        const mixer = new GWU.sprite.Mixer();
+        this.map.getAppearanceAt(this.x, this.y, mixer);
+        buffer.drawSprite(bounds.x + 1, bounds.y, mixer);
+        buffer.wrapText(bounds.x + 3, bounds.y, bounds.width - 3, this.getName(), 'cellStatusName');
+        return 1;
     }
     toString() {
         return `Cell @ ${this.x},${this.y}`;
@@ -3818,6 +3844,14 @@ class ActorKind extends EntityKind {
         }
         return GWU.path.OK;
     }
+    drawSidebar(actor, buffer, bounds) {
+        let count = super.drawSidebar(actor, buffer, bounds);
+        if (actor.map.hasTileFlag(actor.x, actor.y, Tile$1.T_DEEP_WATER) &&
+            !actor.map.hasTileFlag(actor.x, actor.y, Tile$1.T_BRIDGE)) {
+            buffer.drawText(bounds.x + 3, bounds.y + count++, 'Swimming', '#66F');
+        }
+        return count;
+    }
 }
 
 function make$3(info, makeOptions) {
@@ -4440,7 +4474,7 @@ async function pickup$1(game, actor, ctx = {}) {
     }
     actor.addItem(item);
     if (!ctx.quiet) {
-        GWU.message.addAt(actor.x, actor.y, '{{you}} {{verb pick[s]up}} {{an item}}.', {
+        GWU.message.addAt(actor.x, actor.y, '{{you}} {{verb pick[s]}} up {{an item}}.', {
             actor,
             item,
         });
@@ -4449,13 +4483,28 @@ async function pickup$1(game, actor, ctx = {}) {
 }
 installAction('pickup', pickup$1);
 
+async function climb(game, actor, _ctx) {
+    const map = game.map;
+    const x = actor.x;
+    const y = actor.y;
+    if (map.hasTileFlag(x, y, Tile$1.T_UP_STAIRS)) {
+        GWU.message.addAt(x, y, '{{you}} {{verb climb[s]}}.', { actor });
+        game.startNewMap(map.id + 1);
+        return actor.endTurn();
+    }
+    GWU.message.addAt(x, y, 'Nothing to climb.');
+    return actor.endTurn(50); // half turn
+}
+installAction('climb', climb);
+
 var index$a = /*#__PURE__*/Object.freeze({
     __proto__: null,
     bump: bump,
     moveDir: moveDir$1,
     standStill: standStill,
     idle: idle,
-    pickup: pickup$1
+    pickup: pickup$1,
+    climb: climb
 });
 
 var index$9 = /*#__PURE__*/Object.freeze({
@@ -4523,7 +4572,7 @@ class ItemKind extends EntityKind {
         item.quantity = options.quantity || 1;
     }
     avoidsCell(cell, item) {
-        if (cell.isDoor())
+        if (cell.isDoor() || cell.isStairs())
             return true;
         return super.avoidsCell(cell, item);
     }
@@ -5607,6 +5656,10 @@ class Map {
         }
         this.needsRedraw = true;
     }
+    highlightCell(x, y, markCursor = false) {
+        this.setCellFlag(x, y, markCursor ? Cell$1.IS_CURSOR : Cell$1.IS_HIGHLIGHTED);
+        this.needsRedraw = true;
+    }
     clearPath() {
         this.cells.forEach((c) => c.clearCellFlag(Cell$1.IS_CURSOR | Cell$1.IS_HIGHLIGHTED));
         this.needsRedraw = true;
@@ -6290,6 +6343,40 @@ function isHallway(map, x, y) {
         return map.cell(i, j).isPassable();
     }) > 1);
 }
+function replaceTile(map, find, replace) {
+    let count = 0;
+    map.eachCell((c) => {
+        if (!c.hasTile(find))
+            return;
+        if (c.setTile(replace)) {
+            ++count;
+        }
+    });
+    return count;
+}
+function getCellPathCost(map, x, y) {
+    const cell = map.cell(x, y);
+    if (cell.blocksMove())
+        return GWU.path.OBSTRUCTION;
+    if (cell.blocksPathing())
+        return GWU.path.FORBIDDEN;
+    if (cell.hasActor())
+        return 10;
+    return 1;
+}
+function fillCostMap(map, costMap) {
+    costMap.update((_v, x, y) => getCellPathCost(map, x, y));
+}
+function getPathBetween(map, x0, y0, x1, y1, options = {}) {
+    const distanceMap = GWU.grid.alloc(map.width, map.height);
+    const costMap = GWU.grid.alloc(map.width, map.height);
+    fillCostMap(map, costMap);
+    GWU.path.calculateDistances(distanceMap, x0, y0, costMap, options.eightWays, GWU.xy.straightDistanceBetween(x0, y0, x1, y1) + 1);
+    const path = GWU.path.getPath(distanceMap, x1, y1, (x, y) => map.cell(x, y).blocksMove(), options.eightWays);
+    GWU.grid.free(costMap);
+    GWU.grid.free(distanceMap);
+    return path;
+}
 
 function make$1(w, h, opts = {}, boundary) {
     if (typeof opts === 'string') {
@@ -6382,6 +6469,10 @@ var index$6 = /*#__PURE__*/Object.freeze({
     Snapshot: Snapshot,
     SnapshotManager: SnapshotManager,
     isHallway: isHallway,
+    replaceTile: replaceTile,
+    getCellPathCost: getCellPathCost,
+    fillCostMap: fillCostMap,
+    getPathBetween: getPathBetween,
     make: make$1,
     from: from$1
 });
@@ -7749,6 +7840,7 @@ class Viewport {
         else {
             map.clearPath();
         }
+        map.highlightCell(x, y);
         return true;
     }
 }
@@ -8222,6 +8314,8 @@ class Sidebar {
                 // @ts-ignore
                 this.subject.map.showCursor(this.highlight.x, this.highlight.y);
             }
+            // @ts-ignore
+            this.subject.map.highlightCell(this.highlight.x, this.highlight.y);
         }
         return changed;
     }
@@ -8323,6 +8417,8 @@ class Sidebar {
                 return false;
         }
         map.clearMapFlag(Map$1.MAP_SIDEBAR_CHANGED);
+        const highlightX = this.highlight ? this.highlight.x : -1;
+        const highlightY = this.highlight ? this.highlight.y : -1;
         this.clearHighlight(); // If we are moving around the map, then turn off the highlight
         this.lastMap = map;
         this.lastX = cx;
@@ -8364,6 +8460,9 @@ class Sidebar {
             }
             return a.dist - b.dist;
         });
+        if (highlightX > -1) {
+            this.highlightAt(highlightX, highlightY);
+        }
         GWU.grid.free(done);
         return true;
     }
@@ -8433,6 +8532,7 @@ class Game {
         if (!opts.makeMap || !opts.makePlayer) {
             throw new Error('Need funcitons for makeMap and makePlayer');
         }
+        this._start = opts.start || GWU.NOOP;
         this._makeMap = opts.makeMap;
         this._makePlayer = opts.makePlayer;
         this._startMap = opts.startMap || GWU.NOOP;
@@ -8566,6 +8666,7 @@ class Game {
         this.viewport.subject = this.player;
         if (this.sidebar)
             this.sidebar.subject = this.player;
+        this._start.call(this);
         this.startNewMap(0);
         this.scheduler.push(this.player, 0);
         while (this.running) {
@@ -8647,6 +8748,7 @@ class Game {
             const tick = GWU.io.makeTickEvent(16);
             this.io.enqueue(tick);
         }, 16);
+        this.io.clearEvents();
         while (this.io._tweens.length) {
             const ev = await this.io.nextTick();
             if (ev && ev.dt) {
@@ -8680,6 +8782,12 @@ class Game {
                                 const action = getCommand(handler);
                                 if (action) {
                                     done = await action.call(this, player, ev);
+                                }
+                                else {
+                                    const action = this.player.getAction(handler);
+                                    if (action) {
+                                        done = await action(this, this.player);
+                                    }
                                 }
                             }
                             else if (typeof handler === 'function') {
@@ -8815,12 +8923,12 @@ install$5('DOOR_OPEN_ALWAYS', 'DOOR_OPEN', {
     flavor: 'an open door',
 });
 install$5('UP_STAIRS', {
-    ch: '<',
+    ch: '>',
     fg: [100, 50, 50],
     bg: [40, 20, 20],
     priority: 200,
     flags: 'T_UP_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, T_LIST_IN_SIDEBAR',
-    name: 'upward staircase',
+    name: 'upward stairs',
     article: 'an',
     effects: {
         player: 'EMIT:UP_STAIRS',
@@ -8828,12 +8936,12 @@ install$5('UP_STAIRS', {
     flavor: 'stairs leading upwards',
 });
 install$5('DOWN_STAIRS', {
-    ch: '>',
+    ch: '<',
     fg: [100, 50, 50],
     bg: [40, 20, 20],
     priority: 200,
     flags: 'T_DOWN_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, T_LIST_IN_SIDEBAR',
-    name: 'downward staircase',
+    name: 'downward stairs',
     article: 'a',
     effects: {
         player: 'EMIT:DOWN_STAIRS',

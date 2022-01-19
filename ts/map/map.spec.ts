@@ -68,12 +68,12 @@ describe('Map', () => {
 
     test('clone (incl. copy)', () => {
         const map = Make.make(20, 20, 'FLOOR', 'WALL');
-        map.properties.test = 1;
+        map.data.test = 1;
         map.seed = 12345;
         map.setMapFlag(Flags.Map.MAP_SAW_WELCOME);
 
         const clone = map.clone();
-        expect(clone.properties.test).toEqual(1);
+        expect(clone.data.test).toEqual(1);
         expect(clone.rng).toBe(map.rng);
         GWU.xy.forRect(map.width, map.height, (x, y) => {
             const tile = clone.isBoundaryXY(x, y) ? 'WALL' : 'FLOOR';

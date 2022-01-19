@@ -619,7 +619,7 @@ export class Cell {
     }
 
     canAddActor(_actor: Actor): boolean {
-        return true;
+        return !this.hasActor();
     }
 
     canRemoveActor(_actor: Actor): boolean {
@@ -701,14 +701,20 @@ export class Cell {
     }
 
     drawSidebar(buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number {
-        const lines = buffer.wrapText(
-            bounds.x + 1,
+        const mixer = new GWU.sprite.Mixer();
+
+        this.map.getAppearanceAt(this.x, this.y, mixer);
+
+        buffer.drawSprite(bounds.x + 1, bounds.y, mixer);
+        buffer.wrapText(
+            bounds.x + 3,
             bounds.y,
-            bounds.width - 1,
+            bounds.width - 3,
             this.getName(),
             'cellStatusName'
         );
-        return lines;
+
+        return 1;
     }
 
     toString() {

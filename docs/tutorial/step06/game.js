@@ -1,49 +1,100 @@
-GWM.item.install(
-    'ANANAS',
-    new GWM.item.ItemKind({
-        name: 'Ananas',
-        ch: '*',
-        fg: 'gold',
+GWM.tile.install('ENTRANCE', {
+    extends: 'DOWN_STAIRS',
+    ch: '\u2229',
+    fg: 'gray',
+    flags: 'L_BLOCKS_MOVE',
+    flavor: 'the entrance gate',
+    name: 'Blocked Gate',
+});
 
-        actions: {
-            async pickup(game, actor, item) {
-                game.map.removeItem(item);
+GWM.tile.install('EXIT', {
+    extends: 'UP_STAIRS',
+    ch: '\u2229',
+    fg: 'green',
+    flavor: 'the exit gate',
+    name: 'Exit Gate',
+});
 
-                GWU.message.addAt(
-                    actor.x,
-                    actor.y,
-                    '{{you}} {{verb pick[s]up}} {{an item}}.',
-                    {
-                        actor,
-                        item,
-                    }
-                );
+GWM.tile.install('FINAL_EXIT', {
+    extends: 'UP_STAIRS',
+    ch: '\u2229',
+    fg: 'green',
+    flavor: 'the exit gate',
+    name: 'Exit Gate',
+});
 
-                actor.data.count += 1;
-                game.sidebar.needsDraw = true;
-                if (game.map.items.length === 0) {
-                    await game.ui.alert('You found them all!');
-                    await game.ui.fadeTo('black', 1000);
-                    if (game.map.id === 5) {
-                        game.finish(true); // game over!
-                    } else {
-                        game.startNewMap(game.map.id + 1);
-                    }
+GWM.tile.install('INACTIVE_EXIT', {
+    extends: 'EXIT',
+    fg: 'gray',
+    flags: 'L_BLOCKS_MOVE',
+    flavor: 'the exit gate',
+    name: 'Blocked Gate',
+});
+
+// GWM.tile.install('INACTIVE_UP_STAIRS', {
+//     extends: 'UP_STAIRS',
+//     fg: 'gray',
+//     flags: 'L_BLOCKS_MOVE',
+//     flavor: 'blocked stairs',
+//     name: 'Blocked Stairs',
+// });
+
+// GWM.tile.install('INACTIVE_DOWN_STAIRS', {
+//     extends: 'DOWN_STAIRS',
+//     fg: 'gray',
+//     flags: 'L_BLOCKS_MOVE',
+//     flavor: 'blocked stairs',
+//     name: 'Blocked Stairs',
+// });
+
+GWM.item.install('ANANAS', {
+    name: 'Ananas',
+    ch: '*',
+    fg: 'gold',
+
+    actions: {
+        async pickup(game, actor, item) {
+            game.map.removeItem(item);
+
+            GWU.message.addAt(
+                actor.x,
+                actor.y,
+                '{{you}} {{verb pick~}} up {{an item}}.',
+                {
+                    actor,
+                    item,
                 }
-                return actor.endTurn(); // handled
-            },
-        },
-    })
-);
+            );
 
-function addRandomBox(map) {
+            actor.data.count += 1;
+            actor.changed = true; // causes sidebar to redraw
+            if (game.map.items.length === 0) {
+                await game.ui.alert('You found them all!');
+                // await game.ui.fadeTo('black', 500);
+                const tile = game.map.id === 5 ? 'FINAL_EXIT' : 'EXIT';
+                game.map.eachCell((c) => {
+                    if (!c.hasTile('INACTIVE_EXIT')) return;
+                    c.setTile(tile);
+                    game.map.fov.revealCell(c.x, c.y, 3, true);
+                });
+                GWU.message.addAt(
+                    game.player.x,
+                    game.player.y,
+                    'Proceed to the exit.'
+                );
+            }
+            return actor.endTurn(); // handled
+        },
+    },
+});
+
+function addRandomBox(map, playerLoc) {
     const item = GWM.item.make('ANANAS');
 
-    const centerX = Math.floor(map.width / 2);
-    const centerY = Math.floor(map.height / 2);
     const loc = GWU.random.matchingLoc(map.width, map.height, (x, y) => {
         if (item.avoidsCell(map.cell(x, y))) return false;
-        if (GWU.xy.distanceBetween(x, y, centerX, centerY) < 15) return false;
+        if (GWU.xy.distanceBetween(x, y, playerLoc[0], playerLoc[1]) < 15)
+            return false;
 
         let ok = true;
         map.eachItem((i) => {
@@ -57,59 +108,10 @@ function addRandomBox(map) {
     map.addItemNear(loc[0], loc[1], item);
 }
 
-GWM.player.install('HERO', {
-    name: 'Hero',
-    stats: { health: 10 },
-    sidebarFg: 'green',
-
-    // these are actions that I am performing
-    actions: {
-        // async pickup(game, actor) {
-        //     const item = game.map.itemAt(actor.x, actor.y);
-        //     if (!item) {
-        //         await game.ui.alert('No box here.');
-        //         return actor.endTurn(); // handled
-        //     }
-        //     return 0; // no action taken
-        // },
-        async attack(game, hero) {
-            await game.ui.alert('You should not have run into me, you thief!');
-            game.finish(false);
-            return -1;
-        },
-    },
-
+class MyHero extends GWM.player.PlayerKind {
     drawSidebar(player, buffer, bounds) {
-        if (!player.map) return 0;
-        if (player.isDestroyed) return 0;
-
-        const mixer = new GWU.sprite.Mixer();
-
-        player.map.getAppearanceAt(player.x, player.y, mixer);
-
-        buffer.drawSprite(bounds.x + 1, bounds.y, mixer);
-        let count = 0;
-        buffer.wrapText(
-            bounds.x + 3,
-            bounds.y + count++,
-            bounds.width - 3,
-            player.getName(),
-            this.sidebarFg
-        );
-        if (
-            player.map.hasTileFlag(
-                player.x,
-                player.y,
-                GWM.flags.Tile.T_DEEP_WATER
-            )
-        ) {
-            buffer.drawText(
-                bounds.x + 3,
-                bounds.y + count++,
-                'Swimming',
-                '#66F'
-            );
-        }
+        let count = super.drawSidebar(player, buffer, bounds);
+        if (!count) return 0;
         buffer.drawText(
             bounds.x + 3,
             bounds.y + count++,
@@ -123,8 +125,28 @@ GWM.player.install('HERO', {
             'gold'
         );
         return count;
-    },
-});
+    }
+}
+
+GWM.player.install(
+    'HERO',
+    new MyHero({
+        name: 'Hero',
+        stats: { health: 10 },
+        sidebarFg: 'green',
+
+        // these are actions that I am performing
+        actions: {
+            async attack(game, hero) {
+                await game.ui.alert(
+                    'You should not have run into me, you thief!'
+                );
+                game.finish(false);
+                return -1;
+            },
+        },
+    })
+);
 
 GWM.actor.install('PEDRO', {
     name: 'Pedro',
@@ -157,41 +179,57 @@ async function start() {
         flavor: true,
         sidebar: true,
 
-        makeMap() {
+        start() {
             const seed = GWU.random.number();
             console.log('seed = ', seed);
             // GWU.random.seed(seed);
 
-            const map = GWM.map.make(this.width, this.height, {
-                tile: 'FLOOR',
-                boundary: 'WALL',
-                fov: true,
-            });
+            const dungeon = new GWD.Dungeon({
+                levels: 5,
+                goesUp: true,
+                width: this.width,
+                height: this.height,
 
-            GWD.digMap(map, {
-                stairs: false,
+                startTile: 'ENTRANCE',
+
                 seed,
                 loops: { minDistance: 30, maxLength: 4 },
                 lakes: 10,
+                stairs: {
+                    upTile: 'INACTIVE_EXIT',
+                    downTile: 'ENTRANCE',
+                },
             });
+
+            dungeon.stairLocs.forEach(([down, up], i) => {
+                console.log(i, down, up);
+            });
+
+            this.dungeon = dungeon;
+        },
+
+        makeMap(id) {
+            const map = GWM.map.make(this.width, this.height, { fov: true });
+            this.dungeon.getLevel(id, map);
 
             // Add boxes randomly
             for (let c = 0; c < 8; ++c) {
-                addRandomBox(map);
+                addRandomBox(map, map.locations.start);
             }
             map.data.count = map.items.length;
 
-            // create and add Pedro
+            // create and add Pedro (top, left)
             const PEDRO = GWM.actor.make('PEDRO');
             map.addActorNear(0, 0, PEDRO);
 
+            // top right
             const PEDRO2 = GWM.actor.make('PEDRO');
-            map.addActorNear(this.width - 1, this.height - 1, PEDRO2);
+            map.addActorNear(this.width - 1, 0, PEDRO2);
 
-            map.locations.start = [
-                Math.floor(map.width / 2),
-                Math.floor(map.height / 2),
-            ];
+            // map.locations.start = [
+            //     Math.floor(map.width / 2),
+            //     Math.floor(map.height / 2),
+            // ];
 
             return map;
         },
@@ -218,6 +256,7 @@ async function start() {
             q() {
                 GAME.finish(false);
             },
+            '>': 'climb',
         },
     });
 

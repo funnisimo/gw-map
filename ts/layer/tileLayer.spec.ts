@@ -19,7 +19,7 @@ describe('tileLayer', () => {
             priority: 'FLOOR+1',
             name: 'Altar',
             ch: 'O',
-            flags: 'L_BLOCKS_SURFACE, L_LIST_IN_SIDEBAR',
+            flags: 'L_BLOCKS_SURFACE, T_LIST_IN_SIDEBAR',
         });
     });
 

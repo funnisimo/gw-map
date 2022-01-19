@@ -327,6 +327,7 @@ export class Viewport {
         } else {
             map.clearPath();
         }
+        map.highlightCell(x, y);
         return true;
     }
 }

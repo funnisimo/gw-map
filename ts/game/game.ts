@@ -9,9 +9,15 @@ import * as Message from './message';
 import * as Flavor from './flavor';
 import * as Sidebar from './sidebar';
 
+export type StartFn = () => void;
+export type MakeMapFn = (id: number) => MAP.Map;
+export type MakePlayerFn = () => Player;
+export type StartMapFn = (map: MAP.Map, player: Player) => void;
+
 export interface GameOptions extends GWU.ui.UIOptions {
     ui?: GWU.ui.UI;
 
+    start?: StartFn;
     makeMap: MakeMapFn;
     makePlayer: MakePlayerFn;
     startMap?: StartMapFn;
@@ -35,10 +41,6 @@ export interface GameInit extends GameOptions {
     sidebar: Partial<Sidebar.SidebarInit>;
 }
 
-export type MakeMapFn = (id: number) => MAP.Map;
-export type MakePlayerFn = () => Player;
-export type StartMapFn = (map: MAP.Map, player: Player) => void;
-
 export class Game {
     ui: GWU.ui.UI;
     layer!: GWU.ui.Layer;
@@ -54,6 +56,7 @@ export class Game {
     player!: Player;
     map!: MAP.Map;
 
+    _start: StartFn;
     _makeMap: MakeMapFn;
     _makePlayer: MakePlayerFn;
     _startMap: StartMapFn;
@@ -73,6 +76,7 @@ export class Game {
             throw new Error('Need funcitons for makeMap and makePlayer');
         }
 
+        this._start = opts.start || GWU.NOOP;
         this._makeMap = opts.makeMap;
         this._makePlayer = opts.makePlayer;
         this._startMap = opts.startMap || GWU.NOOP;
@@ -225,6 +229,8 @@ export class Game {
         this.viewport.subject = this.player;
         if (this.sidebar) this.sidebar.subject = this.player;
 
+        this._start.call(this);
+
         this.startNewMap(0);
         this.scheduler.push(this.player, 0);
 
@@ -315,6 +321,7 @@ export class Game {
             this.io.enqueue(tick);
         }, 16);
 
+        this.io.clearEvents();
         while (this.io._tweens.length) {
             const ev = await this.io.nextTick();
             if (ev && ev.dt) {
@@ -355,6 +362,12 @@ export class Game {
                                 const action = Command.getCommand(handler);
                                 if (action) {
                                     done = await action.call(this, player, ev);
+                                } else {
+                                    const action =
+                                        this.player.getAction(handler);
+                                    if (action) {
+                                        done = await action(this, this.player);
+                                    }
                                 }
                             } else if (typeof handler === 'function') {
                                 done = await handler.call(this, player, ev);

@@ -213,6 +213,8 @@ export class Sidebar {
                 // @ts-ignore
                 this.subject.map.showCursor(this.highlight.x, this.highlight.y);
             }
+            // @ts-ignore
+            this.subject.map.highlightCell(this.highlight.x, this.highlight.y);
         }
 
         return changed;
@@ -364,6 +366,8 @@ export class Sidebar {
 
         map.clearMapFlag(Flags.Map.MAP_SIDEBAR_CHANGED);
 
+        const highlightX = this.highlight ? this.highlight.x : -1;
+        const highlightY = this.highlight ? this.highlight.y : -1;
         this.clearHighlight(); // If we are moving around the map, then turn off the highlight
         this.lastMap = map;
         this.lastX = cx;
@@ -407,6 +411,10 @@ export class Sidebar {
             }
             return a.dist - b.dist;
         });
+
+        if (highlightX > -1) {
+            this.highlightAt(highlightX, highlightY);
+        }
 
         GWU.grid.free(done);
         return true;

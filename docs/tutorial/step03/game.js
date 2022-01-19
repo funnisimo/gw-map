@@ -54,23 +54,6 @@ function addRandomBox(map, hasAnanas) {
     map.addItemNear(loc[0], loc[1], item);
 }
 
-async function start() {
-    // create the user interface
-    const UI = new GWU.ui.UI({
-        width: 80,
-        height: 40,
-        div: 'game',
-    });
-
-    while (true) {
-        await showWelcome(UI);
-        const success = await playGame(UI);
-        await showGameOver(UI, success);
-    }
-}
-
-window.onload = start;
-
 GWM.player.install('HERO', {
     name: 'Hero',
     stats: { health: 10 },
@@ -166,6 +149,8 @@ async function start() {
         await showGameOver(GAME, result);
     }
 }
+
+window.onload = start;
 
 async function showTitle(game) {
     const layer = new GWU.ui.Layer(game.ui);
@@ -274,5 +259,3 @@ async function showGameOver(game, success) {
 
     layer.finish();
 }
-
-window.onload = start;

@@ -19,9 +19,7 @@ describe('Actor', () => {
         expect(actor.visionDistance).toEqual(99);
 
         // Default flags
-        expect(
-            actor.hasEntityFlag(Flags.Entity.L_LIST_IN_SIDEBAR)
-        ).toBeTruthy();
+        expect(actor.hasEntityFlag(Flags.Entity.L_NO_SIDEBAR)).toBeFalsy();
 
         // expect( map.moveActor(actor, GWU.xy.LEFT)).toBeTruthy();
         // expect(map.actorAt(5, 5)).toBe(null);
@@ -52,13 +50,13 @@ describe('Actor', () => {
             name: 'an actor',
             ch: 'a',
             fg: 'green',
-            flags: '!L_LIST_IN_SIDEBAR',
+            flags: 'L_NO_SIDEBAR',
         });
 
         expect(map.addActor(5, 5, actor)).toBeTruthy();
         expect(map.actorAt(5, 5)).toBe(actor);
 
-        expect(actor.hasEntityFlag(Flags.Entity.L_LIST_IN_SIDEBAR)).toBeFalsy();
+        expect(actor.hasEntityFlag(Flags.Entity.L_NO_SIDEBAR)).toBeTruthy();
 
         expect(actor.canSee(6, 6)).toBeTruthy();
         expect(actor.canSee(18, 18)).toBeTruthy(); // nothing in the way

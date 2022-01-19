@@ -108,6 +108,8 @@ async function start() {
     }
 }
 
+window.onload = start;
+
 async function showTitle(game) {
     const layer = new GWU.ui.Layer(game.ui);
     const buffer = layer.buffer;
@@ -205,5 +207,3 @@ async function showGameOver(game, success) {
 
     layer.finish();
 }
-
-window.onload = start;

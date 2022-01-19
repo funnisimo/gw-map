@@ -3,7 +3,7 @@ import * as GWU from 'gw-utils';
 import * as Flags from '../flags';
 import { Cell, SetTileOptions } from './cell';
 import * as TILE from '../tile';
-import { Tile } from '../tile';
+import { Tile, TileBase } from '../tile';
 import * as Layer from '../layer';
 import { Item } from '../item';
 import { Actor } from '../actor';
@@ -656,6 +656,15 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
         this.needsRedraw = true;
     }
 
+    highlightCell(x: number, y: number, markCursor = false) {
+        this.setCellFlag(
+            x,
+            y,
+            markCursor ? Flags.Cell.IS_CURSOR : Flags.Cell.IS_HIGHLIGHTED
+        );
+        this.needsRedraw = true;
+    }
+
     clearPath() {
         this.cells.forEach((c) =>
             c.clearCellFlag(Flags.Cell.IS_CURSOR | Flags.Cell.IS_HIGHLIGHTED)
@@ -680,13 +689,13 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
         this.layers.forEach((l) => l.clear());
     }
 
-    clearCell(x: number, y: number, tile?: number | string | Tile) {
+    clearCell(x: number, y: number, tile?: TileBase) {
         const cell = this.cell(x, y);
         cell.clear(tile);
     }
 
     // Skips all the logic checks and just forces a clean cell with the given tile
-    fill(tile: string | number | Tile, boundary?: string | number | Tile) {
+    fill(tile: TileBase, boundary?: TileBase) {
         tile = TILE.get(tile);
         boundary = TILE.get(boundary || tile);
 
@@ -702,7 +711,7 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
     hasTile(
         x: number,
         y: number,
-        tile: string | number | Tile
+        tile: TileBase
         // useMemory = false
     ): boolean {
         return this.cell(x, y).hasTile(tile);
@@ -710,17 +719,17 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
         // return this.memory(x, y).hasTile(tile);
     }
 
-    forceTile(x: number, y: number, tile: string | number | Tile) {
+    forceTile(x: number, y: number, tile: TileBase) {
         return this.setTile(x, y, tile, { superpriority: true });
     }
 
     setTile(
         x: number,
         y: number,
-        tile: string | number | Tile,
+        tile: TileBase,
         opts?: SetTileOptions | true
     ) {
-        if (!(tile instanceof TILE.Tile)) {
+        if (!(tile instanceof Tile)) {
             const name = tile;
             tile = TILE.get(name);
             if (!tile) throw new Error('Failed to find tile: ' + name);
@@ -735,7 +744,7 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
         return layer.setTile(x, y, tile, opts);
     }
 
-    clearTiles(x: number, y: number, tile?: number | string | Tile) {
+    clearTiles(x: number, y: number, tile?: TileBase) {
         const cell = this.cell(x, y);
         cell.clearTiles(tile);
     }

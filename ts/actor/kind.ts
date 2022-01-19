@@ -226,4 +226,24 @@ export class ActorKind extends Entity.EntityKind {
         }
         return GWU.path.OK;
     }
+
+    drawSidebar(
+        actor: Actor,
+        buffer: GWU.buffer.Buffer,
+        bounds: GWU.xy.Bounds
+    ): number {
+        let count = super.drawSidebar(actor, buffer, bounds);
+        if (
+            actor.map!.hasTileFlag(actor.x, actor.y, Flags.Tile.T_DEEP_WATER) &&
+            !actor.map!.hasTileFlag(actor.x, actor.y, Flags.Tile.T_BRIDGE)
+        ) {
+            buffer.drawText(
+                bounds.x + 3,
+                bounds.y + count++,
+                'Swimming',
+                '#66F'
+            );
+        }
+        return count;
+    }
 }

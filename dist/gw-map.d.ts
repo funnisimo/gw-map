@@ -439,6 +439,7 @@ declare const flags: {
 
 declare const index_d$e_flags: typeof flags;
 type index_d$e_TileFlags = TileFlags;
+type index_d$e_TileBase = TileBase;
 type index_d$e_TileConfig = TileConfig;
 type index_d$e_Tile = Tile;
 declare const index_d$e_Tile: typeof Tile;
@@ -451,6 +452,7 @@ declare namespace index_d$e {
     index_d$e_flags as flags,
     index_d$e_TileFlags as TileFlags,
     TextOptions$1 as TextOptions,
+    index_d$e_TileBase as TileBase,
     index_d$e_TileConfig as TileConfig,
     index_d$e_Tile as Tile,
     index_d$e_TileOptions as TileOptions,
@@ -791,8 +793,13 @@ declare class Sidebar {
     draw(buffer: GWU.buffer.Buffer): boolean;
 }
 
+declare type StartFn = () => void;
+declare type MakeMapFn = (id: number) => Map;
+declare type MakePlayerFn = () => Player;
+declare type StartMapFn = (map: Map, player: Player) => void;
 interface GameOptions extends GWU.ui.UIOptions {
     ui?: GWU.ui.UI;
+    start?: StartFn;
     makeMap: MakeMapFn;
     makePlayer: MakePlayerFn;
     startMap?: StartMapFn;
@@ -809,9 +816,6 @@ interface GameInit extends GameOptions {
     flavor: Partial<FlavorInit>;
     sidebar: Partial<SidebarInit>;
 }
-declare type MakeMapFn = (id: number) => Map;
-declare type MakePlayerFn = () => Player;
-declare type StartMapFn = (map: Map, player: Player) => void;
 declare class Game {
     ui: GWU.ui.UI;
     layer: GWU.ui.Layer;
@@ -824,6 +828,7 @@ declare class Game {
     scheduler: GWU.scheduler.Scheduler;
     player: Player;
     map: Map;
+    _start: StartFn;
     _makeMap: MakeMapFn;
     _makePlayer: MakePlayerFn;
     _startMap: StartMapFn;
@@ -925,11 +930,12 @@ declare const index_d$c_CellEntry: typeof CellEntry;
 type index_d$c_SidebarEntry = SidebarEntry;
 type index_d$c_Sidebar = Sidebar;
 declare const index_d$c_Sidebar: typeof Sidebar;
-type index_d$c_GameOptions = GameOptions;
-type index_d$c_GameInit = GameInit;
+type index_d$c_StartFn = StartFn;
 type index_d$c_MakeMapFn = MakeMapFn;
 type index_d$c_MakePlayerFn = MakePlayerFn;
 type index_d$c_StartMapFn = StartMapFn;
+type index_d$c_GameOptions = GameOptions;
+type index_d$c_GameInit = GameInit;
 type index_d$c_Game = Game;
 declare const index_d$c_Game: typeof Game;
 declare namespace index_d$c {
@@ -956,11 +962,12 @@ declare namespace index_d$c {
     index_d$c_CellEntry as CellEntry,
     index_d$c_SidebarEntry as SidebarEntry,
     index_d$c_Sidebar as Sidebar,
-    index_d$c_GameOptions as GameOptions,
-    index_d$c_GameInit as GameInit,
+    index_d$c_StartFn as StartFn,
     index_d$c_MakeMapFn as MakeMapFn,
     index_d$c_MakePlayerFn as MakePlayerFn,
     index_d$c_StartMapFn as StartMapFn,
+    index_d$c_GameOptions as GameOptions,
+    index_d$c_GameInit as GameInit,
     index_d$c_Game as Game,
   };
 }
@@ -1395,16 +1402,17 @@ declare class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
     hasEntityFlag(x: number, y: number, flag: number): boolean;
     hasTileFlag(x: number, y: number, flag: number): boolean;
     highlightPath(path: GWU.xy.Loc[], markCursor?: boolean): void;
+    highlightCell(x: number, y: number, markCursor?: boolean): void;
     clearPath(): void;
     showCursor(x: number, y: number): void;
     clearCursor(): void;
     clear(): void;
-    clearCell(x: number, y: number, tile?: number | string | Tile): void;
-    fill(tile: string | number | Tile, boundary?: string | number | Tile): void;
-    hasTile(x: number, y: number, tile: string | number | Tile): boolean;
-    forceTile(x: number, y: number, tile: string | number | Tile): boolean;
-    setTile(x: number, y: number, tile: string | number | Tile, opts?: SetTileOptions | true): boolean;
-    clearTiles(x: number, y: number, tile?: number | string | Tile): void;
+    clearCell(x: number, y: number, tile?: TileBase): void;
+    fill(tile: TileBase, boundary?: TileBase): void;
+    hasTile(x: number, y: number, tile: TileBase): boolean;
+    forceTile(x: number, y: number, tile: TileBase): boolean;
+    setTile(x: number, y: number, tile: TileBase, opts?: SetTileOptions | true): boolean;
+    clearTiles(x: number, y: number, tile?: TileBase): void;
     tick(dt: number): boolean;
     copy(src: Map): void;
     clone(): Map;
@@ -1676,6 +1684,7 @@ declare class ActorKind extends EntityKind {
     pickupItem(actor: Actor, item: Item, _opts?: Partial<PickupOptions>): boolean;
     dropItem(actor: Actor, item: Item, _opts?: Partial<DropOptions>): boolean;
     cellCost(cell: Cell, actor: Actor): number;
+    drawSidebar(actor: Actor, buffer: GWU.buffer.Buffer, bounds: GWU.xy.Bounds): number;
 }
 
 declare function make$5(info: string | ActorKind | KindOptions$1, makeOptions?: any): Actor;
@@ -1701,11 +1710,14 @@ declare function idle(game: Game, actor: Actor, _ctx?: ActorActionCtx): Promise<
 
 declare function pickup(game: Game, actor: Actor, ctx?: ActorActionCtx): Promise<number>;
 
+declare function climb(game: Game, actor: Actor, _ctx?: ActorActionCtx): Promise<number>;
+
 declare const index_d$7_bump: typeof bump;
 declare const index_d$7_moveDir: typeof moveDir;
 declare const index_d$7_standStill: typeof standStill;
 declare const index_d$7_idle: typeof idle;
 declare const index_d$7_pickup: typeof pickup;
+declare const index_d$7_climb: typeof climb;
 declare namespace index_d$7 {
   export {
     index_d$7_bump as bump,
@@ -1713,6 +1725,7 @@ declare namespace index_d$7 {
     index_d$7_standStill as standStill,
     index_d$7_idle as idle,
     index_d$7_pickup as pickup,
+    index_d$7_climb as climb,
   };
 }
 
@@ -1842,6 +1855,7 @@ interface TextOptions$1 {
     article?: boolean | string;
     color?: boolean | string | GWU.color.ColorBase;
 }
+declare type TileBase = string | number | Tile;
 interface TileConfig extends GWU.sprite.SpriteConfig {
     id: string;
     flags: TileFlags;
@@ -1888,6 +1902,13 @@ declare class Tile {
     blocksPathing(): boolean;
     blocksEffects(): boolean;
     hasEffect(name: string): boolean;
+    isNull(): boolean;
+    isPassable(): boolean;
+    isWall(): boolean;
+    isDoor(): boolean;
+    isStairs(): boolean;
+    isFloor(): boolean;
+    isDiggable(): boolean;
     getName(): string;
     getName(config?: TextOptions$1): string;
     getName(article: string): string;
@@ -2072,6 +2093,13 @@ declare class SnapshotManager {
 }
 
 declare function isHallway(map: Map, x: number, y: number): boolean;
+declare function replaceTile(map: Map, find: TileBase, replace: TileBase): number;
+declare function getCellPathCost(map: Map, x: number, y: number): number;
+declare function fillCostMap(map: Map, costMap: GWU.grid.NumGrid): void;
+interface PathOptions {
+    eightWays: boolean;
+}
+declare function getPathBetween(map: Map, x0: number, y0: number, x1: number, y1: number, options?: Partial<PathOptions>): GWU.xy.Loc[] | null;
 
 declare function make$2(w: number, h: number, floor?: string, boundary?: string): Map;
 declare function make$2(w: number, h: number, floor: string): Map;
@@ -2111,6 +2139,11 @@ declare const index_d$5_Snapshot: typeof Snapshot;
 type index_d$5_SnapshotManager = SnapshotManager;
 declare const index_d$5_SnapshotManager: typeof SnapshotManager;
 declare const index_d$5_isHallway: typeof isHallway;
+declare const index_d$5_replaceTile: typeof replaceTile;
+declare const index_d$5_getCellPathCost: typeof getCellPathCost;
+declare const index_d$5_fillCostMap: typeof fillCostMap;
+type index_d$5_PathOptions = PathOptions;
+declare const index_d$5_getPathBetween: typeof getPathBetween;
 declare namespace index_d$5 {
   export {
     index_d$5_CellFlags as CellFlags,
@@ -2142,6 +2175,11 @@ declare namespace index_d$5 {
     index_d$5_Snapshot as Snapshot,
     index_d$5_SnapshotManager as SnapshotManager,
     index_d$5_isHallway as isHallway,
+    index_d$5_replaceTile as replaceTile,
+    index_d$5_getCellPathCost as getCellPathCost,
+    index_d$5_fillCostMap as fillCostMap,
+    index_d$5_PathOptions as PathOptions,
+    index_d$5_getPathBetween as getPathBetween,
     make$2 as make,
     from$1 as from,
   };

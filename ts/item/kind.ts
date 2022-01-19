@@ -75,7 +75,7 @@ export class ItemKind extends Entity.EntityKind {
     }
 
     avoidsCell(cell: Cell, item: Item): boolean {
-        if (cell.isDoor()) return true;
+        if (cell.isDoor() || cell.isStairs()) return true;
         return super.avoidsCell(cell, item);
     }
 

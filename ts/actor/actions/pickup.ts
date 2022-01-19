@@ -57,7 +57,7 @@ export async function pickup(
         GWU.message.addAt(
             actor.x,
             actor.y,
-            '{{you}} {{verb pick[s]up}} {{an item}}.',
+            '{{you}} {{verb pick[s]}} up {{an item}}.',
             {
                 actor,
                 item,

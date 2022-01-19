@@ -56,12 +56,12 @@ Tile.install('DOOR_OPEN_ALWAYS', 'DOOR_OPEN', {
 });
 
 Tile.install('UP_STAIRS', {
-    ch: '<',
+    ch: '>',
     fg: [100, 50, 50],
     bg: [40, 20, 20],
     priority: 200,
     flags: 'T_UP_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, T_LIST_IN_SIDEBAR',
-    name: 'upward staircase',
+    name: 'upward stairs',
     article: 'an',
     effects: {
         player: 'EMIT:UP_STAIRS',
@@ -69,12 +69,12 @@ Tile.install('UP_STAIRS', {
     flavor: 'stairs leading upwards',
 });
 Tile.install('DOWN_STAIRS', {
-    ch: '>',
+    ch: '<',
     fg: [100, 50, 50],
     bg: [40, 20, 20],
     priority: 200,
     flags: 'T_DOWN_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, T_LIST_IN_SIDEBAR',
-    name: 'downward staircase',
+    name: 'downward stairs',
     article: 'a',
     effects: {
         player: 'EMIT:DOWN_STAIRS',
