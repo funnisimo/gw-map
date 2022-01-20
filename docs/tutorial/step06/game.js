@@ -111,6 +111,27 @@ function addRandomBox(map, playerLoc) {
     map.addItemNear(loc[0], loc[1], item);
 }
 
+function addPedro(map) {
+    const start = map.locations.start;
+    const end = map.locations.end;
+
+    const pedro = GWM.actor.make('PEDRO');
+
+    const loc = GWU.random.matchingLoc(map.width, map.height, (x, y) => {
+        if (pedro.avoidsCell(map.cell(x, y))) return false;
+
+        // closer to start than finish - nope
+        if (
+            GWU.xy.distanceBetween(x, y, start[0], start[1]) <
+            GWU.xy.distanceBetween(x, y, end[0], end[1])
+        ) {
+            return false;
+        }
+        return true;
+    });
+    map.addActorNear(loc[0], loc[1], pedro);
+}
+
 class MyHero extends GWM.player.PlayerKind {
     drawSidebar(player, buffer, bounds) {
         let count = super.drawSidebar(player, buffer, bounds);
@@ -212,7 +233,9 @@ async function start() {
         },
 
         makeMap(id) {
-            const map = GWM.map.make(this.width, this.height, { fov: true });
+            const map = GWM.map.make(this.width, this.height, {
+                visible: true,
+            });
             this.dungeon.getLevel(id, map);
 
             // Add boxes randomly
@@ -221,13 +244,9 @@ async function start() {
             }
             map.data.count = map.items.length;
 
-            // create and add Pedro (top, left)
-            const PEDRO = GWM.actor.make('PEDRO');
-            map.addActorNear(0, 0, PEDRO);
-
-            // top right
-            const PEDRO2 = GWM.actor.make('PEDRO');
-            map.addActorNear(this.width - 1, 0, PEDRO2);
+            // create and add Pedros
+            addPedro(map);
+            addPedro(map);
 
             // map.locations.start = [
             //     Math.floor(map.width / 2),
