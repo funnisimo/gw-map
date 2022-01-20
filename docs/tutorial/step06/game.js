@@ -234,7 +234,7 @@ async function start() {
 
         makeMap(id) {
             const map = GWM.map.make(this.width, this.height, {
-                visible: true,
+                fov: true,
             });
             this.dungeon.getLevel(id, map);
 
