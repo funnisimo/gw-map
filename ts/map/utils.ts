@@ -58,8 +58,8 @@ export function getPathBetween(
 
     GWU.path.calculateDistances(
         distanceMap,
-        x0,
-        y0,
+        x1,
+        y1,
         costMap,
         options.eightWays,
         GWU.xy.straightDistanceBetween(x0, y0, x1, y1) + 1
@@ -67,11 +67,16 @@ export function getPathBetween(
 
     const path = GWU.path.getPath(
         distanceMap,
-        x1,
-        y1,
+        x0,
+        y0,
         (x, y) => map.cell(x, y).blocksMove(),
         options.eightWays
     );
+
+    if (path) {
+        path.push([x1, y1]);
+    }
+
     GWU.grid.free(costMap);
     GWU.grid.free(distanceMap);
     return path;

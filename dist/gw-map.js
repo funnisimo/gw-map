@@ -6395,8 +6395,11 @@
         const distanceMap = GWU__namespace.grid.alloc(map.width, map.height);
         const costMap = GWU__namespace.grid.alloc(map.width, map.height);
         fillCostMap(map, costMap);
-        GWU__namespace.path.calculateDistances(distanceMap, x0, y0, costMap, options.eightWays, GWU__namespace.xy.straightDistanceBetween(x0, y0, x1, y1) + 1);
-        const path = GWU__namespace.path.getPath(distanceMap, x1, y1, (x, y) => map.cell(x, y).blocksMove(), options.eightWays);
+        GWU__namespace.path.calculateDistances(distanceMap, x1, y1, costMap, options.eightWays, GWU__namespace.xy.straightDistanceBetween(x0, y0, x1, y1) + 1);
+        const path = GWU__namespace.path.getPath(distanceMap, x0, y0, (x, y) => map.cell(x, y).blocksMove(), options.eightWays);
+        if (path) {
+            path.push([x1, y1]);
+        }
         GWU__namespace.grid.free(costMap);
         GWU__namespace.grid.free(distanceMap);
         return path;
