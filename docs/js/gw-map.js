@@ -8409,7 +8409,7 @@
         }
         _addActorEntry(actor, map, x, y, fov) {
             const priority = this._getPriority(map, actor.x, actor.y, fov);
-            if (priority < 0 || priority === 3)
+            if (priority < 0 || priority > 3)
                 return false;
             if (actor.hasEntityFlag(Entity$1.L_NO_SIDEBAR))
                 return false;

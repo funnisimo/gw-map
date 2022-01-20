@@ -301,7 +301,7 @@ export class Sidebar {
         fov?: GWU.fov.FovTracker
     ): boolean {
         const priority = this._getPriority(map, actor.x, actor.y, fov);
-        if (priority < 0 || priority === 3) return false;
+        if (priority < 0 || priority > 3) return false;
 
         if (actor.hasEntityFlag(Flags.Entity.L_NO_SIDEBAR)) return false;
 
