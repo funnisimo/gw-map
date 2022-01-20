@@ -11,6 +11,7 @@ GWM.tile.install('EXIT', {
     extends: 'UP_STAIRS',
     ch: '\u2229',
     fg: 'green',
+    flags: 'L_BRIGHT_MEMORY',
     flavor: 'the exit gate',
     name: 'Exit Gate',
 });
@@ -19,6 +20,7 @@ GWM.tile.install('FINAL_EXIT', {
     extends: 'UP_STAIRS',
     ch: '\u2229',
     fg: 'green',
+    flags: 'L_BRIGHT_MEMORY',
     flavor: 'the exit gate',
     name: 'Exit Gate',
 });
@@ -80,7 +82,8 @@ GWM.item.install('ANANAS', {
                 GWU.message.addAt(
                     game.player.x,
                     game.player.y,
-                    'Proceed to the exit.'
+                    'Proceed to the exit.',
+                    'green'
                 );
             }
             return actor.endTurn(); // handled

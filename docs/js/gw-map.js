@@ -5156,7 +5156,8 @@
                 dest.invert();
             }
             else if (!isVisible) {
-                if (isRevealed) {
+                if (cell.hasEntityFlag(Entity$1.L_BRIGHT_MEMORY)) ;
+                else if (isRevealed) {
                     dest.scale(70);
                 }
                 else {
@@ -8390,14 +8391,21 @@
                 return 2;
             }
             else if (fov.isRevealed(x, y)) {
-                return 3;
+                if (map.cell(x, y).hasEntityFlag(Entity$1.L_BRIGHT_MEMORY)) {
+                    return 3;
+                }
+                else {
+                    return 4;
+                }
             }
             return -1; // not visible, or revealed
         }
         _isDim(entry) {
             if (entry === this.highlight)
                 return false;
-            return entry.priority > 2 || !!this.highlight;
+            if (!!this.highlight)
+                return true;
+            return entry.priority > 3;
         }
         _addActorEntry(actor, map, x, y, fov) {
             const priority = this._getPriority(map, actor.x, actor.y, fov);

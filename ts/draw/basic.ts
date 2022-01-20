@@ -209,7 +209,8 @@ export class BasicDrawer implements CellDrawer {
         if (fov && fov.isCursor(cell.x, cell.y)) {
             dest.invert();
         } else if (!isVisible) {
-            if (isRevealed) {
+            if (cell.hasEntityFlag(Flags.Entity.L_BRIGHT_MEMORY)) {
+            } else if (isRevealed) {
                 dest.scale(70);
             } else {
                 dest.blackOut();
