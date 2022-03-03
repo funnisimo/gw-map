@@ -15,31 +15,36 @@ jest.mock('gw-utils', () => ({
 
 import * as GWU from 'gw-utils';
 
+import { Game } from '../game';
 import * as Effect from './effect';
 import * as Flags from '../flags';
 import * as Map from '../map';
-import './handlers';
-import { EffectCtx, MapXY } from '.';
+import * as ACTION from '../action';
+import * as PLAYER from '../player';
+import '../effects';
 import '../tile/tiles';
 
 describe('Effect', () => {
+    let game: jest.Mocked<Game>;
     let okFn: jest.Mock<GWU.events.EventFn>;
     let map: Map.Map;
-    let xy: MapXY;
+    let action: ACTION.Action;
 
     beforeEach(() => {
         GWU.rng.random.seed(12345);
 
         map = Map.make(20, 20, 'FLOOR', 'WALL');
+        const player = PLAYER.make({ name: 'PLAYER' });
+        game = UTILS.mockGame(map, player);
 
         okFn = jest.fn();
-        map.events.on('OK', okFn);
+        map.on('OK', okFn);
 
-        xy = { map, x: 5, y: 6 };
+        action = new ACTION.Action('test', { map, x: 5, y: 6, game });
     });
 
     afterEach(() => {
-        map.events.off('OK', okFn);
+        map.off('OK', okFn);
         GWU.data.gameHasEnded = false;
         jest.restoreAllMocks();
     });
@@ -50,57 +55,61 @@ describe('Effect', () => {
 
     test('make(null)', () => {
         // @ts-ignore
-        expect(() => Effect.make(null)).toThrow();
+        expect(() => Effect.make(null)).not.toThrow();
         // @ts-ignore
-        expect(() => Effect.make()).toThrow();
+        expect(() => Effect.make()).not.toThrow();
     });
 
     test('make("TILE:WALL")', () => {
         const eff = Effect.make('TILE:WALL');
-
-        const r = eff.trigger(xy);
-        expect(r).toBeTruthy();
-        expect(map.hasTile(xy.x, xy.y, 'WALL')).toBeTruthy();
+        expect(eff).not.toBeNull();
+        eff!(action);
+        expect(action.isSuccess()).toBeTruthy();
+        expect(map.hasTile(action.x, action.y, 'WALL')).toBeTruthy();
     });
 
     test('make(["TILE:WALL", "EMIT:OK"])', () => {
         const eff = Effect.make(['TILE:WALL', 'EMIT:OK']);
-
-        const r = eff.trigger(xy);
-        expect(r).toBeTruthy();
-        expect(map.hasTile(xy.x, xy.y, 'WALL')).toBeTruthy();
+        expect(eff).not.toBeNull();
+        eff!(action);
+        expect(action.isSuccess()).toBeTruthy();
+        expect(map.hasTile(action.x, action.y, 'WALL')).toBeTruthy();
 
         expect(okFn).toHaveBeenCalled();
     });
 
     test('make({ tile: "WALL" })', () => {
         const eff = Effect.make({ tile: 'WALL' });
+        expect(eff).not.toBeNull();
 
-        const r = eff.trigger(xy);
-        expect(r).toBeTruthy();
-        expect(map.hasTile(xy.x, xy.y, 'WALL')).toBeTruthy();
+        eff!(action);
+        expect(action.isSuccess()).toBeTruthy();
+        expect(map.hasTile(action.x, action.y, 'WALL')).toBeTruthy();
     });
 
     test.todo('make({ chance: 100, tile: "WALL" })');
     test.todo('make({ chance: 100, tile: { id: "WALL", flags: "A|B"} })');
 
     test('make({ chance: 20%, effects: "TILE:WALL" })', () => {
-        const eff = Effect.make({ chance: '20%', effects: 'TILE:WALL' });
+        const eff = Effect.make({ chance: '20%', tile: 'WALL' });
+        expect(eff).not.toBeNull();
 
-        const r = eff.trigger(xy);
-        expect(r).toBeTruthy();
-        expect(map.hasTile(xy.x, xy.y, 'WALL')).toBeTruthy();
+        eff!(action);
+        expect(action.isSuccess()).toBeTruthy();
+        expect(map.hasTile(action.x, action.y, 'WALL')).toBeTruthy();
     });
 
     test('make({ chance: 20%, effects: ["TILE:WALL", "EMIT:OK"] })', () => {
         const eff = Effect.make({
             chance: '20%',
-            effects: ['TILE:WALL', 'EMIT:OK'],
+            tile: 'WALL',
+            emit: 'OK',
         });
+        expect(eff).not.toBeNull();
 
-        const r = eff.trigger(xy);
-        expect(r).toBeTruthy();
-        expect(map.hasTile(xy.x, xy.y, 'WALL')).toBeTruthy();
+        eff!(action);
+        expect(action.isSuccess()).toBeTruthy();
+        expect(map.hasTile(action.x, action.y, 'WALL')).toBeTruthy();
 
         expect(okFn).toHaveBeenCalled();
     });
@@ -116,27 +125,28 @@ describe('Effect', () => {
     test('install', () => {
         const te = Effect.install('TEST', 'EMIT:FLOOR');
 
-        expect(Effect.installedEffects.TEST).toBe(te);
+        expect(Effect.installed.TEST).toBe(te);
 
         const te2 = Effect.install('TEST2', te);
-        expect(te2).not.toBe(te);
-        expect(Effect.installedEffects.TEST2).toBe(te2);
+        expect(te2).toBe(te);
+        expect(Effect.installed.TEST2).toBe(te2);
 
-        expect(Effect.from('TEST2')).toBe(te2);
+        // expect(Effect.from('TEST2')).toBe(te2);
+
         // @ts-ignore
         expect(() => Effect.make('INVALID')).toThrow();
     });
 
-    test('from', () => {
-        const eff = Effect.install('T', 'EMIT:TEST');
+    // test('from', () => {
+    //     const eff = Effect.install('T', 'EMIT:TEST');
 
-        expect(Effect.from('T')).toBe(eff);
+    //     expect(Effect.from('T')).toBe(eff);
 
-        const e2 = Effect.from(eff);
-        expect(e2).toBe(eff);
+    //     const e2 = Effect.from(eff);
+    //     expect(e2).toBe(eff);
 
-        expect(() => Effect.from('INVALID')).toThrow();
-    });
+    //     expect(() => Effect.from('INVALID')).toThrow();
+    // });
 
     test('resetAll', () => {
         Effect.installAll({
@@ -144,13 +154,13 @@ describe('Effect', () => {
             TEST2: 'EMIT:WALL',
         });
 
-        Effect.installedEffects.TEST.seen = true;
-        Effect.installedEffects.TEST2.seen = true;
+        Effect.installed.TEST.seen = true;
+        Effect.installed.TEST2.seen = true;
 
         Effect.resetAll();
 
-        expect(Effect.installedEffects.TEST.seen).toBeFalsy();
-        expect(Effect.installedEffects.TEST2.seen).toBeFalsy();
+        expect(Effect.installed.TEST.seen).toBeFalsy();
+        expect(Effect.installed.TEST2.seen).toBeFalsy();
     });
 
     describe.skip('multiple effects', () => {
@@ -169,9 +179,10 @@ describe('Effect', () => {
             const fn = jest.fn().mockImplementation(() => {
                 GWU.data.gameHasEnded = true;
             });
-            map.events.on('TACO', fn);
+            map.on('TACO', fn);
 
-            expect(te.trigger(xy)).toBeTruthy();
+            te(action);
+            expect(action.isSuccess()).toBeTruthy();
             expect(fn).toHaveBeenCalledTimes(1);
         });
 
@@ -187,7 +198,7 @@ describe('Effect', () => {
         //     });
 
         //     expect(te2.next).toEqual('NEXT');
-        //     expect(Effect.installedEffects.NEXT).toBeObject();
+        //     expect(Effect.installed.NEXT).toBeObject();
 
         //      expect(
         //         Effect.fire(te2, UTILS.mockMap(), xy.x, xy.y)
@@ -227,7 +238,7 @@ describe('Effect', () => {
         //     });
 
         //     expect(te2.next).toEqual('NEXT');
-        //     expect(Effect.installedEffects.NEXT).toBeObject();
+        //     expect(Effect.installed.NEXT).toBeObject();
 
         //      expect(
         //         Effect.fire(te2, UTILS.mockMap(), xy.x, xy.y)
@@ -313,7 +324,7 @@ describe('Effect', () => {
         describe.skip('multiple effects', () => {
             afterEach(() => {
                 jest.restoreAllMocks();
-                map.events.removeAllListeners();
+                map.actions.clear();
             });
 
             test('emits', () => {
@@ -323,49 +334,54 @@ describe('Effect', () => {
 
                 jest.spyOn(GWU.message, 'addAt');
 
-                const ctx = { map, x: 10, y: 10, aware: true };
+                const action = new ACTION.Action('test', {
+                    map,
+                    x: 10,
+                    y: 10,
+                    aware: true,
+                });
 
                 const fn = jest.fn();
-                map.events.on('EMIT3', fn);
+                map.on('EMIT3', fn);
 
-                eff.trigger(ctx, ctx as EffectCtx);
+                eff!(action);
 
-                expect(fn).toHaveBeenCalledWith('EMIT3', ctx.x, ctx.y, ctx);
+                expect(fn).toHaveBeenCalledWith('EMIT3', action);
                 expect(GWU.message.addAt).toHaveBeenCalledWith(
-                    ctx.x,
-                    ctx.y,
+                    action.x,
+                    action.y,
                     'MSG3',
-                    ctx
+                    action
                 );
 
                 // @ts-ignore
                 GWU.message.addAt.mockClear();
                 fn.mockClear();
 
-                expect(eff.seen).toBeTruthy();
+                expect(eff!.seen).toBeTruthy();
 
                 // Message already logged, so do not do it again...
-                eff.trigger(ctx, ctx as EffectCtx);
+                eff!(action);
 
-                expect(fn).toHaveBeenCalledWith('EMIT3', ctx.x, ctx.y, ctx);
+                expect(fn).toHaveBeenCalledWith('EMIT3', action);
                 expect(GWU.message.addAt).not.toHaveBeenCalled();
 
                 // reset the effect - so message will be logged
-                eff.seen = false;
+                eff!.seen = false;
 
                 // @ts-ignore
                 GWU.message.addAt.mockClear();
                 fn.mockClear();
 
                 // Message already logged, so do not do it again...
-                eff.trigger(ctx, ctx as EffectCtx);
+                eff!(action);
 
-                expect(fn).toHaveBeenCalledWith('EMIT3', ctx.x, ctx.y, ctx);
+                expect(fn).toHaveBeenCalledWith('EMIT3', action);
                 expect(GWU.message.addAt).toHaveBeenCalledWith(
-                    ctx.x,
-                    ctx.y,
+                    action.x,
+                    action.y,
                     'MSG3',
-                    ctx
+                    action
                 );
             });
         });

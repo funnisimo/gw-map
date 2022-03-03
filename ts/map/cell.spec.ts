@@ -1,6 +1,6 @@
 import 'jest-extended';
 import '../../test/matchers';
-// import * as UTILS from '../../test/utils';
+import * as TEST from '../../test/utils';
 import * as GWU from 'gw-utils';
 
 import * as Flags from '../flags';
@@ -9,11 +9,15 @@ import * as Map from './map';
 import * as Make from './make';
 import { Cell } from './cell';
 
-import '../effect/handlers';
+import * as ACTION from '../action';
+import * as PLAYER from '../player';
+
+import '../effects';
 import '../tile/tiles';
 
 describe('Cell', () => {
     let map: Map.Map;
+    let action: ACTION.Action;
 
     beforeAll(() => {
         Tile.install('TEST_FLOOR', {
@@ -60,15 +64,15 @@ describe('Cell', () => {
         Tile.install('ENTER', {
             ch: '!',
             fg: 'red',
-            effects: {
-                enter: 'FLOOR',
+            actions: {
+                enter: 'TILE:FLOOR',
             },
         });
         Tile.install('LOW_CHANCE', {
             ch: '!',
             fg: 'red',
-            effects: {
-                enter: { effects: 'TILE:FLOOR', chance: 1 },
+            actions: {
+                enter: { chance: 1, tile: 'FLOOR' },
             },
         });
     });
@@ -85,6 +89,9 @@ describe('Cell', () => {
 
     beforeEach(() => {
         map = Make.make(10, 10);
+        const player = PLAYER.make({ name: 'Hero ' });
+        const game = TEST.mockGame(map, player);
+        action = new ACTION.Action('TBD', { game, map, actor: player });
     });
 
     test('dump', () => {
@@ -721,11 +728,11 @@ describe('Cell', () => {
         expect(cell.hasCellFlag(Flags.Cell.CAUGHT_FIRE_THIS_TURN)).toBeTruthy();
     });
 
-    test('setTile(UNKNOWN) - will be ignored', () => {
+    test('setTile(UNKNOWN) - will throw', () => {
         const cell: Cell = new Cell(map, 1, 1, 'FLOOR');
         expect(Tile.tiles.UNKNOWN).not.toBeDefined();
-        cell.setTile('UNKNOWN');
-        expect(cell.hasTile('UNKNOWN')).toBeFalsy();
+        expect(() => cell.setTile('UNKNOWN')).toThrow();
+        // expect(cell.hasTile('UNKNOWN')).toBeFalsy();
         expect(cell.hasTile('FLOOR')).toBeTruthy();
     });
 
@@ -803,15 +810,17 @@ describe('Cell', () => {
 
     test('activatesOn', () => {
         const cell: Cell = new Cell(map, 1, 1, 'ENTER');
-        expect(cell.hasEffect('enter')).toBeTruthy();
-        expect(cell.hasEffect('fire')).toBeFalsy();
+        expect(cell.hasAction('enter')).toBeTruthy();
+        expect(cell.hasAction('fire')).toBeFalsy();
     });
 
     test('fire', () => {
         const cell: Cell = new Cell(map, 1, 1, 'LOW_CHANCE');
         // UTILS.mockRandom();
         GWU.rng.random.seed(12345);
-        expect(cell.fireEvent('enter')).toBeFalsy();
+        action.x = 1;
+        action.y = 1;
+        expect(cell.trigger('enter', action)).toBeFalsy();
     });
 
     test('clearDepth', () => {

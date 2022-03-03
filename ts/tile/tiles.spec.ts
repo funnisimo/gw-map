@@ -1,5 +1,5 @@
 import * as Tile from './tile';
-import '../effect/handlers';
+import '../effects';
 import './tiles';
 
 describe('Tiles', () => {

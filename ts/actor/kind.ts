@@ -3,22 +3,20 @@ import * as Entity from '../entity';
 import * as Flags from '../flags';
 import { Cell, Map } from '../map';
 import { Actor, PickupOptions, DropOptions } from './actor';
-import { ActorAiFn } from '../ai/ai';
 import { Item } from '../item/item';
 import { FlavorOptions } from '../entity';
 // import * as Memory from '../memory';
 import { ActorFlags } from './types';
 import * as AI from '../ai';
-import * as Action from './action';
+import * as ACTION from '../action';
 
 export interface KindOptions extends Entity.KindOptions {
     flags?: GWU.flag.FlagBase;
     vision?: number;
     stats?: Record<string, GWU.range.RangeBase>;
-    actions?: Record<string, Action.ActorActionBase>;
     moveSpeed?: number; // 100 === normal
-    ai?: string | ActorAiFn | AI.AIOptions;
-    bump?: Action.ActorActionFn | string | (Action.ActorActionFn | string)[];
+    ai?: string | ACTION.ActionFn | AI.AIOptions;
+    bump?: ACTION.ActionFn | string | (ACTION.ActionFn | string)[];
     swim?: boolean;
     fly?: boolean;
     waterOnly?: boolean;
@@ -37,8 +35,8 @@ export class ActorKind extends Entity.EntityKind {
     };
     vision: Record<string, number> = {};
     stats: Record<string, GWU.range.RangeBase>;
-    actions: Record<string, Action.ActorActionBase> = {};
-    bump: (Action.ActorActionFn | string)[] = ['attack'];
+
+    bump: (ACTION.ActionFn | string)[] = ['attack'];
 
     moveSpeed = 100;
     ai: AI.AIConfig;
@@ -62,9 +60,6 @@ export class ActorKind extends Entity.EntityKind {
         }
         this.stats = Object.assign({ health: 1, morale: 100 }, opts.stats);
 
-        if (opts.actions) {
-            Object.assign(this.actions, opts.actions);
-        }
         if (opts.moveSpeed) {
             this.moveSpeed = opts.moveSpeed;
         }

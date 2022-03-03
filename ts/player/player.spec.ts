@@ -1,6 +1,8 @@
 import * as Map from '../map';
 import * as Player from './index';
 
+import '../tile/tiles';
+
 describe('Player', () => {
     test('actor with fov', () => {
         const map = Map.make(20, 20, 'FLOOR', 'WALL');

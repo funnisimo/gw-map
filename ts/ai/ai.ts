@@ -1,13 +1,12 @@
-import { Actor } from '../actor/actor';
-import { Game } from '../game/game';
+import * as ACTION from '../action';
 
 export interface AIOptions {
-    fn?: ActorAiFn | string;
+    fn?: ACTION.ActionFn | string;
     [field: string]: any;
 }
 
 export interface AIConfig {
-    fn?: ActorAiFn;
+    fn?: ACTION.ActionFn;
     [field: string]: any;
 }
 
@@ -15,15 +14,14 @@ export interface AIConfig {
 // actor is current actor
 // returns time until next turn for this actor
 // < 0 means do not requeue
-export type ActorAiFn = (game: Game, actor: Actor) => Promise<number>;
 
-export const ais: Record<string, ActorAiFn> = {};
+export const ais: Record<string, ACTION.ActionFn> = {};
 
-export function install(name: string, fn: ActorAiFn) {
+export function install(name: string, fn: ACTION.ActionFn) {
     ais[name] = fn;
 }
 
-export function make(opts: AIOptions | string | ActorAiFn): AIConfig {
+export function make(opts: AIOptions | string | ACTION.ActionFn): AIConfig {
     if (typeof opts === 'string') {
         opts = { fn: opts };
     }

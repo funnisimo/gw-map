@@ -3,6 +3,8 @@ import 'jest-extended';
 import * as Actor from './index';
 import * as Map from '../map';
 
+import '../tile/tiles';
+
 describe('Actor Actions', () => {
     beforeAll(() => {
         Actor.install('A', {
@@ -44,23 +46,23 @@ describe('Actor Actions', () => {
     });
 
     test('action - fn', () => {
-        const action = actorA.getAction('jump');
-        expect(action).toBeFunction();
+        expect(actorA.hasAction('jump')).toBeTruthy();
+        expect(actorA.canDoAction('jump')).toBeTruthy();
     });
 
     test('action - false', () => {
-        const action = actorA.getAction('fly');
-        expect(action).toBeFalse();
+        expect(actorA.hasAction('fly')).toBeFalsy();
+        expect(actorA.canDoAction('fly')).toBeFalsy();
     });
 
     test('action - true', () => {
-        const action = actorA.getAction('eat');
-        expect(action).toBeFalsy(); // there is no default action
+        expect(actorA.hasAction('eat')).toBeFalsy();
+        expect(actorA.canDoAction('eat')).toBeTruthy(); // do the global
     });
 
     test('action - unknown', () => {
-        const action = actorA.getAction('rummage');
-        expect(action).toBeFalsy(); // There is no default
+        expect(actorA.hasAction('rummage')).toBeFalsy();
+        expect(actorA.canDoAction('rummage')).toBeTruthy(); // by default you can do anything!
     });
 
     test('bump', () => {

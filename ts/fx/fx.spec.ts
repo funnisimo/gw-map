@@ -6,7 +6,7 @@ import * as Tile from '../tile';
 import * as Map from '../map';
 import * as FX from './index';
 
-import '../effect/handlers';
+import '../effects';
 import '../tile/tiles';
 
 describe('FX', () => {
@@ -15,7 +15,7 @@ describe('FX', () => {
         GWU.rng.random.seed(12345);
     });
 
-    test('will show up in a cell', async () => {
+    test('will show up in a cell', () => {
         const FLOOR = Tile.tiles.FLOOR;
         const m = Map.make(20, 20, { tile: 'FLOOR', boundary: 'WALL' });
         const cell = m.cell(2, 2);
@@ -28,9 +28,9 @@ describe('FX', () => {
 
         const hit = GWU.sprite.make('!', 'red');
         let resolved = false;
-        const p = FX.flashSprite(m, 2, 2, hit, 100, 1, m).then(
-            () => (resolved = true)
-        );
+        const tween = FX.flashSprite(m, 2, 2, hit, 100, 1);
+        tween.onFinish(() => (resolved = true));
+        m.addAnimation(tween.start());
 
         expect(cell.hasFx()).toBeTruthy();
         expect(cell.needsRedraw).toBeTruthy();
@@ -41,9 +41,9 @@ describe('FX', () => {
         expect(sprite.fg).toEqual(hit.fg);
         expect(sprite.bg).toBakeFrom(FLOOR.sprite.bg);
 
-        await m.tick(50);
+        m.tick(50);
         expect(cell.hasFx()).toBeTruthy();
-        await m.tick(50);
+        m.tick(50);
         expect(cell.hasFx()).toBeFalsy();
 
         m.getAppearanceAt(2, 2, sprite);
@@ -52,7 +52,6 @@ describe('FX', () => {
         expect(sprite.fg).toBakeFrom(FLOOR.sprite.fg);
         expect(sprite.bg).toBakeFrom(FLOOR.sprite.bg);
 
-        await p;
         expect(resolved).toBeTruthy();
     });
 });

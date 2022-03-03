@@ -1,56 +1,142 @@
 import * as GWU from 'gw-utils';
 
-import * as Actor from '../actor';
-import * as Item from '../item';
-import * as Map from '../map';
+// import * as Actor from '../actor';
+// import * as Item from '../item';
+// import * as Map from '../map';
+import * as ACTION from '../action';
 
-///////////////////////////
-// CONTEXT
+// ///////////////////////////
+// // CONTEXT\
+// export interface EffectCtx {
+//     // tile?: Tile;
+//     // cell?: Map.Cell;
 
-export interface EffectCtx {
-    // tile?: Tile;
-    // cell?: Map.Cell;
+//     actor?: Actor.Actor | null;
+//     // readonly target?: Actor.Actor | null;
+//     item?: Item.Item | null;
+//     key?: Item.Item | Actor.Actor | null;
+//     player?: Actor.Actor | null;
 
-    actor?: Actor.Actor | null;
-    // readonly target?: Actor.Actor | null;
-    item?: Item.Item | null;
-    key?: Item.Item | Actor.Actor | null;
-    player?: Actor.Actor | null;
+//     aware?: boolean;
+//     identified?: boolean;
+//     machine?: number;
 
-    aware?: boolean;
-    identified?: boolean;
-    machine?: number;
+//     force?: boolean;
+//     good?: boolean;
+//     seen?: boolean;
 
-    force?: boolean;
-    good?: boolean;
-    seen?: boolean;
+//     originX?: number;
+//     originY?: number;
 
-    originX?: number;
-    originY?: number;
+//     rng?: GWU.rng.Random;
+// }
 
-    rng?: GWU.rng.Random;
+// /////////////////////////
+// // HANDLERS
+
+// export interface MapXY {
+//     map: Map.Map;
+//     x: number;
+//     y: number;
+// }
+
+// export type EffectFn = (xy: MapXY, ctx?: EffectCtx) => boolean;
+
+export type EffectConfig = any;
+
+export interface EffectObj {
+    [key: string]: EffectConfig;
 }
 
-/////////////////////////
-// HANDLERS
-
-export interface MapXY {
-    map: Map.Map;
-    x: number;
-    y: number;
-}
-
-export type EffectFn = (xy: MapXY, ctx?: EffectCtx) => boolean;
-
-export type HandlerFn = (
-    config: string | string[] | Record<string, any>
-) => EffectFn;
+export type HandlerFn = (config: EffectConfig) => ACTION.ActionFn;
 
 export const handlers: Record<string, HandlerFn> = {};
 
 export function installHandler(id: string, handler: HandlerFn) {
     handlers[id.toLowerCase()] = handler;
 }
+
+export function make(cfg: string): ACTION.ActionFn | null;
+export function make(obj: EffectObj): ACTION.ActionFn | null;
+export function make(id: string, config: EffectConfig): ACTION.ActionFn | null;
+export function make(
+    id: string | EffectObj,
+    config?: EffectConfig
+): ACTION.ActionFn | null {
+    if (!id) return GWU.NOOP;
+    if (typeof id === 'string') {
+        if (!id.length)
+            throw new Error('Cannot create effect from empty string.');
+
+        if (!config) {
+            const parts = id.split(':');
+            id = parts.shift()!.toLowerCase();
+            config = parts;
+        }
+        const handler = handlers[id];
+        if (!handler) throw new Error('Failed to find effect - ' + id);
+        return handler(config || {});
+    }
+    let steps: ACTION.ActionFn[];
+
+    if (Array.isArray(id)) {
+        steps = id
+            .map((config) => make(config))
+            .filter((a) => a !== null) as ACTION.ActionFn[];
+    } else if (typeof id === 'function') {
+        return id as ACTION.ActionFn;
+    } else {
+        steps = Object.entries(id)
+            .map(([key, config]) => make(key, config))
+            .filter((a) => a !== null) as ACTION.ActionFn[];
+    }
+    if (steps.length === 1) {
+        return steps[0];
+    }
+
+    return (a) => {
+        const x = a.x;
+        const y = a.y;
+        for (let step of steps) {
+            a.x = x;
+            a.y = y;
+            step && step(a);
+            if (a.isDone()) return;
+        }
+    };
+}
+
+export function makeArray(cfg: string): ACTION.ActionFn[];
+export function makeArray(obj: EffectObj): ACTION.ActionFn[];
+export function makeArray(arr: EffectConfig[]): ACTION.ActionFn[];
+export function makeArray(
+    cfg: string | ACTION.ActionFn | EffectObj | EffectConfig[]
+): ACTION.ActionFn[] {
+    if (!cfg) return [];
+    if (Array.isArray(cfg)) {
+        return cfg
+            .map((c) => make(c))
+            .filter((fn) => fn !== null) as ACTION.ActionFn[];
+    }
+    if (typeof cfg === 'string') {
+        if (!cfg.length)
+            throw new Error('Cannot create effect from empty string.');
+
+        const parts = cfg.split(':');
+        cfg = parts.shift()!.toLowerCase();
+
+        const handler = handlers[cfg];
+        if (!handler) return [];
+        return [handler(parts)];
+    } else if (typeof cfg === 'function') {
+        return [cfg] as ACTION.ActionFn[];
+    }
+
+    const steps = Object.entries(cfg).map(([key, config]) => make(key, config));
+    return steps.filter((s) => s !== null) as ACTION.ActionFn[];
+}
+
+/*
 
 /////////////////////////
 // TYPES
@@ -73,7 +159,7 @@ export interface Effect {
     next: Effect | null;
 
     trigger(loc: MapXY, ctx?: EffectCtx): boolean;
-    clone(): this;
+    // clone(): this;
 }
 
 //////////////////////////
@@ -98,6 +184,8 @@ export type EffectBase =
     | (string | EffectFn)[]
     | EffectConfig
     | Record<string, any>;
+
+*/
 
 // export class Effect {
 //     id = '';
@@ -228,6 +316,7 @@ export type EffectBase =
 //     return handler(parts);
 // }
 
+/*
 export function make(opts: EffectBase): Effect {
     if (!opts) throw new Error('opts required to make effect.');
     let config = {} as EffectConfig;
@@ -348,28 +437,26 @@ export function from(opts: EffectBase): Effect {
     }
     return make(opts);
 }
-
-function isEffect(obj: any): obj is Effect {
-    return typeof obj === 'object' && 'trigger' in obj;
-}
+*/
 
 //////////////////////////////
 // INSTALL
 
-export const installedEffects: Record<string, Effect> = {};
+export const installed: Record<string, ACTION.ActionFn> = {};
 
-export function install(id: string, config: EffectBase): Effect {
-    const effect = isEffect(config) ? (config.clone() as Effect) : make(config);
-    installedEffects[id] = effect;
+export function install(id: string, config: EffectConfig): ACTION.ActionFn {
+    const effect = make(config);
+    if (!effect) throw new Error('Failed to make effect.');
+    installed[id] = effect;
     return effect;
 }
 
-export function installAll(effects: Record<string, EffectBase>) {
+export function installAll(effects: Record<string, EffectConfig>) {
     Object.entries(effects).forEach(([id, config]) => {
         install(id, config);
     });
 }
 
 export function resetAll() {
-    Object.values(installedEffects).forEach((e) => (e.seen = false));
+    Object.values(installed).forEach((e) => (e.seen = false));
 }

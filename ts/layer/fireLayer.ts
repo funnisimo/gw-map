@@ -3,7 +3,8 @@ import * as GWU from 'gw-utils';
 import * as Flags from '../flags';
 import { TileLayer } from './tileLayer';
 import { Map } from '../map/map';
-import * as Effect from '../effect';
+import * as ACTION from '../action';
+// import * as Effect from '../effect';
 
 const Depth = Flags.Depth;
 const ObjectFlags = Flags.Entity;
@@ -77,10 +78,10 @@ export class FireLayer extends TileLayer {
                 (tile.depth === Depth.GAS ||
                     tile.priority >= bestExtinguishingPriority)
             ) {
-                const effect = Effect.from(tile.effects.fire);
-                if (effect && effect.chance > ignitionChance) {
-                    ignitionChance = effect.chance;
-                }
+                // const effect = Effect.from(tile.effects.fire);
+                // if (effect && effect.chance > ignitionChance) {
+                //     ignitionChance = effect.chance;
+                // }
             }
         });
 
@@ -109,7 +110,7 @@ export class FireLayer extends TileLayer {
             }
 
             let event = 'fire';
-            if (explosivePromotion && cell.hasEffect('explode')) {
+            if (explosivePromotion && cell.hasAction('explode')) {
                 event = 'explode';
             }
             // cell.eachTile( (tile) => {
@@ -122,9 +123,10 @@ export class FireLayer extends TileLayer {
             //     }
             // });
 
-            cell.fireEvent(event, {
-                force: true,
-            });
+            cell.trigger(
+                event,
+                new ACTION.Action(event, { map: this.map, force: true })
+            );
 
             cell.needsRedraw = true;
         }

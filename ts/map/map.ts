@@ -8,10 +8,11 @@ import * as Layer from '../layer';
 import { Item } from '../item';
 import { Actor } from '../actor';
 import { Entity } from '../entity';
-import * as Effect from '../effect';
 import { CellDrawer, MapDrawOptions, BufferSource } from '../draw/types';
 import { BasicDrawer } from '../draw/basic';
 import { Player } from '../player/player';
+import * as ACTION from '../action';
+import { Game } from '../game';
 
 export interface MapOptions
     extends GWU.light.LightSystemOptions,
@@ -20,10 +21,11 @@ export interface MapOptions
     tile?: string | true;
     boundary?: string | true;
     seed?: number;
-    id?: string;
+    id?: number;
     drawer?: CellDrawer;
     player?: Player;
     fov?: boolean;
+    actions?: Record<string, ACTION.ActionFn>;
 }
 
 export type LayerType = Layer.TileLayer;
@@ -39,21 +41,21 @@ export type EachActorCb = (actor: Actor) => any;
 
 export type MapTestFn = (cell: Cell, x: number, y: number, map: Map) => boolean;
 
-export interface MapEvents extends GWU.events.Events {
-    // add or remove actor
-    actor: (map: Map, actor: Actor, isNew: boolean) => void;
+// export interface MapEvents extends GWU.events.Events {
+//     // add or remove actor
+//     actor: (map: Map, actor: Actor, isNew: boolean) => void;
 
-    // add or remove item
-    item: (map: Map, item: Item, isNew: boolean) => void;
+//     // add or remove item
+//     item: (map: Map, item: Item, isNew: boolean) => void;
 
-    // add or remove fx
-    fx: (map: Map, fx: Entity, isNew: boolean) => void;
+//     // add or remove fx
+//     fx: (map: Map, fx: Entity, isNew: boolean) => void;
 
-    // change cell tiles
-    cell: (map: Map, cell: Cell) => void;
-}
+//     // change cell tiles
+//     cell: (map: Map, cell: Cell) => void;
+// }
 
-export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
+export class Map implements GWU.light.LightSystemSite {
     cells: GWU.grid.Grid<Cell>;
     layers: LayerType[];
     flags: { map: 0 };
@@ -72,10 +74,10 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
     fx: Entity[] = [];
 
     player: Player | null = null;
+    game!: Game;
 
-    _animations: GWU.tween.Animation[] = [];
-    events: GWU.events.EventEmitter<MapEvents> =
-        new GWU.events.EventEmitter<MapEvents>();
+    _tweens: GWU.app.Tweens = new GWU.app.Tweens();
+    actions = new ACTION.Actions(this);
 
     constructor(width: number, height: number, opts: MapOptions = {}) {
         this.flags = { map: 0 };
@@ -117,6 +119,9 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
 
         if (opts.player) {
             this.setPlayer(opts.player);
+        }
+        if (opts.actions) {
+            this.actions.load(opts.actions);
         }
     }
 
@@ -225,7 +230,7 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
             }
 
             if (index < 0) {
-                this.events.emit('item', this, item, true);
+                this.trigger(new ACTION.Action('place', { map: this, item }));
             }
 
             return true;
@@ -237,17 +242,17 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
         if (
             item.key &&
             item.key.matches(cell.x, cell.y) &&
-            cell.hasEffect('key')
+            cell.hasAction('key')
         ) {
-            cell.fireEvent('key', {
-                key: item,
-                item,
-            });
-        } else if (cell.hasEffect('add_item')) {
-            cell.fireEvent('add_item', {
-                key: item,
-                item,
-            });
+            cell.trigger(
+                'key',
+                new ACTION.Action('key', { map: this, key: true, item })
+            );
+        } else if (cell.hasAction('place')) {
+            cell.trigger(
+                'place',
+                new ACTION.Action('place', { map: this, key: true, item })
+            );
         }
     }
 
@@ -281,23 +286,27 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
             GWU.arrayDelete(this.items, item);
             item.removeFromMap();
 
-            this.events.emit('item', this, item, false);
+            this.trigger(new ACTION.Action('remove', { map: this, item }));
             return true;
         }
         return false;
     }
 
     _fireRemoveItemEffects(item: Item, cell: Cell) {
-        if (item.isKey(cell.x, cell.y) && cell.hasEffect('no_key')) {
-            cell.fireEvent('no_key', {
-                key: item,
-                item,
-            });
-        } else if (cell.hasEffect('remove_item')) {
-            cell.fireEvent('remove_item', {
-                key: item,
-                item,
-            });
+        if (item.isKey(cell.x, cell.y) && cell.hasAction('no_key')) {
+            cell.trigger(
+                'no_key',
+                new ACTION.Action('no_key', {
+                    map: this,
+                    key: true,
+                    item,
+                })
+            );
+        } else if (cell.hasAction('remove')) {
+            cell.trigger(
+                'remove',
+                new ACTION.Action('remove', { map: this, key: true, item })
+            );
         }
     }
 
@@ -395,7 +404,7 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
             }
 
             if (index < 0) {
-                this.events.emit('actor', this, actor, true);
+                this.trigger(new ACTION.Action('enter', { map: this, actor }));
             }
 
             return true;
@@ -404,20 +413,24 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
     }
 
     _fireAddActorEffects(actor: Actor, cell: Cell) {
-        if (actor.isKey(cell.x, cell.y) && cell.hasEffect('key')) {
-            cell.fireEvent('key', {
-                key: actor,
-                actor,
-            });
-        } else if (actor.isPlayer() && cell.hasEffect('add_player')) {
-            cell.fireEvent('add_player', {
-                player: actor,
-                actor,
-            });
-        } else if (cell.hasEffect('add_actor')) {
-            cell.fireEvent('add_actor', {
-                actor,
-            });
+        if (actor.isKey(cell.x, cell.y) && cell.hasAction('key')) {
+            cell.trigger(
+                'key',
+                new ACTION.Action('key', { map: this, key: true, actor })
+            );
+        } else if (actor.isPlayer() && cell.hasAction('player-enter')) {
+            cell.trigger(
+                'player-enter',
+                new ACTION.Action('player-enter', {
+                    map: this,
+                    actor,
+                })
+            );
+        } else if (cell.hasAction('enter')) {
+            cell.trigger(
+                'enter',
+                new ACTION.Action('enter', { map: this, actor })
+            );
         }
     }
 
@@ -452,27 +465,28 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
             actor.removeFromMap();
             GWU.arrayDelete(this.actors, actor);
 
-            this.events.emit('actor', this, actor, false);
+            this.trigger(new ACTION.Action('exit', { map: this, actor }));
             return true;
         }
         return false;
     }
 
     _fireRemoveActorEffects(actor: Actor, cell: Cell) {
-        if (actor.isKey(actor.x, actor.y) && cell.hasEffect('no_key')) {
-            cell.fireEvent('no_key', {
-                key: actor,
-                actor,
-            });
-        } else if (actor.isPlayer() && cell.hasEffect('remove_player')) {
-            cell.fireEvent('remove_player', {
-                actor,
-                player: actor,
-            });
-        } else if (cell.hasEffect('remove_actor')) {
-            cell.fireEvent('remove_actor', {
-                actor,
-            });
+        if (actor.isKey(actor.x, actor.y) && cell.hasAction('no_key')) {
+            cell.trigger(
+                'no_key',
+                new ACTION.Action('no_key', { map: this, key: true, actor })
+            );
+        } else if (actor.isPlayer() && cell.hasAction('player-exit')) {
+            cell.trigger(
+                'player-exit',
+                new ACTION.Action('player-exit', { map: this, actor })
+            );
+        } else if (cell.hasAction('exit')) {
+            cell.trigger(
+                'exit',
+                new ACTION.Action('exit', { map: this, actor })
+            );
         }
     }
 
@@ -559,7 +573,7 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
         fx.y = y;
         cell._addFx(fx);
         this.fx.push(fx);
-        this.events.emit('fx', this, fx, true);
+        // this.events.emit('fx', this, fx, true);
         return true;
     }
     moveFx(fx: Entity, x: number, y: number): boolean {
@@ -579,7 +593,7 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
         if (cell) {
             cell._removeFx(fx);
         }
-        this.events.emit('fx', this, fx, false);
+        // this.events.emit('fx', this, fx, false);
         return true;
     }
 
@@ -750,13 +764,13 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
     }
 
     tick(dt: number): boolean {
-        let didSomething = false;
-        this._animations.forEach((a) => {
-            didSomething = a.tick(dt) || didSomething;
-        });
-        this._animations = this._animations.filter((a) => a.isRunning());
+        let didSomething = this._tweens.length > 0;
+        this._tweens.update(dt);
 
-        didSomething = this.fireAll('tick') || didSomething;
+        const action = new ACTION.Action('tick', { map: this });
+        this.fireAll(action);
+        didSomething ||= action.isSuccess();
+
         for (let layer of this.layers) {
             if (layer && layer.tick(dt)) {
                 didSomething = true;
@@ -797,17 +811,45 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
         return other;
     }
 
-    fire(
-        event: string,
-        x: number,
-        y: number,
-        ctx: Effect.EffectCtx = {}
-    ): boolean {
-        const cell = this.cell(x, y);
-        return cell.fireEvent(event, ctx);
+    hasAction(action: string): boolean {
+        return this.actions.has(action);
     }
 
-    fireAll(event: string, ctx: Effect.EffectCtx = {}): boolean {
+    on(action: string | string[], fn: ACTION.ActionFn) {
+        this.actions.on(action, fn);
+    }
+    once(action: string | string[], fn: ACTION.ActionFn) {
+        this.actions.once(action, fn);
+    }
+    off(action: string | string[], fn?: ACTION.ActionFn) {
+        this.actions.off(action, fn);
+    }
+
+    trigger(action: ACTION.Action): void;
+    trigger(ev: string, action: ACTION.Action): void;
+    trigger(ev: string | ACTION.Action, action?: ACTION.Action): void {
+        if (typeof ev !== 'string') {
+            return this.trigger(ev.action, ev);
+        }
+        if (!action) throw new Error('Action is required.');
+
+        this.actions.trigger(ev, action);
+        if (action.isDone()) return;
+        const cell = this.cell(action.x, action.y);
+        cell.trigger(ev, action);
+    }
+
+    // fire(
+    //     event: string,
+    //     x: number,
+    //     y: number,
+    //     ctx: Effect.EffectCtx = {}
+    // ): boolean {
+    //     const cell = this.cell(x, y);
+    //     return cell.fireEvent(event, ctx);
+    // }
+
+    fireAll(action: ACTION.Action): boolean {
         let didSomething = false;
         const willFire = GWU.grid.alloc(this.width, this.height);
 
@@ -817,11 +859,12 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
                 Flags.Cell.EVENT_FIRED_THIS_TURN | Flags.Cell.EVENT_PROTECTED
             );
             cell.eachTile((tile) => {
-                const ev = tile.effects[event];
-                if (!ev) return;
+                // const ev = tile.effects[event];
+                // if (!ev) return;
 
-                const effect = Effect.from(ev);
-                if (!effect) return;
+                const effect = { chance: 0 }; // DELETE
+                // const effect = Effect.from(ev);
+                // if (!effect) return;
 
                 let promoteChance = 0;
 
@@ -861,43 +904,19 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
         });
 
         // Then activate them - so that we don't activate the next generation as part of the forEach
-        ctx.force = true;
+        action.force = true;
         willFire.forEach((w, x, y) => {
             if (!w) return;
             const cell = this.cell(x, y);
             if (cell.hasCellFlag(Flags.Cell.EVENT_FIRED_THIS_TURN)) return;
             for (let depth = 0; depth <= Flags.Depth.GAS; ++depth) {
                 if (w & GWU.flag.fl(depth)) {
-                    cell.fireEvent(event, {
-                        force: true,
-                    });
+                    cell.trigger(action.action, action);
                 }
             }
         });
 
         GWU.grid.free(willFire);
-        return didSomething;
-    }
-
-    activateMachine(
-        machineId: number,
-        originX: number,
-        originY: number,
-        ctx: Effect.EffectCtx = {}
-    ): boolean {
-        let didSomething = false;
-        ctx.originX = originX;
-        ctx.originY = originY;
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
-                const cell = this.cell(x, y);
-                if (cell.machineId !== machineId) continue;
-                if (cell.hasEffect('machine')) {
-                    didSomething =
-                        cell.fireEvent('machine', ctx) || didSomething;
-                }
-            }
-        }
         return didSomething;
     }
 
@@ -1001,10 +1020,10 @@ export class Map implements GWU.light.LightSystemSite, GWU.tween.Animator {
 
     // Animator
 
-    addAnimation(a: GWU.tween.Animation): void {
-        this._animations.push(a);
+    addAnimation(a: GWU.tween.Tween): void {
+        this._tweens.add(a);
     }
-    removeAnimation(a: GWU.tween.Animation): void {
-        GWU.arrayDelete(this._animations, a);
+    removeAnimation(a: GWU.tween.Tween): void {
+        this._tweens.remove(a);
     }
 }

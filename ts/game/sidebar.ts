@@ -13,18 +13,6 @@ GWU.color.install('redBar', 45, 10, 15);
 GWU.color.install('purpleBar', 50, 0, 50);
 GWU.color.install('greenBar', 10, 50, 10);
 
-export interface SidebarOptions {
-    bg?: GWU.color.ColorBase;
-    width?: number;
-}
-
-export interface SidebarInit extends SidebarOptions {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-}
-
 export abstract class EntryBase {
     dist = 0;
     priority = 0;
@@ -111,9 +99,12 @@ export class CellEntry extends EntryBase {
 
 export type SidebarEntry = ActorEntry | ItemEntry | CellEntry;
 
-export class Sidebar {
-    bounds: GWU.xy.Bounds;
+export interface SidebarOptions extends GWU.widget.WidgetOpts {
+    bg?: GWU.color.ColorBase;
+    width?: number;
+}
 
+export class Sidebar extends GWU.widget.Widget {
     cellCache: Cell[] = [];
     lastX = -1;
     lastY = -1;
@@ -122,31 +113,30 @@ export class Sidebar {
     subject: Player | null = null;
     highlight: EntryBase | null = null;
 
-    bg: GWU.color.Color;
-    needsDraw = true;
+    _needsDraw = true;
 
-    constructor(opts: SidebarInit) {
-        this.bounds = new GWU.xy.Bounds(
-            opts.x,
-            opts.y,
-            opts.width,
-            opts.height
+    constructor(opts: SidebarOptions) {
+        super(
+            (() => {
+                opts.tag = opts.tag || 'sidebar';
+                return opts;
+            })()
         );
-        this.bg = GWU.color.from(opts.bg || 'darkest_gray');
     }
 
-    contains(xy: GWU.xy.XY | GWU.xy.Loc): boolean {
-        return this.bounds.contains(xy);
+    set needsDraw(v: boolean) {
+        if (v) this._needsDraw = v;
+        super.needsDraw = v;
     }
 
     reset() {
         this.lastMap = null;
         this.lastX = -1;
         this.lastY = -1;
-        this.needsDraw = true;
+        this._needsDraw = true;
     }
 
-    entryAt(e: GWU.io.Event): EntryBase | null {
+    entryAt(e: GWU.app.Event): EntryBase | null {
         return (
             this.entries.find((entry) => {
                 return entry.sidebarY <= e.y && entry.sidebarY !== -1;
@@ -154,7 +144,7 @@ export class Sidebar {
         );
     }
 
-    click(ev: GWU.io.Event): boolean {
+    click(ev: GWU.app.Event): boolean {
         if (!this.bounds.contains(ev.x, ev.y)) return false;
         if (!this.highlight) return false;
 
@@ -163,7 +153,7 @@ export class Sidebar {
         return true;
     }
 
-    mousemove(e: GWU.io.Event): boolean {
+    mousemove(e: GWU.app.Event): boolean {
         if (this.contains(e)) {
             this._highlightRow(e.y);
             return true;
@@ -183,7 +173,7 @@ export class Sidebar {
         });
 
         const changed = this.highlight !== last;
-        this.needsDraw ||= changed;
+        this._needsDraw ||= changed;
         return changed;
     }
 
@@ -467,14 +457,16 @@ export class Sidebar {
         if (!this.needsDraw) return false;
         this.needsDraw = false;
 
+        const bg = this._used.bg || GWU.color.BLACK;
+
         buffer.fillRect(
             this.bounds.x,
             this.bounds.y,
             this.bounds.width,
             this.bounds.height,
-            0,
-            0,
-            this.bg
+            ' ',
+            bg,
+            bg
         );
 
         // clear the row information
@@ -489,7 +481,7 @@ export class Sidebar {
             let usedLines = currentEntry.draw(buffer, drawBounds);
             if (this._isDim(currentEntry)) {
                 buffer.mix(
-                    this.bg,
+                    bg,
                     50,
                     drawBounds.x,
                     drawBounds.y,

@@ -2,7 +2,7 @@ import * as GWU from 'gw-utils';
 import * as Entity from '.';
 import * as Map from '../map';
 
-import '../effect/handlers';
+import '../effects';
 import '../tile/tiles';
 
 describe('Entity Kind', () => {

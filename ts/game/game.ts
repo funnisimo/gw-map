@@ -2,51 +2,56 @@ import * as GWU from 'gw-utils';
 
 import * as MAP from '../map';
 import { Player } from '../player/player';
-import * as Command from '../command';
 import * as Actor from '../actor';
 import * as Viewport from './viewport';
 import * as Message from './message';
 import * as Flavor from './flavor';
 import * as Sidebar from './sidebar';
 
-export type StartFn = () => void;
-export type MakeMapFn = (id: number) => MAP.Map;
-export type MakePlayerFn = () => Player;
-export type StartMapFn = (map: MAP.Map, player: Player) => void;
+export type MakeMapFn = (this: Game, opts: MakeMapOpts) => MAP.Map;
+export type MakePlayerFn = (this: Game) => Player;
+export type StartMapFn = (
+    this: Game,
+    map: MAP.Map,
+    player: Player,
+    opts: StartMapOpts
+) => void;
 
-export interface GameOptions extends GWU.ui.UIOptions {
-    ui?: GWU.ui.UI;
-
-    start?: StartFn;
+export interface GameOptions extends GWU.app.CreateOpts {
     makeMap: MakeMapFn;
     makePlayer: MakePlayerFn;
     startMap?: StartMapFn;
 
-    keymap: Record<string, string | Command.CommandFn>;
+    keymap: Record<string, string>;
 
     mouse?: boolean;
 
-    viewport?: Viewport.ViewportOptions;
-    messages?: number | Message.MessageOptions;
+    viewport?: true | Viewport.ViewportOptions;
+    messages?: boolean | number | Message.MessageOptions;
     flavor?: boolean | Flavor.FlavorOptions;
     sidebar?: boolean | number | Sidebar.SidebarOptions;
     // fov?: boolean;
     // scent?: boolean; // draw scent
 }
 
-export interface GameInit extends GameOptions {
-    viewport: Partial<Viewport.ViewportInit>;
-    messages: Partial<Message.MessageInit>;
-    flavor: Partial<Flavor.FlavorInit>;
-    sidebar: Partial<Sidebar.SidebarInit>;
+export interface StartOpts {
+    map?: number;
+    player?: Player;
 }
 
-export class Game {
-    ui: GWU.ui.UI;
-    layer!: GWU.ui.Layer;
-    buffer!: GWU.canvas.Buffer;
-    io!: GWU.io.Handler;
+export interface MakeMapOpts {
+    id?: number;
+}
 
+export interface StartMapOpts {
+    id?: number;
+    up?: boolean;
+    down?: boolean;
+
+    location?: string;
+}
+
+export class Game extends GWU.app.Scene {
     viewport!: Viewport.Viewport;
     messages?: Message.Messages;
     flavor?: Flavor.Flavor;
@@ -56,10 +61,9 @@ export class Game {
     player!: Player;
     map!: MAP.Map;
 
-    _start: StartFn;
-    _makeMap: MakeMapFn;
-    _makePlayer: MakePlayerFn;
-    _startMap: StartMapFn;
+    _makeMap!: MakeMapFn;
+    _makePlayer!: MakePlayerFn;
+    _startMap!: StartMapFn;
     result: any = undefined;
 
     mouse = false;
@@ -67,71 +71,34 @@ export class Game {
     scent = false;
 
     running = false;
-    keymap: Record<string, string | Command.CommandFn> = {};
+    keymap: Record<string, string> = {};
 
-    constructor(opts: GameOptions) {
-        this.ui = opts.ui || new GWU.ui.UI(opts);
-
-        if (!opts.makeMap || !opts.makePlayer) {
-            throw new Error('Need funcitons for makeMap and makePlayer');
-        }
-
-        this._start = opts.start || GWU.NOOP;
-        this._makeMap = opts.makeMap;
-        this._makePlayer = opts.makePlayer;
-        this._startMap = opts.startMap || GWU.NOOP;
-
-        if (opts.keymap) {
-            Object.assign(this.keymap, opts.keymap);
-        }
-
-        if (opts.mouse) {
-            this.mouse = true;
-        }
-
-        if (typeof opts.messages === 'number') {
-            opts.messages = { size: opts.messages };
-        }
-        if (opts.flavor === true) {
-            opts.flavor = {};
-        } else if (opts.flavor === false) {
-            delete opts.flavor;
-        }
-        opts.viewport = opts.viewport || {};
-
-        const _opts = opts as GameInit;
-        _opts.viewport.x = 0;
-        _opts.viewport.y = 0;
-        _opts.viewport.width = this.ui.width;
-        _opts.viewport.height = this.ui.height;
-
-        this._initMenu(_opts);
-        if (opts.sidebar) this._initSidebar(_opts);
-        if (opts.messages) this._initMessages(_opts);
-        if (opts.flavor) this._initFlavor(_opts);
-        this._initViewport(_opts);
+    constructor(id: string, app: GWU.app.App) {
+        super(id, app);
     }
 
-    get width() {
+    get viewWidth() {
         return this.viewport.bounds.width;
     }
-    get height() {
+    get viewHeight() {
         return this.viewport.bounds.height;
     }
 
-    _initMenu(_opts: GameInit) {}
-    _initSidebar(opts: GameInit) {
+    _initMenu(_opts: GameOptions) {}
+    _initSidebar(opts: GameOptions) {
         if (typeof opts.sidebar === 'number') {
             opts.sidebar = { width: opts.sidebar };
         } else if (opts.sidebar === true) {
             opts.sidebar = {};
+        } else if (!opts.sidebar) {
+            return;
         }
 
         const sideOpts = opts.sidebar;
 
         sideOpts.width = sideOpts.width || -20; // on right side
 
-        const viewInit = opts.viewport!;
+        const viewInit = opts.viewport as Viewport.ViewportOptions;
         if (sideOpts.width < 0) {
             sideOpts.width *= -1;
             sideOpts.x = viewInit.x! + viewInit.width! - sideOpts.width;
@@ -148,49 +115,61 @@ export class Game {
             viewInit.width! -= sideOpts.width;
         }
 
-        this.sidebar = new Sidebar.Sidebar(sideOpts as Sidebar.SidebarInit);
+        sideOpts.scene = this;
+
+        this.sidebar = new Sidebar.Sidebar(sideOpts);
     }
 
-    _initMessages(opts: GameInit) {
+    _initMessages(opts: GameOptions) {
         if (opts.messages === false) return;
         if (opts.messages === true) {
-            opts.messages = { size: -4 };
+            opts.messages = { archive: -4 };
+        } else if (typeof opts.messages === 'number') {
+            opts.messages = { archive: opts.messages };
         }
 
-        const messOpts = opts.messages || { size: -4 };
-        messOpts.size = messOpts.size || messOpts.y || -4;
+        const messOpts = opts.messages || { archive: -4 };
+        messOpts.archive = messOpts.archive || messOpts.y || -4;
 
-        if (messOpts.size < 0) {
+        if (messOpts.archive < 0) {
             // bottom
-            const viewInit = opts.viewport!;
+            const viewInit = opts.viewport as Viewport.ViewportOptions;
             messOpts.x = viewInit.x;
-            messOpts.y = this.ui.height + messOpts.size; // length < 0
+            messOpts.y = viewInit.height! + messOpts.archive; // length < 0
             messOpts.width = viewInit.width;
-            messOpts.height = -messOpts.size;
+            messOpts.height = -messOpts.archive;
 
-            opts.viewport!.height! -= messOpts.height;
+            viewInit.height! -= messOpts.height;
         } else {
             // top
-            const viewInit = opts.viewport!;
+            const viewInit = opts.viewport as Viewport.ViewportOptions;
             messOpts.x = viewInit.x;
             messOpts.y = viewInit.y;
             messOpts.width = viewInit.width;
-            messOpts.height = messOpts.size;
+            messOpts.height = messOpts.archive;
 
-            viewInit.y! += messOpts.size;
-            viewInit.height! -= messOpts.size;
+            viewInit.y! += messOpts.archive;
+            viewInit.height! -= messOpts.archive;
         }
 
-        this.messages = new Message.Messages(messOpts as Message.MessageInit);
+        messOpts.scene = this;
+
+        this.messages = new Message.Messages(messOpts);
     }
 
-    _initFlavor(opts: GameInit) {
-        const flavOpts = opts.flavor || {};
-        const viewOpts = opts.viewport;
+    _initFlavor(opts: GameOptions) {
+        if (opts.flavor === false) return;
+        if (opts.flavor === true) {
+            opts.flavor = {};
+        }
 
-        if (viewOpts.y === 0) {
+        const flavOpts = opts.flavor || {};
+        const viewOpts = opts.viewport as Viewport.ViewportOptions;
+
+        const y = viewOpts.y || 0;
+        if (y === 0) {
             // messages must be on bottom (or not there)
-            flavOpts.x = viewOpts.x;
+            flavOpts.x = viewOpts.x || 0;
             flavOpts.y = viewOpts.height! - 1;
             flavOpts.width = viewOpts.width;
 
@@ -205,56 +184,103 @@ export class Game {
             viewOpts.height! -= 1;
         }
 
-        this.flavor = new Flavor.Flavor(flavOpts as Flavor.FlavorInit);
+        flavOpts.scene = this;
+
+        this.flavor = new Flavor.Flavor(flavOpts);
     }
 
-    _initViewport(opts: GameInit) {
-        const viewOpts = opts.viewport || {};
-        const viewInit = viewOpts as Viewport.ViewportInit;
-        viewInit.lock = true;
-        this.viewport = new Viewport.Viewport(viewInit);
+    _initViewport(opts: GameOptions) {
+        if (opts.viewport === true) {
+            opts.viewport = {};
+        }
+        const viewOpts = (opts.viewport || {}) as Viewport.ViewportOptions;
+        viewOpts.lock = true;
+        viewOpts.x = viewOpts.x || 0;
+        viewOpts.y = viewOpts.y || 0;
+        viewOpts.width = viewOpts.width || this.app.width - viewOpts.x;
+        viewOpts.height = viewOpts.height || this.app.height - viewOpts.y;
+        this.viewport = new Viewport.Viewport(viewOpts);
     }
 
-    async start() {
-        this.layer = new GWU.ui.Layer(this.ui);
-        this.buffer = this.layer.buffer;
-        this.io = this.layer.io;
+    create(opts: GameOptions) {
+        super.create(opts);
 
-        this.running = true;
+        if (!opts.makeMap || !opts.makePlayer) {
+            throw new Error('Need funcitons for makeMap and makePlayer');
+        }
+
+        this._makeMap = opts.makeMap;
+        this._makePlayer = opts.makePlayer;
+        this._startMap = opts.startMap || GWU.NOOP;
+
+        if (opts.keymap) {
+            Object.assign(this.keymap, opts.keymap);
+        }
+
+        if (opts.mouse) {
+            this.mouse = true;
+        }
+
+        if (typeof opts.messages === 'number') {
+            opts.messages = { archive: opts.messages };
+        }
+        if (opts.flavor === true) {
+            opts.flavor = {};
+        } else if (opts.flavor === false) {
+            delete opts.flavor;
+        }
+
+        if (opts.viewport === true) {
+            opts.viewport = {};
+        }
+        const viewOpts = (opts.viewport = opts.viewport || {});
+        viewOpts.x = viewOpts.x || 0;
+        viewOpts.y = viewOpts.y || 0;
+        viewOpts.width = viewOpts.width || this.app.width - viewOpts.x;
+        viewOpts.height = viewOpts.height || this.app.height - viewOpts.y;
+
+        this._initMenu(opts);
+        if (opts.sidebar) this._initSidebar(opts);
+        if (opts.messages) this._initMessages(opts);
+        if (opts.flavor) this._initFlavor(opts);
+        this._initViewport(opts);
+
         this.scheduler = new GWU.scheduler.Scheduler();
+    }
 
+    start(opts: StartOpts = {}) {
         if (this.messages) this.messages.clear();
 
-        this.player = this._makePlayer.call(this);
+        // move to create?
+        this.player = opts.player || this._makePlayer.call(this);
         this.viewport.subject = this.player;
         if (this.sidebar) this.sidebar.subject = this.player;
 
-        this._start.call(this);
-
-        this.startNewMap(0);
+        const id = opts.map || 0;
+        this.startNewMap({ id });
         this.scheduler.push(this.player, 0);
 
-        while (this.running) {
-            await this.animate();
-            await this.runTurn();
-        }
-
-        return this.result;
+        super.start(opts);
     }
 
-    startNewMap(id: number, _location = 'start') {
+    startNewMap(opts: StartMapOpts = { id: 0 }) {
         this.scheduler.clear();
 
-        this.map = this._makeMap.call(this, id);
+        if (opts.id === undefined) {
+            opts.id = this.map.id;
+        }
+
+        this.map = this._makeMap.call(this, opts);
         this.map.setPlayer(this.player);
-        this.map.id = id;
-        this._startMap.call(this, this.map, this.player);
+        this._startMap.call(this, this.map, this.player, opts);
 
         // make sure player is on map
         if (this.player.map !== this.map) {
             // if not, add them (where?)
             const loc = this.map.locations.start || [0, 0]; // Is top left fallback any good?
-            this.map.addActorNear(loc[0], loc[1], this.player);
+            if (!this.map.addActorNear(loc[0], loc[1], this.player)) {
+                throw new Error('Failed to find starting spot for player!');
+            }
         }
 
         if (this.scent) {
@@ -267,178 +293,143 @@ export class Game {
         });
 
         this.map.fov.update();
-        this.draw();
+        // this.draw();
     }
 
-    draw() {
-        this.viewport.draw(this.buffer);
-        if (this.messages) this.messages.draw(this.buffer);
-        if (this.flavor) this.flavor.draw(this.buffer);
-        if (this.sidebar) this.sidebar.draw(this.buffer);
+    // draw() {
+    //     this.viewport.draw(this.buffer);
+    //     if (this.messages) this.messages.draw(this.buffer);
+    //     if (this.flavor) this.flavor.draw(this.buffer);
+    //     if (this.sidebar) this.sidebar.draw(this.buffer);
 
-        if (this.buffer.changed) {
-            this.buffer.render();
-        }
-        this.buffer.changed = false;
-        this.map.actors.forEach((a) => (a.changed = false));
-        this.map.items.forEach((i) => (i.changed = false));
-    }
+    //     if (this.buffer.changed) {
+    //         this.buffer.render();
+    //     }
+    //     this.buffer.changed = false;
+    //     this.map.actors.forEach((a) => (a.changed = false));
+    //     this.map.items.forEach((i) => (i.changed = false));
+    // }
 
-    finish(result?: any) {
-        this.running = false;
-        this.layer.finish();
-        this.result = result;
-    }
+    // finish(result?: any) {
+    //     this.running = false;
+    //     this.layer.finish();
+    //     this.result = result;
+    // }
 
-    async runTurn() {
-        const actor = this.scheduler.pop();
+    update(dt: number) {
+        super.update(dt);
+        if (this.tweens.length) return;
+
+        let actor = this.scheduler.pop() as Actor.Actor;
         if (!actor) {
-            this.finish();
+            this.stop();
             return;
         }
 
-        let nextTime = 0;
-        while (nextTime === 0) {
+        let nextTime = 99;
+        while (nextTime > 0 && actor) {
+            nextTime = actor.act(this);
+            if (nextTime >= 0) {
+                this.scheduler.push(actor, nextTime);
+                actor = this.scheduler.pop();
+            }
+            // stop every time the player acts so we can draw the screen
             if (actor === this.player) {
-                nextTime = await this.playerTurn(actor);
-            } else if ('act' in actor) {
-                nextTime = await actor.act(this);
-            } else if ('tick' in actor) {
-                nextTime = await actor.tick(); // dt === 100 -- TODO
+                nextTime = 0;
             }
-            this.draw();
-        }
-        if (nextTime >= 0) {
-            this.scheduler.push(actor, nextTime);
         }
     }
 
-    async animate() {
-        if (!this.io._tweens.length) return;
+    // playerTurn(player: Player): number {
+    //     let done = 0;
 
-        const timer = setInterval(() => {
-            const tick = GWU.io.makeTickEvent(16);
-            this.io.enqueue(tick);
-        }, 16);
+    //     const timer = setInterval(() => {
+    //         const tick = GWU.app.makeTickEvent(16);
+    //         // console.log('-tick', Date.now());
+    //         this.io.enqueue(tick);
+    //     }, 16);
 
-        this.io.clearEvents();
-        while (this.io._tweens.length) {
-            const ev = await this.io.nextTick();
-            if (ev && ev.dt) {
-                this.io._tweens.forEach((a) => a && a.tick(ev.dt));
-                this.io._tweens = this.io._tweens.filter(
-                    (a) => a && a.isRunning()
+    //     let elapsed = 0;
+    //     while (!done && this.running) {
+    //         const ev = await this.io.nextEvent(-1);
+
+    //         if (ev) {
+    //             if (ev.type === GWU.app.KEYPRESS) {
+    //             }
+    //         }
+
+    //         if (elapsed < 50) {
+    //             continue;
+    //         }
+    //         elapsed -= 50;
+    //     }
+
+    //     clearInterval(timer);
+
+    //     return done;
+    // }
+
+    input(ev: GWU.app.Event) {
+        super.input(ev);
+        if (ev.defaultPrevented || ev.propagationStopped) return;
+        if (ev.type === GWU.app.MOUSEMOVE) {
+            this.mousemove(ev);
+        } else if (ev.type === GWU.app.CLICK) {
+            this.click(ev);
+        } else if (ev.type === GWU.app.KEYPRESS) {
+            this.keypress(ev);
+        }
+    }
+
+    mousemove(ev: GWU.app.Event) {
+        if (this.viewport.contains(ev)) {
+            const x = this.viewport.toInnerX(ev.x);
+            const y = this.viewport.toInnerY(ev.y);
+            if (this.flavor) {
+                const text = this.flavor.getFlavorText(
+                    this.map,
+                    x,
+                    y,
+                    this.map.fov
                 );
+                this.flavor.showText(text);
             }
-
-            this.draw();
+            if (this.sidebar) {
+                this.sidebar.highlightAt(x, y);
+            }
         }
-
-        clearInterval(timer);
     }
 
-    async playerTurn(player: Player): Promise<number> {
-        let done = 0;
+    click(_ev: GWU.app.Event) {}
 
-        const timer = setInterval(() => {
-            const tick = GWU.io.makeTickEvent(16);
-            // console.log('-tick', Date.now());
-            this.io.enqueue(tick);
-        }, 16);
-
-        let elapsed = 0;
-        while (!done && this.running) {
-            const ev = await this.io.nextEvent(-1);
-
-            if (ev) {
-                if (ev.type === GWU.io.KEYPRESS) {
-                    this.map.clearPath();
-                    if (this.player.hasGoal()) {
-                        this.player.clearGoal();
-                    } else {
-                        const handler = GWU.io.handlerFor(ev, this.keymap);
-                        if (handler) {
-                            if (typeof handler === 'string') {
-                                const action = Command.getCommand(handler);
-                                if (action) {
-                                    done = await action.call(this, player, ev);
-                                } else {
-                                    const action =
-                                        this.player.getAction(handler);
-                                    if (action) {
-                                        done = await action(this, this.player);
-                                    }
-                                }
-                            } else if (typeof handler === 'function') {
-                                done = await handler.call(this, player, ev);
-                            }
-                        }
-                    }
-                } else if (ev.type === GWU.io.TICK) {
-                    this.layer.tick(ev); // timeouts
-                    elapsed += ev.dt || 16;
-
-                    if (this.viewport.tick(ev.dt)) {
-                        this.draw();
-                    }
-                    // console.log('-- event', elapsed);
-                } else if (this.mouse && ev.type === GWU.io.MOUSEMOVE) {
-                    if (this.viewport.mousemove(ev)) {
-                        const x = this.viewport.toInnerX(ev.x);
-                        const y = this.viewport.toInnerY(ev.y);
-                        if (this.flavor) {
-                            const text = this.flavor.getFlavorText(
-                                this.map,
-                                x,
-                                y,
-                                this.map.fov
-                            );
-                            this.flavor.showText(text);
-                        }
-                        if (this.sidebar) {
-                            this.sidebar.highlightAt(x, y);
-                        }
-                        this.draw();
-                    } else if (this.sidebar && this.sidebar.mousemove(ev)) {
-                        this.draw();
-                    }
-                } else if (this.mouse && ev.type === GWU.io.CLICK) {
-                    // console.log('click', ev.x, ev.y);
-                    if (this.viewport.contains(ev)) {
-                        this.viewport.click(ev);
-                    } else if (this.messages && this.messages.contains(ev)) {
-                        await this.messages.showArchive(this);
-                    } else if (this.sidebar && this.sidebar.contains(ev)) {
-                        await this.sidebar.click(ev);
-                    }
-                }
-            }
-
-            if (elapsed < 50) {
-                continue;
-            }
-            elapsed -= 50;
-
-            if (this.player.hasGoal()) {
-                const step = this.player.nextGoalStep();
-                if (!step) {
-                    this.player.clearGoal();
-                } else {
-                    const action = Actor.getAction('moveDir');
-                    if (!action)
-                        throw new Error('Failed to find moveDir action.');
-
-                    done = await action(this, this.player, { dir: step });
-                    if (done && this.player.hasGoal()) {
-                        const goalMap = this.player.goalMap!;
-                        this.viewport.showPath(goalMap.x!, goalMap.y!);
-                    }
-                }
+    keypress(ev: GWU.app.Event) {
+        this.map.clearPath();
+        if (this.player.hasGoal()) {
+            this.player.clearGoal();
+        } else {
+            const action = this._actionFor(this.keymap, ev);
+            if (action) {
+                this.player.setAction(action);
             }
         }
+    }
 
-        clearInterval(timer);
-
-        return done;
+    _actionFor(
+        keymap: Record<string, string>,
+        ev: GWU.app.Event
+    ): string | null {
+        if (ev.dir && keymap.dir) return keymap.dir;
+        return (
+            keymap[ev.key] ||
+            keymap[ev.code] ||
+            keymap.keypress ||
+            keymap.default ||
+            null
+        );
     }
 }
+
+GWU.app.installScene(
+    'game',
+    (id: string, app: GWU.app.App) => new Game(id, app)
+);

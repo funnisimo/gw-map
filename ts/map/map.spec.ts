@@ -5,7 +5,7 @@ import * as Tile from '../tile';
 import * as Make from './make';
 import * as Flags from '../flags';
 
-import '../effect/handlers';
+import '../effects';
 import '../tile/tiles';
 
 describe('Map', () => {

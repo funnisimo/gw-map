@@ -16,26 +16,18 @@ export type ViewFilterFn = (
     map: Map
 ) => void;
 
-export interface ViewportOptions {
+export interface ViewportOptions extends GWU.widget.WidgetOpts {
     snap?: boolean;
     filter?: ViewFilterFn;
     lockX?: boolean;
     lockY?: boolean;
     lock?: boolean;
     center?: boolean;
-    bg?: GWU.color.ColorBase;
 
     scent?: boolean;
 }
 
-export interface ViewportInit extends ViewportOptions {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-}
-
-export class Viewport {
+export class Viewport extends GWU.widget.Widget {
     filter!: ViewFilterFn | null;
     scent: boolean;
 
@@ -45,13 +37,14 @@ export class Viewport {
     offsetY = 0;
     _subject: UISubject | null = null;
     player: Player | null = null;
-    bounds: GWU.xy.Bounds;
-    snap: boolean;
-    center: boolean;
-    lockX: boolean;
-    lockY: boolean;
 
-    constructor(opts: ViewportInit) {
+    constructor(opts: ViewportOptions) {
+        super(
+            (() => {
+                opts.tag = opts.tag || 'viewport';
+                return opts;
+            })()
+        );
         this.bounds = new GWU.xy.Bounds(
             opts.x,
             opts.y,
@@ -60,24 +53,21 @@ export class Viewport {
         );
         this.bg = GWU.color.from(opts.bg || 'black');
 
-        this.snap = opts.snap || false;
-        this.center = opts.center || false;
+        this.attr('snap', opts.snap || false);
+        this.attr('center', opts.center || false);
+        this.attr('lockX', opts.lock || opts.lockX || false);
+        this.attr('lockY', opts.lock || opts.lockY || false);
+
         this.filter = opts.filter || null;
-        this.lockX = opts.lock || opts.lockX || false;
-        this.lockY = opts.lock || opts.lockY || false;
 
         this.scent = opts.scent || false;
-    }
-
-    contains(xy: GWU.xy.XY | GWU.xy.Loc): boolean {
-        return this.bounds.contains(xy);
     }
 
     get subject(): Player | UISubject | null {
         return this._subject;
     }
     set subject(subject: Player | UISubject | null) {
-        this.center = !!subject;
+        this.attr('center', !!subject);
         if (subject) {
             this.offsetX = subject.x - this.halfWidth();
             this.offsetY = subject.y - this.halfHeight();
@@ -91,8 +81,22 @@ export class Viewport {
     }
 
     set lock(v: boolean) {
-        this.lockX = v;
-        this.lockY = v;
+        this.attr('lockX', v);
+        this.attr('lockY', v);
+    }
+
+    get lockX() {
+        return this._attrBool('lockX');
+    }
+    set lockX(v: boolean) {
+        this.attr('lockX', v);
+    }
+
+    get lockY() {
+        return this._attrBool('lockY');
+    }
+    set lockY(v: boolean) {
+        this.attr('lockY', v);
     }
 
     toMapX(x: number): number {
@@ -120,7 +124,7 @@ export class Viewport {
     }
 
     centerOn(map: Map, x: number, y: number) {
-        this.center = true;
+        this.attr('center', true);
         this.subject = { x, y, map };
     }
 
@@ -128,8 +132,8 @@ export class Viewport {
         this.subject = { x, y, map };
         this.offsetX = x;
         this.offsetY = y;
-        this.center = false;
-        this.snap = false;
+        this.attr('center', false);
+        this.attr('snap', false);
     }
 
     updateOffset() {
@@ -144,7 +148,7 @@ export class Viewport {
         const bounds = map;
 
         if (subject && map.hasXY(subject.x, subject.y)) {
-            if (this.snap) {
+            if (this._attrBool('snap')) {
                 let left = this.offsetX;
                 let right = this.offsetX + this.bounds.width;
                 let top = this.offsetY;
@@ -188,7 +192,7 @@ export class Viewport {
                         bounds.height - this.bounds.height
                     );
                 }
-            } else if (this.center) {
+            } else if (this._attrBool('center')) {
                 this.offsetX = subject.x - this.halfWidth();
                 this.offsetY = subject.y - this.halfHeight();
             } else {
@@ -213,10 +217,10 @@ export class Viewport {
         }
     }
 
-    draw(buffer: GWU.buffer.Buffer): boolean {
-        if (!this._subject) return false;
+    _draw(buffer: GWU.buffer.Buffer): void {
+        if (!this._subject) return;
         const map = this._subject.map;
-        if (!map || !map.needsRedraw) return false;
+        if (!map || !map.needsRedraw) return;
 
         const fov = map.fov;
 
@@ -229,7 +233,7 @@ export class Viewport {
         );
 
         if (!this._subject) {
-            return false;
+            return;
         }
 
         this.updateOffset();
@@ -258,16 +262,16 @@ export class Viewport {
         }
 
         // map.clearMapFlag(GWM.flags.Map.MAP_CHANGED);
-        return true;
     }
 
-    tick(_dt: number): boolean {
-        if (!this._subject) return false;
+    update(dt: number): void {
+        super.update(dt);
+        if (!this._subject) return;
         const map = this._subject.map;
-        if (!map) return false;
+        if (!map) return;
 
         if (!map.hasMapFlag(Flags.Map.MAP_DANCES) || !GWU.cosmetic.chance(10)) {
-            return false;
+            return;
         }
 
         map.eachCell((c) => {
@@ -280,30 +284,30 @@ export class Viewport {
             }
         });
         map.needsRedraw = true;
-        return true;
     }
 
-    mousemove(ev: GWU.io.Event): boolean {
+    _mousemove(ev: GWU.app.Event): void {
+        super._mousemove(ev);
+
         if (!this.bounds.contains(ev.x, ev.y)) {
             this.clearPath();
-            return false;
+            return;
         }
-        if (!this.player) return false;
+        if (!this.player) return;
         const map = this.player.map;
-        if (!map) return false;
+        if (!map) return;
 
-        return this.showPath(this.toInnerX(ev.x), this.toInnerY(ev.y));
+        this.showPath(this.toInnerX(ev.x), this.toInnerY(ev.y));
     }
 
-    click(ev: GWU.io.Event): boolean {
-        if (!this.bounds.contains(ev.x, ev.y)) return false;
-        if (!this.player) return false;
+    _click(ev: GWU.app.Event): void {
+        super._click(ev);
+        if (!this.player) return;
         if (this.player.hasGoal()) {
             this.player.clearGoal();
         } else {
             this.player.setGoal(this.toInnerX(ev.x), this.toInnerY(ev.y));
         }
-        return true;
     }
 
     clearPath() {

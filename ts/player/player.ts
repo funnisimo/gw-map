@@ -38,14 +38,14 @@ export class Player extends Actor {
         }
     }
 
-    endTurn(pct = 100): number {
+    endTurn(pct = 100): void {
         if (this.map) {
             if (this.map.fov.update()) {
                 this.clearActorFlag(Flags.Actor.STABLE_COST_MAP);
             }
             this.scent.update();
         }
-        return super.endTurn(pct);
+        super.endTurn(pct);
     }
 
     addToMap(map: Map, x: number, y: number): boolean {

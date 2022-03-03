@@ -6,60 +6,42 @@ import * as Tile from '../tile/tile';
 GWU.color.install('flavorText', 50, 40, 90);
 GWU.color.install('flavorPrompt', 100, 90, 20);
 
-export interface FlavorOptions {
+export interface FlavorOptions extends GWU.widget.TextOptions {
     overflow?: boolean;
-    fg?: GWU.color.ColorBase;
-    bg?: GWU.color.ColorBase;
-    promptFg?: GWU.color.ColorBase;
 }
 
-export interface FlavorInit extends FlavorOptions {
-    x: number;
-    y: number;
-    width: number;
-}
-
-export class Flavor {
-    isPrompt: boolean;
+export class Flavor extends GWU.widget.Text {
     overflow: boolean;
-    needsDraw = true;
+    _needsDraw = true;
 
-    bounds: GWU.xy.Bounds;
-
-    fg: GWU.color.Color;
-    bg: GWU.color.Color;
-    promptFg: GWU.color.Color;
-
-    text = '';
-
-    constructor(opts: FlavorInit) {
-        this.fg = GWU.color.from(opts.fg || 'purple');
-        this.bg = GWU.color.from(opts.bg || 'darkest_gray');
-        this.promptFg = GWU.color.from(opts.promptFg || 'gold');
-
-        this.bounds = new GWU.xy.Bounds(opts.x, opts.y, opts.width, 1);
+    constructor(opts: FlavorOptions) {
+        super(
+            (() => {
+                opts.tag = opts.tag || 'flavor';
+                return opts;
+            })()
+        );
 
         this.overflow = opts.overflow || false;
-        this.isPrompt = false;
     }
 
     showText(text: string): this {
-        this.text = text;
-        this.isPrompt = false;
+        this.text(text);
+        this.removeClass('prompt');
         this.needsDraw = true;
         return this;
     }
 
     clear(): this {
-        this.text = '';
-        this.isPrompt = false;
+        this.text('');
+        this.removeClass('prompt');
         this.needsDraw = true;
         return this;
     }
 
     showPrompt(text: string): this {
-        this.text = text;
-        this.isPrompt = true;
+        this.text(text);
+        this.addClass('prompt');
         this.needsDraw = true;
         return this;
     }
@@ -164,30 +146,9 @@ export class Flavor {
         return buf;
     }
 
-    draw(buffer: GWU.buffer.Buffer): boolean {
-        if (!this.needsDraw) return false;
-        this.needsDraw = false;
-
-        buffer.fillRect(
-            this.bounds.x,
-            this.bounds.y,
-            this.bounds.width,
-            1,
-            ' ',
-            this.bg,
-            this.bg
-        );
-
-        buffer.drawText(
-            this.bounds.x,
-            this.bounds.y,
-            this.text,
-            this.fg,
-            this.bg,
-            this.bounds.width,
-            'left'
-        );
-
-        return true;
+    _draw(buffer: GWU.buffer.Buffer): void {
+        if (!this._needsDraw) return;
+        this._needsDraw = false;
+        super._draw(buffer);
     }
 }

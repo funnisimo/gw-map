@@ -92,7 +92,7 @@ describe('Scent', () => {
         scent.update();
         scent.update();
 
-        scent._data.dump();
+        // scent._data.dump();
         expect(scent.get(1, 10)).toEqual(9);
     });
 });

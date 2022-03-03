@@ -1,8 +1,9 @@
 import * as GWU from 'gw-utils';
 import * as Tile from './tile';
 
-import '../effect/handlers';
-import '../effect/types';
+import * as ACTION from '../action';
+
+import '../effects';
 
 Tile.install('FLOOR', {
     ch: '\u00b7',
@@ -20,7 +21,7 @@ Tile.install('DOOR', {
     priority: 30,
     flags: 'T_IS_DOOR, L_BLOCKS_EFFECTS, L_BLOCKS_ITEMS, L_BLOCKS_VISION, L_VISUALLY_DISTINCT',
     article: 'a',
-    effects: {
+    actions: {
         enter: 'TILE:DOOR_OPEN',
         open: 'TILE:DOOR_OPEN_ALWAYS',
     },
@@ -35,10 +36,10 @@ Tile.install('DOOR_OPEN', 'DOOR', {
     flags: '!L_BLOCKS_ITEMS, !L_BLOCKS_VISION',
     name: 'open door',
     article: 'an',
-    effects: {
+    actions: {
         tick: {
             chance: 100 * 100, // 100%
-            effects: 'TILE:DOOR~!',
+            tile: 'DOOR~!',
         },
         enter: null,
         open: null,
@@ -48,7 +49,7 @@ Tile.install('DOOR_OPEN', 'DOOR', {
 });
 
 Tile.install('DOOR_OPEN_ALWAYS', 'DOOR_OPEN', {
-    effects: {
+    actions: {
         tick: null,
         close: 'TILE:DOOR~!',
     },
@@ -63,8 +64,14 @@ Tile.install('UP_STAIRS', {
     flags: 'T_UP_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, T_LIST_IN_SIDEBAR',
     name: 'upward stairs',
     article: 'an',
-    effects: {
-        player: 'EMIT:UP_STAIRS',
+    actions: {
+        climb(action: ACTION.Action) {
+            if (!action.actor) return action.didNothing();
+            if (!action.actor.isPlayer()) return action.didNothing();
+
+            action.game.startNewMap({ up: true });
+            return action.actor.endTurn();
+        },
     },
     flavor: 'stairs leading upwards',
 });
@@ -76,8 +83,14 @@ Tile.install('DOWN_STAIRS', {
     flags: 'T_DOWN_STAIRS, L_BLOCKED_BY_STAIRS, L_VISUALLY_DISTINCT, T_LIST_IN_SIDEBAR',
     name: 'downward stairs',
     article: 'a',
-    effects: {
-        player: 'EMIT:DOWN_STAIRS',
+    actions: {
+        descend(action: ACTION.Action) {
+            if (!action.actor) return action.didNothing();
+            if (!action.actor.isPlayer()) return action.didNothing();
+
+            action.game.startNewMap({ down: true });
+            return action.actor.endTurn();
+        },
     },
     flavor: 'downward leading stairs',
 });

@@ -5,8 +5,11 @@ import * as Flags from '../flags/entity';
 import { Cell } from '../map/cell';
 import { Map } from '../map/map';
 import { EntityKind, TextOptions, FlavorOptions } from './kind';
+import * as ACTION from '../action';
 
 let lastId = 0;
+
+export type ActorActionResult = false | ACTION.ActionFn;
 
 export class Entity implements EntityType {
     static default = {
@@ -26,6 +29,9 @@ export class Entity implements EntityType {
     id: string;
     changed = true;
 
+    actions = new ACTION.Actions(this);
+    _actions: Record<string, boolean> = {};
+
     // lastSeen: GWU.xy.Loc = [-1, -1];
 
     constructor(kind: EntityKind) {
@@ -44,7 +50,12 @@ export class Entity implements EntityType {
     }
 
     isPlural(): boolean {
-        return !!(this.flags.entity & Flags.Entity.L_ALWAYS_PLURAL);
+        return this.hasEntityFlag(Flags.Entity.L_ALWAYS_PLURAL);
+    }
+
+    isOnMap(): boolean {
+        // return this.hasEntityFlag(Flags.Entity.L_ON_MAP);
+        return !!this._map;
     }
 
     addToMap(map: Map, x: number, y: number): boolean {
@@ -163,6 +174,40 @@ export class Entity implements EntityType {
     }
     drawInto(dest: GWU.sprite.Mixer, _observer?: Entity) {
         dest.drawSprite(this.sprite);
+    }
+
+    canDoAction(action: string): boolean {
+        const v = this._actions[action];
+        if (v !== undefined) return v;
+        return this.kind.canDoAction(action);
+    }
+
+    hasAction(action: string): boolean {
+        return this.actions.has(action) || this.kind.actions.has(action);
+    }
+
+    on(action: string | string[], fn: ACTION.ActionFn) {
+        this.actions.on(action, fn);
+    }
+    once(action: string | string[], fn: ACTION.ActionFn) {
+        this.actions.once(action, fn);
+    }
+    off(action: string | string[], fn?: ACTION.ActionFn) {
+        this.actions.off(action, fn);
+    }
+
+    trigger(action: ACTION.Action): void;
+    trigger(name: string, action: ACTION.Action): void;
+    trigger(name: string | ACTION.Action, action?: ACTION.Action): void {
+        if (name instanceof ACTION.Action) {
+            return this.trigger(name.action, name);
+        }
+        if (!action) throw new Error('Action required.');
+
+        if (action.isDone()) return;
+        this.actions.trigger(name, action);
+        if (action.isDone()) return;
+        this.kind.trigger(name, action);
     }
 
     toString() {

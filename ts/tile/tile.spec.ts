@@ -3,8 +3,9 @@ import * as GWU from 'gw-utils';
 import * as Tile from './index';
 import { Entity as ObjectFlags, Depth } from '../flags';
 import * as Map from '../map';
-import '../effect/handlers';
+import '../effects';
 import './tiles';
+import * as ACTION from '../action';
 
 const COLORS = GWU.color.colors;
 
@@ -48,7 +49,7 @@ describe('Tile', () => {
             bg: COLORS.dark_gray,
         });
         expect(tile.depth).toEqual(Depth.GROUND);
-        expect(tile.effects).toEqual({});
+        // expect(tile.actions).toEqual({});
         expect(tile.priority).toEqual(90);
         expect(tile.name).toEqual('Stone Wall');
 
@@ -146,8 +147,8 @@ describe('Tile', () => {
             name: 'a locked door',
             fg: 'white',
             bg: 'teal',
-            effects: {
-                enter: null,
+            actions: {
+                enter: false,
                 key: 'TILE:DOOR',
             },
         });
@@ -228,16 +229,14 @@ describe('Tile', () => {
             ch: '+',
             fg: '#f66',
             bg: '#ff6',
-            effects: {
-                tick: { chance: 0, effects: 'MSG:testing' },
+            actions: {
+                tick: { chance: 100, msg: 'testing' },
             },
             depth: 'SURFACE',
         });
 
         expect(Tile.tiles.CARPET).toBe(carpet);
-        expect(carpet.effects.tick).not.toBeNil();
-
-        expect(carpet.hasEffect('tick')).toBeTruthy();
+        expect(carpet.hasAction('tick')).toBeTruthy();
     });
 
     test('can be created by extending another tile', () => {
@@ -360,7 +359,7 @@ describe('Tile', () => {
             description:
                 'The iron bars rattle but will not budge; they are firmly locked in place.',
             flags: '!L_BLOCKS_VISION, !L_BLOCKS_GAS, L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT, T_CONNECTS_LEVEL',
-            effects: {
+            actions: {
                 machine: [
                     'TILE:PORTCULLIS_DORMANT!',
                     'MSG:the portcullis slowly rises from the ground into a slot in the ceiling.',
@@ -375,15 +374,15 @@ describe('Tile', () => {
         const portcullisOpen = Tile.install('PORTCULLIS_DORMANT', {
             extends: 'FLOOR',
             priority: '+1',
-            effects: {
+            actions: {
                 machine: {
-                    type: 'SPREAD:0:0',
-                    flags: 'E_EVACUATE_CREATURES_FIRST',
-                    effects: [
-                        'TILE:PORTCULLIS_CLOSED',
-                        'MSG:with a heavy mechanical sound, an iron portcullis falls from the ceiling!',
-                        // 'FLASH:true'
+                    spread: [
+                        0,
+                        0,
+                        { tile: 'PORTCULLIS_CLOSED' },
+                        { flags: 'E_EVACUATE_CREATURES_FIRST' },
                     ],
+                    msg: 'with a heavy mechanical sound, an iron portcullis falls from the ceiling!',
                 },
             },
         });
@@ -397,19 +396,20 @@ describe('Tile', () => {
         expect(map.hasTile(5, 5, 'PORTCULLIS_CLOSED')).toBeTruthy();
         expect(map.cell(5, 5).blocksMove()).toBeTruthy();
         expect(map.cell(5, 5).blocksVision()).toBeFalsy();
+        const action = new ACTION.Action('machine', { map, x: 5, y: 5 });
 
-        map.fire('machine', 5, 5);
+        map.trigger('machine', action);
         expect(map.hasTile(5, 5, 'PORTCULLIS_DORMANT')).toBeTruthy();
         expect(map.cell(5, 5).blocksMove()).toBeFalsy();
         expect(map.cell(5, 5).blocksVision()).toBeFalsy();
 
-        map.fire('machine', 5, 5);
+        map.trigger('machine', action);
         expect(map.hasTile(5, 5, 'PORTCULLIS_CLOSED')).toBeTruthy();
         expect(map.cell(5, 5).blocksMove()).toBeTruthy();
         expect(map.cell(5, 5).blocksVision()).toBeFalsy();
     });
 
-    test('WALL_LEVER', async () => {
+    test('WALL_LEVER', () => {
         // Wall Lever - (lever, pulled)
         // [LEVER_CHAR,	wallForeColor,			wallBackColor,			0,	0,	DF_PLAIN_FIRE,	0,			DF_PULL_LEVER,  0,				NO_LIGHT,		(T_OBSTRUCTS_EVERYTHING), (TM_STAND_IN_TILE | TM_VANISHES_UPON_PROMOTION | TM_IS_WIRED | TM_PROMOTES_ON_PLAYER_ENTRY | TM_LIST_IN_SIDEBAR | TM_VISUALLY_DISTINCT | TM_INVERT_WHEN_HIGHLIGHTED),"a lever", "The lever moves."],
         // [LEVER_PULLED_CHAR,wallForeColor,		wallBackColor,			0,	0,	DF_PLAIN_FIRE,	0,			0,				0,				NO_LIGHT,		(T_OBSTRUCTS_EVERYTHING), (TM_STAND_IN_TILE),                                                       "an inactive lever",    "The lever won't budge."],
@@ -424,10 +424,10 @@ describe('Tile', () => {
             flavor: 'a lever',
             description: 'The lever moves.',
             flags: 'L_LIST_IN_SIDEBAR, L_VISUALLY_DISTINCT, T_CONNECTS_LEVEL',
-            effects: {
-                playerEnter: [
+            actions: {
+                'player-enter': [
                     'TILE:WALL_LEVER_PULLED',
-                    'activateMachine: true',
+                    'activateMachine',
                     'MSG:the lever moves.',
                 ],
             },
@@ -454,17 +454,9 @@ describe('Tile', () => {
         map.setTile(5, 5, 'WALL_LEVER', { machine: 4 });
         expect(map.hasTile(5, 5, 'WALL_LEVER')).toBeTruthy();
         expect(cell.machineId).toEqual(4);
+        const action = new ACTION.Action('player-enter', { map, x: 5, y: 5 });
 
-        jest.spyOn(map, 'activateMachine');
-
-        await map.fire('playerEnter', 5, 5);
+        map.trigger('player-enter', action);
         expect(map.hasTile(5, 5, 'WALL_LEVER_PULLED')).toBeTruthy();
-
-        expect(map.activateMachine).toHaveBeenCalledWith(
-            4,
-            5,
-            5,
-            expect.anything()
-        );
     });
 });

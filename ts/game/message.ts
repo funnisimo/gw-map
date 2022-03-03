@@ -1,38 +1,22 @@
 import * as GWU from 'gw-utils';
-import { Game } from './game';
 
-export interface MessageOptions {
-    size?: number;
-    bg?: GWU.color.ColorBase;
-    fg?: GWU.color.ColorBase;
+export interface MessageOptions extends GWU.widget.WidgetOpts {
+    archive?: number;
 }
 
-export interface MessageInit extends MessageOptions {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
+GWU.app.defaultStyle.add('msgs', { bg: 'darkest_gray', fg: 'white' });
+GWU.app.defaultStyle.add('archive', { bg: 'darkest_gray', fg: 'white' });
 
-    archive: number;
-}
-
-export class Messages {
+export class Messages extends GWU.widget.Widget {
     cache: GWU.message.MessageCache;
-    bounds: GWU.xy.Bounds;
-    needsDraw = true;
-    bg: GWU.color.Color;
-    fg: GWU.color.Color;
 
-    constructor(opts: MessageInit) {
-        this.bounds = new GWU.xy.Bounds(
-            opts.x,
-            opts.y,
-            opts.width,
-            opts.height
+    constructor(opts: MessageOptions) {
+        super(
+            (() => {
+                opts.tag = opts.tag || 'msgs';
+                return opts;
+            })()
         );
-
-        this.bg = GWU.color.from(opts.bg || 'darkest_gray');
-        this.fg = GWU.color.from(opts.fg || 'white');
 
         if (!this.bounds.height)
             throw new Error('Must provde a height for messages widget.');
@@ -44,20 +28,15 @@ export class Messages {
                 this.needsDraw = true;
             },
         });
-    }
 
-    contains(xy: GWU.xy.XY | GWU.xy.Loc): boolean {
-        return this.bounds.contains(xy);
+        this.on('click', () => {
+            this.showArchive();
+        });
     }
 
     clear() {
         this.cache.clear();
         this.needsDraw = true;
-    }
-
-    click(e: GWU.io.Event, game: Game): false | Promise<void> {
-        if (!this.bounds.contains(e)) return false;
-        return this.showArchive(game);
     }
 
     confirmAll() {
@@ -66,9 +45,10 @@ export class Messages {
     }
 
     draw(buffer: GWU.buffer.Buffer): boolean {
-        if (!this.needsDraw) return false;
-        this.needsDraw = false;
         const isOnTop = this.bounds.y < 10;
+
+        const bg = this._used.bg;
+        const fg = this._used.fg;
 
         // black out the message area
         buffer.fillRect(
@@ -77,8 +57,8 @@ export class Messages {
             this.bounds.width,
             this.bounds.height,
             ' ',
-            this.bg,
-            this.bg
+            bg,
+            bg
         );
 
         this.cache.forEach((line, confirmed, i) => {
@@ -87,62 +67,93 @@ export class Messages {
             const localY = isOnTop ? this.bounds.height - i - 1 : i;
             const y = localY + this.bounds.y;
 
-            buffer.drawText(this.bounds.x, y, line, this.fg);
-            if (confirmed && this.bg) {
-                buffer.mix(this.bg, 50, this.bounds.x, y, this.bounds.width, 1);
+            buffer.drawText(this.bounds.x, y, line, fg);
+            if (confirmed && bg) {
+                buffer.mix(bg, 50, this.bounds.x, y, this.bounds.width, 1);
             }
         });
 
         return true;
     }
 
-    showArchive(game: Game): false | Promise<void> {
-        if (this.cache.length <= this.bounds.height) return false;
-        return showArchive(this, game).then(() => this.confirmAll());
+    showArchive() {
+        if (this.cache.length <= this.bounds.height) return;
+        if (!this.scene) return;
+        const app = this.scene.app;
+        app.scenes.run('msg-archive', this);
     }
 }
 
 export type ArchiveMode = 'forward' | 'ack' | 'reverse';
 
-export class MessageArchive extends GWU.widget.Widget {
+export const ArchiveScene = {
+    create(this: GWU.app.Scene) {},
+    start(this: GWU.app.Scene, source: Messages) {
+        new ArchiveWidget({
+            scene: this,
+            source,
+            id: 'ARCHIVE',
+        });
+    },
+    stop(this: GWU.app.Scene) {
+        this.children.forEach((c) => c.destroy());
+        this.children = [];
+    },
+    destroy(this: GWU.app.Scene) {},
+};
+
+GWU.app.installScene('msg-archive', ArchiveScene);
+
+export interface ArchiveOpts extends GWU.widget.WidgetOpts {
+    source: Messages;
+}
+
+export class ArchiveWidget extends GWU.widget.Widget {
     source: Messages;
     totalCount: number;
     isOnTop: boolean;
     mode: ArchiveMode = 'forward';
     shown: number;
 
-    _timeout: GWU.io.TimerFn | null = null;
+    _timeout: GWU.app.TimerFn | null = null;
+    _needsDraw = true;
 
-    constructor(layer: GWU.widget.WidgetLayer, source: Messages) {
-        super(layer, {
-            id: 'ARCHIVE',
-            tag: 'messages',
-            height: source.bounds.height,
-            width: source.bounds.width,
-            bg: source.bg,
+    constructor(opts: ArchiveOpts) {
+        super({
+            scene: opts.scene,
+            id: opts.id || 'ARCHIVE',
+            tag: opts.tag || 'archive',
             x: 0,
             y: 0,
             tabStop: true,
-            depth: 100, // I'm on top
+            // depth: 100, // I'm on top
         });
-        this.source = source;
+        this.source = opts.source;
         this.isOnTop = this.source.bounds.y < 10;
         this.bounds.height = this.isOnTop
-            ? layer.height - source.bounds.y
-            : source.bounds.bottom;
+            ? this.scene!.height - this.source.bounds.y
+            : this.source.bounds.bottom;
 
         this.totalCount = Math.min(
-            source.cache.length,
+            this.source.cache.length,
             this.isOnTop
-                ? layer.height - this.source.bounds.top
+                ? this.scene!.height - this.source.bounds.top
                 : this.source.bounds.bottom
         );
 
-        this.shown = source.bounds.height;
-        this._timeout = this.layer.setTimeout(() => this._forward(), 16);
+        this.shown = this.source.bounds.height;
+        this._timeout = this.scene!.wait(16, () => this._forward());
 
         // confirm them as they are right now...
         this.source.cache.confirmAll();
+
+        this.on('keypress', () => this._next());
+        this.on('click', () => this._next());
+    }
+
+    set needsDraw(v: boolean) {
+        this._needsDraw ||= v;
+        super.needsDraw = v;
     }
 
     contains(): boolean {
@@ -150,72 +161,73 @@ export class MessageArchive extends GWU.widget.Widget {
     }
 
     finish() {
-        this.layer.finish();
+        this.scene!.stop();
     }
 
-    keypress(e: GWU.io.Event): boolean {
-        return this.click(e);
-    }
+    _next(): void {
+        if (!this.scene) return;
 
-    click(_e: GWU.io.Event): boolean {
         if (this.mode === 'ack') {
             this.mode = 'reverse';
-            this.layer.needsDraw = true;
+            this.scene.needsDraw = true;
             if (this._timeout) {
-                this.layer.clearTimeout(this._timeout);
+                this._timeout();
             }
-            this._timeout = this.layer.setTimeout(() => this._reverse(), 16);
+            this._timeout = this.scene.wait(16, () => this._reverse());
         } else if (this.mode === 'reverse') {
             this.finish();
         } else {
             this.mode = 'ack';
             this.shown = this.totalCount;
             if (this._timeout) {
-                this.layer.clearTimeout(this._timeout);
+                this._timeout();
                 this._timeout = null;
             }
-            this.layer.needsDraw = true;
+            this.scene.needsDraw = true;
         }
-        return true;
     }
 
-    _forward(): boolean {
+    _forward(): void {
         // console.log('forward');
+        if (!this.scene) return;
 
         ++this.shown;
         this._timeout = null;
-        this.layer.needsDraw = true;
+        this.scene.needsDraw = true;
         if (this.shown < this.totalCount) {
-            this._timeout = this.layer.setTimeout(() => this._forward(), 16);
+            this._timeout = this.scene.wait(16, () => this._forward());
         } else {
             this.mode = 'ack';
             this.shown = this.totalCount;
         }
-        return true;
     }
 
-    _reverse(): boolean {
+    _reverse(): void {
         // console.log('reverse');
+        if (!this.scene) return;
+
         --this.shown;
         this._timeout = null;
         if (this.shown <= this.source.bounds.height) {
             this.finish();
         } else {
-            this.layer.needsDraw = true;
-            this._timeout = this.layer.setTimeout(() => this._reverse(), 16);
+            this.scene.needsDraw = true;
+            this._timeout = this.scene.wait(16, () => this._reverse());
         }
-        return true;
     }
 
-    _draw(buffer: GWU.buffer.Buffer): boolean {
+    _draw(buffer: GWU.buffer.Buffer): void {
         let fadePercent = 0;
         // let reverse = this.mode === 'reverse';
+
+        if (!this._needsDraw) return;
+        this._needsDraw = false;
 
         // Count the number of lines in the archive.
         // let totalMessageCount = this.totalCount;
         const isOnTop = this.isOnTop;
         const dbuf = buffer;
-        const fg = GWU.color.from(this.source.fg);
+        const fg = GWU.color.from(this._used.fg);
 
         // const dM = reverse ? -1 : 1;
         // const startM = reverse ? totalMessageCount : this.bounds.height;
@@ -266,14 +278,5 @@ export class MessageArchive extends GWU.widget.Widget {
                       );
             dbuf.wrapText(x, y, 8, '--DONE--', this._used.bg, this._used.fg);
         }
-
-        return true;
     }
-}
-
-export async function showArchive(widget: Messages, game: Game): Promise<void> {
-    const layer = new GWU.widget.WidgetLayer(game.ui);
-    // @ts-ignore
-    const w = new MessageArchive(layer, widget);
-    await layer.run();
 }

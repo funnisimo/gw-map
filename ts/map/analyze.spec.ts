@@ -5,7 +5,7 @@ import '../../test/matchers';
 import * as MAP from '.';
 import * as Flags from '../flags';
 
-import '../effect/handlers';
+import '../effects';
 import '../tile/tiles';
 
 describe('analyze', () => {

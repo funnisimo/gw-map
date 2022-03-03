@@ -1,6 +1,6 @@
 import * as Map from '.';
 
-import '../effect/handlers';
+import '../effects';
 import '../tile/tiles';
 
 describe('Snapshot', () => {

@@ -1,40 +1,37 @@
-GWM.item.install(
-    'ANANAS',
-    new GWM.item.ItemKind({
-        name: 'Ananas',
-        ch: '*',
-        fg: 'gold',
+GWM.item.install('ANANAS', {
+    name: 'Ananas',
+    ch: '*',
+    fg: 'gold',
 
-        actions: {
-            async pickup(game, actor, item) {
-                game.map.removeItem(item);
+    actions: {
+        async pickup(game, actor, item) {
+            game.map.removeItem(item);
 
-                GWU.message.addAt(
-                    actor.x,
-                    actor.y,
-                    '{{you}} {{verb pick[s]up}} {{an item}}.',
-                    {
-                        actor,
-                        item,
-                    }
-                );
-
-                actor.data.count += 1;
-                game.sidebar.needsDraw = true;
-                if (game.map.items.length === 0) {
-                    await game.ui.alert('You found them all!');
-                    await game.ui.fadeTo('black', 1000);
-                    if (game.map.id === 5) {
-                        game.finish(true); // game over!
-                    } else {
-                        game.startNewMap(game.map.id + 1);
-                    }
+            GWU.message.addAt(
+                actor.x,
+                actor.y,
+                '{{you}} {{verb pick[s]}} up {{an item}}.',
+                {
+                    actor,
+                    item,
                 }
-                return actor.endTurn(); // handled
-            },
+            );
+
+            actor.data.count += 1;
+            game.sidebar.needsDraw = true;
+            if (game.map.items.length === 0) {
+                await game.ui.alert('You found them all!');
+                await game.ui.fadeTo('black', 1000);
+                if (game.map.id === 5) {
+                    game.finish(true); // game over!
+                } else {
+                    game.startNewMap(game.map.id + 1);
+                }
+            }
+            return actor.endTurn(); // handled
         },
-    })
-);
+    },
+});
 
 function addRandomBox(map) {
     const item = GWM.item.make('ANANAS');
@@ -57,59 +54,10 @@ function addRandomBox(map) {
     map.addItemNear(loc[0], loc[1], item);
 }
 
-GWM.player.install('HERO', {
-    name: 'Hero',
-    stats: { health: 10 },
-    sidebarFg: 'green',
-
-    // these are actions that I am performing
-    actions: {
-        // async pickup(game, actor) {
-        //     const item = game.map.itemAt(actor.x, actor.y);
-        //     if (!item) {
-        //         await game.ui.alert('No box here.');
-        //         return actor.endTurn(); // handled
-        //     }
-        //     return 0; // no action taken
-        // },
-        async attack(game, hero) {
-            await game.ui.alert('You should not have run into me, you thief!');
-            game.finish(false);
-            return -1;
-        },
-    },
-
+class MyHero extends GWM.player.PlayerKind {
     drawSidebar(player, buffer, bounds) {
-        if (!player.map) return 0;
-        if (player.isDestroyed) return 0;
-
-        const mixer = new GWU.sprite.Mixer();
-
-        player.map.getAppearanceAt(player.x, player.y, mixer);
-
-        buffer.drawSprite(bounds.x + 1, bounds.y, mixer);
-        let count = 0;
-        buffer.wrapText(
-            bounds.x + 3,
-            bounds.y + count++,
-            bounds.width - 3,
-            player.getName(),
-            this.sidebarFg
-        );
-        if (
-            player.map.hasTileFlag(
-                player.x,
-                player.y,
-                GWM.flags.Tile.T_DEEP_WATER
-            )
-        ) {
-            buffer.drawText(
-                bounds.x + 3,
-                bounds.y + count++,
-                'Swimming',
-                '#66F'
-            );
-        }
+        let count = super.drawSidebar(player, buffer, bounds);
+        if (!count) return 0;
         buffer.drawText(
             bounds.x + 3,
             bounds.y + count++,
@@ -123,8 +71,28 @@ GWM.player.install('HERO', {
             'gold'
         );
         return count;
-    },
-});
+    }
+}
+
+GWM.player.install(
+    'HERO',
+    new MyHero({
+        name: 'Hero',
+        stats: { health: 10 },
+        sidebarFg: 'green',
+
+        // these are actions that I am performing
+        actions: {
+            async attack(game, hero) {
+                await game.ui.alert(
+                    'You should not have run into me, you thief!'
+                );
+                game.finish(false);
+                return -1;
+            },
+        },
+    })
+);
 
 GWM.actor.install('PEDRO', {
     name: 'Pedro',

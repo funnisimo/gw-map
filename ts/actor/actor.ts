@@ -3,13 +3,14 @@ import * as Entity from '../entity/entity';
 import { ActorFlags } from './types';
 import * as Flags from '../flags';
 import { ActorKind } from './kind';
-import { ActorActionFn, getAction, ActorActionResult } from './action';
+// import { ActorActionFn, getAction, ActorActionResult } from './action';
 import { Item } from '../item/item';
 import { Status } from './status';
 import { Stats } from './stat';
 import { Game } from '../game';
 import { AIConfig } from '../ai/ai';
 import { Map } from '../map/map';
+import * as ACTION from '../action';
 
 export interface PickupOptions {
     admin: boolean;
@@ -27,6 +28,8 @@ export class Actor extends Entity.Entity {
     flags!: ActorFlags;
     kind: ActorKind;
     ai: AIConfig = {};
+    _action = 'idle';
+    _turnTime = 0;
 
     leader: Actor | null = null;
     items: Item | null = null; // inventory
@@ -104,19 +107,7 @@ export class Actor extends Entity.Entity {
         return this.hasEntityFlag(Flags.Entity.L_DESTROYED);
     }
 
-    getAction(name: string): ActorActionResult {
-        const action = this.kind.actions[name];
-        if (action === undefined || action === true) {
-            const main = getAction(name); // default is to do any action
-            return main || false;
-        } else if (action === false) {
-            return false;
-        }
-
-        return action;
-    }
-
-    getBumpActions(): (ActorActionFn | string)[] {
+    getBumpActions(): (ACTION.ActionFn | string)[] {
         return this.kind.bump;
     }
 
@@ -180,41 +171,50 @@ export class Actor extends Entity.Entity {
 
     ////////////////// ACTOR
 
-    async act(game: Game): Promise<number> {
+    setAction(name: string) {
+        if (!this.canDoAction(name)) {
+            throw new Error('Actor cannot do action - ' + name);
+        }
+        this._action = name;
+    }
+
+    clearAction() {
+        this._action = 'idle';
+    }
+
+    act(game: Game): number {
         let startedVisible = false;
         if (game.player.canSee(this)) {
             this.setActorFlag(Flags.Actor.IS_VISIBLE);
             startedVisible = true;
         } else {
-            if (this.hasActorFlag(Flags.Actor.IS_VISIBLE)) {
-                console.log('not visible');
-            }
             this.clearActorFlag(Flags.Actor.IS_VISIBLE);
         }
 
         if (this.becameVisible()) {
-            console.log('became visible');
             game.player.interrupt(this);
         }
 
-        let r = 0;
-        if (this.ai && this.ai.fn) {
-            r = await this.ai.fn(game, this);
-        }
+        ACTION.doAction(this._action, { game, actor: this, map: this.map! });
 
-        if (r == 0 && this.kind.ai.fn) {
-            r = await this.kind.ai.fn(game, this);
-        }
+        // let r = 0;
+        // if (this.ai && this.ai.fn) {
+        //     r = this.ai.fn(game, this);
+        // }
 
-        if (r) {
-            // did something
-            if (startedVisible || game.player.canSee(this)) {
-            }
-            return r;
-        }
+        // if (r == 0 && this.kind.ai.fn) {
+        //     r = this.kind.ai.fn(game, this);
+        // }
 
-        // idle - always
-        return this.endTurn();
+        // if (r) {
+        //     // did something
+        if (startedVisible || game.player.canSee(this)) {
+        }
+        //     return r;
+        // }
+
+        // // idle - always
+        return this._turnTime;
     }
 
     moveSpeed(): number {
@@ -222,6 +222,8 @@ export class Actor extends Entity.Entity {
     }
 
     startTurn() {
+        this._turnTime = 0;
+
         if (this.hasActorFlag(Flags.Actor.IS_VISIBLE)) {
             this.setActorFlag(Flags.Actor.WAS_VISIBLE);
         } else {
@@ -237,7 +239,7 @@ export class Actor extends Entity.Entity {
         }
     }
 
-    endTurn(pct = 100): number {
+    endTurn(pct = 100): void {
         if (this.hasActorFlag(Flags.Actor.IS_VISIBLE)) {
             this.setActorFlag(Flags.Actor.WAS_VISIBLE);
         } else {
@@ -265,7 +267,10 @@ export class Actor extends Entity.Entity {
             }
         }
 
-        return Math.floor((pct * this.moveSpeed()) / 100);
+        this._turnTime = Math.max(
+            this._turnTime,
+            Math.floor((pct * this.moveSpeed()) / 100)
+        );
     }
 
     ///////

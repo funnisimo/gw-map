@@ -3,6 +3,7 @@ import * as GWU from 'gw-utils';
 import { Cell, Map } from '../map';
 import { Entity } from './entity';
 import * as Flags from '../flags';
+import * as ACTION from '../action';
 
 export interface TextOptions {
     article?: boolean;
@@ -38,6 +39,8 @@ export interface KindOptions extends GWU.sprite.SpriteConfig {
 
     drawSidebar?: DrawSidebarFn;
     sidebarFg?: GWU.color.ColorBase;
+
+    actions?: Record<string, ACTION.ActionFn | boolean>;
 }
 
 export interface MakeOptions {
@@ -63,6 +66,9 @@ export class EntityKind {
     avoidTileTags: string[] = [];
 
     sidebarFg: GWU.color.Color;
+
+    actions = new ACTION.Actions(this);
+    _actions: Record<string, boolean> = {};
 
     constructor(config: KindOptions) {
         this.id = config.id || config.name;
@@ -123,6 +129,12 @@ export class EntityKind {
         this.sidebarFg = GWU.color.from(
             config.sidebarFg || Entity.default.sidebarFg
         );
+
+        if (config.actions) {
+            Object.entries(config.actions).forEach(([name, value]) =>
+                this.on(name, value)
+            );
+        }
     }
 
     make(opts?: MakeOptions): Entity {
@@ -232,6 +244,46 @@ export class EntityKind {
             this.sidebarFg
         );
         return 1;
+    }
+
+    canDoAction(action: string): boolean {
+        const v = this._actions[action];
+        if (v !== undefined) return v;
+        return true; // by default you can do everything!
+    }
+
+    on(action: string | string[], fn: ACTION.ActionFn | boolean) {
+        if (Array.isArray(action)) {
+            action.forEach((a) => this.on(a, fn));
+            return;
+        }
+
+        if (fn === true) {
+            this._actions[action] = true;
+        } else if (fn === false) {
+            this._actions[action] = false;
+        } else {
+            this.actions.on(action, fn);
+            this._actions[action] = true;
+        }
+    }
+    off(action: string | string[]) {
+        if (Array.isArray(action)) {
+            action.forEach((a) => this.off(a));
+            return;
+        }
+        this._actions[action] = false;
+    }
+
+    trigger(action: ACTION.Action): void;
+    trigger(name: string, action: ACTION.Action): void;
+    trigger(name: string | ACTION.Action, action?: ACTION.Action): void {
+        if (name instanceof ACTION.Action) {
+            return this.trigger(name.action, name);
+        }
+        if (!action) throw new Error('Action required.');
+        if (action.isDone()) return;
+        this.actions.trigger(name, action);
     }
 }
 

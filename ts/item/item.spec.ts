@@ -2,6 +2,8 @@
 import * as Item from '.';
 import * as Map from '../map';
 
+import '../tile/tiles';
+
 describe('Item', () => {
     test('create and place', () => {
         Item.install('ITEM', {

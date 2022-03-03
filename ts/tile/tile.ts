@@ -1,8 +1,9 @@
 import * as GWU from 'gw-utils';
 
-import { EffectBase, Effect, make as makeEffect } from '../effect/effect';
 import { TileFlags } from './types';
 import * as Flags from '../flags';
+import * as ACTION from '../action';
+import * as EFFECT from '../effect';
 
 export interface TextOptions {
     article?: boolean | string;
@@ -15,7 +16,7 @@ export interface TileConfig extends GWU.sprite.SpriteConfig {
     id: string;
     flags: TileFlags;
     dissipate: number;
-    effects: Record<string, EffectBase | Effect>;
+    actions: ACTION.ActionObj;
     priority: number;
     depth: number;
     light: GWU.light.LightType | null;
@@ -33,7 +34,7 @@ export class Tile {
     index = -1;
     flags: TileFlags;
     dissipate = 20 * 100; // 0%
-    effects: Record<string, string | Effect> = {};
+    actions = new ACTION.Actions(this);
     sprite: GWU.sprite.Sprite;
     priority = 50;
     depth = 0;
@@ -62,12 +63,14 @@ export class Tile {
 
         this.flags = config.flags || { entity: 0, tile: 0, tileMech: 0 };
 
-        if (config.effects) {
-            Object.assign(this.effects, config.effects);
-        }
+        if (config.actions) {
+            Object.entries(config.actions).forEach(([ev, fn]) => {
+                this.on(ev, fn);
+            });
 
-        if (this.hasEffect('fire')) {
-            this.flags.tile |= Flags.Tile.T_IS_FLAMMABLE;
+            if (this.hasAction('fire')) {
+                this.flags.tile |= Flags.Tile.T_IS_FLAMMABLE;
+            }
         }
 
         if (config.tags) {
@@ -129,9 +132,48 @@ export class Tile {
         return !!(this.flags.entity & Flags.Entity.L_BLOCKS_EFFECTS);
     }
 
-    hasEffect(name: string): boolean {
-        return name in this.effects;
+    // ACTIONS
+
+    hasAction(name: string): boolean {
+        return this.actions.has(name);
     }
+
+    on(name: string, fn: ACTION.ActionFn | string | EFFECT.EffectObj) {
+        if (!fn) {
+            this.actions.off(name);
+            return;
+        }
+
+        if (typeof fn === 'string') {
+            const effect = EFFECT.make(fn);
+            if (effect === null)
+                throw new Error('Failed to make effect: ' + fn);
+            fn = effect;
+        }
+
+        if (Array.isArray(fn)) {
+            fn.forEach((cb) => this.on(name, cb));
+        } else if (typeof fn === 'object') {
+            Object.entries(fn).forEach(([key, value]) => {
+                const effect = EFFECT.make(key, value);
+                effect && this.on(name, effect);
+            });
+        } else {
+            this.actions.on(name, fn);
+        }
+    }
+
+    trigger(name: string, action: ACTION.Action): void;
+    trigger(action: ACTION.Action): void;
+    trigger(name: string | ACTION.Action, action?: ACTION.Action): void {
+        if (name instanceof ACTION.Action) {
+            return this.trigger(name.action, name);
+        }
+        if (!action) throw new Error('Need action.');
+        this.actions.trigger(name, action);
+    }
+
+    // INFO
 
     isNull(): boolean {
         return this === NULL;
@@ -218,7 +260,8 @@ export interface TileOptions extends GWU.sprite.SpriteConfig {
     dissipate: number;
     depth: Flags.Depth | Flags.DepthString;
 
-    effects: Record<string, EffectBase | null>;
+    // effects?: Record<string, any>;
+    actions?: Record<string, EFFECT.EffectConfig>;
     groundTile: string;
 
     light: GWU.light.LightBase | null;
@@ -227,7 +270,7 @@ export interface TileOptions extends GWU.sprite.SpriteConfig {
 }
 
 export function make(options: Partial<TileOptions>) {
-    let base = { effects: {}, flags: {}, sprite: {}, priority: 50 } as Tile;
+    let base = { flags: {}, sprite: {}, priority: 50 } as Tile;
     if (options.extends) {
         base = tiles[options.extends];
         if (!base)
@@ -266,32 +309,6 @@ export function make(options: Partial<TileOptions>) {
         priority = options.priority;
     }
 
-    const effects: Record<string, Effect | string> = {};
-    Object.assign(effects, base.effects);
-    if (options.effects) {
-        Object.entries(options.effects).forEach(([key, value]) => {
-            if (value === null) {
-                delete effects[key];
-                return;
-            }
-
-            if (typeof value === 'string' && !value.includes(':')) {
-                effects[key] = value;
-                return;
-            }
-
-            try {
-                effects[key] = makeEffect(value);
-            } catch (e: any) {
-                throw new Error(
-                    `Failed to add effect to tile => ${key} : ${JSON.stringify(
-                        value
-                    )} : ` + (e as Error).message
-                );
-            }
-        });
-    }
-
     const flags: TileFlags = {
         entity: GWU.flag.from(Flags.Entity, base.flags.entity, options.flags),
         tile: GWU.flag.from(Flags.Tile, base.flags.tile, options.flags),
@@ -321,7 +338,6 @@ export function make(options: Partial<TileOptions>) {
         id: options.id,
         flags,
         dissipate: options.dissipate ?? base.dissipate,
-        effects,
         priority,
         depth: depth,
         light,
@@ -340,6 +356,17 @@ export function make(options: Partial<TileOptions>) {
     };
 
     const tile = new Tile(config);
+
+    if (base && base.actions) {
+        tile.actions.copy(base.actions);
+    }
+
+    if (options.actions) {
+        Object.entries(options.actions).forEach(([key, value]) => {
+            tile.on(key, value);
+        });
+    }
+
     return tile;
 }
 
@@ -348,8 +375,14 @@ export const all: Tile[] = [];
 
 export function get(id: string | number | Tile): Tile {
     if (id instanceof Tile) return id;
-    if (typeof id === 'string') return tiles[id] || null;
-    return all[id] || null;
+    if (typeof id === 'string') {
+        const t = tiles[id];
+        if (t) return t;
+        throw new Error('Failed to find tile with id - ' + id);
+    }
+    const t = all[id];
+    if (t) return t;
+    throw new Error('Failed to find tile with index - ' + id);
 }
 
 export function install(id: string, options: Partial<TileOptions>): Tile;

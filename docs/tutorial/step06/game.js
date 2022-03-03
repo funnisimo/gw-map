@@ -7,6 +7,15 @@ GWM.tile.install('ENTRANCE', {
     name: 'Blocked Gate',
 });
 
+GWM.tile.install('INACTIVE_EXIT', {
+    extends: 'UP_STAIRS',
+    ch: '\u2229',
+    fg: 'gray',
+    flags: 'L_BLOCKS_MOVE',
+    flavor: 'the blocked exit gate',
+    name: 'Blocked Exit',
+});
+
 GWM.tile.install('EXIT', {
     extends: 'UP_STAIRS',
     ch: '\u2229',
@@ -23,31 +32,13 @@ GWM.tile.install('FINAL_EXIT', {
     flags: 'L_BRIGHT_MEMORY',
     flavor: 'the exit gate',
     name: 'Exit Gate',
+    actions: {
+        climb(game, player) {
+            game.finish(true);
+            return player.endTurn();
+        },
+    },
 });
-
-GWM.tile.install('INACTIVE_EXIT', {
-    extends: 'EXIT',
-    fg: 'gray',
-    flags: 'L_BLOCKS_MOVE',
-    flavor: 'the exit gate',
-    name: 'Blocked Gate',
-});
-
-// GWM.tile.install('INACTIVE_UP_STAIRS', {
-//     extends: 'UP_STAIRS',
-//     fg: 'gray',
-//     flags: 'L_BLOCKS_MOVE',
-//     flavor: 'blocked stairs',
-//     name: 'Blocked Stairs',
-// });
-
-// GWM.tile.install('INACTIVE_DOWN_STAIRS', {
-//     extends: 'DOWN_STAIRS',
-//     fg: 'gray',
-//     flags: 'L_BLOCKS_MOVE',
-//     flavor: 'blocked stairs',
-//     name: 'Blocked Stairs',
-// });
 
 GWM.item.install('ANANAS', {
     name: 'Ananas',
@@ -91,13 +82,13 @@ GWM.item.install('ANANAS', {
     },
 });
 
-function addRandomBox(map, playerLoc) {
-    const item = GWM.item.make('ANANAS');
+function addItem(map, kind = 'ANANAS') {
+    const start = map.locations.start;
+    const item = GWM.item.make(kind);
 
     const loc = GWU.random.matchingLoc(map.width, map.height, (x, y) => {
         if (item.avoidsCell(map.cell(x, y))) return false;
-        if (GWU.xy.distanceBetween(x, y, playerLoc[0], playerLoc[1]) < 15)
-            return false;
+        if (GWU.xy.distanceBetween(x, y, start[0], start[1]) < 15) return false;
 
         let ok = true;
         map.eachItem((i) => {
@@ -111,11 +102,11 @@ function addRandomBox(map, playerLoc) {
     map.addItemNear(loc[0], loc[1], item);
 }
 
-function addPedro(map) {
+function addActor(map, kind = 'PEDRO') {
     const start = map.locations.start;
     const end = map.locations.end;
 
-    const pedro = GWM.actor.make('PEDRO');
+    const pedro = GWM.actor.make(kind);
 
     const loc = GWU.random.matchingLoc(map.width, map.height, (x, y) => {
         if (pedro.avoidsCell(map.cell(x, y))) return false;
@@ -225,10 +216,6 @@ async function start() {
                 },
             });
 
-            dungeon.stairLocs.forEach(([down, up], i) => {
-                console.log(i, down, up);
-            });
-
             this.dungeon = dungeon;
         },
 
@@ -240,18 +227,13 @@ async function start() {
 
             // Add boxes randomly
             for (let c = 0; c < 8; ++c) {
-                addRandomBox(map, map.locations.start);
+                addItem(map);
             }
             map.data.count = map.items.length;
 
             // create and add Pedros
-            addPedro(map);
-            addPedro(map);
-
-            // map.locations.start = [
-            //     Math.floor(map.width / 2),
-            //     Math.floor(map.height / 2),
-            // ];
+            addActor(map, (kind = 'PEDRO'));
+            addActor(map, (kind = 'PEDRO'));
 
             return map;
         },
@@ -339,6 +321,15 @@ async function showTitle(game) {
     buffer.drawText(
         0,
         28,
+        'Press #{green >} to climb the stairs.',
+        'white',
+        -1,
+        80,
+        'center'
+    );
+    buffer.drawText(
+        0,
+        29,
         'Press #{green q} to quit.',
         'white',
         -1,
@@ -348,7 +339,7 @@ async function showTitle(game) {
 
     buffer.drawText(
         0,
-        30,
+        32,
         '[Press any key to begin]',
         'gray',
         -1,

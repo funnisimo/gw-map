@@ -7,7 +7,7 @@ import * as Horde from '.';
 import * as Tile from '../tile';
 import * as Map from '../map';
 
-import '../effect/handlers';
+import '../effects';
 import '../tile/tiles';
 
 describe('Horde', () => {

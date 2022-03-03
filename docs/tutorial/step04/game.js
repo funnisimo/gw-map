@@ -146,15 +146,6 @@ async function start() {
             return PLAYER;
         },
 
-        // startMap(map, player) {
-        //     // create and add the player
-        //     map.addActorNear(
-        //         Math.floor(map.width / 2),
-        //         Math.floor(map.height / 2),
-        //         player
-        //     );
-        // },
-
         keymap: {
             dir: 'moveDir',
             ' ': 'pickup',

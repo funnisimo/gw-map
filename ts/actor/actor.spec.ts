@@ -3,6 +3,8 @@ import * as Actor from '.';
 import * as Map from '../map';
 import * as Flags from '../flags';
 
+import '../tile/tiles';
+
 describe('Actor', () => {
     test('create and place', () => {
         const actor = Actor.make({

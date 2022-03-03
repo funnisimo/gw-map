@@ -1,4 +1,3 @@
-import * as UTILS from '../node_modules/gw-utils/test/utils';
 import * as GWU from 'gw-utils';
 
 import * as Map from '../ts/map';
@@ -8,6 +7,59 @@ import { Game } from '../ts/game';
 
 // export const rnd = jest.fn();
 // export const counts = new Array(100).fill(0);
+
+const GLYPHS: string[] = [];
+GWU.canvas.initGlyphs({ draw: (n, ch) => (GLYPHS[n] = ch) });
+
+export function mockCanvas(width = 30, height = 30): GWU.canvas.Canvas {
+    const node = {} as HTMLCanvasElement;
+    const glyphs = {} as GWU.canvas.Glyphs;
+
+    return {
+        width,
+        height,
+
+        draw: jest.fn().mockReturnValue(true),
+
+        mouse: { x: -1, y: -1 },
+        node,
+        tileWidth: 16,
+        tileHeight: 16,
+        pxWidth: 16 * width,
+        pxHeight: 16 * height,
+
+        glyphs,
+
+        resize: jest.fn(),
+
+        render: jest.fn(),
+        hasXY(x: number, y: number) {
+            return x >= 0 && y >= 0 && x < width && y < height;
+        },
+
+        onclick: null,
+        onmousemove: null,
+        onmouseup: null,
+        onkeydown: null,
+    } as unknown as GWU.canvas.Canvas;
+}
+
+export function getBufferText(
+    buffer: GWU.buffer.Buffer,
+    x: number,
+    y: number,
+    width: number = 99,
+    trim = true
+): string {
+    let text = '';
+    width = Math.min(width, buffer.width - x);
+    for (let i = 0; i < width; ++i) {
+        const data = buffer.get(x + i, y);
+        text += data.ch || ' ';
+    }
+    if (!trim) return text;
+    return text.trim();
+}
 
 // export let v = 0;
 // let index = 0;
@@ -62,11 +114,16 @@ export function mockMap(w = 10, h = 10): Map.Map {
 
 export function mockGame(map: Map.Map, player: Actor): jest.Mocked<Game> {
     return {
-        ui: UTILS.mockUI(map.width, map.height),
         map,
         player,
         scheduler: new GWU.scheduler.Scheduler(),
         draw: jest.fn(),
+        height: map.height,
+        width: map.width,
+        trigger: jest.fn(),
+        on: jest.fn(),
+        once: jest.fn(),
+        off: jest.fn(),
     } as unknown as jest.Mocked<Game>;
 }
 

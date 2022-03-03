@@ -2,7 +2,7 @@ import { Entity } from '../entity/entity';
 import { FlagType } from './types';
 import { Depth } from '../flags';
 
-import * as Action from './action';
+import * as ACTION from '../action';
 import * as Kind from './kind';
 
 export class Item extends Entity {
@@ -44,12 +44,12 @@ export class Item extends Entity {
         return (this.flags.item & flags) === flags;
     }
 
-    getAction(name: string): Action.ItemActionBase | undefined {
-        const action = this.kind.actions[name];
-        return action;
-    }
+    // getAction(name: string): ACTION.ItemActionBase | undefined {
+    //     const action = this.kind.actions[name];
+    //     return action;
+    // }
 
-    getBumpActions(): (Action.ItemActionFn | string)[] {
+    getBumpActions(): (ACTION.ActionFn | string)[] {
         return this.kind.bump;
     }
 }

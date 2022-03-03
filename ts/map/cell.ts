@@ -8,7 +8,7 @@ import { Entity } from '../entity';
 import { Map } from './map';
 
 import * as TILE from '../tile';
-import * as Effect from '../effect';
+import * as ACTION from '../action';
 
 export interface CellFlags {
     cell: number;
@@ -522,44 +522,25 @@ export class Cell {
 
     // Effects
 
-    tileWithEffect(name: string): TILE.Tile | null {
-        return this.tiles.find((t) => t?.hasEffect(name)) || null;
+    tileWithAction(name: string): TILE.Tile | null {
+        return this.tiles.find((t) => t?.hasAction(name)) || null;
     }
 
-    fireEvent(event: string, ctx: Effect.EffectCtx = {}): boolean {
-        // ctx.cell = this;
-        let didSomething = false;
-
-        // console.log('fire event - %s', event);
-        for (const tile of this.tiles) {
-            if (!tile || !tile.effects) continue;
-            const ev = tile.effects[event];
-            if (ev) {
-                const r = this._activate(ev, ctx);
-                if (r) {
-                    didSomething = true;
-                }
-            }
+    trigger(action: ACTION.Action): void;
+    trigger(action: string, ctx: ACTION.Action): void;
+    trigger(action: string | ACTION.Action, ctx?: ACTION.Action): void {
+        if (action instanceof ACTION.Action) {
+            return this.trigger(action.action, action);
         }
-        return didSomething;
+        if (!ctx) throw new Error('Action is required.');
+        ctx.x = this.x;
+        ctx.y = this.y;
+        this.tiles.forEach((t) => t && t.trigger(action, ctx));
     }
 
-    _activate(effect: string | Effect.Effect, ctx: Effect.EffectCtx): boolean {
-        if (typeof effect === 'string') {
-            effect = Effect.installedEffects[effect];
-        }
-        let didSomething = false;
-        if (effect) {
-            // console.log(' - spawn event @%d,%d - %s', x, y, name);
-            didSomething = effect.trigger(this, ctx);
-            // cell.debug(" - spawned");
-        }
-        return didSomething;
-    }
-
-    hasEffect(name: string) {
+    hasAction(name: string) {
         for (let tile of this.tiles) {
-            if (tile && tile.hasEffect(name)) return true;
+            if (tile && tile.hasAction(name)) return true;
         }
         return false;
     }

@@ -2,7 +2,7 @@
 import * as Actor from '.';
 import * as Map from '../map';
 
-import '../effect/handlers';
+import '../effects';
 import '../tile/tiles';
 
 describe('Actor - Player', () => {
