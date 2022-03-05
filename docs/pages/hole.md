@@ -15,7 +15,7 @@ const plate = GWM.tile.install('PRESSURE_PLATE', {
     ch: '^',
     flags: 'T_IS_TRAP',
     effects: {
-        enter: { activateMachine: true, message: 'the pressure plate clicks.' },
+        enter: { activateMachine: true, msg: 'the pressure plate clicks.' },
     },
 });
 
@@ -35,7 +35,7 @@ const hidden = GWM.tile.install('HIDDEN_SIGN', {
     extends: 'FLOOR',
     priority: '+10',
     effects: {
-        machine: { tile: 'SIGNPOST', flags: 'E_SUPERPRIORITY' },
+        machine: { tile: '!SIGNPOST' },
     },
 });
 
@@ -44,31 +44,24 @@ const map = GWM.map.make(21, 21, 'FLOOR', 'WALL');
 map.setTile(10, 10, 'PRESSURE_PLATE', { machine: 1 });
 map.setTile(10, 15, 'HIDDEN_SIGN', { machine: 1 });
 
-const canvas = GWU.canvas.make({
-    font: 'monospace',
+const app = GWU.app.make({
     width: map.width,
     height: map.height,
     loop: LOOP,
 });
-map.drawInto(canvas);
-SHOW(canvas.node);
-canvas.render();
+SHOW(app);
 
-LOOP.run(
-    {
-        click: async (e) => {
-            await map.fire('enter', e.x, e.y);
-        },
-        tick: async (e) => {
-            await map.tick();
-        },
-        draw: () => {
-            map.drawInto(canvas);
-            canvas.render();
-        },
-    },
-    500
-);
+app.on('click', (e) => {
+    map.trigger('enter', e.x, e.y);
+});
+
+app.repeat(500, (e) => {
+    map.tick();
+});
+
+app.on('draw', () => {
+    map.drawInto(app.buffer);
+});
 ```
 
 ## 2 - Hole
@@ -84,26 +77,23 @@ const edge = GWM.tile.install('CHASM', {
     flags: 'T_AUTO_DESCENT',
 });
 
-const effect = GWM.effect.make({ tile: 'CHASM,100' });
+GWM.effect.install('CHASM_100', { spread: [100, 100, { tile: 'CHASM_EDGE' }] });
 
 const map = GWM.map.make(21, 21, 'FLOOR', 'WALL');
 
-const canvas = GWU.canvas.make({
-    font: 'monospace',
+const app = GWU.app.make({
     width: map.width,
     height: map.height,
     loop: LOOP,
 });
-SHOW(canvas.node);
+SHOW(app);
 
-LOOP.run({
-    async start() {
-        await GWM.effect.fire(effect, map, 11, 11);
-    },
-    draw() {
-        map.drawInto(canvas);
-        canvas.render();
-    },
+app.on('start', () => {
+    GWM.effect.trigger('CHASM_100', map, 11, 11);
+});
+
+app.on('draw', () => {
+    map.drawInto(app.buffer);
 });
 ```
 
@@ -120,23 +110,24 @@ const edge = GWM.tile.install('CHASM_EDGE', {
     flavor: 'a chasm edge',
 });
 
-GWM.effect.install('CHASM_EDGE', { tile: 'CHASM_EDGE,100' });
+GWM.effect.install('CHASM_EDGE', {
+    spread: [100, 100, { tile: 'CHASM_EDGE' }],
+});
 
 const map = GWM.map.make(21, 21, 'FLOOR', 'WALL');
 
 map.setTile(11, 11, 'CHASM');
 
-const canvas = GWU.canvas.make({
-    font: 'monospace',
+const app = GWU.app.make({
     width: map.width,
     height: map.height,
     loop: LOOP,
 });
-SHOW(canvas.node);
+SHOW(app);
 
-GWM.effect.fireSync('CHASM_EDGE', map, 11, 11);
-map.drawInto(canvas);
-canvas.render();
+GWM.effect.trigger('CHASM_EDGE', map, 11, 11);
+map.drawInto(app.buffer);
+app.buffer.render();
 ```
 
 ## 4 - Make the hole larger
@@ -145,24 +136,21 @@ Now, we need to place a large hole and surround it with edge tiles...
 
 ```js
 GWM.effect.install('CHASM_MEDIUM', {
-    tile: 'CHASM,150,50',
-    flags: 'E_NEXT_EVERYWHERE',
-    next: 'CHASM_EDGE',
+    spread: [150, 50, { tile: 'CHASM', id: 'CHASM_EDGE' }],
 });
 
 const map = GWM.map.make(21, 21, 'FLOOR', 'WALL');
 
-const canvas = GWU.canvas.make({
-    font: 'monospace',
+const app = GWU.app.make({
     width: map.width,
     height: map.height,
     loop: LOOP,
 });
-SHOW(canvas.node);
+SHOW(app);
 
-GWM.effect.fireSync('CHASM_MEDIUM', map, 11, 11);
-map.drawInto(canvas);
-canvas.render();
+GWM.effect.trigger('CHASM_MEDIUM', map, 11, 11);
+map.drawInto(app.buffer);
+app.buffer.render();
 ```
 
 ## 5 - Add the pressure plate
@@ -174,38 +162,32 @@ Click on the plate to show the hidden sign.
 ```js
 GWM.effect.install('HOLE_WITH_PLATE', {
     tile: 'PRESSURE_PLATE',
-    flags: 'E_NEXT_ALWAYS',
-    next: 'CHASM_MEDIUM',
+    id: 'CHASM_MEDIUM',
 });
 
 const map = GWM.map.make(21, 21, 'FLOOR', 'WALL');
 
 map.setTile(5, 5, 'HIDDEN_SIGN', { machine: 1 });
-GWM.effect.fireSync('HOLE_WITH_PLATE', map, 11, 11, {
+GWM.effect.trigger('HOLE_WITH_PLATE', map, 11, 11, {
     machine: 1,
 });
 
-const canvas = GWU.canvas.make({
-    font: 'monospace',
+const app = GWU.app.make({
     width: map.width,
     height: map.height,
     loop: LOOP,
 });
-SHOW(canvas.node);
+SHOW(app);
 
-LOOP.run(
-    {
-        click: async (e) => {
-            await map.fire('enter', e.x, e.y);
-        },
-        tick: async (e) => {
-            await map.tick();
-        },
-        draw() {
-            map.drawInto(canvas);
-            canvas.render();
-        },
-    },
-    500
-);
+app.on('click', (e) => {
+    map.trigger('enter', e.x, e.y);
+});
+
+app.repeat(500, (e) => {
+    map.tick();
+});
+
+app.on('draw', () => {
+    map.drawInto(app.buffer);
+});
 ```

@@ -2,7 +2,7 @@ import * as GWU from 'gw-utils';
 import * as Flags from '../flags';
 import { Cell } from '../map/cell';
 import { Map } from '../map/map';
-import { CellDrawer, MapDrawOptions, BufferSource } from './types';
+import { CellDrawer, MapDrawOptions, DrawDest } from './types';
 import { Actor } from '../actor/actor';
 import { Item } from '../item/item';
 
@@ -13,25 +13,19 @@ export class BasicDrawer implements CellDrawer {
 
     constructor() {}
 
-    drawInto(
-        dest: BufferSource | GWU.buffer.Buffer,
-        map: Map,
-        opts: Partial<MapDrawOptions> = {}
-    ) {
-        const buffer = dest instanceof GWU.buffer.Buffer ? dest : dest.buffer;
-
+    drawInto(dest: DrawDest, map: Map, opts: Partial<MapDrawOptions> = {}) {
         const offsetX = opts.offsetX || 0;
         const offsetY = opts.offsetY || 0;
 
         map.clearMapFlag(Flags.Map.MAP_DANCES);
 
         const mixer = new GWU.sprite.Mixer();
-        for (let x = 0; x < buffer.width; ++x) {
-            for (let y = 0; y < buffer.height; ++y) {
+        for (let x = 0; x < dest.width; ++x) {
+            for (let y = 0; y < dest.height; ++y) {
                 if (map.hasXY(x + offsetX, y + offsetY)) {
                     const cell = map.cell(x + offsetX, y + offsetY);
                     this.drawCell(mixer, map, cell, map.fov);
-                    buffer.drawSprite(x, y, mixer);
+                    dest.draw(x, y, mixer.ch || ' ', mixer.fg, mixer.bg);
                 }
             }
         }

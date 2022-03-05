@@ -27,7 +27,7 @@ describe('spread type', () => {
 
         GWU.rng.random.seed(12345);
         grid = GWU.grid.alloc(20, 20);
-        action = new ACTION.Action('test', { map, x: 5, y: 6 });
+        action = new ACTION.Action({ map, x: 5, y: 6 });
         fn = jest.fn();
     });
 

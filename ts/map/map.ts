@@ -4,11 +4,11 @@ import * as Flags from '../flags';
 import { Cell, SetTileOptions } from './cell';
 import * as TILE from '../tile';
 import { Tile, TileBase } from '../tile';
-import * as Layer from '../layer';
+// import * as Layer from '../layer';
 import { Item } from '../item';
 import { Actor } from '../actor';
 import { Entity } from '../entity';
-import { CellDrawer, MapDrawOptions, BufferSource } from '../draw/types';
+import { CellDrawer, MapDrawOptions } from '../draw/types';
 import { BasicDrawer } from '../draw/basic';
 import { Player } from '../player/player';
 import * as ACTION from '../action';
@@ -28,7 +28,7 @@ export interface MapOptions
     actions?: Record<string, ACTION.ActionFn>;
 }
 
-export type LayerType = Layer.TileLayer;
+// export type LayerType = Layer.TileLayer;
 
 export interface MapFlags {
     map: number;
@@ -57,7 +57,7 @@ export type MapTestFn = (cell: Cell, x: number, y: number, map: Map) => boolean;
 
 export class Map implements GWU.light.LightSystemSite {
     cells: GWU.grid.Grid<Cell>;
-    layers: LayerType[];
+    // layers: LayerType[];
     flags: { map: 0 };
     light: GWU.light.LightSystemType;
     fov: GWU.fov.FovSystem;
@@ -77,11 +77,12 @@ export class Map implements GWU.light.LightSystemSite {
     game!: Game;
 
     _tweens: GWU.app.Tweens = new GWU.app.Tweens();
-    actions = new ACTION.Actions(this);
+    // actions = new ACTION.Actions(this);
+    events: GWU.app.Events = new GWU.app.Events(this);
 
     constructor(width: number, height: number, opts: MapOptions = {}) {
         this.flags = { map: 0 };
-        this.layers = [];
+        // this.layers = [];
         this.data = { seed: 0, machineCount: 0 };
 
         if (opts.id) {
@@ -115,13 +116,13 @@ export class Map implements GWU.light.LightSystemSite {
         opts.callback = this.onFovChange.bind(this);
         this.fov = new GWU.fov.FovSystem(this, opts);
 
-        this.initLayers();
+        // this.initLayers();
 
         if (opts.player) {
             this.setPlayer(opts.player);
         }
         if (opts.actions) {
-            this.actions.load(opts.actions);
+            this.events.load(opts.actions);
         }
     }
 
@@ -151,38 +152,38 @@ export class Map implements GWU.light.LightSystemSite {
 
     // LAYERS
 
-    initLayers() {
-        this.addLayer(Flags.Depth.GROUND, new Layer.TileLayer(this, 'ground'));
-        this.addLayer(
-            Flags.Depth.SURFACE,
-            new Layer.FireLayer(this, 'surface')
-        );
-        this.addLayer(Flags.Depth.GAS, new Layer.GasLayer(this, 'gas'));
-    }
+    // initLayers() {
+    //     this.addLayer(Flags.Depth.GROUND, new Layer.TileLayer(this, 'ground'));
+    //     this.addLayer(
+    //         Flags.Depth.SURFACE,
+    //         new Layer.FireLayer(this, 'surface')
+    //     );
+    //     this.addLayer(Flags.Depth.GAS, new Layer.GasLayer(this, 'gas'));
+    // }
 
-    addLayer(depth: number | keyof typeof Flags.Depth, layer: LayerType) {
-        if (typeof depth !== 'number') {
-            depth = Flags.Depth[depth as keyof typeof Flags.Depth];
-        }
+    // addLayer(depth: number | keyof typeof Flags.Depth, layer: LayerType) {
+    //     if (typeof depth !== 'number') {
+    //         depth = Flags.Depth[depth as keyof typeof Flags.Depth];
+    //     }
 
-        layer.depth = depth;
-        this.layers[depth] = layer;
-    }
+    //     layer.depth = depth;
+    //     this.layers[depth] = layer;
+    // }
 
-    removeLayer(depth: number | keyof typeof Flags.Depth) {
-        if (typeof depth !== 'number') {
-            depth = Flags.Depth[depth as keyof typeof Flags.Depth];
-        }
-        if (!depth) throw new Error('Cannot remove layer with depth=0.');
-        delete this.layers[depth];
-    }
+    // removeLayer(depth: number | keyof typeof Flags.Depth) {
+    //     if (typeof depth !== 'number') {
+    //         depth = Flags.Depth[depth as keyof typeof Flags.Depth];
+    //     }
+    //     if (!depth) throw new Error('Cannot remove layer with depth=0.');
+    //     delete this.layers[depth];
+    // }
 
-    getLayer(depth: number | keyof typeof Flags.Depth): LayerType | null {
-        if (typeof depth !== 'number') {
-            depth = Flags.Depth[depth as keyof typeof Flags.Depth];
-        }
-        return this.layers[depth] || null;
-    }
+    // getLayer(depth: number | keyof typeof Flags.Depth): LayerType | null {
+    //     if (typeof depth !== 'number') {
+    //         depth = Flags.Depth[depth as keyof typeof Flags.Depth];
+    //     }
+    //     return this.layers[depth] || null;
+    // }
 
     hasXY(x: number, y: number): boolean {
         return this.cells.hasXY(x, y);
@@ -199,6 +200,9 @@ export class Map implements GWU.light.LightSystemSite {
     }
     eachCell(cb: EachCellCb) {
         this.cells.forEach((cell, x, y) => cb(cell, x, y, this));
+    }
+    someCell(cb: MapTestFn): boolean {
+        return this.cells.some((c, x, y) => cb(c, x, y, this));
     }
 
     // items
@@ -229,10 +233,6 @@ export class Map implements GWU.light.LightSystemSite {
                 this._fireAddItemEffects(item, cell);
             }
 
-            if (index < 0) {
-                this.trigger(new ACTION.Action('place', { map: this, item }));
-            }
-
             return true;
         }
         return false;
@@ -244,15 +244,9 @@ export class Map implements GWU.light.LightSystemSite {
             item.key.matches(cell.x, cell.y) &&
             cell.hasAction('key')
         ) {
-            cell.trigger(
-                'key',
-                new ACTION.Action('key', { map: this, key: true, item })
-            );
+            cell.trigger('key', { map: this, key: true, item });
         } else if (cell.hasAction('place')) {
-            cell.trigger(
-                'place',
-                new ACTION.Action('place', { map: this, key: true, item })
-            );
+            cell.trigger('place', { map: this, item });
         }
     }
 
@@ -274,6 +268,7 @@ export class Map implements GWU.light.LightSystemSite {
         if (!loc || loc[0] < 0) return false;
         return this.addItem(loc[0], loc[1], item, fireEffects);
     }
+
     removeItem(item: Item, fireEffects = false): boolean {
         const cell = this.cell(item.x, item.y);
         // if (!cell.canRemoveItem(item)) return false;
@@ -285,8 +280,6 @@ export class Map implements GWU.light.LightSystemSite {
 
             GWU.arrayDelete(this.items, item);
             item.removeFromMap();
-
-            this.trigger(new ACTION.Action('remove', { map: this, item }));
             return true;
         }
         return false;
@@ -294,19 +287,13 @@ export class Map implements GWU.light.LightSystemSite {
 
     _fireRemoveItemEffects(item: Item, cell: Cell) {
         if (item.isKey(cell.x, cell.y) && cell.hasAction('no_key')) {
-            cell.trigger(
-                'no_key',
-                new ACTION.Action('no_key', {
-                    map: this,
-                    key: true,
-                    item,
-                })
-            );
+            cell.trigger('no_key', {
+                map: this,
+                key: true,
+                item,
+            });
         } else if (cell.hasAction('remove')) {
-            cell.trigger(
-                'remove',
-                new ACTION.Action('remove', { map: this, key: true, item })
-            );
+            cell.trigger('remove', { map: this, key: true, item });
         }
     }
 
@@ -404,7 +391,7 @@ export class Map implements GWU.light.LightSystemSite {
             }
 
             if (index < 0) {
-                this.trigger(new ACTION.Action('enter', { map: this, actor }));
+                this.trigger('enter', { map: this, actor });
             }
 
             return true;
@@ -414,23 +401,14 @@ export class Map implements GWU.light.LightSystemSite {
 
     _fireAddActorEffects(actor: Actor, cell: Cell) {
         if (actor.isKey(cell.x, cell.y) && cell.hasAction('key')) {
-            cell.trigger(
-                'key',
-                new ACTION.Action('key', { map: this, key: true, actor })
-            );
+            cell.trigger('key', { map: this, key: true, actor });
         } else if (actor.isPlayer() && cell.hasAction('player-enter')) {
-            cell.trigger(
-                'player-enter',
-                new ACTION.Action('player-enter', {
-                    map: this,
-                    actor,
-                })
-            );
+            cell.trigger('player-enter', {
+                map: this,
+                actor,
+            });
         } else if (cell.hasAction('enter')) {
-            cell.trigger(
-                'enter',
-                new ACTION.Action('enter', { map: this, actor })
-            );
+            cell.trigger('enter', { map: this, actor });
         }
     }
 
@@ -465,7 +443,7 @@ export class Map implements GWU.light.LightSystemSite {
             actor.removeFromMap();
             GWU.arrayDelete(this.actors, actor);
 
-            this.trigger(new ACTION.Action('exit', { map: this, actor }));
+            this.trigger('exit', { map: this, actor });
             return true;
         }
         return false;
@@ -473,20 +451,11 @@ export class Map implements GWU.light.LightSystemSite {
 
     _fireRemoveActorEffects(actor: Actor, cell: Cell) {
         if (actor.isKey(actor.x, actor.y) && cell.hasAction('no_key')) {
-            cell.trigger(
-                'no_key',
-                new ACTION.Action('no_key', { map: this, key: true, actor })
-            );
+            cell.trigger('no_key', { map: this, key: true, actor });
         } else if (actor.isPlayer() && cell.hasAction('player-exit')) {
-            cell.trigger(
-                'player-exit',
-                new ACTION.Action('player-exit', { map: this, actor })
-            );
+            cell.trigger('player-exit', { map: this, actor });
         } else if (cell.hasAction('exit')) {
-            cell.trigger(
-                'exit',
-                new ACTION.Action('exit', { map: this, actor })
-            );
+            cell.trigger('exit', { map: this, actor });
         }
     }
 
@@ -700,12 +669,17 @@ export class Map implements GWU.light.LightSystemSite {
     clear() {
         this.light.glowLightChanged = true;
         // this.fov.needsUpdate = true;
-        this.layers.forEach((l) => l.clear());
+        // this.layers.forEach((l) => l.clear());
+        this.cells.forEach((c) => {
+            c.clear();
+            this.events.trigger('changed', c);
+        });
     }
 
     clearCell(x: number, y: number, tile?: TileBase) {
         const cell = this.cell(x, y);
         cell.clear(tile);
+        this.events.trigger('changed', cell);
     }
 
     // Skips all the logic checks and just forces a clean cell with the given tile
@@ -718,6 +692,7 @@ export class Map implements GWU.light.LightSystemSite {
             for (j = 0; j < this.height; ++j) {
                 const cell = this.cells[i][j];
                 cell.clear(this.isBoundaryXY(i, j) ? boundary : tile);
+                this.events.trigger('changed', cell);
             }
         }
     }
@@ -752,31 +727,38 @@ export class Map implements GWU.light.LightSystemSite {
             opts = { superpriority: true };
         }
 
-        const depth = tile.depth || 0;
-        const layer = this.layers[depth] || this.layers[0];
-        if (!(layer instanceof Layer.TileLayer)) return false;
-        return layer.setTile(x, y, tile, opts);
+        // const depth = tile.depth || 0;
+        // const layer = this.layers[depth] || this.layers[0];
+        // if (!(layer instanceof Layer.TileLayer)) return false;
+
+        const cell = this.cell(x, y);
+        if (cell.setTile(tile, opts)) {
+            this.events.trigger('changed', cell, opts);
+            return true;
+        }
+        return false;
     }
 
-    clearTiles(x: number, y: number, tile?: TileBase) {
-        const cell = this.cell(x, y);
-        cell.clearTiles(tile);
-    }
+    // clearTiles(x: number, y: number, tile?: TileBase) {
+    //     const cell = this.cell(x, y);
+    //     cell.clearTiles(tile);
+    // }
 
     tick(dt: number): boolean {
         let didSomething = this._tweens.length > 0;
         this._tweens.update(dt);
 
-        const action = new ACTION.Action('tick', { map: this });
-        this.fireAll(action);
-        didSomething ||= action.isSuccess();
-
-        for (let layer of this.layers) {
-            if (layer && layer.tick(dt)) {
-                didSomething = true;
-            }
+        if (this.triggerAll('tick')) {
+            didSomething = true;
         }
 
+        // for (let layer of this.layers) {
+        //     if (layer && layer.tick(dt)) {
+        //         didSomething = true;
+        //     }
+        // }
+
+        this.events.trigger('tick', dt);
         return didSomething;
     }
 
@@ -790,9 +772,9 @@ export class Map implements GWU.light.LightSystemSite {
             c.copy(src.cell(x, y));
         });
 
-        this.layers.forEach((l, depth) => {
-            l.copy(src.layers[depth]);
-        });
+        // this.layers.forEach((l, depth) => {
+        //     l.copy(src.layers[depth]);
+        // });
 
         this.actors = src.actors.slice();
         this.items = src.items.slice();
@@ -802,6 +784,9 @@ export class Map implements GWU.light.LightSystemSite {
         this.light.copy(src.light);
         this.rng = src.rng;
         this.data = Object.assign({}, src.data);
+
+        src.events.trigger('assign', this);
+        this.events.trigger('copy', src);
     }
 
     clone(): Map {
@@ -812,46 +797,49 @@ export class Map implements GWU.light.LightSystemSite {
     }
 
     hasAction(action: string): boolean {
-        return this.actions.has(action);
+        return this.events.has(action);
     }
 
-    on(action: string | string[], fn: ACTION.ActionFn) {
-        this.actions.on(action, fn);
+    on(
+        action: string | string[],
+        fn: ACTION.ActionFn | GWU.app.CallbackFn
+    ): GWU.app.CancelFn {
+        return this.events.on(action, fn);
     }
-    once(action: string | string[], fn: ACTION.ActionFn) {
-        this.actions.once(action, fn);
+    once(
+        action: string | string[],
+        fn: ACTION.ActionFn | GWU.app.CallbackFn
+    ): GWU.app.CancelFn {
+        return this.events.once(action, fn);
     }
-    off(action: string | string[], fn?: ACTION.ActionFn) {
-        this.actions.off(action, fn);
+    off(action: string | string[], fn?: ACTION.ActionFn | GWU.app.CallbackFn) {
+        this.events.off(action, fn);
     }
 
-    trigger(action: ACTION.Action): void;
-    trigger(ev: string, action: ACTION.Action): void;
-    trigger(ev: string | ACTION.Action, action?: ACTION.Action): void {
-        if (typeof ev !== 'string') {
-            return this.trigger(ev.action, ev);
+    trigger(ev: string, action: ACTION.Action | ACTION.ActionOpts = {}): void {
+        if (!(action instanceof ACTION.Action)) {
+            action = new ACTION.Action(action);
         }
-        if (!action) throw new Error('Action is required.');
 
-        this.actions.trigger(ev, action);
+        this.events.trigger(ev, action);
         if (action.isDone()) return;
-        const cell = this.cell(action.x, action.y);
-        cell.trigger(ev, action);
+
+        if (action.x !== undefined && action.y !== undefined) {
+            const cell = this.cell(action.x, action.y);
+            cell.trigger(ev, action);
+        }
     }
 
-    // fire(
-    //     event: string,
-    //     x: number,
-    //     y: number,
-    //     ctx: Effect.EffectCtx = {}
-    // ): boolean {
-    //     const cell = this.cell(x, y);
-    //     return cell.fireEvent(event, ctx);
-    // }
-
-    fireAll(action: ACTION.Action): boolean {
+    triggerAll(
+        name: string,
+        action: ACTION.ActionOpts | ACTION.Action = {}
+    ): boolean {
+        if (!(action instanceof ACTION.Action)) {
+            action = new ACTION.Action(action);
+        }
         let didSomething = false;
         const willFire = GWU.grid.alloc(this.width, this.height);
+        action.map = this;
 
         // Figure out which tiles will fire - before we change everything...
         this.cells.forEach((cell, x, y) => {
@@ -859,6 +847,7 @@ export class Map implements GWU.light.LightSystemSite {
                 Flags.Cell.EVENT_FIRED_THIS_TURN | Flags.Cell.EVENT_PROTECTED
             );
             cell.eachTile((tile) => {
+                if (!tile.hasAction(name)) return;
                 // const ev = tile.effects[event];
                 // if (!ev) return;
 
@@ -911,7 +900,11 @@ export class Map implements GWU.light.LightSystemSite {
             if (cell.hasCellFlag(Flags.Cell.EVENT_FIRED_THIS_TURN)) return;
             for (let depth = 0; depth <= Flags.Depth.GAS; ++depth) {
                 if (w & GWU.flag.fl(depth)) {
-                    cell.trigger(action.action, action);
+                    cell.trigger(name, action);
+                    if ((<ACTION.Action>action).isSuccess()) {
+                        didSomething = true;
+                    }
+                    (<ACTION.Action>action).reset();
                 }
             }
         });
@@ -923,7 +916,7 @@ export class Map implements GWU.light.LightSystemSite {
     // DRAW
 
     drawInto(
-        dest: BufferSource | GWU.buffer.Buffer,
+        dest: GWU.canvas.Canvas | GWU.buffer.Buffer,
         opts?: Partial<MapDrawOptions>
     ) {
         this.drawer.drawInto(dest, this, opts);

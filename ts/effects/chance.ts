@@ -29,7 +29,9 @@ export function chance(opts: EFFECT.EffectConfig): ACTION.ActionFn {
 
 export function chanceAction(cfg: number, action: ACTION.Action): void {
     const map = action.map;
-    if (!map.rng.chance(cfg)) return action.stop();
+    if (!map.rng.chance(cfg, 10000)) {
+        return action.stop();
+    }
 }
 
 installHandler('chance', chance);

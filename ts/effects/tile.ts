@@ -2,12 +2,14 @@
 import { SetTileOptions } from '../map';
 import * as ACTION from '../action';
 import { installHandler } from '../effect';
+import * as Flags from '../flags';
 
 //////////////////////////////////////////////
 // EMIT
 
 export interface TileEffectOptions extends SetTileOptions {
     id: string;
+    protected?: boolean;
 }
 
 export function tile(src: any): ACTION.ActionFn {
@@ -29,7 +31,10 @@ export function tile(src: any): ACTION.ActionFn {
         opts.blockedByActors = true;
         opts.blockedByItems = true;
     }
-    opts.id = opts.id.replace(/[!~]*/g, '');
+    if (opts.id.includes('+')) {
+        opts.protected = true;
+    }
+    opts.id = opts.id.replace(/[!~+]*/g, '');
 
     return tileAction.bind(undefined, opts);
 }
@@ -41,6 +46,9 @@ export function tileAction(
     const map = action.map;
     cfg.machine = action.machine || 0;
     if (map.setTile(action.x, action.y, cfg.id, cfg)) {
+        if (cfg.protected) {
+            map.setCellFlag(action.x, action.y, Flags.Cell.EVENT_PROTECTED);
+        }
         action.didSomething();
     }
 }

@@ -67,10 +67,6 @@ export class Tile {
             Object.entries(config.actions).forEach(([ev, fn]) => {
                 this.on(ev, fn);
             });
-
-            if (this.hasAction('fire')) {
-                this.flags.tile |= Flags.Tile.T_IS_FLAMMABLE;
-            }
         }
 
         if (config.tags) {
@@ -141,6 +137,9 @@ export class Tile {
     on(name: string, fn: ACTION.ActionFn | string | EFFECT.EffectObj) {
         if (!fn) {
             this.actions.off(name);
+            if (name === 'fire') {
+                this.flags.tile &= ~Flags.Tile.T_IS_FLAMMABLE;
+            }
             return;
         }
 
@@ -152,24 +151,30 @@ export class Tile {
         }
 
         if (Array.isArray(fn)) {
-            fn.forEach((cb) => this.on(name, cb));
+            fn.reverse().forEach((cb) => this.on(name, cb));
         } else if (typeof fn === 'object') {
-            Object.entries(fn).forEach(([key, value]) => {
-                const effect = EFFECT.make(key, value);
-                effect && this.on(name, effect);
-            });
+            Object.entries(fn)
+                .reverse()
+                .forEach(([key, value]) => {
+                    const effect = EFFECT.make(key, value);
+                    effect && this.on(name, effect);
+                });
         } else {
             this.actions.on(name, fn);
+            if (name === 'fire') {
+                this.flags.tile |= Flags.Tile.T_IS_FLAMMABLE;
+            }
         }
     }
 
-    trigger(name: string, action: ACTION.Action): void;
-    trigger(action: ACTION.Action): void;
-    trigger(name: string | ACTION.Action, action?: ACTION.Action): void {
-        if (name instanceof ACTION.Action) {
-            return this.trigger(name.action, name);
+    trigger(
+        name: string,
+        action: ACTION.Action | ACTION.ActionOpts = {}
+    ): void {
+        if (!(action instanceof ACTION.Action)) {
+            action = new ACTION.Action(action);
         }
-        if (!action) throw new Error('Need action.');
+        if (!action.map) throw new Error('Need action with a map.');
         this.actions.trigger(name, action);
     }
 

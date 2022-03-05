@@ -196,13 +196,10 @@ export class Entity implements EntityType {
         this.actions.off(action, fn);
     }
 
-    trigger(action: ACTION.Action): void;
-    trigger(name: string, action: ACTION.Action): void;
-    trigger(name: string | ACTION.Action, action?: ACTION.Action): void {
-        if (name instanceof ACTION.Action) {
-            return this.trigger(name.action, name);
+    trigger(name: string, action: ACTION.Action | ACTION.ActionObj = {}): void {
+        if (!(action instanceof ACTION.Action)) {
+            action = new ACTION.Action(action);
         }
-        if (!action) throw new Error('Action required.');
 
         if (action.isDone()) return;
         this.actions.trigger(name, action);

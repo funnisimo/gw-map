@@ -20,32 +20,31 @@ const map = GWM.map.make(20, 20, {
     tile: 'FLOOR',
     boundary: 'WALL',
 });
-const canvas = GWU.canvas.make({
+GWM.layer.gas(map);
+
+const app = GWU.app.make({
     font: 'monospace',
     width: map.width,
     height: map.height,
     loop: LOOP,
 });
-const buffer = canvas.buffer;
-SHOW(canvas.node);
+const buffer = app.buffer;
+SHOW(app);
 
-LOOP.run(
-    {
-        click: async (e) => {
-            await map.setTile(e.x, e.y, 'SWAMP_GAS', {
-                volume: GWU.random.range(30, 150),
-            });
-        },
-        tick: async (e) => {
-            await map.tick();
-        },
-        draw: () => {
-            map.drawInto(buffer);
-            buffer.render();
-        },
-    },
-    500
-);
+app.on('click', (e) => {
+    map.setTile(e.x, e.y, 'SWAMP_GAS', {
+        volume: GWU.random.range(30, 150),
+    });
+});
+
+app.repeat(250, () => {
+    map.tick();
+});
+
+app.on('draw', () => {
+    map.drawInto(buffer);
+    // buffer.render();
+});
 ```
 
 Here is a gas example with a faster dissipation.
@@ -62,30 +61,29 @@ const map = GWM.map.make(20, 20, {
     tile: 'FLOOR',
     boundary: 'WALL',
 });
-const canvas = GWU.canvas.make({
+GWM.layer.gas(map);
+
+const app = GWU.app.make({
     font: 'monospace',
     width: map.width,
     height: map.height,
     loop: LOOP,
 });
-const buffer = canvas.buffer;
-SHOW(canvas.node);
+const buffer = app.buffer;
+SHOW(app);
 
-LOOP.run(
-    {
-        click: async (e) => {
-            await map.setTile(e.x, e.y, 'SWAMP_GAS2', {
-                volume: GWU.random.range(30, 150),
-            });
-        },
-        tick: async (e) => {
-            await map.tick();
-        },
-        draw: () => {
-            map.drawInto(buffer);
-            buffer.render();
-        },
-    },
-    500
-);
+app.on('click', (e) => {
+    map.setTile(e.x, e.y, 'SWAMP_GAS2', {
+        volume: GWU.random.range(30, 150),
+    });
+});
+
+app.repeat(250, () => {
+    map.tick();
+});
+
+app.on('draw', () => {
+    map.drawInto(buffer);
+    // buffer.render();
+});
 ```

@@ -32,7 +32,7 @@ describe('typical', () => {
         target = Actor.make('TESTB');
 
         game = UTILS.mockGame(map, actor);
-        action = new ACTION.Action('test', {
+        action = new ACTION.Action({
             game,
             map,
             actor,

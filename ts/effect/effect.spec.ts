@@ -40,7 +40,7 @@ describe('Effect', () => {
         okFn = jest.fn();
         map.on('OK', okFn);
 
-        action = new ACTION.Action('test', { map, x: 5, y: 6, game });
+        action = new ACTION.Action({ map, x: 5, y: 6, game });
     });
 
     afterEach(() => {
@@ -324,7 +324,7 @@ describe('Effect', () => {
         describe.skip('multiple effects', () => {
             afterEach(() => {
                 jest.restoreAllMocks();
-                map.actions.clear();
+                map.events.clear();
             });
 
             test('emits', () => {
@@ -334,7 +334,7 @@ describe('Effect', () => {
 
                 jest.spyOn(GWU.message, 'addAt');
 
-                const action = new ACTION.Action('test', {
+                const action = new ACTION.Action({
                     map,
                     x: 10,
                     y: 10,

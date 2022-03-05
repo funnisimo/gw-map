@@ -15,7 +15,7 @@ describe('fn', () => {
 
         expect(eff).not.toBeNull();
 
-        const action = new ACTION.Action('tbd', { map, x: 5, y: 6 });
+        const action = new ACTION.Action({ map, x: 5, y: 6 });
         eff!(action);
         expect(fn).toHaveBeenCalled();
     });
@@ -26,7 +26,7 @@ describe('fn', () => {
         const eff = Effect.make({ fn });
 
         expect(eff).not.toBeNull();
-        const action = new ACTION.Action('tbd', { map, x: 5, y: 6 });
+        const action = new ACTION.Action({ map, x: 5, y: 6 });
         eff!(action);
         expect(fn).toHaveBeenCalled();
     });
@@ -39,7 +39,7 @@ describe('fn', () => {
         const eff = Effect.make([fn, nextFn]);
         expect(eff).not.toBeNull();
 
-        const action = new ACTION.Action('tbd', { map, x: 5, y: 6 });
+        const action = new ACTION.Action({ map, x: 5, y: 6 });
         eff!(action);
         expect(fn).toHaveBeenCalled();
         expect(nextFn).toHaveBeenCalled();
@@ -53,7 +53,7 @@ describe('fn', () => {
         const eff = Effect.make([fn, nextFn]);
         expect(eff).not.toBeNull();
 
-        const action = new ACTION.Action('tbd', { map, x: 5, y: 6 });
+        const action = new ACTION.Action({ map, x: 5, y: 6 });
         eff!(action);
         expect(fn).toHaveBeenCalled();
         expect(nextFn).toHaveBeenCalled();
@@ -67,7 +67,7 @@ describe('fn', () => {
         const eff = Effect.make([fn, nextFn]);
         expect(eff).not.toBeNull();
 
-        const action = new ACTION.Action('tbd', { map, x: 5, y: 6 });
+        const action = new ACTION.Action({ map, x: 5, y: 6 });
         eff!(action);
         expect(fn).toHaveBeenCalled();
         expect(nextFn).not.toHaveBeenCalled();

@@ -15,7 +15,7 @@ export class SnapshotManager {
     map: Map;
     version = 0;
     cellVersion: GWU.grid.NumGrid;
-    layerVersion: number[] = [];
+    // layerVersion: number[] = [];
     lightVersion = 0;
     // fovVersion = 0;
     free: Snapshot[] = [];
@@ -23,7 +23,7 @@ export class SnapshotManager {
     constructor(map: Map) {
         this.map = map;
         this.cellVersion = GWU.grid.make(map.width, map.height);
-        this.layerVersion = map.layers.map(() => 1);
+        // this.layerVersion = map.layers.map(() => 1);
     }
 
     takeNew(): Snapshot {
@@ -62,15 +62,15 @@ export class SnapshotManager {
         // }
 
         // layers
-        this.map.layers.forEach((layer, index) => {
-            const snapLayer = snap.map.layers[index];
-            if (layer.changed) {
-                this.layerVersion[index] = this.version;
-            }
-            if (this.layerVersion[index] !== snap.version) {
-                snapLayer.copy(layer);
-            }
-        });
+        // this.map.layers.forEach((layer, index) => {
+        //     const snapLayer = snap.map.layers[index];
+        //     if (layer.changed) {
+        //         this.layerVersion[index] = this.version;
+        //     }
+        //     if (this.layerVersion[index] !== snap.version) {
+        //         snapLayer.copy(layer);
+        //     }
+        // });
 
         snap.version = this.version;
         return snap;
@@ -101,15 +101,15 @@ export class SnapshotManager {
         // }
 
         // layers
-        this.layerVersion.forEach((v, index) => {
-            if (v < snap.version) return;
-            const destLayer = this.map.layers[index];
-            if (v > snap.version || destLayer.changed) {
-                const srcLayer = snap.map.layers[index];
-                destLayer.copy(srcLayer);
-                this.layerVersion[index] = snap.version;
-            }
-        });
+        // this.layerVersion.forEach((v, index) => {
+        //     if (v < snap.version) return;
+        //     const destLayer = this.map.layers[index];
+        //     if (v > snap.version || destLayer.changed) {
+        //         const srcLayer = snap.map.layers[index];
+        //         destLayer.copy(srcLayer);
+        //         this.layerVersion[index] = snap.version;
+        //     }
+        // });
 
         this.version = snap.version;
     }

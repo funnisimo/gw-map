@@ -71,6 +71,7 @@ export class Cell {
     snapshot: GWU.sprite.Mixer;
     // toFire: Partial<Effect.EffectCtx>[] = [];
     memory: CellMemory | null = null;
+    volume = 0;
 
     constructor(
         map: Map,
@@ -167,6 +168,7 @@ export class Cell {
         // this._actor = other.actor;
         // this._item = other.item;
         this.memory = other.memory;
+        this.volume = other.volume;
         this.map = other.map;
         this.x = other.x;
         this.y = other.y;
@@ -400,7 +402,12 @@ export class Cell {
         }
 
         const current = this.tiles[tile.depth] || TILE.tiles.NULL;
-        if (current === tile) return false;
+        if (current === tile) {
+            if (opts.volume) {
+                this.volume += opts.volume;
+            }
+            return false;
+        }
 
         if (!opts.superpriority) {
             // if (current !== tile) {
@@ -456,6 +463,17 @@ export class Cell {
         if (tile.hasTileFlag(Flags.Tile.T_IS_FIRE)) {
             this.setCellFlag(Flags.Cell.CAUGHT_FIRE_THIS_TURN);
         }
+        if (tile.hasTileFlag(Flags.Tile.T_IS_FIRE)) {
+            this.map.setMapFlag(Flags.Map.MAP_HAS_FIRE);
+        }
+
+        this.volume = opts.volume || 0;
+        if (tile.depth === Flags.Depth.GAS) {
+            this.map.setMapFlag(Flags.Map.MAP_HAS_GAS);
+        }
+        if (tile.depth === Flags.Depth.LIQUID) {
+            this.map.setMapFlag(Flags.Map.MAP_HAS_LIQUID);
+        }
 
         // if (volume) {
         //     if (tile.depth === Depth.GAS) {
@@ -485,6 +503,7 @@ export class Cell {
         this.needsRedraw = true;
         this.chokeCount = 0;
         this.machineId = 0;
+        this.volume = 0;
         if (tile) {
             this.setTile(tile);
         }
@@ -498,6 +517,9 @@ export class Cell {
         } else if (this.tiles[depth] !== null) {
             this.tiles[depth] = null;
             this.needsRedraw = true;
+            if (depth === Flags.Depth.GAS) {
+                this.volume = 0;
+            }
             return true;
         }
         return false;
@@ -526,16 +548,14 @@ export class Cell {
         return this.tiles.find((t) => t?.hasAction(name)) || null;
     }
 
-    trigger(action: ACTION.Action): void;
-    trigger(action: string, ctx: ACTION.Action): void;
-    trigger(action: string | ACTION.Action, ctx?: ACTION.Action): void {
-        if (action instanceof ACTION.Action) {
-            return this.trigger(action.action, action);
+    trigger(action: string, ctx: ACTION.ActionOpts | ACTION.Action = {}): void {
+        if (!(ctx instanceof ACTION.Action)) {
+            ctx = new ACTION.Action(ctx);
         }
-        if (!ctx) throw new Error('Action is required.');
         ctx.x = this.x;
         ctx.y = this.y;
-        this.tiles.forEach((t) => t && t.trigger(action, ctx));
+        ctx.map = this.map;
+        this.tiles.forEach((t) => t && t.trigger(action, ctx as ACTION.Action));
     }
 
     hasAction(name: string) {

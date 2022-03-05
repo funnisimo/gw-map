@@ -14,17 +14,21 @@ export interface MapDrawOptions {
     fov?: GWU.fov.FovTracker | null;
 }
 
-export interface BufferSource {
-    buffer: GWU.buffer.Buffer;
+export interface DrawDest {
+    readonly width: number;
+    readonly height: number;
+    draw(
+        x: number,
+        y: number,
+        ch: string,
+        fg: GWU.color.ColorBase,
+        bg: GWU.color.ColorBase
+    ): void;
 }
 
 export interface CellDrawer {
     scent: boolean;
 
     drawCell: CellDrawFn;
-    drawInto(
-        dest: BufferSource | GWU.buffer.Buffer,
-        map: Map,
-        opts?: Partial<MapDrawOptions>
-    ): void;
+    drawInto(dest: DrawDest, map: Map, opts?: Partial<MapDrawOptions>): void;
 }

@@ -52,13 +52,13 @@ const prefab = [
 
 const map = GWM.map.from(prefab, charToTile);
 const canvas = GWU.canvas.make({
-    font: 'monospace',
     width: map.width,
     height: map.height,
+    loop: LOOP,
 });
 map.drawInto(canvas);
 canvas.render();
-SHOW(canvas.node);
+SHOW(canvas);
 ```
 
 Next, lets add a tree that is growing in one of the rooms. Maybe it has a little bit of grass around it as well. For trees, we have to decide whether or not we want the trees to block players' movement. We also need to decide whether or not the tree will block line of sight (vision). Let say that it blocks both.
@@ -119,13 +119,13 @@ const map = GWM.map.from(prefab, charToTile, {
     revealed: true,
 });
 const canvas = GWU.canvas.make({
-    font: 'monospace',
     width: map.width,
     height: map.height,
+    loop: LOOP,
 });
 map.drawInto(canvas);
 canvas.render();
-SHOW(canvas.node);
+SHOW(canvas);
 
 canvas.onmousemove = (e) => {
     map.fov.update(e.x, e.y, 10);

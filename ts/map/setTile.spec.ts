@@ -1,11 +1,11 @@
-import * as Map from '../map';
+import * as Map from './index';
 import * as Tile from '../tile';
 import * as Flags from '../flags';
 
 import '../effects';
 import '../tile/tiles';
 
-describe('tileLayer', () => {
+describe('Map setTile', () => {
     let map: Map.Map;
 
     beforeAll(() => {

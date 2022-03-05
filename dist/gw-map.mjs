@@ -1,6 +1,6 @@
 import * as GWU from 'gw-utils';
 
-var Depth$1;
+var Depth;
 (function (Depth) {
     Depth[Depth["ALL_LAYERS"] = -1] = "ALL_LAYERS";
     Depth[Depth["GROUND"] = 0] = "GROUND";
@@ -11,7 +11,7 @@ var Depth$1;
     Depth[Depth["GAS"] = 5] = "GAS";
     Depth[Depth["FX"] = 6] = "FX";
     Depth[Depth["UI"] = 7] = "UI";
-})(Depth$1 || (Depth$1 = {}));
+})(Depth || (Depth = {}));
 
 const Fl$7 = GWU.flag.fl;
 var Entity$1;
@@ -237,13 +237,14 @@ var Map$1;
     Map[Map["MAP_NEEDS_REDRAW"] = Fl$2(1)] = "MAP_NEEDS_REDRAW";
     Map[Map["MAP_ALWAYS_LIT"] = Fl$2(3)] = "MAP_ALWAYS_LIT";
     Map[Map["MAP_SAW_WELCOME"] = Fl$2(4)] = "MAP_SAW_WELCOME";
-    Map[Map["MAP_NO_LIQUID"] = Fl$2(5)] = "MAP_NO_LIQUID";
-    Map[Map["MAP_NO_GAS"] = Fl$2(6)] = "MAP_NO_GAS";
-    Map[Map["MAP_CALC_FOV"] = Fl$2(7)] = "MAP_CALC_FOV";
-    Map[Map["MAP_FOV_CHANGED"] = Fl$2(8)] = "MAP_FOV_CHANGED";
-    Map[Map["MAP_DANCES"] = Fl$2(9)] = "MAP_DANCES";
-    Map[Map["MAP_SIDEBAR_TILES_CHANGED"] = Fl$2(10)] = "MAP_SIDEBAR_TILES_CHANGED";
-    Map[Map["MAP_SIDEBAR_CHANGED"] = Fl$2(11)] = "MAP_SIDEBAR_CHANGED";
+    Map[Map["MAP_HAS_LIQUID"] = Fl$2(5)] = "MAP_HAS_LIQUID";
+    Map[Map["MAP_HAS_GAS"] = Fl$2(6)] = "MAP_HAS_GAS";
+    Map[Map["MAP_HAS_FIRE"] = Fl$2(7)] = "MAP_HAS_FIRE";
+    Map[Map["MAP_CALC_FOV"] = Fl$2(10)] = "MAP_CALC_FOV";
+    Map[Map["MAP_FOV_CHANGED"] = Fl$2(11)] = "MAP_FOV_CHANGED";
+    Map[Map["MAP_DANCES"] = Fl$2(12)] = "MAP_DANCES";
+    Map[Map["MAP_SIDEBAR_TILES_CHANGED"] = Fl$2(13)] = "MAP_SIDEBAR_TILES_CHANGED";
+    Map[Map["MAP_SIDEBAR_CHANGED"] = Fl$2(14)] = "MAP_SIDEBAR_CHANGED";
     Map[Map["MAP_DEFAULT"] = 0] = "MAP_DEFAULT";
 })(Map$1 || (Map$1 = {}));
 
@@ -332,7 +333,7 @@ var Horde$1;
 
 var index$g = /*#__PURE__*/Object.freeze({
     __proto__: null,
-    get Depth () { return Depth$1; },
+    get Depth () { return Depth; },
     get Entity () { return Entity$1; },
     get Actor () { return Actor$1; },
     get Item () { return Item$1; },
@@ -360,7 +361,7 @@ function makeKeyInfo(x, y, disposable) {
 }
 
 class Action {
-    constructor(action, opts) {
+    constructor(opts) {
         this.actor = null; // actor doing the acting
         this.item = null; // item being acted upon (if any/known)
         this.x = 0;
@@ -384,12 +385,20 @@ class Action {
         this.logged = false; // message was logged
         this.visible = false; // visible to player
         this.data = {};
-        this.action = action;
         this.map = opts.map;
-        this.game = opts.game || this.map.game;
         this.actor = opts.actor || null;
         this.item = opts.item || null;
         this.target = opts.target || null;
+        if (!this.map && this.actor) {
+            this.map = this.actor.map;
+        }
+        if (!this.map && this.item) {
+            this.map = this.item.map;
+        }
+        this.game = opts.game;
+        if (!this.game && this.map) {
+            this.game = this.map.game;
+        }
         if (opts.x !== undefined) {
             this.x = opts.x;
             this.y = opts.y;
@@ -771,9 +780,6 @@ class Actions {
         }
     }
     trigger(ev, action) {
-        if (ev instanceof Action) {
-            return this.trigger(ev.action, ev);
-        }
         if (!action)
             throw new Error('Need Action parameter.');
         if (Array.isArray(ev)) {
@@ -828,9 +834,9 @@ function install$7(ev, fn) {
     fn.seen = false;
     global.on(ev, fn);
 }
-function doAction(ev, action) {
+function doAction(ev, action = {}) {
     if (!(action instanceof Action)) {
-        action = new Action(ev, action);
+        action = new Action(action);
     }
     if (action.actor) {
         if (!action.actor.canDoAction(ev)) {
@@ -1019,12 +1025,10 @@ class Entity {
     off(action, fn) {
         this.actions.off(action, fn);
     }
-    trigger(name, action) {
-        if (name instanceof Action) {
-            return this.trigger(name.action, name);
+    trigger(name, action = {}) {
+        if (!(action instanceof Action)) {
+            action = new Action(action);
         }
-        if (!action)
-            throw new Error('Action required.');
         if (action.isDone())
             return;
         this.actions.trigger(name, action);
@@ -1204,12 +1208,10 @@ class EntityKind {
         }
         this._actions[action] = false;
     }
-    trigger(name, action) {
-        if (name instanceof Action) {
-            return this.trigger(name.action, name);
+    trigger(name, action = {}) {
+        if (!(action instanceof Action)) {
+            action = new Action(action);
         }
-        if (!action)
-            throw new Error('Action required.');
         if (action.isDone())
             return;
         this.actions.trigger(name, action);
@@ -1601,7 +1603,7 @@ class Actor extends Entity {
         this.next = null; // TODO - can we get rid of this?
         // @ts-ignore - initialized in Entity
         this.flags.actor = 0;
-        this.depth = Depth$1.ACTOR;
+        this.depth = Depth.ACTOR;
         this.kind = kind;
         this.stats = new Stats();
         this.status = new Status();
@@ -2032,6 +2034,14 @@ function makeArray(cfg) {
     const steps = Object.entries(cfg).map(([key, config]) => make$6(key, config));
     return steps.filter((s) => s !== null);
 }
+function trigger(effect, map, x, y, opts) {
+    const cfg = Object.assign({ map, x, y }, opts);
+    const action = new Action(cfg);
+    const fn = handlers[effect];
+    if (!fn)
+        return;
+    fn(action);
+}
 /*
 
 /////////////////////////
@@ -2344,6 +2354,7 @@ var index$e = /*#__PURE__*/Object.freeze({
     installHandler: installHandler,
     make: make$6,
     makeArray: makeArray,
+    trigger: trigger,
     installed: installed,
     install: install$6,
     installAll: installAll$2,
@@ -2377,9 +2388,6 @@ class Tile {
             Object.entries(config.actions).forEach(([ev, fn]) => {
                 this.on(ev, fn);
             });
-            if (this.hasAction('fire')) {
-                this.flags.tile |= Tile$1.T_IS_FLAMMABLE;
-            }
         }
         if (config.tags) {
             if (typeof config.tags === 'string') {
@@ -2441,6 +2449,9 @@ class Tile {
     on(name, fn) {
         if (!fn) {
             this.actions.off(name);
+            if (name === 'fire') {
+                this.flags.tile &= ~Tile$1.T_IS_FLAMMABLE;
+            }
             return;
         }
         if (typeof fn === 'string') {
@@ -2450,24 +2461,29 @@ class Tile {
             fn = effect;
         }
         if (Array.isArray(fn)) {
-            fn.forEach((cb) => this.on(name, cb));
+            fn.reverse().forEach((cb) => this.on(name, cb));
         }
         else if (typeof fn === 'object') {
-            Object.entries(fn).forEach(([key, value]) => {
+            Object.entries(fn)
+                .reverse()
+                .forEach(([key, value]) => {
                 const effect = make$6(key, value);
                 effect && this.on(name, effect);
             });
         }
         else {
             this.actions.on(name, fn);
+            if (name === 'fire') {
+                this.flags.tile |= Tile$1.T_IS_FLAMMABLE;
+            }
         }
     }
-    trigger(name, action) {
-        if (name instanceof Action) {
-            return this.trigger(name.action, name);
+    trigger(name, action = {}) {
+        if (!(action instanceof Action)) {
+            action = new Action(action);
         }
-        if (!action)
-            throw new Error('Need action.');
+        if (!action.map)
+            throw new Error('Need action with a map.');
         this.actions.trigger(name, action);
     }
     // INFO
@@ -2579,7 +2595,7 @@ function make$5(options) {
     let depth = base.depth || 0;
     if (options.depth) {
         if (typeof options.depth === 'string') {
-            depth = Depth$1[options.depth];
+            depth = Depth[options.depth];
         }
         else {
             depth = options.depth;
@@ -2626,9 +2642,16 @@ const all = [];
 function get$3(id) {
     if (id instanceof Tile)
         return id;
-    if (typeof id === 'string')
-        return tiles[id] || null;
-    return all[id] || null;
+    if (typeof id === 'string') {
+        const t = tiles[id];
+        if (t)
+            return t;
+        throw new Error('Failed to find tile with id - ' + id);
+    }
+    const t = all[id];
+    if (t)
+        return t;
+    throw new Error('Failed to find tile with index - ' + id);
 }
 function install$5(id, ...args) {
     let options = args[0];
@@ -2695,6 +2718,7 @@ class Cell {
         this.y = -1;
         // toFire: Partial<Effect.EffectCtx>[] = [];
         this.memory = null;
+        this.volume = 0;
         // this._entities = new CellEntities(this);
         this.flags = { cell: Cell$1.NEEDS_REDRAW };
         this.tiles = [tiles.NULL];
@@ -2765,6 +2789,7 @@ class Cell {
         // this._actor = other.actor;
         // this._item = other.item;
         this.memory = other.memory;
+        this.volume = other.volume;
         this.map = other.map;
         this.x = other.x;
         this.y = other.y;
@@ -2972,8 +2997,12 @@ class Cell {
                 return false;
         }
         const current = this.tiles[tile.depth] || tiles.NULL;
-        if (current === tile)
+        if (current === tile) {
+            if (opts.volume) {
+                this.volume += opts.volume;
+            }
             return false;
+        }
         if (!opts.superpriority) {
             // if (current !== tile) {
             //     this.gasVolume = 0;
@@ -2993,8 +3022,8 @@ class Cell {
         if (opts.blockedByOtherLayers && this.highestPriority() > tile.priority)
             return false;
         // TODO - Are we blocked by other layer (L_BLOCKS_SURFACE on an already present tile)?
-        if (tile.depth > Depth$1.GROUND && tile.groundTile) {
-            const currentGround = this.depthTile(Depth$1.GROUND);
+        if (tile.depth > Depth.GROUND && tile.groundTile) {
+            const currentGround = this.depthTile(Depth.GROUND);
             const wantGround = get$3(tile.groundTile);
             if (currentGround !== wantGround) {
                 if (!this.setTile(wantGround, opts)) {
@@ -3005,7 +3034,7 @@ class Cell {
         this.tiles[tile.depth] = tile;
         this.needsRedraw = true;
         if (tile.hasEntityFlag(Entity$1.L_BLOCKS_SURFACE)) {
-            this.clearDepth(Depth$1.SURFACE);
+            this.clearDepth(Depth.SURFACE);
         }
         if (opts.machine) {
             this.machineId = opts.machine;
@@ -3019,6 +3048,16 @@ class Cell {
         }
         if (tile.hasTileFlag(Tile$1.T_IS_FIRE)) {
             this.setCellFlag(Cell$1.CAUGHT_FIRE_THIS_TURN);
+        }
+        if (tile.hasTileFlag(Tile$1.T_IS_FIRE)) {
+            this.map.setMapFlag(Map$1.MAP_HAS_FIRE);
+        }
+        this.volume = opts.volume || 0;
+        if (tile.depth === Depth.GAS) {
+            this.map.setMapFlag(Map$1.MAP_HAS_GAS);
+        }
+        if (tile.depth === Depth.LIQUID) {
+            this.map.setMapFlag(Map$1.MAP_HAS_LIQUID);
         }
         // if (volume) {
         //     if (tile.depth === Depth.GAS) {
@@ -3046,6 +3085,7 @@ class Cell {
         this.needsRedraw = true;
         this.chokeCount = 0;
         this.machineId = 0;
+        this.volume = 0;
         if (tile) {
             this.setTile(tile);
         }
@@ -3060,6 +3100,9 @@ class Cell {
         else if (this.tiles[depth] !== null) {
             this.tiles[depth] = null;
             this.needsRedraw = true;
+            if (depth === Depth.GAS) {
+                this.volume = 0;
+            }
             return true;
         }
         return false;
@@ -3087,14 +3130,13 @@ class Cell {
     tileWithAction(name) {
         return this.tiles.find((t) => t === null || t === void 0 ? void 0 : t.hasAction(name)) || null;
     }
-    trigger(action, ctx) {
-        if (action instanceof Action) {
-            return this.trigger(action.action, action);
+    trigger(action, ctx = {}) {
+        if (!(ctx instanceof Action)) {
+            ctx = new Action(ctx);
         }
-        if (!ctx)
-            throw new Error('Action is required.');
         ctx.x = this.x;
         ctx.y = this.y;
+        ctx.map = this.map;
         this.tiles.forEach((t) => t && t.trigger(action, ctx));
     }
     hasAction(name) {
@@ -3248,7 +3290,7 @@ class Item extends Entity {
         this.next = null;
         // @ts-ignore - initialized in constructor
         this.flags.item = 0;
-        this.depth = Depth$1.ITEM;
+        this.depth = Depth.ITEM;
         this.kind = kind;
     }
     isPlural() {
@@ -4763,15 +4805,16 @@ function chance(opts) {
 }
 function chanceAction(cfg, action) {
     const map = action.map;
-    if (!map.rng.chance(cfg))
+    if (!map.rng.chance(cfg, 10000)) {
         return action.stop();
+    }
 }
 installHandler('chance', chance);
 
 function clear(config) {
     let layers = 0;
     if (!config) {
-        layers = Depth$1.ALL_LAYERS;
+        layers = Depth.ALL_LAYERS;
     }
     else if (typeof config === 'number') {
         layers = config;
@@ -4781,7 +4824,7 @@ function clear(config) {
         layers = parts.reduce((out, v) => {
             if (typeof v === 'number')
                 return out | v;
-            const depth = Depth$1[v] || 0;
+            const depth = Depth[v] || 0;
             return out | depth;
         }, 0);
     }
@@ -5157,16 +5200,16 @@ function clearCells(map, spawnMap, flags = 0) {
         }
         else {
             if (flags & Effect.E_CLEAR_GAS) {
-                cell.clearDepth(Depth$1.GAS);
+                cell.clearDepth(Depth.GAS);
             }
             if (flags & Effect.E_CLEAR_LIQUID) {
-                cell.clearDepth(Depth$1.LIQUID);
+                cell.clearDepth(Depth.LIQUID);
             }
             if (flags & Effect.E_CLEAR_SURFACE) {
-                cell.clearDepth(Depth$1.SURFACE);
+                cell.clearDepth(Depth.SURFACE);
             }
             if (flags & Effect.E_CLEAR_GROUND) {
-                cell.clearDepth(Depth$1.GROUND);
+                cell.clearDepth(Depth.GROUND);
             }
         }
         didSomething = true;
@@ -5276,13 +5319,19 @@ function tile(src) {
         opts.blockedByActors = true;
         opts.blockedByItems = true;
     }
-    opts.id = opts.id.replace(/[!~]*/g, '');
+    if (opts.id.includes('+')) {
+        opts.protected = true;
+    }
+    opts.id = opts.id.replace(/[!~+]*/g, '');
     return tileAction.bind(undefined, opts);
 }
 function tileAction(cfg, action) {
     const map = action.map;
     cfg.machine = action.machine || 0;
     if (map.setTile(action.x, action.y, cfg.id, cfg)) {
+        if (cfg.protected) {
+            map.setCellFlag(action.x, action.y, Cell$1.EVENT_PROTECTED);
+        }
         action.didSomething();
     }
 }
@@ -5390,221 +5439,221 @@ class TileLayer extends MapLayer {
     }
 }
 
-class GasLayer extends TileLayer {
-    constructor(map, name = 'gas') {
-        super(map, name);
-        this.volume = GWU.grid.alloc(map.width, map.height, 0);
-    }
-    clear() {
-        this.volume.fill(0);
-    }
-    setTile(x, y, tile, opts = {}) {
-        if (!opts.volume)
-            return false;
-        const cell = this.map.cell(x, y);
-        if (cell.depthTile(tile.depth) === tile) {
-            this.volume[x][y] += opts.volume;
-            return true;
+function gas(map) {
+    const cleanup = [];
+    map.data.gas = true;
+    cleanup.push(map.on('tick', () => {
+        gasTick(map);
+    }));
+    cleanup.push(map.on('copy', (src) => {
+        if (!src.data.gas) {
+            // remove gas
+            cleanup.forEach((c) => c());
         }
-        if (!super.setTile(x, y, tile, opts)) {
-            return false;
+    }));
+    cleanup.push(map.on('assign', (dest) => {
+        if (!dest.data.gas) {
+            // install gas
+            gas(dest);
         }
-        this.volume[x][y] = opts.volume;
-        this.changed = true;
-        return true;
-    }
-    clearTile(x, y) {
-        const cell = this.map.cell(x, y);
-        if (cell.clearDepth(this.depth)) {
-            this.volume[x][y] = 0;
-            return true;
+    }));
+}
+function gasTick(map) {
+    if (!map.hasMapFlag(Map$1.MAP_HAS_GAS))
+        return;
+    const updatedVolumes = GWU.grid.alloc(map.width, map.height);
+    // dissipate the gas...
+    dissipateGas(map, updatedVolumes);
+    // spread the gas...
+    spreadGas(map, updatedVolumes);
+    GWU.grid.free(updatedVolumes);
+}
+function dissipateGas(map, volume) {
+    map.cells.forEach((cell, x, y) => {
+        if (!cell.volume) {
+            volume[x][y] = 0;
         }
-        return false;
-    }
-    copy(other) {
-        this.volume.copy(other.volume);
-        this.changed = other.changed;
-    }
-    tick(_dt) {
-        if (!this.changed)
-            return false;
-        this.changed = false;
-        const startingVolume = this.volume;
-        this.volume = GWU.grid.alloc(this.map.width, this.map.height);
-        // dissipate the gas...
-        this.dissipate(startingVolume);
-        // spread the gas...
-        this.spread(startingVolume);
-        GWU.grid.free(startingVolume);
-        return true;
-    }
-    dissipate(volume) {
-        volume.update((v, x, y) => {
-            if (!v)
-                return 0;
-            const tile = this.map.cell(x, y).depthTile(this.depth);
+        else {
+            let v = cell.volume;
+            const tile = cell.depthTile(Depth.GAS);
             if (tile && tile.dissipate) {
                 let d = Math.max(0.5, (v * tile.dissipate) / 10000); // 1000 = 10%
                 v = Math.max(0, v - d);
             }
-            if (v) {
-                this.changed = true;
+            if (!v) {
+                cell.clearDepth(Depth.GAS);
             }
             else {
-                this.clearTile(x, y);
+                cell.volume = v;
             }
-            return v;
-        });
-    }
-    calcOpacity(volume) {
-        return Math.floor(Math.min(volume, 10) * 10);
-    }
-    updateCellVolume(x, y, startingVolume) {
-        let total = 0;
-        let count = 0;
-        let highestVolume = 0;
-        const cell = this.map.cell(x, y);
-        let startingTile = cell.depthTile(this.depth);
-        let highestTile = startingTile;
-        if (cell.hasEntityFlag(Entity$1.L_BLOCKS_GAS)) {
-            this.volume[x][y] = 0;
-            if (startingVolume[x][y]) {
-                this.clearTile(x, y);
-            }
-            return;
+            volume[x][y] = v;
         }
-        for (let i = Math.max(0, x - 1); i < Math.min(x + 2, startingVolume.width); ++i) {
-            for (let j = Math.max(0, y - 1); j < Math.min(y + 2, startingVolume.height); ++j) {
-                const v = startingVolume[i][j];
-                if (!cell.hasEntityFlag(Entity$1.L_BLOCKS_GAS)) {
-                    ++count;
-                    if (v > highestVolume) {
-                        highestVolume = v;
-                        highestTile = this.map.cell(i, j).depthTile(this.depth);
-                    }
+    });
+}
+// function calcOpacity(volume: number): number {
+//     return Math.floor(Math.min(volume, 10) * 10);
+// }
+function updateCellVolume(map, x, y, startingVolume) {
+    let total = 0;
+    let count = 0;
+    let highestVolume = 0;
+    const cell = map.cell(x, y);
+    let startingTile = cell.depthTile(Depth.GAS);
+    let highestTile = startingTile;
+    if (cell.hasEntityFlag(Entity$1.L_BLOCKS_GAS)) {
+        startingVolume[x][y] = 0;
+        cell.volume = 0;
+        return;
+    }
+    for (let i = Math.max(0, x - 1); i < Math.min(x + 2, startingVolume.width); ++i) {
+        for (let j = Math.max(0, y - 1); j < Math.min(y + 2, startingVolume.height); ++j) {
+            const v = startingVolume[i][j];
+            if (!cell.hasEntityFlag(Entity$1.L_BLOCKS_GAS)) {
+                ++count;
+                if (v > highestVolume) {
+                    highestVolume = v;
+                    highestTile = map.cell(i, j).depthTile(Depth.GAS);
                 }
-                total += v;
             }
-        }
-        const v = Math.floor((total * 10) / count) / 10;
-        this.volume[x][y] = v;
-        if (v > 0 && highestTile) {
-            if (!startingTile || startingTile !== highestTile) {
-                cell.setTile(highestTile);
-            }
-        }
-        if (v > 0) {
-            cell.needsRedraw = true;
+            total += v;
         }
     }
-    spread(startingVolume) {
-        for (let x = 0; x < startingVolume.width; ++x) {
-            for (let y = 0; y < startingVolume.height; ++y) {
-                this.updateCellVolume(x, y, startingVolume);
-            }
+    const v = Math.floor((total * 10) / count) / 10;
+    // startingVolume[x][y] = v;
+    if (v > 0 && highestTile) {
+        if (!startingTile || startingTile !== highestTile) {
+            cell.setTile(highestTile, { volume: v });
+        }
+        else {
+            cell.volume = v;
+        }
+    }
+    if (v > 0) {
+        cell.needsRedraw = true;
+    }
+}
+function spreadGas(map, startingVolume) {
+    for (let x = 0; x < startingVolume.width; ++x) {
+        for (let y = 0; y < startingVolume.height; ++y) {
+            updateCellVolume(map, x, y, startingVolume);
         }
     }
 }
 
-// import * as Effect from '../effect';
-const Depth = Depth$1;
 const ObjectFlags = Entity$1;
 const TileFlags = Tile$1;
 const TileMechFlags = TileMech;
 const CellFlags = Cell$1;
-class FireLayer extends TileLayer {
-    constructor(map, name = 'tile') {
-        super(map, name);
-    }
-    tick(_dt) {
-        // Run any tick effects
-        // Bookkeeping for fire
-        for (let x = 0; x < this.map.width; ++x) {
-            for (let y = 0; y < this.map.height; ++y) {
-                const cell = this.map.cell(x, y);
-                cell.clearCellFlag(CellFlags.CAUGHT_FIRE_THIS_TURN);
-            }
+function fire(map) {
+    map.data.fire = true;
+    const cancelFns = [];
+    cancelFns.push(map.on('tick', () => {
+        fireTick(map);
+    }));
+    cancelFns.push(map.on('assign', (dest) => {
+        if (!dest.data.fire) {
+            fire(dest);
         }
-        // now spread the fire...
-        for (let x = 0; x < this.map.width; ++x) {
-            for (let y = 0; y < this.map.height; ++y) {
-                const cell = this.map.cell(x, y);
-                if (cell.hasTileFlag(TileFlags.T_IS_FIRE) &&
-                    !(cell.flags.cell & CellFlags.CAUGHT_FIRE_THIS_TURN)) {
-                    this.exposeToFire(x, y, false);
-                    for (let d = 0; d < 4; ++d) {
-                        const dir = GWU.xy.DIRS[d];
-                        this.exposeToFire(x + dir[0], y + dir[1]);
-                    }
+    }));
+    // Not sure if we should do this, but...
+    cancelFns.push(map.on('copy', (src) => {
+        if (!src.data.fire) {
+            cancelFns.forEach((c) => c());
+        }
+    }));
+}
+function fireTick(map) {
+    // Run any tick effects
+    if (!map.hasMapFlag(Map$1.MAP_HAS_FIRE))
+        return;
+    map.clearMapFlag(Map$1.MAP_HAS_FIRE);
+    // Bookkeeping for fire
+    for (let x = 0; x < map.width; ++x) {
+        for (let y = 0; y < map.height; ++y) {
+            const cell = map.cell(x, y);
+            cell.clearCellFlag(CellFlags.CAUGHT_FIRE_THIS_TURN);
+        }
+    }
+    // now spread the fire...
+    for (let x = 0; x < map.width; ++x) {
+        for (let y = 0; y < map.height; ++y) {
+            const cell = map.cell(x, y);
+            if (cell.hasTileFlag(TileFlags.T_IS_FIRE) &&
+                !(cell.flags.cell & CellFlags.CAUGHT_FIRE_THIS_TURN)) {
+                exposeToFire(map, x, y, false);
+                for (let d = 0; d < 4; ++d) {
+                    const dir = GWU.xy.DIRS[d];
+                    exposeToFire(map, x + dir[0], y + dir[1]);
                 }
             }
         }
-        return true;
     }
-    exposeToFire(x, y, alwaysIgnite = false) {
-        let ignitionChance = 0, bestExtinguishingPriority = 0, explosiveNeighborCount = 0;
-        let fireIgnited = false, explosivePromotion = false;
-        const cell = this.map.cell(x, y);
-        if (!cell.hasTileFlag(TileFlags.T_IS_FLAMMABLE)) {
-            return false;
-        }
+    if (map.someCell((c) => c.hasTileFlag(Tile$1.T_IS_FIRE))) {
+        map.setMapFlag(Map$1.MAP_HAS_FIRE);
+    }
+}
+function exposeToFire(map, x, y, alwaysIgnite = false) {
+    let firePriority = 0, bestExtinguishingPriority = 0, explosiveNeighborCount = 0;
+    let explosivePromotion = false;
+    const cell = map.cell(x, y);
+    if (!cell.hasTileFlag(TileFlags.T_IS_FLAMMABLE)) {
+        return false;
+    }
+    cell.eachTile((tile) => {
         // Pick the extinguishing layer with the best priority.
-        cell.eachTile((tile) => {
-            if (tile.hasTileFlag(TileFlags.T_EXTINGUISHES_FIRE) &&
-                tile.priority > bestExtinguishingPriority) {
-                bestExtinguishingPriority = tile.priority;
-            }
-        });
-        // Pick the fire type of the most flammable layer that is either gas or equal-or-better priority than the best extinguishing layer.
-        cell.eachTile((tile) => {
-            if (tile.flags.tile & TileFlags.T_IS_FLAMMABLE &&
-                (tile.depth === Depth.GAS ||
-                    tile.priority >= bestExtinguishingPriority)) ;
-        });
-        if (alwaysIgnite ||
-            (ignitionChance )) {
-            // If it ignites...
-            fireIgnited = true;
-            // Count explosive neighbors.
-            if (cell.hasTileMechFlag(TileMechFlags.TM_EXPLOSIVE_PROMOTE)) {
-                GWU.xy.eachNeighbor(x, y, (x0, y0) => {
-                    const n = this.map.cell(x0, y0);
-                    if (n.hasEntityFlag(ObjectFlags.L_BLOCKS_GAS) ||
-                        n.hasTileFlag(TileFlags.T_IS_FIRE) ||
-                        n.hasTileMechFlag(TileMechFlags.TM_EXPLOSIVE_PROMOTE)) {
-                        ++explosiveNeighborCount;
-                    }
-                });
-                if (explosiveNeighborCount >= 8) {
-                    explosivePromotion = true;
-                }
-            }
-            let event = 'fire';
-            if (explosivePromotion && cell.hasAction('explode')) {
-                event = 'explode';
-            }
-            // cell.eachTile( (tile) => {
-            //     if (tile.flags.tile & TileFlags.T_IS_FLAMMABLE) {
-            //         if (tile.depth === Depth.GAS) {
-            //             cell.gasVolume = 0;
-            //         } else if (tile.depth === Depth.LIQUID) {
-            //             cell.liquidVolume = 0;
-            //         }
-            //     }
-            // });
-            cell.trigger(event, new Action(event, { map: this.map, force: true }));
-            cell.needsRedraw = true;
+        if (tile.hasTileFlag(TileFlags.T_EXTINGUISHES_FIRE) &&
+            tile.priority > bestExtinguishingPriority) {
+            bestExtinguishingPriority = tile.priority;
         }
-        return fireIgnited;
+        // Pick the fire type of the most flammable layer that is either gas or equal-or-better priority than the best extinguishing layer.
+        if (tile.flags.tile & TileFlags.T_IS_FLAMMABLE &&
+            tile.priority > firePriority) {
+            firePriority = tile.priority;
+        }
+    });
+    // didNothing
+    if (bestExtinguishingPriority >= firePriority && !alwaysIgnite)
+        return false;
+    // Count explosive neighbors.
+    if (cell.hasTileMechFlag(TileMechFlags.TM_EXPLOSIVE_PROMOTE)) {
+        GWU.xy.eachNeighbor(x, y, (x0, y0) => {
+            const n = map.cell(x0, y0);
+            if (n.hasEntityFlag(ObjectFlags.L_BLOCKS_GAS) ||
+                n.hasTileFlag(TileFlags.T_IS_FIRE) ||
+                n.hasTileMechFlag(TileMechFlags.TM_EXPLOSIVE_PROMOTE)) {
+                ++explosiveNeighborCount;
+            }
+        });
+        if (explosiveNeighborCount >= 8) {
+            explosivePromotion = true;
+        }
     }
+    let event = 'fire';
+    if (explosivePromotion && cell.hasAction('explode')) {
+        event = 'explode';
+    }
+    // cell.eachTile( (tile) => {
+    //     if (tile.flags.tile & TileFlags.T_IS_FLAMMABLE) {
+    //         if (tile.depth === Depth.GAS) {
+    //             cell.gasVolume = 0;
+    //         } else if (tile.depth === Depth.LIQUID) {
+    //             cell.liquidVolume = 0;
+    //         }
+    //     }
+    // });
+    cell.trigger(event, {
+        force: true,
+    });
+    // cell.needsRedraw = true;
+    return true;
 }
 
 var index$6 = /*#__PURE__*/Object.freeze({
     __proto__: null,
     MapLayer: MapLayer,
     TileLayer: TileLayer,
-    GasLayer: GasLayer,
-    FireLayer: FireLayer
+    gas: gas,
+    fire: fire
 });
 
 const highlightColor = GWU.color.install('highlight', [100, 100, 0]);
@@ -5613,17 +5662,16 @@ class BasicDrawer {
         this.scent = false;
     }
     drawInto(dest, map, opts = {}) {
-        const buffer = dest instanceof GWU.buffer.Buffer ? dest : dest.buffer;
         const offsetX = opts.offsetX || 0;
         const offsetY = opts.offsetY || 0;
         map.clearMapFlag(Map$1.MAP_DANCES);
         const mixer = new GWU.sprite.Mixer();
-        for (let x = 0; x < buffer.width; ++x) {
-            for (let y = 0; y < buffer.height; ++y) {
+        for (let x = 0; x < dest.width; ++x) {
+            for (let y = 0; y < dest.height; ++y) {
                 if (map.hasXY(x + offsetX, y + offsetY)) {
                     const cell = map.cell(x + offsetX, y + offsetY);
                     this.drawCell(mixer, map, cell, map.fov);
-                    buffer.drawSprite(x, y, mixer);
+                    dest.draw(x, y, mixer.ch || ' ', mixer.fg, mixer.bg);
                 }
             }
         }
@@ -5721,10 +5769,10 @@ class BasicDrawer {
             actor = cell.hasActor() ? cell.actor : null;
             item = cell.hasItem() ? cell.item : null;
         }
-        const ground = tiles[Depth$1.GROUND];
-        const surface = tiles[Depth$1.SURFACE];
-        const liquid = tiles[Depth$1.LIQUID];
-        const gas = tiles[Depth$1.GAS]; // How to get volume!?!?!?!
+        const ground = tiles[Depth.GROUND];
+        const surface = tiles[Depth.SURFACE];
+        const liquid = tiles[Depth.LIQUID];
+        const gas = tiles[Depth.GAS]; // How to get volume!?!?!?!
         dest.drawSprite(ground.sprite);
         if (surface) {
             dest.drawSprite(surface.sprite);
@@ -5801,9 +5849,10 @@ class Map {
         this.fx = [];
         this.player = null;
         this._tweens = new GWU.app.Tweens();
-        this.actions = new Actions(this);
+        // actions = new ACTION.Actions(this);
+        this.events = new GWU.app.Events(this);
         this.flags = { map: 0 };
-        this.layers = [];
+        // this.layers = [];
         this.data = { seed: 0, machineCount: 0 };
         if (opts.id) {
             this.data.id = opts.id;
@@ -5828,12 +5877,12 @@ class Map {
         }
         opts.callback = this.onFovChange.bind(this);
         this.fov = new GWU.fov.FovSystem(this, opts);
-        this.initLayers();
+        // this.initLayers();
         if (opts.player) {
             this.setPlayer(opts.player);
         }
         if (opts.actions) {
-            this.actions.load(opts.actions);
+            this.events.load(opts.actions);
         }
     }
     get seed() {
@@ -5857,32 +5906,34 @@ class Map {
     //     return this._memory[x][y];
     // }
     // LAYERS
-    initLayers() {
-        this.addLayer(Depth$1.GROUND, new TileLayer(this, 'ground'));
-        this.addLayer(Depth$1.SURFACE, new FireLayer(this, 'surface'));
-        this.addLayer(Depth$1.GAS, new GasLayer(this, 'gas'));
-    }
-    addLayer(depth, layer) {
-        if (typeof depth !== 'number') {
-            depth = Depth$1[depth];
-        }
-        layer.depth = depth;
-        this.layers[depth] = layer;
-    }
-    removeLayer(depth) {
-        if (typeof depth !== 'number') {
-            depth = Depth$1[depth];
-        }
-        if (!depth)
-            throw new Error('Cannot remove layer with depth=0.');
-        delete this.layers[depth];
-    }
-    getLayer(depth) {
-        if (typeof depth !== 'number') {
-            depth = Depth$1[depth];
-        }
-        return this.layers[depth] || null;
-    }
+    // initLayers() {
+    //     this.addLayer(Flags.Depth.GROUND, new Layer.TileLayer(this, 'ground'));
+    //     this.addLayer(
+    //         Flags.Depth.SURFACE,
+    //         new Layer.FireLayer(this, 'surface')
+    //     );
+    //     this.addLayer(Flags.Depth.GAS, new Layer.GasLayer(this, 'gas'));
+    // }
+    // addLayer(depth: number | keyof typeof Flags.Depth, layer: LayerType) {
+    //     if (typeof depth !== 'number') {
+    //         depth = Flags.Depth[depth as keyof typeof Flags.Depth];
+    //     }
+    //     layer.depth = depth;
+    //     this.layers[depth] = layer;
+    // }
+    // removeLayer(depth: number | keyof typeof Flags.Depth) {
+    //     if (typeof depth !== 'number') {
+    //         depth = Flags.Depth[depth as keyof typeof Flags.Depth];
+    //     }
+    //     if (!depth) throw new Error('Cannot remove layer with depth=0.');
+    //     delete this.layers[depth];
+    // }
+    // getLayer(depth: number | keyof typeof Flags.Depth): LayerType | null {
+    //     if (typeof depth !== 'number') {
+    //         depth = Flags.Depth[depth as keyof typeof Flags.Depth];
+    //     }
+    //     return this.layers[depth] || null;
+    // }
     hasXY(x, y) {
         return this.cells.hasXY(x, y);
     }
@@ -5897,6 +5948,9 @@ class Map {
     }
     eachCell(cb) {
         this.cells.forEach((cell, x, y) => cb(cell, x, y, this));
+    }
+    someCell(cb) {
+        return this.cells.some((c, x, y) => cb(c, x, y, this));
     }
     // items
     hasItem(x, y) {
@@ -5922,9 +5976,6 @@ class Map {
             if (fireEffects) {
                 this._fireAddItemEffects(item, cell);
             }
-            if (index < 0) {
-                this.trigger(new Action('place', { map: this, item }));
-            }
             return true;
         }
         return false;
@@ -5933,10 +5984,10 @@ class Map {
         if (item.key &&
             item.key.matches(cell.x, cell.y) &&
             cell.hasAction('key')) {
-            cell.trigger('key', new Action('key', { map: this, key: true, item }));
+            cell.trigger('key', { map: this, key: true, item });
         }
         else if (cell.hasAction('place')) {
-            cell.trigger('place', new Action('place', { map: this, key: true, item }));
+            cell.trigger('place', { map: this, item });
         }
     }
     addItemNear(x, y, item, fireEffects = false) {
@@ -5965,21 +6016,20 @@ class Map {
             }
             GWU.arrayDelete(this.items, item);
             item.removeFromMap();
-            this.trigger(new Action('remove', { map: this, item }));
             return true;
         }
         return false;
     }
     _fireRemoveItemEffects(item, cell) {
         if (item.isKey(cell.x, cell.y) && cell.hasAction('no_key')) {
-            cell.trigger('no_key', new Action('no_key', {
+            cell.trigger('no_key', {
                 map: this,
                 key: true,
                 item,
-            }));
+            });
         }
         else if (cell.hasAction('remove')) {
-            cell.trigger('remove', new Action('remove', { map: this, key: true, item }));
+            cell.trigger('remove', { map: this, key: true, item });
         }
     }
     moveItem(item, x, y, fireEffects = false) {
@@ -6063,7 +6113,7 @@ class Map {
                 this._fireAddActorEffects(actor, cell);
             }
             if (index < 0) {
-                this.trigger(new Action('enter', { map: this, actor }));
+                this.trigger('enter', { map: this, actor });
             }
             return true;
         }
@@ -6071,16 +6121,16 @@ class Map {
     }
     _fireAddActorEffects(actor, cell) {
         if (actor.isKey(cell.x, cell.y) && cell.hasAction('key')) {
-            cell.trigger('key', new Action('key', { map: this, key: true, actor }));
+            cell.trigger('key', { map: this, key: true, actor });
         }
         else if (actor.isPlayer() && cell.hasAction('player-enter')) {
-            cell.trigger('player-enter', new Action('player-enter', {
+            cell.trigger('player-enter', {
                 map: this,
                 actor,
-            }));
+            });
         }
         else if (cell.hasAction('enter')) {
-            cell.trigger('enter', new Action('enter', { map: this, actor }));
+            cell.trigger('enter', { map: this, actor });
         }
     }
     addActorNear(x, y, actor, fireEffects = false) {
@@ -6110,20 +6160,20 @@ class Map {
             }
             actor.removeFromMap();
             GWU.arrayDelete(this.actors, actor);
-            this.trigger(new Action('exit', { map: this, actor }));
+            this.trigger('exit', { map: this, actor });
             return true;
         }
         return false;
     }
     _fireRemoveActorEffects(actor, cell) {
         if (actor.isKey(actor.x, actor.y) && cell.hasAction('no_key')) {
-            cell.trigger('no_key', new Action('no_key', { map: this, key: true, actor }));
+            cell.trigger('no_key', { map: this, key: true, actor });
         }
         else if (actor.isPlayer() && cell.hasAction('player-exit')) {
-            cell.trigger('player-exit', new Action('player-exit', { map: this, actor }));
+            cell.trigger('player-exit', { map: this, actor });
         }
         else if (cell.hasAction('exit')) {
-            cell.trigger('exit', new Action('exit', { map: this, actor }));
+            cell.trigger('exit', { map: this, actor });
         }
     }
     moveActor(actor, x, y, fireEffects = false) {
@@ -6304,11 +6354,16 @@ class Map {
     clear() {
         this.light.glowLightChanged = true;
         // this.fov.needsUpdate = true;
-        this.layers.forEach((l) => l.clear());
+        // this.layers.forEach((l) => l.clear());
+        this.cells.forEach((c) => {
+            c.clear();
+            this.events.trigger('changed', c);
+        });
     }
     clearCell(x, y, tile) {
         const cell = this.cell(x, y);
         cell.clear(tile);
+        this.events.trigger('changed', cell);
     }
     // Skips all the logic checks and just forces a clean cell with the given tile
     fill(tile, boundary) {
@@ -6319,6 +6374,7 @@ class Map {
             for (j = 0; j < this.height; ++j) {
                 const cell = this.cells[i][j];
                 cell.clear(this.isBoundaryXY(i, j) ? boundary : tile);
+                this.events.trigger('changed', cell);
             }
         }
     }
@@ -6342,27 +6398,32 @@ class Map {
         if (opts === true) {
             opts = { superpriority: true };
         }
-        const depth = tile.depth || 0;
-        const layer = this.layers[depth] || this.layers[0];
-        if (!(layer instanceof TileLayer))
-            return false;
-        return layer.setTile(x, y, tile, opts);
-    }
-    clearTiles(x, y, tile) {
+        // const depth = tile.depth || 0;
+        // const layer = this.layers[depth] || this.layers[0];
+        // if (!(layer instanceof Layer.TileLayer)) return false;
         const cell = this.cell(x, y);
-        cell.clearTiles(tile);
+        if (cell.setTile(tile, opts)) {
+            this.events.trigger('changed', cell, opts);
+            return true;
+        }
+        return false;
     }
+    // clearTiles(x: number, y: number, tile?: TileBase) {
+    //     const cell = this.cell(x, y);
+    //     cell.clearTiles(tile);
+    // }
     tick(dt) {
         let didSomething = this._tweens.length > 0;
         this._tweens.update(dt);
-        const action = new Action('tick', { map: this });
-        this.fireAll(action);
-        didSomething || (didSomething = action.isSuccess());
-        for (let layer of this.layers) {
-            if (layer && layer.tick(dt)) {
-                didSomething = true;
-            }
+        if (this.triggerAll('tick')) {
+            didSomething = true;
         }
+        // for (let layer of this.layers) {
+        //     if (layer && layer.tick(dt)) {
+        //         didSomething = true;
+        //     }
+        // }
+        this.events.trigger('tick', dt);
         return didSomething;
     }
     copy(src) {
@@ -6373,9 +6434,9 @@ class Map {
         this.cells.forEach((c, x, y) => {
             c.copy(src.cell(x, y));
         });
-        this.layers.forEach((l, depth) => {
-            l.copy(src.layers[depth]);
-        });
+        // this.layers.forEach((l, depth) => {
+        //     l.copy(src.layers[depth]);
+        // });
         this.actors = src.actors.slice();
         this.items = src.items.slice();
         this.flags.map = src.flags.map;
@@ -6383,6 +6444,8 @@ class Map {
         this.light.copy(src.light);
         this.rng = src.rng;
         this.data = Object.assign({}, src.data);
+        src.events.trigger('assign', this);
+        this.events.trigger('copy', src);
     }
     clone() {
         // @ts-ignore
@@ -6391,45 +6454,42 @@ class Map {
         return other;
     }
     hasAction(action) {
-        return this.actions.has(action);
+        return this.events.has(action);
     }
     on(action, fn) {
-        this.actions.on(action, fn);
+        return this.events.on(action, fn);
     }
     once(action, fn) {
-        this.actions.once(action, fn);
+        return this.events.once(action, fn);
     }
     off(action, fn) {
-        this.actions.off(action, fn);
+        this.events.off(action, fn);
     }
-    trigger(ev, action) {
-        if (typeof ev !== 'string') {
-            return this.trigger(ev.action, ev);
+    trigger(ev, action = {}) {
+        if (!(action instanceof Action)) {
+            action = new Action(action);
         }
-        if (!action)
-            throw new Error('Action is required.');
-        this.actions.trigger(ev, action);
+        this.events.trigger(ev, action);
         if (action.isDone())
             return;
-        const cell = this.cell(action.x, action.y);
-        cell.trigger(ev, action);
+        if (action.x !== undefined && action.y !== undefined) {
+            const cell = this.cell(action.x, action.y);
+            cell.trigger(ev, action);
+        }
     }
-    // fire(
-    //     event: string,
-    //     x: number,
-    //     y: number,
-    //     ctx: Effect.EffectCtx = {}
-    // ): boolean {
-    //     const cell = this.cell(x, y);
-    //     return cell.fireEvent(event, ctx);
-    // }
-    fireAll(action) {
+    triggerAll(name, action = {}) {
+        if (!(action instanceof Action)) {
+            action = new Action(action);
+        }
         let didSomething = false;
         const willFire = GWU.grid.alloc(this.width, this.height);
+        action.map = this;
         // Figure out which tiles will fire - before we change everything...
         this.cells.forEach((cell, x, y) => {
             cell.clearCellFlag(Cell$1.EVENT_FIRED_THIS_TURN | Cell$1.EVENT_PROTECTED);
             cell.eachTile((tile) => {
+                if (!tile.hasAction(name))
+                    return;
                 // const effect = Effect.from(ev);
                 // if (!effect) return;
                 let promoteChance = 0;
@@ -6452,9 +6512,13 @@ class Map {
             const cell = this.cell(x, y);
             if (cell.hasCellFlag(Cell$1.EVENT_FIRED_THIS_TURN))
                 return;
-            for (let depth = 0; depth <= Depth$1.GAS; ++depth) {
+            for (let depth = 0; depth <= Depth.GAS; ++depth) {
                 if (w & GWU.flag.fl(depth)) {
-                    cell.trigger(action.action, action);
+                    cell.trigger(name, action);
+                    if (action.isSuccess()) {
+                        didSomething = true;
+                    }
+                    action.reset();
                 }
             }
         });
@@ -6866,13 +6930,13 @@ class Snapshot {
 class SnapshotManager {
     constructor(map) {
         this.version = 0;
-        this.layerVersion = [];
+        // layerVersion: number[] = [];
         this.lightVersion = 0;
         // fovVersion = 0;
         this.free = [];
         this.map = map;
         this.cellVersion = GWU.grid.make(map.width, map.height);
-        this.layerVersion = map.layers.map(() => 1);
+        // this.layerVersion = map.layers.map(() => 1);
     }
     takeNew() {
         ++this.version;
@@ -6907,15 +6971,15 @@ class SnapshotManager {
         //     snap.map.fov.copy(this.map.fov);
         // }
         // layers
-        this.map.layers.forEach((layer, index) => {
-            const snapLayer = snap.map.layers[index];
-            if (layer.changed) {
-                this.layerVersion[index] = this.version;
-            }
-            if (this.layerVersion[index] !== snap.version) {
-                snapLayer.copy(layer);
-            }
-        });
+        // this.map.layers.forEach((layer, index) => {
+        //     const snapLayer = snap.map.layers[index];
+        //     if (layer.changed) {
+        //         this.layerVersion[index] = this.version;
+        //     }
+        //     if (this.layerVersion[index] !== snap.version) {
+        //         snapLayer.copy(layer);
+        //     }
+        // });
         snap.version = this.version;
         return snap;
     }
@@ -6941,16 +7005,15 @@ class SnapshotManager {
         //     this.fovVersion = snap.version;
         // }
         // layers
-        this.layerVersion.forEach((v, index) => {
-            if (v < snap.version)
-                return;
-            const destLayer = this.map.layers[index];
-            if (v > snap.version || destLayer.changed) {
-                const srcLayer = snap.map.layers[index];
-                destLayer.copy(srcLayer);
-                this.layerVersion[index] = snap.version;
-            }
-        });
+        // this.layerVersion.forEach((v, index) => {
+        //     if (v < snap.version) return;
+        //     const destLayer = this.map.layers[index];
+        //     if (v > snap.version || destLayer.changed) {
+        //         const srcLayer = snap.map.layers[index];
+        //         destLayer.copy(srcLayer);
+        //         this.layerVersion[index] = snap.version;
+        //     }
+        // });
         this.version = snap.version;
     }
     release(snap) {
@@ -8719,9 +8782,9 @@ class Flavor extends GWU.widget.Text {
             needObjectArticle = true;
         }
         let article = standsInTile ? ' in ' : ' on ';
-        const groundTile = cell.depthTile(Depth$1.GROUND) || NULL;
-        const surfaceTile = cell.depthTile(Depth$1.SURFACE);
-        const liquidTile = cell.depthTile(Depth$1.LIQUID);
+        const groundTile = cell.depthTile(Depth.GROUND) || NULL;
+        const surfaceTile = cell.depthTile(Depth.SURFACE);
+        const liquidTile = cell.depthTile(Depth.LIQUID);
         // const gasTile = cell.depthTile(Flags.Depth.GAS);
         let surface = '';
         if (surfaceTile) {
@@ -9139,10 +9202,10 @@ class Game extends GWU.app.Scene {
         this.running = false;
         this.keymap = {};
     }
-    get width() {
+    get viewWidth() {
         return this.viewport.bounds.width;
     }
-    get height() {
+    get viewHeight() {
         return this.viewport.bounds.height;
     }
     _initMenu(_opts) { }
@@ -9191,7 +9254,7 @@ class Game extends GWU.app.Scene {
             // bottom
             const viewInit = opts.viewport;
             messOpts.x = viewInit.x;
-            messOpts.y = this.height + messOpts.archive; // length < 0
+            messOpts.y = viewInit.height + messOpts.archive; // length < 0
             messOpts.width = viewInit.width;
             messOpts.height = -messOpts.archive;
             viewInit.height -= messOpts.height;
@@ -9242,6 +9305,10 @@ class Game extends GWU.app.Scene {
         }
         const viewOpts = (opts.viewport || {});
         viewOpts.lock = true;
+        viewOpts.x = viewOpts.x || 0;
+        viewOpts.y = viewOpts.y || 0;
+        viewOpts.width = viewOpts.width || this.app.width - viewOpts.x;
+        viewOpts.height = viewOpts.height || this.app.height - viewOpts.y;
         this.viewport = new Viewport(viewOpts);
     }
     create(opts) {
@@ -9267,11 +9334,14 @@ class Game extends GWU.app.Scene {
         else if (opts.flavor === false) {
             delete opts.flavor;
         }
-        opts.viewport = (opts.viewport || {});
-        opts.viewport.x = 0;
-        opts.viewport.y = 0;
-        opts.viewport.width = this.width;
-        opts.viewport.height = this.height;
+        if (opts.viewport === true) {
+            opts.viewport = {};
+        }
+        const viewOpts = (opts.viewport = opts.viewport || {});
+        viewOpts.x = viewOpts.x || 0;
+        viewOpts.y = viewOpts.y || 0;
+        viewOpts.width = viewOpts.width || this.app.width - viewOpts.x;
+        viewOpts.height = viewOpts.height || this.app.height - viewOpts.y;
         this._initMenu(opts);
         if (opts.sidebar)
             this._initSidebar(opts);
@@ -9307,7 +9377,9 @@ class Game extends GWU.app.Scene {
         if (this.player.map !== this.map) {
             // if not, add them (where?)
             const loc = this.map.locations.start || [0, 0]; // Is top left fallback any good?
-            this.map.addActorNear(loc[0], loc[1], this.player);
+            if (!this.map.addActorNear(loc[0], loc[1], this.player)) {
+                throw new Error('Failed to find starting spot for player!');
+            }
         }
         if (this.scent) {
             this.map.drawer.scent = this.scent;

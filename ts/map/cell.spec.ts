@@ -91,7 +91,7 @@ describe('Cell', () => {
         map = Make.make(10, 10);
         const player = PLAYER.make({ name: 'Hero ' });
         const game = TEST.mockGame(map, player);
-        action = new ACTION.Action('TBD', { game, map, actor: player });
+        action = new ACTION.Action({ game, map, actor: player });
     });
 
     test('dump', () => {

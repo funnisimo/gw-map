@@ -69,7 +69,7 @@ describe('Bump', () => {
         expect(actorB.kind.bump).toEqual(['eat']);
         expect(actorA.canDoAction('eat')).toBeTruthy();
 
-        const action = new ACTION.Action('eat', {
+        const action = new ACTION.Action({
             game,
             map,
             actor: actorA,
@@ -87,7 +87,7 @@ describe('Bump', () => {
         expect(actorA.kind.bump).toEqual(['eat']);
         expect(actorB.canDoAction('eat')).toBeTrue();
 
-        const action = new ACTION.Action('eat', {
+        const action = new ACTION.Action({
             game,
             map,
             actor: actorB,
@@ -106,7 +106,7 @@ describe('Bump', () => {
         expect(actorA.kind.bump).toEqual(['eat']);
         expect(actorC.canDoAction('eat')).toBeFalse();
 
-        const action = new ACTION.Action('eat', {
+        const action = new ACTION.Action({
             game,
             map,
             actor: actorC,
@@ -124,7 +124,7 @@ describe('Bump', () => {
         expect(actorD.kind.bump).toEqual(['talk']);
         expect(actorB.canDoAction('talk')).toBeTrue();
 
-        const action = new ACTION.Action('talk', {
+        const action = new ACTION.Action({
             game,
             map,
             actor: actorB,

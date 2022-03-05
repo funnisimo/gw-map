@@ -9,7 +9,7 @@ import { Map } from '../map/map';
 
 export interface ActionOpts {
     game?: Game;
-    map: Map;
+    map?: Map;
     item?: Item;
     actor?: Actor;
     target?: Actor;
@@ -25,8 +25,6 @@ export interface ActionOpts {
 }
 
 export class Action {
-    action: string; // name of the action e.g. 'pickup'
-
     game: Game; // global game object
     map: Map;
 
@@ -70,14 +68,24 @@ export class Action {
 
     data: Record<string, any> = {};
 
-    constructor(action: string, opts: ActionOpts) {
-        this.action = action;
-        this.map = opts.map;
-        this.game = opts.game || this.map.game;
+    constructor(opts: ActionOpts) {
+        this.map = opts.map!;
 
         this.actor = opts.actor || null;
         this.item = opts.item || null;
         this.target = opts.target || null;
+
+        if (!this.map && this.actor) {
+            this.map = this.actor.map!;
+        }
+        if (!this.map && this.item) {
+            this.map = this.item.map!;
+        }
+
+        this.game = opts.game!;
+        if (!this.game && this.map) {
+            this.game = this.map.game;
+        }
 
         if (opts.x !== undefined) {
             this.x = opts.x;

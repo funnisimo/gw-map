@@ -15,8 +15,8 @@ GWM.tile.install('WAVE_DONE', {
     flags: 'T_DEEP_WATER',
     name: 'water',
     article: 'some',
-    effects: {
-        tick: { tile: 'LAKE', flags: 'E_SUPERPRIORITY, E_PROTECTED' },
+    actions: {
+        tick: { tile: '!+LAKE' },
     },
 });
 
@@ -28,16 +28,15 @@ GWM.tile.install('WAVE', {
     flags: 'T_DEEP_WATER',
     name: 'wave crest',
     article: 'the',
-    effects: {
+    actions: {
         tick: {
-            tile: {
-                id: 'WAVE',
+            spread: {
+                actions: { tile: 'WAVE' },
                 match: 'LAKE',
-                spread: 100,
+                grow: 100,
                 decrement: 100,
             },
-            flags: 'E_NEXT_ALWAYS',
-            next: { tile: 'WAVE_DONE' },
+            tile: 'WAVE_DONE',
         },
     },
 });
@@ -46,29 +45,22 @@ const map = GWM.map.make(20, 20, {
     tile: 'LAKE',
     boundary: 'WALL',
 });
-const canvas = GWU.canvas.make({
-    font: 'monospace',
+const app = GWU.app.make({
     width: map.width,
     height: map.height,
     loop: LOOP,
 });
-map.drawInto(canvas.buffer);
-canvas.buffer.render();
-SHOW(canvas.node);
+SHOW(app);
 
-LOOP.run(
-    {
-        click: async (e) => {
-            await map.setTile(e.x, e.y, 'WAVE');
-            map.drawInto(canvas.buffer);
-            canvas.buffer.render();
-        },
-        tick: async (e) => {
-            await map.tick();
-            map.drawInto(canvas.buffer);
-            canvas.buffer.render();
-        },
-    },
-    500
-);
+app.on('click', (e) => {
+    map.setTile(e.x, e.y, 'WAVE');
+});
+
+app.repeat(500, () => {
+    map.tick();
+});
+
+app.on('draw', () => {
+    map.drawInto(app.buffer);
+});
 ```

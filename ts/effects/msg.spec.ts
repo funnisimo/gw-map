@@ -23,7 +23,7 @@ describe('message', () => {
     let action: ACTION.Action;
 
     beforeEach(() => {
-        action = new ACTION.Action('test', {
+        action = new ACTION.Action({
             map: UTILS.mockMap(20, 20),
             x: 5,
             y: 6,

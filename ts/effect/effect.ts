@@ -2,7 +2,7 @@ import * as GWU from 'gw-utils';
 
 // import * as Actor from '../actor';
 // import * as Item from '../item';
-// import * as Map from '../map';
+import * as MAP from '../map';
 import * as ACTION from '../action';
 
 // ///////////////////////////
@@ -134,6 +134,20 @@ export function makeArray(
 
     const steps = Object.entries(cfg).map(([key, config]) => make(key, config));
     return steps.filter((s) => s !== null) as ACTION.ActionFn[];
+}
+
+export function trigger(
+    effect: string,
+    map: MAP.Map,
+    x: number,
+    y: number,
+    opts: Record<string, any>
+) {
+    const cfg = Object.assign({ map, x, y }, opts);
+    const action = new ACTION.Action(cfg);
+    const fn = handlers[effect];
+    if (!fn) return;
+    fn(action);
 }
 
 /*

@@ -396,7 +396,7 @@ describe('Tile', () => {
         expect(map.hasTile(5, 5, 'PORTCULLIS_CLOSED')).toBeTruthy();
         expect(map.cell(5, 5).blocksMove()).toBeTruthy();
         expect(map.cell(5, 5).blocksVision()).toBeFalsy();
-        const action = new ACTION.Action('machine', { map, x: 5, y: 5 });
+        const action = new ACTION.Action({ map, x: 5, y: 5 });
 
         map.trigger('machine', action);
         expect(map.hasTile(5, 5, 'PORTCULLIS_DORMANT')).toBeTruthy();
@@ -454,7 +454,7 @@ describe('Tile', () => {
         map.setTile(5, 5, 'WALL_LEVER', { machine: 4 });
         expect(map.hasTile(5, 5, 'WALL_LEVER')).toBeTruthy();
         expect(cell.machineId).toEqual(4);
-        const action = new ACTION.Action('player-enter', { map, x: 5, y: 5 });
+        const action = new ACTION.Action({ map, x: 5, y: 5 });
 
         map.trigger('player-enter', action);
         expect(map.hasTile(5, 5, 'WALL_LEVER_PULLED')).toBeTruthy();

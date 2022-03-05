@@ -14,7 +14,7 @@ describe('tile effect', () => {
 
     beforeEach(() => {
         map = Map.make(20, 20, 'FLOOR', 'WALL');
-        action = new ACTION.Action('tile', { map, x: 5, y: 6 });
+        action = new ACTION.Action({ map, x: 5, y: 6 });
 
         GWU.data.gameHasEnded = false;
 

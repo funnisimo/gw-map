@@ -129,12 +129,7 @@ export class Actions {
         }
     }
 
-    trigger(action: Action): boolean;
-    trigger(ev: string | string[], action: Action): boolean;
-    trigger(ev: string | string[] | Action, action?: Action): boolean {
-        if (ev instanceof Action) {
-            return this.trigger(ev.action, ev);
-        }
+    trigger(ev: string | string[], action: Action): boolean {
         if (!action) throw new Error('Need Action parameter.');
         if (Array.isArray(ev)) {
             let didSomething = false;
@@ -195,9 +190,9 @@ export function install(ev: string, fn: ActionFn) {
     global.on(ev, fn);
 }
 
-export function doAction(ev: string, action: Action | ActionOpts): void {
+export function doAction(ev: string, action: Action | ActionOpts = {}): void {
     if (!(action instanceof Action)) {
-        action = new Action(ev, action);
+        action = new Action(action);
     }
 
     if (action.actor) {

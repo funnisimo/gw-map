@@ -17,7 +17,7 @@ describe('emit', () => {
         map = Map.make(20, 20);
         const player = PLAYER.make({ name: 'Hero ' });
         const game = TEST.mockGame(map, player);
-        action = new ACTION.Action('emit', {
+        action = new ACTION.Action({
             map,
             x: 5,
             y: 6,

@@ -19,7 +19,7 @@ describe('Tile Action', () => {
         game = TEST.mockGame(map, player);
         game.map = map;
 
-        action = new ACTION.Action('TBD', {
+        action = new ACTION.Action({
             game,
             actor: player,
             map,

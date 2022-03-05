@@ -52,11 +52,11 @@ describe('Special Effects', () => {
             const item = items[i]!;
             const prevItem = items[i - 1]!;
             map.removeItem(prevItem);
-            map.addItem(item.x, item.y, prevItem);
+            map.addItem(item.x, item.y, prevItem, false);
         }
         const lastItem = items[items.length - 1]!;
         map.removeItem(lastItem);
-        map.addItem(lastLoc[0], lastLoc[1], lastItem);
+        map.addItem(lastLoc[0], lastLoc[1], lastItem, false);
 
         return action.didSomething();
     }
@@ -153,7 +153,7 @@ describe('Special Effects', () => {
     });
 
     test('swap items', () => {
-        const action = new Action.Action('setup', {
+        const action = new Action.Action({
             map,
             x: 5,
             y: 5,

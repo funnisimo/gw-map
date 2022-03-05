@@ -16,7 +16,7 @@ describe('Tile Action', () => {
         player = PLAYER.make({ name: 'Hero' });
         map = MAP.make(20, 20, 'FLOOR', 'WALL');
         game = TEST.mockGame(map, player);
-        action = new ACTION.Action('TBD', { game, actor: player, map });
+        action = new ACTION.Action({ game, actor: player, map });
     });
 
     test('eat', () => {
